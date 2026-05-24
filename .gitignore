@@ -1,0 +1,136 @@
+# ==============================================================================
+# Gitignore for Geospatial Data Science & Earth Observation Projects
+# ==============================================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Environments & Package Managers ---
+.env
+.venv
+venv/
+ENV/
+env/
+conda-env/
+.conda/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Jupyter Notebooks & IDEs ---
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+.virtual_documents/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Credentials & Secrets (CRITICAL) ---
+.netrc
+_netrc
+.env
+.env.*
+secrets.json
+credentials.json
+*creds*
+*.pem
+*.key
+*.p12
+oauth2*.json
+
+# --- Operating System ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Caching ---
+.cache/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# --- Geospatial & Large Data Formats ---
+# Raw, intermediate, and processed geospatial data files should be kept locally.
+# Large data files should never be committed to Git.
+*.tif
+*.tiff
+*.nc
+*.nc4
+*.h5
+*.hdf
+*.hdf5
+*.he5
+*.gpkg
+*.gdb/
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.fxx
+*.xml
+*.kml
+*.kmz
+*.geojson
+*.csv
+*.xlsx
+*.parquet
+*.jsonl
+*.zip
+*.tar
+*.gz
+*.rar
+
+# --- Project Specific Data & Logs Directories ---
+# Ignore all content under data/ and logs/, but preserve the directories using .gitkeep files
+data/*
+!data/raw_zips/
+!data/processed_tiffs/
+!data/qa_masks/
+
+logs/*
+!logs/.gitkeep
+
+# Ignore contents under subdirectories
+data/raw_zips/*
+!data/raw_zips/.gitkeep
+
+data/processed_tiffs/*
+!data/processed_tiffs/.gitkeep
+
+data/qa_masks/*
+!data/qa_masks/.gitkeep

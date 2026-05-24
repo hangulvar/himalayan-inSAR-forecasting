@@ -1,0 +1,37 @@
+# ==============================================================================
+# .netrc Template for Geospatial Data Sources
+# ==============================================================================
+# The .netrc file (or _netrc on Windows) is used by curl, python libraries, and
+# command-line downloaders to authenticate automatically when fetching data.
+#
+# INSTRUCTIONS FOR SETUP:
+# 1. Copy this template file to your user profile directory:
+#    - On Windows: C:\Users\<YourUsername>\_netrc   (Note the leading underscore!)
+#    - On Mac/Linux: ~/.netrc                      (Note the leading dot!)
+# 2. Open that copied file and replace the placeholder credentials below.
+# 3. Secure the file permissions:
+#    - On Mac/Linux: run `chmod 600 ~/.netrc` to ensure only you can read it.
+#    - On Windows: Secure it via file properties to only allow access to your user.
+# 4. Crucial: NEVER commit your actual .netrc or _netrc files to Git. The project
+#    .gitignore is configured to block them.
+# ==============================================================================
+
+# --- NASA Earthdata Login (required by earthaccess, SRTM, MODIS, ASTER downloads) ---
+# Sign up at: https://urs.earthdata.nasa.gov/
+machine urs.earthdata.nasa.gov
+  login YOUR_EARTHDATA_USERNAME
+  password YOUR_EARTHDATA_PASSWORD
+
+# --- Copernicus Data Space Ecosystem (CDSE) ---
+# Sign up at: https://dataspace.copernicus.eu/
+# Required for downloading Sentinel-1 (radar), Sentinel-2 (multispectral) imagery
+machine dataspace.copernicus.eu
+  login YOUR_COPERNICUS_USERNAME
+  password YOUR_COPERNICUS_PASSWORD
+
+# --- USGS EarthExplorer ---
+# Sign up at: https://earthexplorer.usgs.gov/
+# Required for downloading Landsat data and USGS DEMs
+machine ers.cr.usgs.gov
+  login YOUR_USGS_USERNAME
+  password YOUR_USGS_PASSWORD

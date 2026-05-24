@@ -1,0 +1,3 @@
+# Placeholder to keep the data/raw_zips/ directory tracked in Git.
+# Store incoming raw downloaded zips (e.g., ASF Sentinel-1 SLC zips) here.
+# This directory is gitignored to avoid pushing massive archives.

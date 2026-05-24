@@ -1,0 +1,3 @@
+# Placeholder to keep the data/qa_masks/ directory tracked in Git.
+# Store quality assurance (QA) masks and validation layers here.
+# This directory is gitignored to avoid pushing large binary mask layers.

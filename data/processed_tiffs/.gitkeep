@@ -1,0 +1,3 @@
+# Placeholder to keep the data/processed_tiffs/ directory tracked in Git.
+# Store processed GeoTIFFs (e.g., unwrapped interferograms, coherence maps, RTC images) here.
+# This directory is gitignored to avoid pushing massive raster files.

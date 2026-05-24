@@ -1,0 +1,48 @@
+# ==============================================================================
+# pip requirements.txt for Geospatial Analysis Himalayas
+# ==============================================================================
+# NOTE: Because geospatial libraries (GDAL, Fiona, Rasterio, Shapely, Pyproj)
+# require complex C++ libraries, it is HIGHLY RECOMMENDED to use Conda/Mamba
+# (via environment.yml) instead of pip, especially on Windows.
+#
+# If you must use pip, pre-compiled wheels can be installed or downloaded
+# from sites like Christoph Gohlke's archive, or by using a modern package manager
+# like 'uv' or 'pip' with pre-configured wheel repositories.
+# ==============================================================================
+
+# Core Data Science
+numpy>=1.22.0
+pandas>=1.4.0
+scipy>=1.8.0
+scikit-learn>=1.0.0
+matplotlib>=3.5.0
+seaborn>=0.11.0
+tqdm>=4.64.0
+
+# Geospatial Stack
+shapely>=2.0.0
+pyproj>=3.3.0
+fiona>=1.8.21
+rasterio>=1.2.10
+geopandas>=0.10.2
+xarray>=2022.03.0
+rioxarray>=0.11.1
+mapclassify>=2.4.3
+contextily>=1.2.0
+folium>=0.12.0
+leafmap>=0.10.0
+rtree>=1.0.0
+
+# API and Data Sourcing
+earthaccess>=0.5.0
+sentinelsat>=1.1.1
+python-dotenv>=0.20.0
+requests>=2.27.0
+h5py>=3.6.0
+netcdf4>=1.5.8
+earthengine-api>=0.1.300
+hyp3-sdk>=2.0.0
+
+# Jupyter Environment
+jupyterlab>=3.4.0
+ipywidgets>=7.7.0
