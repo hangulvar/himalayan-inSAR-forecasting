@@ -1,51 +1,19 @@
-name: himalayas-geospatial
+name: insar_qa_env
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python=3.10
-  - pip
-  
-  # Core Data Science
-  - numpy
-  - pandas
-  - scipy
-  - scikit-learn
-  - matplotlib
-  - seaborn
-  - tqdm
-  
-  # Core Geospatial Stack
-  - shapely
-  - pyproj
-  - fiona
+  - gdal=3.6.*
   - rasterio
   - geopandas
-  - xarray
-  - rioxarray
-  
-  # Geospatial Analysis & Helpers
-  - mapclassify
-  - contextily
-  - pydeck
-  - folium
-  - leafmap
-  - rtree
-  
-  # Data Access & APIs
-  - earthaccess
-  - sentinelsat
-  - python-dotenv
-  - requests
-  - h5py
-  - netcdf4
-  - hyp3_sdk
-  
-  # Jupyter & Interface
+  - shapely
+  - numpy
+  - scipy
+  - matplotlib
   - jupyterlab
-  - ipywidgets
-  
-  # Pip installations (for libraries that might not be on conda-forge or best installed via pip)
+  - python-dotenv  # Added this dependency based on the code
+  - pip
   - pip:
-      - earthengine-api
-      - odc-geo
+    - hyp3_sdk     # ASF's cloud processing submission API
+    - asf_search   # ASF's catalog querying API
