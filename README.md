@@ -2,7 +2,7 @@
 
 A comprehensive, state-of-the-art Geospatial Data Science repository dedicated to monitoring atmospheric dynamics, extreme weather occurrences, and geological hazards (such as land subsidence, landslides, and glacio-hydrological events) across the ecologically sensitive and tectonically active Western Himalayan region.
 
-This project integrates satellite remote sensing (InSAR, SAR, multispectral), meteorological datasets, and terrain models to assess environmental vulnerability, with a particular focus on case studies like **Joshimath land subsidence** and extreme precipitation hazards.
+This project integrates satellite remote sensing (InSAR, SAR, multispectral), meteorological datasets, and terrain models to assess environmental vulnerability, with a particular focus on case studies like **landslides and slope deformation in the sensitive Ramban district (Jammu & Kashmir)** and extreme precipitation hazards.
 
 ---
 
@@ -29,7 +29,7 @@ Geospatial Analysis Himalayas/
 │   └── .gitkeep
 │
 ├── Research/                    # Literature reviews, PDFs, and background docs
-│   ├── Joshimath InSAR.pdf      # Reference paper on land subsidence
+│   ├── Joshimath InSAR.pdf      # Reference paper on InSAR analysis methods
 │   ├── Meteorology.md           # Meteorological frameworks and learning assets
 │   └── ...                      # Additional weather event reports & drafts
 │
@@ -121,6 +121,21 @@ Used for specific developer access keys (Mapbox, Sentinel Hub, GCP/Google Earth 
 * **Step 1**: Copy [.env.template](.env.template) to a new file named `.env` in the root directory.
 * **Step 2**: Insert your private keys (e.g. `MAPBOX_API_TOKEN` or `EE_PROJECT_ID`). The project's `.gitignore` is pre-configured to ensure this `.env` is never committed to GitHub.
 
+### 3. Alaska Satellite Facility (ASF) HyP3 API Setup
+The **HyP3 API** is used to request cloud-based InSAR (Interferometric Synthetic Aperture Radar) processing to measure terrain changes and land subsidence.
+
+* **Authentication**: It relies on your **NASA Earthdata Account**. The `hyp3_sdk` will automatically search and read credentials from your home directory's `.netrc` (or `_netrc` on Windows) file.
+* **Automation Template**: A ready-to-run pipeline script is located at [workflows/submit_hyp3_jobs.py](workflows/submit_hyp3_jobs.py).
+* **Running the Pipeline**:
+  ```bash
+  # Activate the environment
+  conda activate himalayas-geospatial
+  
+  # Run the checker / submission demonstration
+  python workflows/submit_hyp3_jobs.py
+  ```
+  *Note: Open `workflows/submit_hyp3_jobs.py` and set `run_submission = True` to submit actual jobs. It will automatically submit Sentinel-1 IW SLC image pairs, wait for cloud processing to finish, and download the resulting unwrapped interferograms and coherence grids directly into `data/processed_tiffs/`.*
+
 ---
 
 ## 📡 Remote Sensing & Data Sources
@@ -139,7 +154,7 @@ Used for specific developer access keys (Mapbox, Sentinel Hub, GCP/Google Earth 
 ## 📈 Analysis Focus Areas
 
 1. **Synthetic Aperture Radar (SAR) & InSAR**:
-   - Utilize Sentinel-1 IW SLC data to process InSAR pairs (using tools like GMTSAR, SNAP, or MintPy) for land surface displacement tracking over Joshimath and geological faults in the Himalayas.
+   - Utilize Sentinel-1 IW SLC data to process InSAR pairs (using tools like GMTSAR, SNAP, or MintPy) for land surface displacement tracking over the landslide-prone zones of Ramban (J&K) and other active geological faults in the Himalayas.
 2. **Meteorological Hazard Indicators**:
    - Trace atmospheric water vapor, convective indicators, and extreme rainfall events linked to flash floods and cloudburst events in high-altitude catchments.
 3. **Terrain Stability Modeling**:
