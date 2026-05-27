@@ -231,6 +231,67 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ---
 
+### [2026-05-28] Silent zip corruption from HyP3 downloader (~2% rate)
+
+* **Symptom:**
+  Across two sessions and 184 downloads, **4 zips arrived truncated** but the downloader reported success. The corrupt files were 60-189 MB on disk while the real products were 210-228 MB. Subsequent extraction failed with `BadZipFile: File is not a zip file`. Affected products:
+  - Session 1: `S1AA_20250628T130444_20250710T130443_..._F190` (60 MB / actual 211 MB)
+  - Session 2: `S1AA_20250519T005937_20250612T005936_..._737E` (136 MB / actual 221 MB)
+  - Session 2: `S1AA_20250628T130444_20250803T130443_..._D7ED` (168 MB / actual 212 MB)
+  - Session 2: `S1AA_20250928T005934_20251022T005935_..._8241` (189 MB / actual 220 MB)
+
+* **Root Cause:**
+  `hyp3_sdk.Job.download_files()` writes the response stream to disk and returns the path without verifying integrity. If the underlying HTTP connection drops mid-transfer (network blip, ASF rate-limit reset, OneDrive sync interference, etc.), the partial file persists on disk with a believable-looking size. The downloader's `existing.stat().st_size > 0` skip check then preserves the corrupt file across reruns. The 2% failure rate is consistent enough across sessions to suggest it's a systemic issue with long-lived HTTP downloads on this network, not a one-off.
+
+* **Resolution:**
+  Patched `workflows/download_hyp3_products.py`:
+  1. Added `_verify_zip(path)` that runs `zipfile.ZipFile(path).testzip()` — reads the central directory and CRCs every entry.
+  2. Added `_download_one_with_retry(job, dest_dir, retries=1)` which downloads, verifies, and on corruption deletes + retries once before giving up.
+  3. In `extract_tiffs()`, a `BadZipFile` now triggers `zip_path.unlink()` so the next `--download` run picks up the gap automatically.
+  
+  Net effect: the pipeline is now self-healing for the common case (one bad transfer) and surfaces an explicit error for the rare case (two bad transfers in a row).
+
+* **Lesson:**
+  Trust HTTP downloads only after CRC-level verification of the result. The standard `stat().st_size > 0` skip heuristic is dangerous when the corruption mode is "got most of the bytes" rather than "got zero bytes". For any pipeline pulling >100 large files over a flaky network, integrity verification + automatic re-fetch is mandatory infrastructure, not a nice-to-have.
+
+---
+
+### [2026-05-27] `np.corrcoef` crashes with Windows fatal exception 0xC06D007F on large arrays
+
+* **Symptom:**
+  In `workflows/phase_elevation_audit.py`, calling `np.corrcoef(d, z)` where `d` and `z` are ~5.5M-element float64 arrays produced:
+  ```
+  Windows fatal exception: code 0xc06d007f
+
+  Current thread 0x00006ce4 (most recent call first):
+    File ".../numpy/lib/_function_base_impl.py", line 2893 in cov
+    File ".../numpy/lib/_function_base_impl.py", line 3037 in corrcoef
+  ```
+  The Python interpreter aborted without raising a Python exception; the script exited with code `-1066598273` (= `0xC07A18FF` unsigned), which masked the underlying C-level crash. No log lines were written for the first product, only the initial INFO line.
+
+* **Root Cause:**
+  `np.corrcoef` calls into `np.cov`, which on the conda-forge numpy 2.x build links to a LAPACK implementation that crashes on multi-million-element single-pass covariance computations on Windows. The crash is at C level — not in Python — so it bypasses `try/except` and produces no traceback unless `python -X faulthandler` is enabled. Reported intermittently in numpy/MKL on large geospatial workloads.
+
+* **Resolution:**
+  Replaced the call with manual Pearson r computation using only sum/mean/sqrt primitives:
+  ```python
+  z_dev = z - z.mean()
+  d_dev = d - d.mean()
+  cov_zd = float(np.mean(z_dev * d_dev))
+  var_z = float(np.mean(z_dev * z_dev))
+  var_d = float(np.mean(d_dev * d_dev))
+  r = cov_zd / (np.sqrt(var_z) * np.sqrt(var_d))
+  ```
+  These ops route through numpy's element-wise kernels, not LAPACK, and never crashed across all 68 products in the subsequent run.
+
+* **Diagnostic technique that saved time:**
+  When a Python script exits with a Windows status code but no traceback, run it with `python -X faulthandler` to force a C-level stack trace to stderr. This is how we located the offending `np.cov` line.
+
+* **Lesson:**
+  For large-array statistics on Windows + numpy 2.x, prefer manual formulas over LAPACK-backed convenience functions. Single-pass element-wise arithmetic is both more robust and trivially auditable.
+
+---
+
 ### [2026-05-27] `hyp3.find_jobs(name=X)` does exact-match, not prefix-match (dedupe silently broken)
 
 * **Symptom:**

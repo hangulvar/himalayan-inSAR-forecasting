@@ -158,6 +158,59 @@ def watch_until_done(hyp3: sdk.HyP3, jobs: sdk.Batch) -> sdk.Batch:
     return jobs
 
 
+def _verify_zip(path: Path) -> bool:
+    """Return True iff `path` is a structurally valid zip archive.
+
+    Used to catch truncated/corrupt downloads — observed at ~2% rate in this
+    project. testzip() reads the central directory and CRCs every entry, so a
+    True result means we can extract without surprises.
+    """
+    try:
+        with zipfile.ZipFile(path) as zf:
+            return zf.testzip() is None
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
+def _download_one_with_retry(
+    job: sdk.Job, dest_dir: Path, retries: int = 1
+) -> list[Path]:
+    """Download a single job's products, verifying each zip and retrying once."""
+    attempt = 0
+    while True:
+        try:
+            raw_paths = job.download_files(location=dest_dir)
+        except Exception as e:
+            logger.error(
+                f"Download failed for {job.name} ({job.job_id}) "
+                f"on attempt {attempt + 1}: {e}"
+            )
+            return []
+        paths = [Path(p) for p in raw_paths]
+
+        # Verify each zip; collect any bad ones.
+        bad = [p for p in paths if p.suffix == ".zip" and not _verify_zip(p)]
+        if not bad:
+            for p in paths:
+                logger.info(f"[DOWNLOAD]   {p.name} ({p.stat().st_size / 1e6:.1f} MB) verified")
+            return paths
+
+        for p in bad:
+            logger.warning(
+                f"Corrupt zip after download: {p.name} "
+                f"({p.stat().st_size / 1e6:.1f} MB). Deleting."
+            )
+            p.unlink(missing_ok=True)
+        attempt += 1
+        if attempt > retries:
+            logger.error(
+                f"Gave up on {job.name} ({job.job_id}) after {attempt} attempts; "
+                f"zip kept arriving corrupt. Re-run later to retry."
+            )
+            return []
+        logger.info(f"Retrying download for {job.name} (attempt {attempt + 1})...")
+
+
 def download_succeeded(jobs: sdk.Batch) -> list[Path]:
     """Download .zip products for SUCCEEDED jobs; skip any zip already on disk."""
     succeeded = [j for j in jobs if j.status_code == "SUCCEEDED"]
@@ -173,13 +226,7 @@ def download_succeeded(jobs: sdk.Batch) -> list[Path]:
             if existing.exists() and existing.stat().st_size > 0:
                 logger.info(f"[SKIP exists] {existing.name}")
                 continue
-        try:
-            paths = job.download_files(location=RAW_DIR)
-            for p in paths:
-                logger.info(f"[DOWNLOAD]   {p.name} ({p.stat().st_size / 1e6:.1f} MB)")
-                new_files.append(Path(p))
-        except Exception as e:
-            logger.error(f"Download failed for job {job.job_id} ({job.name}): {e}")
+        new_files.extend(_download_one_with_retry(job, RAW_DIR, retries=1))
     return new_files
 
 
@@ -214,7 +261,11 @@ def extract_tiffs(zip_paths: list[Path]) -> None:
                         dst.write(src.read())
                     logger.info(f"  [extract] {target.name}")
         except zipfile.BadZipFile:
-            logger.error(f"Corrupt zip: {zip_path.name} — re-download required.")
+            logger.error(
+                f"Corrupt zip during extract: {zip_path.name}. Deleting so the "
+                f"next `--download` run re-fetches it."
+            )
+            zip_path.unlink(missing_ok=True)
 
 
 # ------------------------------------------------------------------------------
