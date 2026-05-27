@@ -1,37 +1,115 @@
 # ==============================================================================
-# .netrc Template for Geospatial Data Sources
+# .netrc Template — Setup Instructions
 # ==============================================================================
-# The .netrc file (or _netrc on Windows) is used by curl, python libraries, and
-# command-line downloaders to authenticate automatically when fetching data.
 #
-# INSTRUCTIONS FOR SETUP:
-# 1. Copy this template file to your user profile directory:
-#    - On Windows: C:\Users\<YourUsername>\_netrc   (Note the leading underscore!)
-#    - On Mac/Linux: ~/.netrc                      (Note the leading dot!)
-# 2. Open that copied file and replace the placeholder credentials below.
-# 3. Secure the file permissions:
-#    - On Mac/Linux: run `chmod 600 ~/.netrc` to ensure only you can read it.
-#    - On Windows: Secure it via file properties to only allow access to your user.
-# 4. Crucial: NEVER commit your actual .netrc or _netrc files to Git. The project
-#    .gitignore is configured to block them.
+# READ ALL OF THIS BEFORE YOU TOUCH THE FILE. The Python netrc parser is
+# finicky and three things have historically broken setup. They are all easy
+# to avoid if you follow the steps below in order.
+#
+# ------------------------------------------------------------------------------
+# STEP 1 — Create the file at the right location AS A FILE (not a folder)
+# ------------------------------------------------------------------------------
+#
+# On Windows, save the file as:
+#     C:\Users\<YourUsername>\.netrc
+#
+# On macOS / Linux, save it as:
+#     ~/.netrc
+#
+# Either `_netrc` or `.netrc` works on Windows. We recommend `.netrc` because
+# it's portable across all platforms. Whichever you pick, IT MUST BE A FILE.
+# If you ever see Get-Content / Python report "permission denied" or "is a
+# directory", you accidentally created a folder named `.netrc`. Delete it and
+# create the file properly.
+#
+# Quick PowerShell sanity check:
+#     Get-Item ~/.netrc | Select-Object Attributes
+# Should print "Archive". If it prints "Directory", fix it before continuing.
+#
+# ------------------------------------------------------------------------------
+# STEP 2 — Copy ONLY the credential block below into your real .netrc
+# ------------------------------------------------------------------------------
+#
+# DO NOT copy any of these comment lines. Python's `netrc` module accepts the
+# `#` comment syntax in theory, but in practice the stdlib parser has a bug
+# where lengthy comment blocks before a `machine` entry produce cryptic errors
+# like:
+#
+#     netrc.NetrcParseError: bad toplevel token '---' (line N)
+#
+# The error message often points to the wrong line. The safe move is to
+# include only machine/login/password lines and nothing else.
+#
+# A valid .netrc looks like this (each machine on its own block):
+#
+# ------------------------------- BEGIN EXAMPLE -------------------------------
+# machine urs.earthdata.nasa.gov
+#   login YOUR_EARTHDATA_USERNAME
+#   password YOUR_EARTHDATA_PASSWORD
+# machine dataspace.copernicus.eu
+#   login YOUR_COPERNICUS_USERNAME
+#   password YOUR_COPERNICUS_PASSWORD
+# machine ers.cr.usgs.gov
+#   login YOUR_USGS_USERNAME
+#   password YOUR_USGS_PASSWORD
+# -------------------------------- END EXAMPLE --------------------------------
+#
+# Two-space indentation on `login`/`password` is optional but conventional.
+# Leading whitespace is fine. Trailing comments on the same line are NOT —
+# remove them.
+#
+# ------------------------------------------------------------------------------
+# STEP 3 — Secure the file
+# ------------------------------------------------------------------------------
+#
+# macOS / Linux:
+#     chmod 600 ~/.netrc
+#
+# Windows: the default user ACL is fine. Do NOT remove your own user from the
+# ACL; if you ever see your scripts report "Access denied" on the .netrc, run:
+#     icacls "$env:USERPROFILE\.netrc" /grant "${env:USERNAME}:(R)"
+#
+# Verify Python can read it (this is what every script actually uses):
+#     python -c "import netrc, os; print(netrc.netrc(os.path.expanduser('~/.netrc')).hosts.keys())"
+# You should see a set containing 'urs.earthdata.nasa.gov' (at minimum).
+#
+# ------------------------------------------------------------------------------
+# STEP 4 — One-time HyP3 application approval (Earthdata only)
+# ------------------------------------------------------------------------------
+#
+# Even with valid credentials, NASA Earthdata requires you to authorize each
+# downstream application against your account ONCE per account, in a browser.
+# The first time you call `hyp3_sdk.HyP3()` you'll see:
+#
+#     AuthenticationError: Pre authorization required for this application...
+#
+# Open this URL while logged into your Earthdata account and click APPROVE:
+#     https://urs.earthdata.nasa.gov/approve_app?client_id=BO_n7nTIlMljdvU6kRRB3g
+#
+# This is one-time per Earthdata account. After approval, every future SDK
+# call authenticates silently.
+#
+# ------------------------------------------------------------------------------
+# Account signup URLs (sign up first, then come back to fill credentials)
+# ------------------------------------------------------------------------------
+#   NASA Earthdata:                https://urs.earthdata.nasa.gov/
+#   Copernicus Data Space (CDSE):  https://dataspace.copernicus.eu/
+#   USGS EarthExplorer:            https://earthexplorer.usgs.gov/
+#
+# ------------------------------------------------------------------------------
+# CRITICAL — NEVER commit your real .netrc / _netrc
+# ------------------------------------------------------------------------------
+# The project .gitignore blocks these files, but double-check before pushing.
 # ==============================================================================
+#
+# ---  template body — REMOVE EVERYTHING ABOVE THIS LINE when you save your real .netrc  ---
 
-# --- NASA Earthdata Login (required by earthaccess, SRTM, MODIS, ASTER downloads) ---
-# Sign up at: https://urs.earthdata.nasa.gov/
 machine urs.earthdata.nasa.gov
   login YOUR_EARTHDATA_USERNAME
   password YOUR_EARTHDATA_PASSWORD
-
-# --- Copernicus Data Space Ecosystem (CDSE) ---
-# Sign up at: https://dataspace.copernicus.eu/
-# Required for downloading Sentinel-1 (radar), Sentinel-2 (multispectral) imagery
 machine dataspace.copernicus.eu
   login YOUR_COPERNICUS_USERNAME
   password YOUR_COPERNICUS_PASSWORD
-
-# --- USGS EarthExplorer ---
-# Sign up at: https://earthexplorer.usgs.gov/
-# Required for downloading Landsat data and USGS DEMs
 machine ers.cr.usgs.gov
   login YOUR_USGS_USERNAME
   password YOUR_USGS_PASSWORD

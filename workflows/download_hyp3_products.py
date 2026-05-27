@@ -89,7 +89,8 @@ def authenticate() -> sdk.HyP3:
     """Authenticate to HyP3 — fatal on failure (download requires creds)."""
     try:
         hyp3 = sdk.HyP3()
-        logger.info(f"Authenticated as: {hyp3.username}")
+        user_id = hyp3.my_info().get("user_id", "<unknown>")
+        logger.info(f"Authenticated as: {user_id}")
         return hyp3
     except Exception as e:
         logger.critical(
@@ -101,13 +102,23 @@ def authenticate() -> sdk.HyP3:
 
 
 def fetch_jobs(hyp3: sdk.HyP3, name_filter: str | None) -> sdk.Batch:
-    """Fetch jobs matching the given name prefix (None = all under the account)."""
+    """Fetch jobs matching the given name prefix (None = all under the account).
+
+    NOTE: hyp3_sdk's `find_jobs(name=X)` does EXACT-name match server-side, so
+    we always fetch all jobs and prefix-filter client-side.
+    """
     try:
-        jobs = hyp3.find_jobs(name=name_filter) if name_filter else hyp3.find_jobs()
+        jobs = hyp3.find_jobs()
     except HyP3Error as e:
         logger.error(f"find_jobs failed: {e}")
         sys.exit(1)
-    logger.info(f"Fetched {len(jobs)} jobs (filter name={name_filter!r}).")
+    if name_filter:
+        filtered = sdk.Batch([j for j in jobs if j.name and j.name.startswith(name_filter)])
+        logger.info(
+            f"Fetched {len(jobs)} jobs total; {len(filtered)} match prefix {name_filter!r}."
+        )
+        return filtered
+    logger.info(f"Fetched {len(jobs)} jobs (no name filter).")
     return jobs
 
 
@@ -236,10 +247,10 @@ def main() -> int:
     hyp3 = authenticate()
 
     try:
-        quota = hyp3.check_quota()
-        logger.info(f"Remaining HyP3 credits: {quota}")
+        credits = hyp3.check_credits()
+        logger.info(f"Remaining HyP3 credits: {credits}")
     except Exception as e:
-        logger.warning(f"Could not check quota: {e}")
+        logger.warning(f"Could not check credits: {e}")
 
     jobs = fetch_jobs(hyp3, args.name)
     if len(jobs) == 0:

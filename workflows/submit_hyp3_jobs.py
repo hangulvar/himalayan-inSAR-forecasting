@@ -208,19 +208,34 @@ def build_consecutive_pairs(
 # 5. Dedupe against existing HyP3 jobs
 # ------------------------------------------------------------------------------
 def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[frozenset]:
-    """Return a set of {granule1, granule2} frozensets already submitted."""
+    """Return a set of {granule1, granule2} frozensets for jobs whose name starts
+    with the given prefix.
+
+    NOTE: hyp3_sdk's `find_jobs(name=X)` does EXACT-name match server-side, not
+    prefix match. Since our submission names are e.g. `Ramban_NH44_ASCENDING_
+    path100_frame102`, server-side filtering by `Ramban_NH44` would return zero
+    jobs. We therefore fetch all jobs and prefix-filter client-side. Cheap for
+    an account with <few-thousand historical jobs; revisit if this grows.
+    """
     signatures: set[frozenset] = set()
     try:
-        jobs = hyp3.find_jobs(name=name_prefix)
+        jobs = hyp3.find_jobs()
     except Exception as e:
         logger.warning(f"Could not fetch existing jobs for dedupe: {e}")
         return signatures
 
+    matched = 0
     for job in jobs:
+        if not (job.name and job.name.startswith(name_prefix)):
+            continue
+        matched += 1
         granules = job.job_parameters.get("granules") if job.job_parameters else None
         if granules and len(granules) >= 2:
             signatures.add(frozenset(granules[:2]))
-    logger.info(f"Found {len(signatures)} existing job signatures under prefix '{name_prefix}'.")
+    logger.info(
+        f"Dedupe scan: {matched} existing jobs under prefix '{name_prefix}', "
+        f"{len(signatures)} unique pair signatures."
+    )
     return signatures
 
 
@@ -330,7 +345,8 @@ def main() -> int:
     logger.info("Authenticating with ASF HyP3...")
     try:
         hyp3 = sdk.HyP3()
-        logger.info(f"Authenticated as: {hyp3.username}")
+        user_id = hyp3.my_info().get("user_id", "<unknown>")
+        logger.info(f"Authenticated as: {user_id}")
     except Exception as e:
         auth_error = str(e)
         if args.submit:
@@ -346,12 +362,12 @@ def main() -> int:
 
     if hyp3 is not None:
         try:
-            quota = hyp3.check_quota()
+            credits = hyp3.check_credits()
             logger.info(
-                f"Remaining HyP3 credits: {quota}  (planned jobs: {len(all_pairs)})"
+                f"Remaining HyP3 credits: {credits}  (planned jobs: {len(all_pairs)})"
             )
         except Exception as e:
-            logger.warning(f"Could not check quota: {e}")
+            logger.warning(f"Could not check credits: {e}")
         existing = fetch_existing_pair_signatures(hyp3, JOB_NAME_PREFIX)
 
     # --- 6. Submit (or dry-run) ------------------------------------------------
