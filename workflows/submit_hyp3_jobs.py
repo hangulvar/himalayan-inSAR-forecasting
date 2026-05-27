@@ -111,7 +111,8 @@ def load_aoi_geometry(geojson_path: Path) -> BaseGeometry:
         gdf = gdf.to_crs(4326)
 
     # Dissolve multiple features into a single geometry for catalog query.
-    geom = gdf.geometry.unary_union
+    # union_all() replaces the deprecated unary_union attribute in geopandas 1.x.
+    geom = gdf.geometry.union_all()
     logger.info(f"AOI loaded: {geom.geom_type}, bounds={geom.bounds}")
     return geom
 
@@ -146,18 +147,25 @@ def search_sentinel1_slc(
 def partition_by_flight_direction(
     scenes: Iterable[asf.ASFProduct],
 ) -> dict[str, list[asf.ASFProduct]]:
-    """Group scenes by flightDirection AND by pathNumber within each direction.
+    """Group scenes by flightDirection, pathNumber, AND frameNumber.
 
-    Mixing ASCENDING + DESCENDING in a single interferogram is physically
-    invalid (opposite look vectors). We also split by relative orbit (path)
-    because frames from different paths cover different ground geometry.
+    Three rules:
+      * Mixing ASCENDING + DESCENDING is physically invalid (opposite look
+        vectors), so direction is the hardest split.
+      * Different relative orbits (paths) image the AOI from different
+        geometries — pair only within the same path.
+      * The AOI can straddle a frame boundary, returning multiple adjacent
+        frames per acquisition. Pairing across frames produces interferograms
+        only over the small overlap region; we keep frames separated so each
+        bucket covers a consistent footprint.
     """
     buckets: dict[str, list[asf.ASFProduct]] = {}
     for scene in scenes:
         props = scene.properties
         direction = (props.get("flightDirection") or "UNKNOWN").upper()
         path = props.get("pathNumber")
-        key = f"{direction}_path{path}"
+        frame = props.get("frameNumber")
+        key = f"{direction}_path{path}_frame{frame}"
         buckets.setdefault(key, []).append(scene)
 
     # Sort each bucket chronologically by start time (ascending).
@@ -313,24 +321,38 @@ def main() -> int:
     logger.info(f"TOTAL planned interferograms: {len(all_pairs)}")
 
     # --- 5. Auth + dedupe ------------------------------------------------------
+    # In dry-run mode, HyP3 auth and dedupe are best-effort — the user mainly
+    # wants to preview the planned pair list. Auth must succeed for --submit.
+    hyp3: sdk.HyP3 | None = None
+    existing: set[frozenset] = set()
+    auth_error: str | None = None
+
     logger.info("Authenticating with ASF HyP3...")
     try:
         hyp3 = sdk.HyP3()
         logger.info(f"Authenticated as: {hyp3.username}")
     except Exception as e:
-        logger.critical(
-            "HyP3 auth failed. Ensure NASA Earthdata credentials are in "
-            f"~/_netrc (Windows) or ~/.netrc. Detail: {e}"
+        auth_error = str(e)
+        if args.submit:
+            logger.critical(
+                "HyP3 auth failed and --submit was requested. Fix NASA Earthdata "
+                f"credentials in ~/_netrc (Windows) or ~/.netrc. Detail: {e}"
+            )
+            return 1
+        logger.warning(
+            f"HyP3 auth failed (non-fatal in dry-run): {e}. "
+            "Dedupe and quota checks will be skipped."
         )
-        return 1
 
-    try:
-        quota = hyp3.check_quota()
-        logger.info(f"Remaining HyP3 credits: {quota}  (planned jobs: {len(all_pairs)})")
-    except Exception as e:
-        logger.warning(f"Could not check quota: {e}")
-
-    existing = fetch_existing_pair_signatures(hyp3, JOB_NAME_PREFIX)
+    if hyp3 is not None:
+        try:
+            quota = hyp3.check_quota()
+            logger.info(
+                f"Remaining HyP3 credits: {quota}  (planned jobs: {len(all_pairs)})"
+            )
+        except Exception as e:
+            logger.warning(f"Could not check quota: {e}")
+        existing = fetch_existing_pair_signatures(hyp3, JOB_NAME_PREFIX)
 
     # --- 6. Submit (or dry-run) ------------------------------------------------
     submitted = 0
@@ -353,6 +375,7 @@ def main() -> int:
             logger.info(f"[DRY-RUN]      {bucket_key}  {ref_name} -> {sec_name}")
             continue
 
+        assert hyp3 is not None  # guaranteed: --submit + failed auth returns earlier
         logger.info(f"[SUBMIT]       {bucket_key}  {ref_name} -> {sec_name}")
         job = submit_with_retry(hyp3, ref_name, sec_name, job_name)
         if job is None:
@@ -374,6 +397,12 @@ def main() -> int:
             f"DRY-RUN complete. {len(all_pairs)} pair(s) planned, "
             f"{skipped_dupes} would be skipped as duplicates."
         )
+        if auth_error:
+            logger.warning(
+                "Dedupe was SKIPPED because HyP3 auth failed. Fix this before "
+                "running --submit, or duplicate jobs will be queued. "
+                f"Detail: {auth_error}"
+            )
         logger.info("Re-run with --submit to actually queue jobs.")
 
     return 0 if failed == 0 else 2

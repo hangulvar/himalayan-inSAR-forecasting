@@ -134,3 +134,6 @@ data/processed_tiffs/*
 
 data/qa_masks/*
 !data/qa_masks/.gitkeep
+
+#CLAUDE-2.0-2024-06-11
+CLAUDE.md
