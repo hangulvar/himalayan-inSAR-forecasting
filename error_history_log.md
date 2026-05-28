@@ -231,6 +231,39 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ---
 
+### [2026-05-28] Matplotlib `savefig` crashes inside `patches.draw` on numpy 2.x + Windows
+
+* **Symptom:**
+  Any matplotlib `savefig()` call in `workflows/sbas_network_graph.py` produced:
+  ```
+  Windows fatal exception: code 0xc06d007f
+
+  Current thread 0x... (most recent call first):
+    File ".../matplotlib/transforms.py", line 2437 in get_affine
+    File ".../matplotlib/transforms.py", line 2438 in get_affine    (recursive)
+    File ".../matplotlib/patches.py", line 641 in draw
+    File ".../matplotlib/figure.py", line 3263 in draw
+    File ".../matplotlib/backends/backend_agg.py", line 382 in draw
+    File ".../matplotlib/figure.py", line 3497 in savefig
+  ```
+  Verified with a three-point `ax.plot([1,2,3],[1,4,9])` smoke test — even the most trivial plot crashes during the savefig draw phase. The Python process exits with status `-1066598273` and no Python traceback unless `python -X faulthandler` is enabled.
+
+* **Root Cause:**
+  matplotlib 3.10.x on the conda-forge build picks up the same Intel MKL stack that broke `np.corrcoef` in the audit script (see prior entry). `patches.draw` calls into `transforms.get_affine`, which recurses through affine composition — that path includes a 2×2 matrix inversion that lands in LAPACK. On Windows with numpy 2.x + MKL the LAPACK call aborts at C level, regardless of the matplotlib backend (Agg, SVG, or PyQt5 all crash the same way). PyQt5 also isn't installed in this env, which produced a separate but cosmetic 0xC0000139 on the first invocation.
+
+* **Resolution:**
+  Sidestepped matplotlib entirely for `sbas_network_graph.py`. Rewrote the renderer to emit standalone SVG via stdlib string concatenation — no LAPACK in the draw path, no font metrics computation, no backend selection. Outputs are `data/qa_masks/_network_graphs/<stack>.svg` plus a self-contained `index.html` that embeds all 5 SVGs.
+
+  Tradeoffs accepted: no `tight_layout` (used explicit `subplots_adjust`-style margins in SVG instead), no built-in legend object (rendered manually with `<line>` + `<text>`), no interactive picking (added `<title>` tooltips per node instead — show on hover in any browser).
+
+* **Why we didn't downgrade matplotlib/numpy instead:**
+  The conda env was just stabilised after weeks of resolving the OneDrive sync issue and the old conda 4.12 solver hangs. Downgrading numpy below 2.0 would cascade into rasterio, geopandas, scipy, and asf_search version pins that all depend on numpy ≥2. Rolling our own SVG was 200 lines and one debugging cycle vs an indefinite env-rebuild rabbit hole. Documenting the workaround is cheaper than fighting the binary stack.
+
+* **Lesson:**
+  When a heavy plotting library crashes at C level inside graphics primitives on a specific platform, generating SVG from stdlib is often less effort than the chain of dependency-pinning needed to make the library work. SVG also has the side benefit of being scriptable, scalable, scriptable, and InSAR-community standard for baseline diagrams.
+
+---
+
 ### [2026-05-28] Silent zip corruption from HyP3 downloader (~2% rate)
 
 * **Symptom:**
