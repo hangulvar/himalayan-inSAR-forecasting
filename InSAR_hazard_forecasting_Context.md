@@ -1,6 +1,6 @@
 Created: 2026-05-24 · Last reviewed: 2026-05-29
-Status: LIVING DOCUMENT — mid-MVP snapshot. To be fully re-updated once the entire MVP is built end-to-end.
-Tags: #insar #hazard #ramban #roadmap
+Status: LIVING DOCUMENT — **full end-to-end MVP COMPLETE** (Phases 1–4, pathfinder stack `ASC_path27_frame106`). Body synced to reality 2026-05-29. Future revisions track production hardening (MintPy, all 5 stacks, finer DEM, live weather).
+Tags: #insar #hazard #ramban #roadmap #mvp-complete
 ___
 # **InSAR Hazard Forecasting — Project Context & Roadmap**
 
@@ -20,18 +20,36 @@ In the Himalayas, atmospheric noise is brutal, vegetation causes rapid decorrela
 |---|---|---|
 | **Phase 1 — Data Pipeline & Integrity Check** | Extract Sentinel-1, mask noise, audit atmosphere, verify network | ✅ **COMPLETE** |
 | **Phase 2 — SBAS Velocity Inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ **PATHFINDER COMPLETE** (1 of 5 stacks); multi-stack + mosaic pending |
-| **Phase 3 — Geomechanical Engine** | Infinite Slope model → Factor of Safety, fed by InSAR velocity | ⏳ **NEXT** |
-| **Phase 4 — Agentic Orchestration & Visualization** | The autonomous warning system + 3-D UI | 🔮 **FUTURE** |
+| **Phase 3 — Geomechanical Engine** | Infinite Slope model → Factor of Safety, fused with InSAR velocity into a hazard map | ✅ **PATHFINDER COMPLETE** (1 of 5 stacks) |
+| **Phase 4 — Agentic Orchestration & Visualization** | Part A: agentic warning system (alerts + dashboard) ✅ ; Part B: interactive 3-D explorer ✅ | ✅ **PARTS A & B COMPLETE** |
+
+> **🎉 The full end-to-end MVP is complete and demo-able:** raw radar → clean
+> data → LOS velocity → hazard map → **automated, explainable alerts → interactive
+> 3-D explorer**, on the `ASC_path27_frame106` pathfinder stack. The deterministic
+> 3-agent orchestrator (`agentic_orchestrator.py`) turns rainfall scenarios into
+> geolocated alerts (dry → 29 zones; monsoon → 222), and `build_3d_dashboard.py`
+> renders them on the 3-D terrain. **No new conceptual pieces remain** — all
+> remaining work is *hardening* (MintPy, finer DEM, all 5 stacks, full APS) and
+> *going live* (real weather, real flow-routing for LLOF, an LLM reasoning layer,
+> a hosted UI). See the **Post-MVP Roadmap** at the foot of this document.
 
 **Area of Interest:** the **NH-44 corridor through Ramban, Jammu & Kashmir**
 (`ramban_aoi.geojson`, ~20×22 km over the Chenab valley). *(Note: the original
 draft of this document proposed the Mandakini/Joshimath valley; we switched to
 Ramban for its documented NH-44 slope failures and sharp ridge geometry.)*
 
-**Immediate next move:** build a thin end-to-end MVP — push the single working
-velocity stack through a crude Phase 3 Factor-of-Safety calc to get a first
-complete data→hazard output — *before* widening Phase 2 to all stacks. (See the
-process rationale in `session_journey.md`, Session 3.)
+**Where the project stands now:** the thin end-to-end MVP is **built and
+demonstrable** on the pathfinder stack — raw radar → clean data → velocity →
+hazard map → explainable alerts → interactive 3-D explorer. The MVP-first bet
+paid off: completing the whole chain on one slice exposed the real weak links
+(coarse 80 m slope, ~30 mm/yr velocity noise, sparse coverage) instead of us
+guessing.
+
+**Immediate next move (post-MVP):** *deepen trust before scaling presentation.*
+The first hardening task is the **MintPy migration** (in a separate env, cross-
+validated against the custom inverter on `frame106`), then widen to all 5 stacks
+and adopt the 12.5 m DEM. See the consolidated **Post-MVP Roadmap** at the end of
+this document, and `SESSION_REVIEW.md` for the live next-step recommendation.
 
 ---
 
@@ -46,13 +64,13 @@ The novelty here is to build an **Autonomous Agentic Orchestrator** — a multi-
     $$\gamma = \frac{|\langle S_1 S_2^* \rangle|}{\sqrt{\langle |S_1|^2 \rangle \langle |S_2|^2 \rangle}}$$
 
     If $\gamma$ drops below a strict threshold (0.4) due to heavy Himalayan vegetation, it masks that data out and refuses to pass noise downstream.
-    *➤ Status: this agent's **function** is built as scripts (`submit_hyp3_jobs.py`, `download_hyp3_products.py`, `feature_engineering.py`, `phase_elevation_audit.py`). It is not yet an autonomous LLM agent — that wrapping comes in Phase 4.*
+    *➤ Status: ✅ **BUILT.** Its function is the Phase 1–2 scripts (`submit_hyp3_jobs.py`, `download_hyp3_products.py`, `feature_engineering.py`, `phase_elevation_audit.py`, `custom_sbas_inverter.py`), and it is wrapped as the `InSARAuditor` class inside the Phase-4A orchestrator. Still a deterministic module, not an LLM — an LLM wrapping is a future upgrade.*
 
-- **Agent 2: The Meteorological Trigger.** Monitors the Copernicus CDS API for Western Disturbances and extreme rainfall, downscaling to the 12.5 m DEM grid. *➤ Status: not started.*
+- **Agent 2: The Meteorological Trigger.** Monitors the Copernicus CDS API for Western Disturbances and extreme rainfall, downscaling to the DEM grid. *➤ Status: ✅ **BUILT (MVP form).** Implemented as the `MeteorologicalTrigger` class with mock rainfall scenarios (dry / monsoon / extreme) that set assumed saturation and select the matching Factor-of-Safety layer. Live Copernicus CDS ingestion is deferred to hardening.*
 
-- **Agent 3: The Cascading Reasoner.** If Agent 1 detects slope creep (e.g. −25 mm/year) and Agent 2 forecasts 150 mm of rain, Agent 3 runs the Infinite Slope equation. If the slope fails _and_ sits above a river, it flags a potential Landslide Lake Outburst Flood (LLOF) downstream. *➤ Status: not started; the geomechanical core arrives in Phase 3.*
+- **Agent 3: The Cascading Reasoner.** If Agent 1 detects slope creep (e.g. −25 mm/year) and Agent 2 forecasts heavy rain, Agent 3 runs the Infinite Slope equation. If the slope fails _and_ sits above a river, it flags a potential Landslide Lake Outburst Flood (LLOF) downstream. *➤ Status: ✅ **BUILT.** Implemented as the `CascadingReasoner` class: fuses creep + instability (FS < 1 AND velocity < −15 mm/yr), clusters pixels into geolocated alert zones, and applies a heuristic LLOF flag (TWI valley proxy). Real flow-routing for LLOF is deferred.*
 
-This architecture prevents the "garbage in, garbage out" problem that plagues remote sensing, while pushing the boundaries of automated disaster forecasting.
+This architecture prevents the "garbage in, garbage out" problem that plagues remote sensing, while pushing the boundaries of automated disaster forecasting. **All three agents now run** as a deterministic, offline, reproducible pipeline (`agentic_orchestrator.py`); upgrading the reasoning layer to a real/hybrid LLM is a documented future step.
 
 ---
 
@@ -155,43 +173,175 @@ noise floor ~30 mm/yr — good for catching dramatic movers, not yet subtle ones
 handle the descending stacks (`frame479` needs SVD; `frame484` is a period-split
 case); decide if the noise floor warrants the full APS filter.
 
----
-
-### ⏳ Phase 3 — The Geomechanical Engine  *(NEXT)*
-
-**Goal:** physicalize the risk — calculate whether a slope is actively failing.
-
-**Planned steps:**
-1. Download the **12.5 m ALOS PALSAR DEM** for the Ramban bounding box (via
-   Google Earth Engine or ASF). *Open decision: resample the 80 m InSAR up to
-   12.5 m, or the DEM down to 80 m — see `SESSION_REVIEW.md` open questions.*
-2. Derive **slope angle** and **Topographic Wetness Index (TWI)** from the DEM
-   (`RichDEM` / `xarray-spatial`).
-3. Implement the **1-D Infinite Slope model** to output a **Factor of Safety
-   (FS)**, using the filtered InSAR LOS velocity as an active-stress signal.
-
-**MVP framing:** the immediate goal is a *crude* end-to-end FS map over the one
-working stack — a first complete data→hazard output — before refining any phase
-to production quality.
+**Tooling decision — migrate to MintPy for production (post-MVP).** The custom
+inverter (`custom_sbas_inverter.py`) is kept for the MVP because it works and is
+fully understood. But **MintPy** — the peer-reviewed field-standard SBAS package
+— is the intended production engine: it ingests ASF HyP3 products directly
+(`prep_hyp3`) and natively provides what we currently lack (full ERA5
+tropospheric correction, DEM-error correction, weighted inversion, and SVD for
+the rank-deficient descending stacks). Plan: finish the MVP on the custom
+inverter, then make the MintPy migration the **first production-hardening task**,
+installed in a **separate env / WSL** (Windows is second-class for it — must not
+destabilize `insar_qa_env`) and **cross-validated against the custom result** on
+`frame106`. This also strengthens the public-release narrative: *built our own to
+learn the mechanics, then migrated to / validated against the standard tool.*
 
 ---
 
-### 🔮 Phase 4 — Agentic Orchestration & Visualization (the Warning System)  *(FUTURE)*
+### ✅ Phase 3 — The Geomechanical Engine  *(PATHFINDER COMPLETE)*
+
+**Goal:** physicalize the risk — calculate whether a slope is actively failing,
+and fuse that physics with the measured InSAR creep.
+
+**What was actually built** (`geomechanical_engine.py`, on `ASC_path27_frame106`):
+
+1. **DEM → master grid.** Reprojected the **bundled 80 m HyP3 DEM** onto the
+   Phase-2 velocity grid (no GEE/download for the MVP). *Decision: use the
+   already-co-registered 80 m DEM now; the 12.5 m ALOS DEM is a hardening upgrade.*
+2. **Slope angle** from the DEM via `numpy` gradients (no `RichDEM`/`xarray-spatial`
+   dependency).
+3. **Topographic Wetness Index (TWI)** via a self-contained D8 flow accumulation
+   (MVP-grade; documented as approximate).
+4. **1-D Infinite Slope Factor of Safety** for two saturations —
+   `FS = [c' + (γ − m·γ_w)·z·cos²β·tanφ'] / [γ·z·sinβ·cosβ]` — with **m=0 (dry)**
+   and **m=1 (saturated/monsoon)**. Soil parameters are literature defaults
+   (c'=5 kPa, φ=32°, γ=19 kN/m³, z=3 m), all CLI-overridable.
+5. **Hazard fusion (headline):** a 3-class map where **HIGH = FS_saturated < 1.0
+   AND measured creep < −15 mm/yr**, WATCH = one condition, LOW = neither.
+
+**Deliverables produced** (in `data/hazard/`): `..._slope_deg.tif`, `..._twi.tif`,
+`..._FS_dry.tif`, `..._FS_saturated.tif`, `..._hazard_class.tif`.
+
+**Results:** slope median 28° (steep, sane); **FS_dry 13% unstable vs
+FS_saturated 73% unstable** — the monsoon flip *is* the hazard story; ~2,600 HIGH
+pixels (unstable AND creeping).
+
+**Refinements / deviations from the original plan:**
+- **80 m DEM, not 12.5 m** (MVP) — under-resolves slope, biasing FS toward
+  "stable." Documented limitation; 12.5 m is the planned upgrade.
+- **Velocity is a separate evidence layer, not a term inside FS** — the honest
+  reading of "active stress multiplier," and it matches the Phase-4 alert rule.
+- **Soil parameters are assumptions**, so the FS map is a *relative* screening
+  tool; we lean on the measured-motion half of the hazard rule.
+
+**Key MVP finding:** the HIGH class is noisy (many isolated single-pixel specks),
+because saturated-FS flags 73% of slopes — so the fusion is dominated by "wherever
+creep was measured." This *is* the MVP exposing its weak links (coarse slope,
+velocity noise). Phase 4A's clustering (≥3 px) addresses the specks.
+
+---
+
+### ✅ Phase 4 — Agentic Orchestration & Visualization (the Warning System)  *(PARTS A & B COMPLETE)*
 
 **Goal:** connect the static models into a dynamic, reasoning system, and surface
 its findings.
 
-**Planned steps:**
-1. Wrap the Phase 1–3 scripts as tools for an orchestrator (LangChain / AutoGen /
-   a custom Python loop).
-2. An LLM agent periodically reviews outputs with a rule like: *"If Factor of
-   Safety < 1.0 AND recent InSAR velocity exceeds −15 mm/yr, issue a High-Risk
-   Alert"* — emitting a structured JSON alert (coordinates, trigger reason,
-   downstream risk).
-3. Add the Meteorological Trigger (Agent 2) to fuse rainfall/Western-Disturbance
-   forecasts.
-4. Build a 3-D interface (`Streamlit` + `Pydeck`/WebGL): drape the DEM, overlay
-   high-risk pixels in red, and show the agent's live reasoning in a sidebar.
+#### Part A — The Agentic Warning System  *(`agentic_orchestrator.py`)*
+
+A **deterministic** orchestrator (offline, reproducible, no LLM/API keys)
+embodying the 3-agent vision as Python classes:
+- **InSARAuditor** flags confident creep from the velocity + temporal-coherence rasters.
+- **MeteorologicalTrigger** turns a mock rainfall scenario (dry/monsoon/extreme)
+  into a saturation assumption → selects the matching FS layer.
+- **CascadingReasoner** fires alerts where FS < 1 AND creep, clusters pixels into
+  zones (drops < 3 px specks), geolocates each (UTM→lon/lat), writes plain-English
+  reasoning, and applies the heuristic LLOF flag.
+
+**Deliverables** (per scenario, in `data/alerts/`): `alerts_<sc>.json` (structured),
+`alert_report_<sc>.md` (briefing), `dashboard_<sc>.html` (self-contained 2-D map +
+reasoned alert cards). **The cascade is visible:** dry → 29 alert zones,
+monsoon → 222.
+
+#### Part B — Interactive 3-D Hazard Explorer  *(`build_3d_dashboard.py`)*
+
+A single self-contained **Plotly.js (CDN) HTML** (`data/alerts/dashboard_3d.html`):
+draped 3-D terrain, a toggle-able measured-creep overlay, per-scenario alert
+markers with hover reasoning, and scenario buttons.
+
+**Deviation from the literal spec:** built as a static Plotly HTML instead of a
+**Streamlit + Pydeck** app — zero new Python deps, never touches `insar_qa_env`,
+same WebGL 3-D experience, verifiable as a file. A hosted Streamlit version
+remains a future option in a separate env.
+
+**MVP caveats (both parts):** deterministic rules (not yet an LLM); mock rainfall
+(not live forecasts); velocity coverage ~14% (unmeasured ≠ safe); LLOF is a TWI
+heuristic; single ascending stack.
+
+---
+
+## 🔭 Post-MVP Roadmap (what's next, consolidated)
+
+The core vision is fully built and demonstrable; **no new conceptual pieces remain
+to invent.** Remaining work is *infrastructure*, *deepening trust*, and *deployment*:
+
+**0. Infrastructure & portability (do FIRST — assessed Session 7, 2026-05-29):**
+
+0a. **Containerize on Linux (Docker).** Strongly recommended as the opening move,
+   ahead of MintPy. Rationale: **nearly every multi-hour bug in
+   `error_history_log.md` is Windows-specific** (the `0xC06D007F` BLAS-DLL crash,
+   the matplotlib draw crash, conda-4.12 solver hangs, the cp1252 logging error,
+   `_netrc`-as-a-folder). A Linux container eliminates that entire class, is the
+   platform MintPy is developed/tested on, and **is the "separate env" done
+   properly** — reproducible and portable. Notes: base on miniforge/micromamba +
+   `environment.yml` + a pinned lockfile; **mount `data/` (~73 GB) as a volume,
+   never bake it into the image**; mount `~/.netrc` read-only for Phase-1 ASF
+   access; on Windows run via Docker Desktop (WSL2). The Dockerfile + lock also
+   becomes the definitive **public-release reproducibility artifact**. (The
+   in-script Windows DLL bootstrap becomes a harmless no-op on Linux.)
+
+0b. **AOI-parameterization refactor.** The pipeline is currently **hardwired to
+   Ramban** — a new AOI runs the first step then breaks, and even Ramban only runs
+   one stack end-to-end today. Needs: (i) a `config.yaml` for AOI path, job-name
+   prefix, time window and baseline rules (replacing the hardcoded
+   `ramban_aoi.geojson` / `Ramban_NH44`); (ii) a single shared `stacks.py` that
+   derives stack labels from product **metadata** (pathNumber/frameNumber) rather
+   than the Ramban-orbit-specific acquisition time-of-day codes in `stack_key()`
+   (duplicated across ~5 files); (iii) an **automated** connectivity-rescue step —
+   `apply_connectivity_rescues.py` currently hardcodes a Ramban product-ID list,
+   so it must auto-select lowest-R² bridging CONCERN pairs instead; (iv) a
+   **multi-stack driver + mosaic** (Phases 2–4 default to a single stack). Fold in
+   the still-unenforced <150 m perpendicular-baseline rule here too.
+
+   **AOI guidance (assessed Session 8) — *targeting, not precision*.** A better
+   AOI improves *what ground we look at*, **not** measurement quality. It will
+   **not** lower the ~30 mm/yr noise floor, improve the 80 m resolution, or fill
+   vegetation coverage gaps (those are fixed by 12.5 m DEM + full APS + MintPy,
+   not the polygon). What it *does* improve: scene/stack selection and analysis
+   focus. So draw a **domain-informed** polygon that hugs the NH-44 corridor, the
+   **slopes above the road**, and the **Chenab river reach** (needed for the
+   downstream/LLOF logic) — not an arbitrary rectangle. Notes: bigger ≠ better
+   (more frames = more HyP3 credits + more stacks); extra coordinate *precision*
+   is irrelevant (Sentinel-1 frames are ~250 km) — *placement and shape* are what
+   matter. **Workflow:** draw the polygon in **Google Earth Pro** (Add → Polygon),
+   Save As `.kml`, then convert to GeoJSON
+   (`geopandas.read_file('aoi.kml').to_file('ramban_aoi.geojson', driver='GeoJSON')`,
+   or QGIS as a reliable fallback); GE Pro polygons are already WGS84/EPSG:4326,
+   which the submitter expects. **Bundle this with the next HyP3 pull** — changing
+   the AOI forces a full Phase-1 re-run (credits + hours of download), so refine
+   the AOI *once*, together with this refactor. A refined polygon that stays
+   inside the *same* Sentinel-1 frames keeps the current `stack_key` valid; one
+   that shifts to new paths/frames is exactly what (ii) above fixes.
+
+**A. Trust / accuracy (after infrastructure):**
+1. **MintPy migration** — the first *algorithmic* hardening task, run **inside the
+   Linux container** (0a). Field-standard SBAS; ingests HyP3 directly; adds ERA5
+   tropospheric + DEM-error correction + weighted inversion + SVD. Cross-validate
+   against `custom_sbas_inverter.py` on `frame106`. *Never destabilise `insar_qa_env`.*
+2. **All 5 stacks + mosaic** (3 ASC + 2 DESC; `frame479` needs SVD, `frame484` is
+   the period-split case).
+3. **12.5 m ALOS DEM** → sharper slope → more discriminating FS.
+4. **Full spatiotemporal APS** → lower the ~30 mm/yr velocity noise floor.
+5. **Calibrate / sensitivity-test soil parameters.**
+6. **Enforce / audit the < 150 m perpendicular-baseline rule** (outstanding from Phase 1).
+
+**B. Live / smarter:**
+7. **Real Copernicus CDS rainfall** (replace mock scenarios).
+8. **Real flow-routing for LLOF** (replace the TWI proxy).
+9. **Upgrade the agents to a real/hybrid LLM** ("rules decide, LLM narrates" is the
+   low-risk first step).
+
+**C. Deployment / polish:**
+10. Optional **hosted Streamlit** version of the 3-D dashboard (separate env).
 
 ---
 
@@ -199,9 +349,10 @@ its findings.
 
 By auditing noise *before* trusting any deformation map, this pipeline avoids the
 "garbage in, garbage out" failure that plagues remote-sensing hazard work. Each
-phase produces a verifiable artifact the next phase can rely on: Phase 1 →
-clean interferograms; Phase 2 → trustworthy velocity; Phase 3 → a physics-based
-hazard map; Phase 4 → an autonomous, explainable warning.
+phase produces a verifiable artifact the next relies on — and **the full chain now
+runs end to end**: Phase 1 → clean interferograms; Phase 2 → trustworthy velocity;
+Phase 3 → a physics-based hazard map; Phase 4 → an autonomous, explainable warning
+with an interactive 3-D face.
 
 ---
 # **References**

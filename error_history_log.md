@@ -231,6 +231,33 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ---
 
+### [2026-05-29] `UnicodeEncodeError` writing `→` to the Windows console logger
+
+* **Symptom:**
+  `workflows/agentic_orchestrator.py` printed repeated `--- Logging error ---`
+  blocks: `UnicodeEncodeError: 'charmap' codec can't encode character '→'`.
+  The script still completed and all output files were correct.
+
+* **Root Cause:**
+  The logging `StreamHandler` writes to stdout, which on Windows uses the legacy
+  `cp1252` ('charmap') code page — it cannot encode the `→` (U+2192) arrow used
+  in some log messages. The `FileHandler` (explicit `encoding="utf-8"`) wrote the
+  same messages fine; only the console stream failed. Non-fatal (Python's logging
+  catches it and prints the error block) but noisy.
+
+* **Resolution:**
+  Replaced the unicode arrows in *log strings* with ASCII (`->`). Unicode is
+  retained where it belongs — the HTML/Markdown/JSON output files, which are
+  written with explicit `encoding="utf-8"`.
+
+* **Lesson:**
+  Keep `logging` messages ASCII-only on Windows (or reconfigure stdout to UTF-8).
+  Reserve unicode for files you write with an explicit UTF-8 encoding. This is
+  the third Windows-console encoding gotcha in the project (cf. the UTF-16 Tee
+  logs) — on this platform, assume the console is cp1252 unless proven otherwise.
+
+---
+
 ### [2026-05-29] SBAS velocities implausible (±300 mm/yr) — missing per-interferogram deramp
 
 * **Symptom:**

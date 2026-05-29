@@ -1,8 +1,22 @@
 # 🏔️ Geospatial Analysis & Hazard Monitoring in the Western Himalayas
 
-A geospatial data science project monitoring atmospheric dynamics, extreme weather, and geological hazards (landslides, slope deformation, glacio-hydrology) across the Western Himalayas. The current case study is the **NH-44 corridor through Ramban, Jammu & Kashmir** — a known landslide-prone segment with documented historical failures.
+A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into an automated, explainable hazard warning. The case study is the **NH-44 corridor through Ramban, Jammu & Kashmir** — a known landslide-prone segment with documented historical failures.
 
-Phase 1 (clean, audited InSAR data extraction) is **complete**. See [session_journey.md](session_journey.md) for the full decision log and [error_history_log.md](error_history_log.md) for every bug we hit and how it was resolved.
+### 🎉 Status: full end-to-end MVP complete (Phases 1 – 4 Part A)
+
+The whole chain runs start to finish on a pathfinder satellite stack:
+
+> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → automated, explainable rainfall-driven alerts + browser dashboard.**
+
+| Phase | What it does | Status |
+|---|---|---|
+| **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Complete |
+| **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Pathfinder (1 of 5 stacks) |
+| **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Pathfinder |
+| **4A — Agentic warning system** | 3-agent orchestrator → geolocated alerts + HTML dashboard | ✅ Complete |
+| **4B — Interactive 3-D UI** | Draped-terrain 3-D hazard explorer (`dashboard_3d.html`) | ✅ Complete |
+
+**New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
 ---
 
@@ -13,9 +27,11 @@ Geospatial Analysis Himalayas/
 │
 ├── README.md                       # This file
 ├── CLAUDE.md                       # Behavioural rules for AI-assisted dev
+├── SESSION_REVIEW.md               # 🚦 "Start here" living dashboard (read first)
+├── milestone.md                    # Plain-language story of each milestone (for humans)
 ├── session_journey.md              # Session-by-session decisions and reasoning
 ├── error_history_log.md            # Every bug + root cause + fix from this project
-├── InSAR hazard forecasting Context.md  # Original project vision
+├── InSAR_hazard_forecasting_Context.md  # Original project vision + roadmap
 │
 ├── .gitignore                      # Blocks credentials and large rasters from Git
 ├── .netrc.template                 # NASA Earthdata + CDSE + USGS credential setup
@@ -24,44 +40,43 @@ Geospatial Analysis Himalayas/
 ├── requirements.txt                # Pip fallback (NOT recommended for geospatial)
 ├── ramban_aoi.geojson              # Area-of-Interest polygon (Ramban / NH-44)
 │
-├── workflows/                      # Pipeline scripts (numbered by phase)
-│   ├── submit_hyp3_jobs.py             # Phase 1.1: ASF HyP3 InSAR submission
-│   ├── download_hyp3_products.py       # Phase 1.1: watch + download + extract
-│   ├── feature_engineering.py          # Phase 1.2A: coherence masking
-│   ├── phase_elevation_audit.py        # Phase 1.2B + 1.3: atmospheric audit
-│   ├── export_audit_json.py            # Phase 1.3: minimal audit_log.json
-│   ├── sbas_network_graph.py           # Phase 1.4: SBAS connectivity check + SVG plots
-│   ├── apply_connectivity_rescues.py   # Phase 1.4: rescue bridging CONCERN pairs
-│   ├── _consolidate_quarantine.py      # Helper: merge coherence + atmospheric audits
-│   ├── _analyze_qa_stats.py            # Helper: per-stack QA statistics
+├── workflows/                      # Pipeline scripts (by phase)
+│   ├── submit_hyp3_jobs.py             # P1: ASF HyP3 InSAR submission (SBAS N=3)
+│   ├── download_hyp3_products.py       # P1: watch + download + extract (zip-verified)
+│   ├── feature_engineering.py          # P1.2: coherence masking → LOS displacement
+│   ├── phase_elevation_audit.py        # P1.3: atmospheric (phase-elevation) audit
+│   ├── export_audit_json.py            # P1.3: minimal audit_log.json
+│   ├── _consolidate_quarantine.py      # P1: merge coherence + atmospheric audits
+│   ├── _analyze_qa_stats.py            # P1: per-stack QA statistics
+│   ├── sbas_network_graph.py           # P1.4: SBAS connectivity check + SVG diagrams
+│   ├── apply_connectivity_rescues.py   # P1.4: rescue bridging CONCERN pairs
+│   ├── custom_sbas_inverter.py         # P2: SBAS time-series inversion → velocity
+│   ├── geomechanical_engine.py         # P3: slope + TWI + Factor of Safety + hazard fusion
+│   ├── agentic_orchestrator.py         # P4A: 3-agent warning system → alerts + dashboard
+│   ├── build_3d_dashboard.py           # P4B: interactive 3-D hazard explorer (HTML)
 │   ├── proj_pipeline_AOI.md            # Future AOI shortlist
 │   └── .gitkeep
 │
 ├── tests/
-│   └── test_plumbing.py            # Stdlib-only Phase 1.4 plumbing assertions
+│   └── test_plumbing.py            # Stdlib-only plumbing assertions
 │
 ├── data/                           # Outputs (Git-ignored)
 │   ├── raw_zips/                       # HyP3 product zips (183 × ~200 MB)
-│   ├── processed_tiffs/                # Extracted GeoTIFFs per product
-│   ├── qa_masks/                       # NaN-masked LOS displacement rasters
+│   ├── processed_tiffs/                # Extracted GeoTIFFs per product (incl. DEM)
+│   ├── qa_masks/                       # P1: NaN-masked LOS displacement + QA artifacts
 │   │   ├── <product>/<product>_masked_disp.tif
-│   │   ├── _coherence_mask_stats.csv
-│   │   ├── _atmospheric_audit.csv
-│   │   ├── audit_log.json
-│   │   ├── _quarantine_list.csv
-│   │   ├── _rescued_for_connectivity.json
-│   │   └── _network_graphs/
-│   │       ├── *.svg                   # 5 baseline diagrams (one per stack)
-│   │       ├── index.html              # Single-page network report
-│   │       └── _connectivity_report.md
-│   └── ...
+│   │   ├── _coherence_mask_stats.csv  _atmospheric_audit.csv  audit_log.json
+│   │   ├── _quarantine_list.csv  _rescued_for_connectivity.json
+│   │   └── _network_graphs/            # baseline SVGs + index.html + report
+│   ├── velocity/                       # P2: mean velocity, time-series, temporal coherence
+│   ├── hazard/                         # P3: slope, TWI, FS_dry, FS_saturated, hazard_class
+│   └── alerts/                         # P4A: alerts_*.json, alert_report_*.md, dashboard_*.html
 │
 ├── logs/                           # Run logs from every workflow script
 │
-├── Research/                       # Background literature and notes
-│   ├── Joshimath InSAR.pdf
-│   ├── Meteorology.md
-│   └── ...
+├── Research/                       # Background literature + the science primer
+│   ├── Foundations - Physics and Maths Primer.md   # Beginner science base (Phases 1–4A)
+│   ├── Joshimath InSAR.pdf  ·  Meteorology.md  ·  ...
 │
 ├── src/                            # Reserved for reusable modules (currently empty)
 └── config/                         # Reserved for parameter specs (currently empty)
@@ -191,62 +206,68 @@ Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if y
 
 ---
 
-## 🚀 Phase 1 Pipeline — How To Reproduce
+## 🚀 The Pipeline (Phases 1 – 4A) — How To Reproduce
 
-Phase 1 takes an AOI polygon, fetches every Sentinel-1 interferometric pair within a time window, masks low-coherence pixels, audits for tropospheric contamination, and produces a connected SBAS network ready for velocity inversion (Phase 2).
-
-### One-shot run (assuming auth is configured):
+Each phase produces a verifiable artifact the next phase consumes. The data
+products from a completed run already live under `data/`, so Phases 2–4A can be
+re-run independently (Phase 1 needs ASF auth + ~hours of cloud processing).
 
 ```bash
-conda activate insar_qa_env
+conda activate insar_qa_env   # ALWAYS activate — see Known Issues (BLAS DLLs)
 
-# 1.1 — Discover scenes, build SBAS N=3 network, submit to ASF HyP3
+# ── PHASE 1 — clean, audited data ─────────────────────────────────────────────
 python workflows/submit_hyp3_jobs.py                                    # dry-run preview
 python workflows/submit_hyp3_jobs.py --sbas-neighbors 3 \
-    --max-baseline-days 40 --submit                                     # actually queue jobs
-
-# Wait ~1–4 hours for HyP3 to process, then:
+    --max-baseline-days 40 --submit                                     # queue jobs at ASF
 python workflows/download_hyp3_products.py --watch --download --extract # waits, pulls, extracts
-
-# 1.2 — Coherence masking
-python workflows/feature_engineering.py
-
-# 1.3 — Atmospheric audit + JSON export
-python workflows/phase_elevation_audit.py
+python workflows/feature_engineering.py                                 # 1.2 coherence mask
+python workflows/phase_elevation_audit.py                               # 1.3 atmospheric audit
 python workflows/export_audit_json.py
+python workflows/_consolidate_quarantine.py                             # KEEP/CONCERN/QUARANTINE
+python workflows/sbas_network_graph.py                                  # 1.4 connectivity check
+python workflows/apply_connectivity_rescues.py                          # rescue bridging pairs
+python tests/test_plumbing.py                                           # 10 assertions (stdlib)
 
-# Helper: consolidate the two audits into a single quarantine decision
-python workflows/_consolidate_quarantine.py
+# ── PHASE 2 — SBAS velocity inversion (pathfinder stack) ─────────────────────
+python workflows/custom_sbas_inverter.py        # → data/velocity/  (mean velocity + time-series)
 
-# 1.4 — SBAS network connectivity check
-python workflows/sbas_network_graph.py
-# If any stack is disconnected, rescue bridging concerns:
-python workflows/apply_connectivity_rescues.py
-python workflows/sbas_network_graph.py    # confirm fix
+# ── PHASE 3 — geomechanical hazard engine ────────────────────────────────────
+python workflows/geomechanical_engine.py        # → data/hazard/  (slope, TWI, FS, hazard_class)
 
-# Plumbing test (10 assertions, stdlib-only — no pytest install required):
-python tests/test_plumbing.py
+# ── PHASE 4A — agentic warning system ────────────────────────────────────────
+python workflows/agentic_orchestrator.py        # → data/alerts/  (alerts + dashboards, all scenarios)
+
+# ── PHASE 4B — interactive 3-D hazard explorer ───────────────────────────────
+python workflows/build_3d_dashboard.py           # → data/alerts/dashboard_3d.html
 ```
+
+**See the demo:** open `data/alerts/dashboard_monsoon.html` (2-D, per scenario)
+or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
 
 ### What each script produces
 
-| Script | Reads | Writes |
+| Script | Phase | Writes |
 |---|---|---|
-| `submit_hyp3_jobs.py` | `ramban_aoi.geojson` | HyP3 jobs queued at ASF |
-| `download_hyp3_products.py` | HyP3 job catalogue | `data/raw_zips/*.zip`, `data/processed_tiffs/<product>/*.tif` |
-| `feature_engineering.py` | `data/processed_tiffs/` | `data/qa_masks/<product>/<product>_masked_disp.tif`, `_coherence_mask_stats.csv` |
-| `phase_elevation_audit.py` | `data/qa_masks/`, DEMs | `data/qa_masks/_atmospheric_audit.csv` |
-| `export_audit_json.py` | `_atmospheric_audit.csv` | `data/qa_masks/audit_log.json` (minimal schema) |
-| `_consolidate_quarantine.py` | both audit CSVs | `data/qa_masks/_quarantine_list.csv` (KEEP/CONCERN/QUARANTINE) |
-| `sbas_network_graph.py` | `_quarantine_list.csv`, asf_search baselines | `data/qa_masks/_network_graphs/*.svg`, `index.html`, `_connectivity_report.md` |
-| `apply_connectivity_rescues.py` | hardcoded rescue list | promotes CONCERN→KEEP in `_quarantine_list.csv`, audit at `_rescued_for_connectivity.json` |
+| `submit_hyp3_jobs.py` | 1 | HyP3 jobs queued at ASF (SBAS N=3, 5 stacks) |
+| `download_hyp3_products.py` | 1 | `data/raw_zips/*.zip`, `data/processed_tiffs/<product>/*.tif` |
+| `feature_engineering.py` | 1.2 | `data/qa_masks/<product>/<product>_masked_disp.tif` + coherence stats |
+| `phase_elevation_audit.py` | 1.3 | `data/qa_masks/_atmospheric_audit.csv` |
+| `_consolidate_quarantine.py` | 1 | `data/qa_masks/_quarantine_list.csv` (KEEP/CONCERN/QUARANTINE) |
+| `sbas_network_graph.py` | 1.4 | `data/qa_masks/_network_graphs/*.svg`, `index.html`, report |
+| `apply_connectivity_rescues.py` | 1.4 | promotes CONCERN→KEEP; `_rescued_for_connectivity.json` |
+| `custom_sbas_inverter.py` | 2 | `data/velocity/*_mean_velocity_los*.tif`, `*_displacement_timeseries.tif`, `*_temporal_coherence.tif` |
+| `geomechanical_engine.py` | 3 | `data/hazard/*_{slope_deg,twi,FS_dry,FS_saturated,hazard_class}.tif` |
+| `agentic_orchestrator.py` | 4A | `data/alerts/alerts_*.json`, `alert_report_*.md`, `dashboard_*.html` |
+| `build_3d_dashboard.py` | 4B | `data/alerts/dashboard_3d.html` |
 
-### What Phase 1 produced (final state)
+### What the pipeline produced (current state, pathfinder stack `ASC_path27_frame106`)
 
-- 183 INSAR_GAMMA pairs across 5 stacks (3 ascending + 2 descending)
-- 105 KEEP, 24 CONCERN, 54 QUARANTINE after the full audit
-- 3 stacks ready for least-squares SBAS, 1 ready for SVD pseudoinverse, 1 split into independent pre-/in-/post-monsoon time series
-- See `session_journey.md` for the per-stack rationale.
+- **Phase 1:** 183 INSAR_GAMMA pairs, 5 stacks (3 ASC + 2 DESC) → 105 KEEP / 24 CONCERN / 54 QUARANTINE after coherence + atmospheric + connectivity audits.
+- **Phase 2:** per-pixel LOS velocity (deramped, temporal-coherence ≥ 0.7), ~14% AOI coverage, ~30 mm/yr noise floor.
+- **Phase 3:** slope (median 28°), Factor of Safety — 13% unstable dry vs **73% unstable saturated** (the monsoon flip).
+- **Phase 4A:** rainfall-driven alerts — **dry → 29 zones, monsoon → 222** — each geolocated with plain-English reasoning + a downstream-risk (LLOF) flag.
+
+See `milestone.md` (plain language) and `session_journey.md` (per-phase rationale + honest caveats).
 
 ---
 
@@ -256,11 +277,13 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 
 | Issue | Workaround |
 |---|---|
-| `np.corrcoef` crashes on ~5M-element arrays (Win + numpy 2.x + MKL) | Use manual Pearson r — see `phase_elevation_audit.py` |
-| `matplotlib.savefig` crashes inside `patches.draw` | Don't use matplotlib for new plots; emit stdlib SVG — see `sbas_network_graph.py` |
-| `hyp3_sdk` downloads silently truncate ~2% of the time | The downloader now verifies via `zipfile.testzip()` and retries once |
-| `hyp3.find_jobs(name=X)` does exact-match, not prefix | Both submit and download scripts filter client-side |
-| OneDrive corrupts conda envs created in-project | Always use `-n insar_qa_env` (named env), never `-p .conda` |
+| **`0xC06D007F` crash on ANY numpy BLAS/LAPACK call** (matmul, svd, pinv) | **The big one.** It's a DLL-load failure, not a numerical bug — numpy can't find its BLAS DLLs when `python.exe` is run without `conda activate`. **Always activate the env**, or rely on the in-script DLL bootstrap that all Phase 2–4 scripts carry (prepends `<env>\Library\bin` to PATH). |
+| Implausible SBAS velocities (±300 mm/yr) | Deramp each interferogram (subtract a 2-D plane) **before** inversion — done in `custom_sbas_inverter.py`. |
+| `matplotlib.savefig` historically crashed (same DLL family) | New plots emit stdlib SVG / browser HTML instead — see `sbas_network_graph.py`, the dashboards. |
+| `hyp3_sdk` downloads silently truncate ~2% of the time | Downloader verifies via `zipfile.testzip()` and retries once. |
+| `hyp3.find_jobs(name=X)` does exact-match, not prefix | Both submit and download scripts filter client-side. |
+| `UnicodeEncodeError` writing `→` to the Windows console log | Keep `logging` messages ASCII; reserve unicode for UTF-8 files. |
+| OneDrive corrupts conda envs created in-project | Always use `-n insar_qa_env` (named env), never `-p .conda`. |
 
 ---
 
@@ -279,10 +302,11 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 
 ## 📈 Analysis Focus Areas
 
-1. **InSAR time-series velocity** — Sentinel-1 SBAS over Ramban; landslide creep detection at mm/yr precision (Phase 2 next session).
-2. **Atmospheric Forensics** — Phase-elevation correlation to distinguish real motion from tropospheric artefacts (Phase 1.3, done).
-3. **Geomechanical Modelling** — Combine LOS velocity with DEM-derived slope and TWI, run the Infinite Slope Factor-of-Safety calculation (Phase 3).
-4. **Meteorological Triggers** — Cross-reference with monsoon precipitation forecasts to identify cascading-failure conditions (Phase 4).
+1. **Atmospheric Forensics** ✅ — phase-elevation correlation + coherence masking to keep only real ground motion (Phase 1).
+2. **InSAR time-series velocity** ✅ — Sentinel-1 SBAS over Ramban; landslide creep at mm/yr precision (Phase 2, pathfinder stack).
+3. **Geomechanical Modelling** ✅ — LOS velocity + DEM-derived slope/TWI → Infinite-Slope Factor of Safety + hazard fusion (Phase 3).
+4. **Agentic warning system** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable alerts (Phase 4A).
+5. **Meteorological Triggers (live)** ⏳ — swap mock rainfall scenarios for real Copernicus CDS forecasts (future hardening).
 
 ---
 
@@ -298,7 +322,10 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 
 ## 📚 Where To Read More
 
-- [InSAR hazard forecasting Context.md](InSAR%20hazard%20forecasting%20Context.md) — original project vision and methodology
+- [SESSION_REVIEW.md](SESSION_REVIEW.md) — 🚦 the "start here" living dashboard (read first each session)
+- [milestone.md](milestone.md) — plain-language story of each milestone (for humans, no jargon)
+- [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
+- [InSAR_hazard_forecasting_Context.md](InSAR_hazard_forecasting_Context.md) — original vision + full roadmap
 - [session_journey.md](session_journey.md) — what decisions were made, when, and why
 - [error_history_log.md](error_history_log.md) — every bug we've hit, with root cause + fix
 - [CLAUDE.md](CLAUDE.md) — behavioural rules for AI-assisted development on this repo

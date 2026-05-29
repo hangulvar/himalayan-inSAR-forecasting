@@ -389,22 +389,154 @@ Himalayan slopes. Two triggers dominate:
 Slopes often **creep slowly for weeks** before a sudden failure. Catching that
 creep is the whole point of measuring millimetre motion.
 
-## C2. Slope stability & "Factor of Safety" (preview of Phase 3)
+## C2. Slope angle — the single biggest driver
 
-Engineers judge a slope by its **Factor of Safety (FS)** — a ratio:
+The **slope angle (β)** is how steep the ground is, computed from the DEM by
+looking at how fast elevation changes from one pixel to the next. Steeper ground
+has more of gravity pulling material *down the slope* rather than *into* it, so
+slope is the dominant control on landslide risk.
 
-> FS = (forces resisting sliding) / (forces driving sliding)
+**Analogy:** a ball on a gentle ramp stays put; on a steep ramp it rolls. The
+steeper the ramp, the less it takes to start moving.
 
-- **FS > 1:** resisting wins → stable.
-- **FS < 1:** driving wins → failure.
+🔗 **In our project:** in **Milestone 3** we computed slope from the DEM
+(median ~28° over Ramban — genuinely steep). *Caveat:* our DEM is coarse (80 m
+pixels), which **smooths out and under-estimates** real steepness — a known MVP
+limitation we'll fix with a finer (12.5 m) DEM later.
 
-Rain *raises* the driving forces (weight, water pressure) and *lowers* the
-resisting ones. Our InSAR velocity adds a live ingredient: a slope already
-**measurably creeping** is far more dangerous than the static numbers suggest.
+## C3. Topographic Wetness Index (TWI) — where water collects
 
-🔗 **In our project:** Phase 3 will compute FS across the AOI, using the DEM
-(slope steepness) plus our InSAR velocity as a stress signal. This is the bridge
-from "the ground is moving" to "this slope is dangerous."
+Water weakens slopes, and water flows downhill and pools in valleys and hollows.
+**TWI** estimates how wet each spot tends to be, by combining two things: **how
+much uphill land drains into it** (more drainage = wetter) and **how steep it is**
+(flatter = water lingers).
+
+> TWI = ln( upslope drainage area ÷ tan(slope) )
+
+High TWI = valley bottoms and hollows (wet, weaker). Low TWI = ridges (dry).
+
+**Analogy:** after rain, puddles form in the dips where lots of ground drains
+into a flat spot — never on a steep ridge. TWI is a map of "where the puddles
+form."
+
+🔗 **In our project:** **Milestone 3** computes TWI from the DEM (using a simple
+"D8" rule that routes each cell's water to its steepest downhill neighbour). For
+now it's an information layer; later it can spatially set *how saturated* each
+pixel is in the stability calculation.
+
+## C4. The Infinite Slope model & Factor of Safety (FS)
+
+Engineers judge a slope by its **Factor of Safety (FS)** — a tug-of-war ratio:
+
+> FS = (forces resisting sliding) ÷ (forces driving sliding)
+
+- **FS > 1:** resistance wins → stable.
+- **FS < 1:** gravity + water win → failure.
+
+The **Infinite Slope model** is the simplest way to compute FS for a shallow
+landslide (a thin layer of soil sliding on bedrock). Its formula:
+
+> FS = [ c' + (γ − m·γ_w)·z·cos²β·tanφ' ] ÷ [ γ·z·sinβ·cosβ ]
+
+In plain words, each symbol is a real, intuitive thing:
+- **c' (cohesion):** how "sticky" the soil is (roots, clay) — resists sliding.
+- **φ' (friction angle):** how much the grains grip each other — resists sliding.
+- **β (slope):** steepness — drives sliding (bigger β, bigger driving force).
+- **z (depth):** how thick the sliding layer is.
+- **γ, γ_w:** the weight of the soil and of water.
+- **m (saturation):** how waterlogged it is, 0 (dry) to 1 (fully soaked).
+
+The key insight: as **m** rises (rain soaks in), the water *buoys* the soil,
+cutting the friction that holds it — so **FS drops**. That's monsoon turning a
+stable slope unstable, captured in one term.
+
+**Analogy:** a dry sandcastle holds; pour water in and it slumps. Same sand,
+same slope — water removed the grip.
+
+🔗 **In our project:** **Milestone 3** computes FS for two cases — **dry (m=0)**
+and **monsoon-soaked (m=1)**. Result: dry, ~13% of slopes are unstable; soaked,
+~73% are. That flip *is* the seasonal hazard story. The soil numbers (c', φ', z)
+are textbook assumptions for Himalayan soil, not site measurements — an honest
+limitation.
+
+## C5. Fusing physics with measurement — the hazard map
+
+FS is *theory* ("this slope **should** be unstable"). Our InSAR velocity is
+*observation* ("this slope **is** actually moving"). The strongest warning is
+when **both agree**.
+
+🔗 **In our project:** **Milestone 3** combines them into a 3-level hazard map:
+- **HIGH** = theoretically unstable (FS < 1) **AND** measurably creeping
+  (velocity beyond −15 mm/yr).
+- **WATCH** = one condition but not both.
+- **LOW** = neither.
+
+This "physics AND observation" rule is exactly the logic the automated warning
+system (Phase 4) runs on.
+
+---
+
+# Part C-bis — The Agentic Warning System (Phase 4)
+
+## C6. What "agentic" means here
+
+An **agent**, in software, is a component with one clear job that takes inputs,
+reasons, and produces outputs — and several agents can be chained so each
+hands off to the next. Our system has **three**, each a specialist:
+
+- **Agent 1 — InSAR Auditor:** reads the movement map, reports *where the ground
+  is creeping*.
+- **Agent 2 — Meteorological Trigger:** reads the weather (rainfall), reports
+  *how waterlogged and therefore weak the slopes are*.
+- **Agent 3 — Cascading Reasoner:** combines the two and decides *where to raise
+  an alarm*, then explains itself.
+
+**Analogy:** a newsroom. One reporter covers the ground sensors, another covers
+the weather, and an editor combines both into the story that goes out. Each does
+one job well; the editor reasons over their inputs.
+
+**Important honesty point:** our agents are currently **deterministic rules** (a
+fixed "if-this-then-that" Python pipeline), *not* a learning AI or a large
+language model. That's a deliberate MVP choice — it's reproducible, needs no
+internet or API keys, and is easy to audit. A real "thinking" LLM agent is a
+future upgrade.
+
+🔗 **In our project:** **Milestone 4** built exactly this three-agent pipeline as
+`agentic_orchestrator.py`.
+
+## C7. Cascading reasoning & the alert rule
+
+"Cascading" means one finding triggers the next check, like dominoes. The core
+rule is the project's headline logic:
+
+> **Raise an alert where the slope is theoretically unstable (FS < 1) AND we
+> have measured it actually creeping (velocity < −15 mm/yr).**
+
+Single flagged pixels are ignored as noise; only **clusters** (groups of
+neighbouring danger pixels) become alert *zones*, each pinned to a real
+latitude/longitude with a plain-English reason.
+
+**Analogy:** a smoke alarm that only sounds when it detects **both** smoke *and*
+heat — far fewer false alarms than either sensor alone.
+
+🔗 **In our project:** the rainfall scenario visibly drives the cascade — **dry**
+day → 29 alert zones; **monsoon** → 222. That jump is the system reacting to its
+trigger.
+
+## C8. Downstream risk & LLOF (Landslide-Lake Outburst Flood)
+
+A landslide is dangerous not only where it sits but **downhill** of it. If debris
+slides into a river and dams it, water builds up behind the natural dam until it
+suddenly bursts — a **Landslide-Lake Outburst Flood (LLOF)** that can devastate
+communities far downstream.
+
+**Analogy:** blocking a stream with a pile of dirt — the pond grows quietly, then
+the dirt gives way and a wall of water rushes down.
+
+🔗 **In our project:** Agent 3 flags an alert zone for *potential downstream
+risk* if it's a large, steep, failing slope near a valley channel. **Caveat:**
+this is currently a rough rule-of-thumb using our "wetness index" as a stand-in
+for rivers — a proper version needs real river/flow-routing data.
 
 ---
 
@@ -459,9 +591,47 @@ good for catching dramatic movers, and we have a clear path (fuller atmospheric
 correction, combining more satellite tracks) to tighten it for subtler signals.
 
 **Q: Is this predicting landslides?**
-A: Not yet — Phase 1–2 measure *movement*. Phases 3–4 combine that movement with
-slope physics and rainfall to estimate *hazard*. Movement is an ingredient of
-prediction, not the prediction itself.
+A: Not yet — Phases 1–2 measure *movement* and Phase 3 turns it into a rough
+*hazard map*. A validated *forecast* (with rainfall, Phase 4) is the goal, not
+yet the reality. Movement + slope physics is an ingredient of prediction, not the
+prediction itself.
+
+**Q: How do you decide a slope is dangerous?**
+A: Two independent checks must agree. First, physics: the Infinite-Slope Factor
+of Safety, from the slope's steepness and soil strength, must say it's unstable
+(FS < 1). Second, observation: our InSAR must show it's actually creeping. A spot
+that's both theoretically unstable *and* measurably moving is the highest concern.
+
+**Q: Why does almost the whole map go unstable in the monsoon scenario?**
+A: When soil saturates, water buoyancy cuts the friction holding it, so the
+Factor of Safety drops below 1 across most steep slopes. That's physically the
+point — monsoon water is the trigger. But the *absolute* fraction depends on our
+assumed soil strength and a coarse terrain model, so we read it qualitatively
+(monsoon = widespread elevated risk) and trust the *combined* hazard pixels
+(physics AND measured motion) far more than FS alone.
+
+**Q: Aren't your soil strength numbers just guesses?**
+A: Yes — they're literature values for Himalayan soil, not site measurements.
+That's why the FS map is a *relative* screening tool, not an absolute prediction,
+and why we lean on the measured-motion half of the hazard rule.
+
+**Q: You call it "agentic" — is there a real AI deciding things?**
+A: Not yet. The "agents" are three deterministic, rule-based modules (sensors +
+weather + a combiner) chained together. We chose that on purpose for the MVP:
+it's reproducible, offline, and auditable. Swapping in a real reasoning AI is a
+planned upgrade, but the *decision logic* is what matters and that's already here.
+
+**Q: How does the system actually raise an alert?**
+A: One rule: a spot must be **both** theoretically unstable (Factor of Safety < 1
+under the rainfall scenario) **and** measurably creeping (InSAR velocity beyond
+−15 mm/yr). We then group neighbouring flagged pixels into zones, drop isolated
+specks as noise, and write each zone a plain-English reason. It's like a smoke
+alarm needing both smoke and heat.
+
+**Q: Does the rainfall part use real weather?**
+A: In this demo it's *what-if* scenarios — dry, monsoon, extreme — that set how
+saturated the slopes are. That already shows the system reacting (dry → few
+alerts, monsoon → many). Wiring in live rainfall forecasts is the next step.
 
 ---
 
@@ -481,6 +651,14 @@ Being able to state weaknesses is what makes you credible.
   coverage and cross-checking is still ahead.
 - **Measurement ≠ prediction:** we currently quantify motion; turning that into a
   validated hazard forecast is the upcoming work.
+- **Assumed soil strength:** the Factor-of-Safety uses textbook cohesion/friction
+  values for Himalayan soil, not site measurements — so FS is a *relative*
+  screening layer, not an absolute prediction.
+- **Coarse slope:** the 80 m DEM under-estimates true steepness, biasing FS
+  toward "stable"; a 12.5 m DEM is the planned fix.
+- **Noisy hazard pixels:** the first hazard map flags too much — trustworthy
+  mainly where HIGH pixels cluster, not as isolated single-pixel specks (a
+  cluster-size filter and lower velocity noise will clean this up).
 
 ---
 
@@ -506,13 +684,24 @@ Being able to state weaknesses is what makes you credible.
 | **R²** | 0–1: how much one variable explains another (our atmosphere test). |
 | **High-pass filter** | Keeps sharp local detail, removes broad smooth trends. |
 | **DEM** | Digital Elevation Model — a terrain-height raster. |
-| **Factor of Safety** | Resisting ÷ driving forces; < 1 means slope failure. |
+| **Slope angle (β)** | How steep the ground is; the biggest landslide driver. |
+| **TWI** | Topographic Wetness Index — a map of where water tends to collect. |
+| **Infinite Slope model** | Simplest equation for shallow-landslide Factor of Safety. |
+| **Factor of Safety (FS)** | Resisting ÷ driving forces; < 1 means slope failure. |
+| **Saturation (m)** | How waterlogged the soil is, 0 (dry) to 1 (soaked); high m lowers FS. |
+| **Hazard fusion** | Combining FS (physics) with InSAR creep (observation) into a risk class. |
+| **Agent (software)** | A module with one job that reasons over inputs and hands off to the next. |
+| **Cascading reasoner** | Combines multiple agents' findings into a single alert decision. |
+| **LLOF** | Landslide-Lake Outburst Flood — a landslide dams a river, then it bursts. |
 | **Ascending/Descending** | Satellite flying S→N (looks E) vs N→S (looks W). |
 | **Perpendicular baseline** | Sideways gap between two orbit positions; small is better. |
 | **Raster / pixel** | A gridded image; each cell holds one number. |
 
 ---
 
-*This primer grows with the project. As we complete Phase 3 (slope physics) and
-Phase 4 (the warning system), new concepts (e.g. Topographic Wetness Index,
-agentic orchestration) will be added here in the same beginner-friendly style.*
+*This primer grows with the project. Phases 1–4 (data, velocity, slope physics,
+the agentic warning system, and the interactive 3-D explorer) are all covered
+above — the 3-D view in Phase 4 Part B is a visualisation of the same science, so
+it adds no new concept. Remaining additions will come with the move to live
+weather data, a real reasoning AI, and the production-hardening upgrades (e.g.
+MintPy, full atmospheric correction) — added in the same beginner-friendly style.*
