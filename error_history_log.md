@@ -231,6 +231,53 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ---
 
+### [2026-05-29] SBAS velocities implausible (±300 mm/yr) — missing per-interferogram deramp
+
+* **Symptom:**
+  First working SBAS inversion of ASC_path27_frame106 produced LOS velocities of ±100–400 mm/yr (real landslide creep is mm-to-cm/yr). A temporal-coherence quality mask at γ≥0.7 *removed 99% of pixels yet the survivors were still wild* — the tell that the problem was NOT random unwrapping noise.
+
+* **Root Cause:**
+  We inverted the masked displacement interferograms **without the standard SBAS pre-processing**: each HyP3 unwrapped-phase interferogram carries (a) an arbitrary additive constant (its unwrapping reference is per-pair) and (b) a long-wavelength orbital + atmospheric ramp. Direct inspection of 6 pairs confirmed it: 12-day pairs had non-zero medians (−53…+21 mm) and large spatial spread (std 22–49 mm, p5–p95 ≈ 150 mm) where real 12-day motion should be ~0 mm at mm-scale. The least-squares inversion faithfully integrated those per-pair ramps into huge fake velocities. Referencing the *time-series* after inversion (which we did) cannot remove a *per-interferogram* ramp. High temporal coherence just meant the ramped interferograms were mutually consistent.
+
+* **Resolution:**
+  Added `fit_deramp_planes()` + `apply_deramp()` to `custom_sbas_inverter.py`: fit a 2-D plane `a·col + b·row + c` to each interferogram over the clipped AOI and subtract it **before** inversion. This removes both the constant offset and the orbital/long-wavelength ramp, while a first-order plane cannot absorb sub-km localized deformation (the landslide signal is preserved). Applied consistently in the block loop, the coarse reference pre-pass, and the full-res reference pixel read.
+
+* **Verification (before → after deramp):**
+  - Pixels passing γ≥0.7: 230 → **14,045** (0.9% → 57% of solvable) — removing per-pair ramps made the network self-consistent, which is exactly what temporal coherence measures.
+  - Raw velocity p5–p95: −81…+197 → **−25…+81 mm/yr**.
+  - High-passed std: 84 → **29 mm/yr**; strict-AOI median 0.0, p5–p95 ±50, coverage 13.6%.
+  - Pixels exceeding |100| mm/yr: 29.6% → **1.7%**.
+
+* **Lesson:**
+  Always deramp (and spatially reference) each interferogram BEFORE SBAS inversion. Unreferenced HyP3 unwrapped phase contains large non-deformation components. A quality filter that nukes most pixels but leaves the survivors implausible is a signature of a *systematic input* error, not random noise — inspect the raw inputs before adding more filters.
+
+---
+
+### [2026-05-29] ROOT CAUSE of all BLAS/LAPACK crashes: env not activated, BLAS DLLs not on PATH
+
+* **Supersedes the diagnoses in the two entries below.** The earlier entries blamed a "numpy 2.x + MKL large-array bug." That was **wrong**. The real cause is simpler and explains every case.
+
+* **Symptom:**
+  `np.linalg.svd`, `np.linalg.pinv`, `np.linalg.inv`, and even a plain `A @ b` matmul all hard-crash with `Windows fatal exception: code 0xC06D007F` — on arrays as small as 31×14. Elementwise numpy ops (add, multiply, `np.mean`, boolean masks) work fine.
+
+* **Root Cause:**
+  We were launching scripts with the **full python.exe path** (`& "C:\Users\varun\.conda\envs\insar_qa_env\python.exe" script.py`) and manually setting only `GDAL_DATA`/`PROJ_LIB` — **without running `conda activate`**. numpy's BLAS/LAPACK lives in a DLL under `<env>\Library\bin` (plus dependencies in `Library\mingw-w64\bin`). Those directories are added to `PATH` by `conda activate`, but we never did that. Without them, numpy's delay-loaded BLAS DLL fails to load at the first BLAS/LAPACK call, producing the `0xC06D007F` delay-load fatal exception. Elementwise ops live in numpy's self-contained `_multiarray` and don't need the external BLAS, which is why they always worked — and why we misread the pattern as "only large arrays crash."
+
+* **Proof:**
+  Prepending `<env>\Library\bin` + `Library\mingw-w64\bin` to `PATH` before `import numpy` → matmul, inv, svd, pinv all return `OK`, exit 0. `os.add_dll_directory(Library\bin)` alone was NOT sufficient (the BLAS DLL's transitive dependencies need the broader PATH search).
+
+* **Resolution:**
+  1. **Correct invocation:** run compute scripts with the env activated, or prepend the env DLL dirs to `PATH`. `conda run -n insar_qa_env python ...` also works.
+  2. **In-script self-heal:** `custom_sbas_inverter.py` now prepends `<sys.prefix>\Library\bin`, `Library\mingw-w64\bin`, and `Scripts` to `PATH` *before* importing numpy. Any heavy-linalg script should include this bootstrap.
+
+* **Implication for prior workarounds:**
+  The manual-Pearson-r (in `phase_elevation_audit.py`) and stdlib-SVG (in `sbas_network_graph.py`) workarounds were treating a symptom. They still work and we're leaving them in place (surgical-changes rule — they're correct and not worth churning), but `np.linalg` and matplotlib would now both function if those scripts used the DLL bootstrap or were run under an activated env.
+
+* **Lesson:**
+  On Windows conda, ALWAYS activate the environment (or replicate the PATH that activation sets) before running anything that touches numpy's BLAS/LAPACK. A `0xC06D007F` on a tiny array is a DLL-load failure, not a numerical bug — check the DLL search path before assuming a library bug.
+
+---
+
 ### [2026-05-28] Matplotlib `savefig` crashes inside `patches.draw` on numpy 2.x + Windows
 
 * **Symptom:**
