@@ -407,7 +407,7 @@ def write_report(path: Path, stack: str, scenario: str, cfg: dict, alerts: list[
 
 
 # ------------------------------------------------------------------------------
-def run_scenario(stack: str, scenario: str) -> dict:
+def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR) -> dict:
     logger.info(f"===== Orchestrating scenario '{scenario}' for {stack} =====")
     auditor = InSARAuditor(stack)
     met = MeteorologicalTrigger(stack, scenario)
@@ -431,10 +431,11 @@ def run_scenario(stack: str, scenario: str) -> dict:
         },
         "alerts": alerts,
     }
-    (OUT_DIR / f"alerts_{scenario}.json").write_text(json.dumps(payload, indent=2),
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"alerts_{scenario}.json").write_text(json.dumps(payload, indent=2),
                                                      encoding="utf-8")
-    write_report(OUT_DIR / f"alert_report_{scenario}.md", stack, scenario, met.cfg, alerts)
-    write_dashboard(OUT_DIR / f"dashboard_{scenario}.html", stack, scenario, met.cfg,
+    write_report(out_dir / f"alert_report_{scenario}.md", stack, scenario, met.cfg, alerts)
+    write_dashboard(out_dir / f"dashboard_{scenario}.html", stack, scenario, met.cfg,
                     alerts, met.fs, creep, auditor.width, auditor.height)
     logger.info(f"Scenario '{scenario}': {len(alerts)} alerts -> "
                 f"alerts_{scenario}.json / alert_report_{scenario}.md / "
@@ -446,10 +447,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
     ap.add_argument("--scenario", choices=list(SCENARIOS) + ["all"], default="all")
+    ap.add_argument("--out-dir", default=None,
+                    help="Output directory for alerts/report/dashboard "
+                         "(default: data/alerts/). Use per-stack dirs to avoid collisions.")
     args = ap.parse_args()
 
+    out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
     scenarios = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
-    results = {sc: run_scenario(args.stack, sc) for sc in scenarios}
+    results = {sc: run_scenario(args.stack, sc, out_dir) for sc in scenarios}
 
     logger.info("-" * 60)
     logger.info("Scenario comparison (the cascade in action):")
@@ -457,7 +462,7 @@ def main() -> int:
         logger.info(f"  {sc:<8s}: {s['n_alert_zones']:>3d} zones, "
                     f"{s['n_critical']} critical, {s['n_llof']} LLOF, "
                     f"{s['total_alert_area_km2']:.2f} km²")
-    logger.info(f"Open the dashboards in a browser: {OUT_DIR}/dashboard_<scenario>.html")
+    logger.info(f"Open the dashboards in a browser: {out_dir}/dashboard_<scenario>.html")
     return 0
 
 
