@@ -345,6 +345,98 @@ to invent.** Remaining work is *infrastructure*, *deepening trust*, and *deploym
 
 ---
 
+## 🚀 Expansion Roadmap — Areas of Exploration Toward a Robust Forecasting Tool
+
+*(Added 2026-05-31. Extends the Post-MVP Roadmap above with the broader strategic
+menu. Status at time of writing: infra 0a Docker ✅ and 0b AOI/multi-stack ✅ done;
+MintPy migration STEP 1 ✅ (image + ERA5 credentials); next = MintPy step 2 on
+frame106. This is the durable copy mirrored from `SESSION_REVIEW.md` §6.)*
+
+The current system is a demonstrable **MVP** of the full vision (radar → audited
+data → velocity → physics hazard → explainable rainfall-driven warning). Each **AREA**
+below is self-contained and can be picked up independently; together they take it
+from MVP to a **defensible forecasting tool**.
+
+**Where the MVP is weakest today (what these areas fix):** ~30 mm/yr velocity noise
+floor; single-look (no true 3-D motion); assumed/uniform soil strength + dry/sat
+end-members + TWI-proxy downstream flag; *mock* rainfall; a *static* hazard map (no
+failure-timing); and no validation against real events.
+
+### Area 1 — Noise reduction (measurement accuracy; the ~30 mm/yr floor)
+- **MintPy ERA5 tropospheric correction** (in progress) — physically subtracts
+  atmospheric delay; biggest single lever. **GACOS** (free) as an alternative/cross-check.
+- **DEM-error correction + coherence-weighted inversion** (MintPy native).
+- **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
+  SqueeSAR-style) — recover coherence in *partially* vegetated Himalayan slopes (the
+  biggest local win against vegetation decorrelation).
+- **Enforce the <150 m perpendicular-baseline rule** (outstanding from Phase 1).
+- *Payoff:* trust slower/smaller motions; fewer false creep flags.
+
+### Area 2 — Signal strengthening (interpretation power)
+- **All 5 stacks → ASC/DESC decomposition into vertical + east-west motion** — removes
+  line-of-sight ambiguity; measure *real* slope movement, not a projection.
+- **Persistent-scatterer (PS) points** on rock outcrops + NH-44 infrastructure —
+  mm-precision anchors where distributed scattering fails.
+- **Longer time series + seasonal-vs-steady-creep decomposition** — separate
+  reversible seasonal swelling from progressive creep (avoid seasonal false alarms).
+
+### Area 3 — From hazard MAP to FORECAST (the biggest conceptual upgrade)
+- ★ **Inverse-velocity time-to-failure (Fukuzono/Voight)** — accelerating creep →
+  1/velocity falls linearly toward zero → **predict failure timing**. Uses the
+  per-pixel time-series we ALREADY produce. **Highest value for the least new data.**
+- **Rainfall intensity–duration (ID) thresholds** — field-standard landslide trigger;
+  couple measured creep with exceeded rainfall thresholds.
+- **Calibrated, spatially-varying soil strength** (lithology/soil maps) + **distributed
+  saturation** from real rainfall + soil moisture (replace dry/sat end-members + TWI proxy).
+- **Real flow-routing / debris-runout modelling** for the LLOF flag (replace the TWI stand-in).
+- *Payoff:* time-resolved, physically-grounded forecasts instead of a static map.
+
+### Area 4 — Validation & uncertainty (credibility)
+- **Back-test flagged zones against a landslide inventory** — documented Ramban
+  failures; NASA Global Landslide Catalog; GSI Bhukosh (India). This converts "rough
+  hazard map" → "validated forecast."
+- **Uncertainty quantification** — per-pixel velocity error bars propagated into FS/alerts.
+- **Susceptibility model** (logistic regression / random forest on conditioning factors)
+  trained + validated on the inventory → independent corroboration of the physics.
+
+### Area 5 — Multi-sensor corroboration via GEE & free services (robustness)
+- ⚠️ **GEE cannot do InSAR** (no SLC phase / interferometry) — InSAR stays on
+  ASF/HyP3/MintPy; GEE adds everything *around* it.
+- **Rainfall (live trigger + ID thresholds):** CHIRPS (daily), GPM IMERG (~30-min),
+  ERA5-Land — all in GEE. Replaces the mock scenarios.
+- **Soil moisture / saturation:** SMAP (~9 km), ASCAT.
+- **Soil / lithology for spatial strength:** SoilGrids (250 m) → varying cohesion/φ.
+- **DEM upgrade:** Copernicus GLO-30 / NASADEM / AW3D30 (30 m, GEE) for slope/TWI/HAND;
+  true 12.5 m ALOS RTC from ASF.
+- **Vegetation / where InSAR is trustworthy:** ESA WorldCover (10 m), Dynamic World,
+  Sentinel-2 NDVI time series.
+- **Optical change / independent validation:** Sentinel-2, Landsat, Planet NICFI
+  (free, tropics) → detect fresh scarps/scars; corroborate InSAR-flagged zones.
+- **Inventory + large-area susceptibility:** NASA Global Landslide Catalog + GEE imagery
+  → susceptibility over the whole NH-44 corridor, then focus InSAR where high.
+- **Other free services:** GACOS (tropo correction), COMET-LiCSAR (free pre-made
+  Sentinel-1 interferograms — independent cross-check), OpenTopography (LiDAR/high-res
+  DEM), GSI Bhukosh (Indian geology + landslide data).
+
+### Area 6 — Operationalize / deploy / smarter
+- **Real-time rainfall ingestion** (CHIRPS/GPM) → continuously-updating live alerts.
+- **Hybrid LLM agent** ("rules decide, LLM narrates" — low-risk first step).
+- **Hosted dashboard** (Streamlit) + a **combined union 3-D dashboard** over the
+  multi-track mosaic (today's 3-D view is the single frame106 patch).
+
+### Suggested priority (highest leverage first)
+1. **Finish MintPy + ERA5** (Area 1) — also unlocks SVD/DESC for Area 2.
+2. **Inverse-velocity time-to-failure** (Area 3) — turns hazard → forecast using
+   existing data; biggest scientific + narrative jump for least cost.
+3. **Live rainfall (GEE CHIRPS/GPM) + ID thresholds** (Areas 3/5) — real trigger.
+4. **GEE corroboration + inventory validation** (Areas 4/5) — multi-sensor robustness.
+
+**Robustness in one line:** corroborate InSAR creep with optical change, real rainfall,
+soil moisture, and a validated landslide inventory — never trust a single sensor or a
+single physics assumption.
+
+---
+
 ## The Guiding Principle
 
 By auditing noise *before* trusting any deformation map, this pipeline avoids the
