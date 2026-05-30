@@ -474,10 +474,14 @@ def recommend_rescues(
     gate: atmospheric ``R2 <= max_atmos_r2``, ``coherence >= min_coherence``,
     ``surviving_pct >= min_surviving_pct`` (each enforced only when present). Per
     stack we build islands from non-rescued KEEP edges, walk bridging candidates
-    in ascending R2 (cleanest first), and select one only when it (a) merges two
-    still-separate components AND (b) clears the gate. A gap whose only bridges
-    fail the gate is LEFT BROKEN — the stack stays disconnected (SVD /
-    period-split downstream) rather than ingesting a noisy bridge.
+    in DESCENDING coverage (highest surviving_pct first, R2 as a tiebreak), and
+    select one only when it (a) merges two still-separate components AND (b) clears
+    the gate. Coverage-first selection matters because a bridge gates network-wide
+    solvability — once a candidate is below the R2 noise ceiling, the one that
+    recovers the MOST usable ground is the better bridge (e.g. a shorter-baseline,
+    higher-coherence pair beats a marginally-cleaner long-baseline one). A gap
+    whose only bridges fail the gate is LEFT BROKEN — the stack stays disconnected
+    (SVD / period-split downstream) rather than ingesting a noisy bridge.
 
     Determinism / idempotency: a previously-rescued pair (decision==KEEP with
     "RESCUED_FOR_CONNECTIVITY" in its reasons) is reverted to a CANDIDATE, so
@@ -533,10 +537,14 @@ def recommend_rescues(
             }
             continue
 
-        # Lowest R2 first; ties broken by date for a stable, reproducible order.
+        # Highest coverage first (a bridge gates network-wide solvability), then
+        # lowest R2, then date — among gate-passing candidates. The gate already
+        # guarantees atmospheric purity, so we maximise recoverable ground. A
+        # missing surviving_pct sorts last (treated as -1).
         candidates = sorted(
             (it for it in items if it["role"] == "candidate"),
             key=lambda it: (
+                -(it["surv"] if it["surv"] is not None else -1.0),
                 it["atmos_r2"] if it["atmos_r2"] is not None else 1.0,
                 it["ref_date"], it["sec_date"],
             ),
