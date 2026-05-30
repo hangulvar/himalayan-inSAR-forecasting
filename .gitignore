@@ -55,6 +55,8 @@ _netrc
 .cdsapirc
 .env
 .env.*
+# Keep the committable convention doc (the real .env stays ignored above):
+!.env.template
 secrets.json
 credentials.json
 *creds*
