@@ -540,6 +540,77 @@ for rivers — a proper version needs real river/flow-routing data.
 
 ---
 
+# Part C-ter — Scaling & Hardening (Milestones 6–8)
+
+## CT1. Connectivity rescue & the "load-bearing bridge"
+
+The SBAS maths (B3–B4) needs the acquisition dates to form **one connected
+network**. If the clean (KEEP) links leave the dates split into separate "islands,"
+the system is rank-deficient and the inversion is silently wrong. To join two islands
+you must promote ("rescue") a borderline (CONCERN) interferogram to act as a **bridge**.
+
+**The key insight:** a bridge is an **unredundant single point of failure**. Inside a
+dense island, a noisy link is averaged out by its neighbours (B3's redundancy); a
+bridge is the *only* path between two islands, so its noise flows **undamped** into
+every measurement that crosses it. A rescue must therefore clear a *stricter* quality
+bar than an ordinary link — not a looser one.
+
+**Everyday analogy:** one rickety plank bridging two solid islands. On the island you
+can step around a weak board; on the single bridge, one bad board dumps you in the
+river — so you inspect that plank far more carefully.
+
+**How we do it (the gate):** a candidate bridge is allowed only if it's clean enough —
+atmospheric R² ≤ 0.45 (A8/B6) **and** coherence ≥ 0.6 (A7). If a gap's only candidates
+fail, we **refuse to bridge it** and handle that stretch differently (SVD /
+period-split) rather than injecting noise. Among clean-enough candidates we pick the
+one with the **most coverage**, because the bridge also caps how much *ground* the
+whole network can solve.
+
+🔗 **In our project: Milestone 7.** `sbas_network_graph.py` auto-selects rescues and
+emits a "rejected bridges + reasons" audit; `apply_connectivity_rescues.py` applies
+them. Real catch: ranking by *cleanest alone* once picked a longer-baseline bridge
+that halved usable pixels — so we switched to **coverage-first** among gate-passers.
+
+## CT2. Many looks, one map (why you can't just average)
+
+Each satellite track views the slope from a different angle, so each measures a
+different **projection** of the true 3-D motion onto its own line-of-sight (A6). Two
+tracks reporting different LOS speeds for the same slope aren't contradicting each
+other — they see the same motion from different directions. So you must **not** blur
+their velocities into one number.
+
+**Everyday analogy:** two people photograph the same walker from different corners.
+You can't average "how fast they cross *my* photo" — the angles differ. But if *both*
+photos show danger, you're doubly sure.
+
+**What we do — union at the decision level:** compute danger *per track*, then combine
+by logical **OR** — a slope is flagged if **any** track sees it unstable + creeping;
+spots flagged by **two or more** tracks are the most trustworthy. (The "proper"
+alternative — combining ascending + descending LOS into true vertical + east-west
+motion — is a later step needing the descending tracks.)
+
+🔗 **In our project: Milestone 7.** `run_multistack.py` builds the area-wide hazard as
+a union across 3 ascending tracks; 26 monsoon zones are confirmed by ≥2 looks.
+
+## CT3. MintPy & the ERA5 atmosphere filter
+
+Our home-built engine leaves a ~30 mm/yr "fuzziness" floor, dominated by the
+atmosphere (A8). **MintPy** is the peer-reviewed, field-standard SBAS package; its big
+advantage is a *physical* atmosphere correction: it downloads **ERA5** (a global
+weather reanalysis — temperature/pressure/humidity on a grid for any past hour),
+computes the extra signal delay the air added on each radar pass, and **subtracts it**
+— instead of our statistical "discard suspicious images" approach.
+
+**Everyday analogy:** our method spots and throws away photos shot through heat-haze;
+MintPy instead *models* the haze from that day's weather record and removes it, keeping
+the photo.
+
+🔗 **In our project: Milestone 8.** We built MintPy its own container and verified the
+ERA5 download credentials; next we cross-validate MintPy against our custom engine on
+frame106, then switch the ERA5 correction on.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.

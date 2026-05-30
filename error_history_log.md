@@ -23,6 +23,48 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] MintPy `prep_hyp3.py` requires the HyP3 `.txt` metadata file (we only extracted `.tif`s)
+
+* **Symptom:**
+  Planning the MintPy ingestion (`prep_hyp3.py`) — its `--help` shows that, per
+  interferogram, it needs the HyP3 **`.txt` metadata** file (e.g.
+  `S1AA_..._74C2.txt`) alongside `_unw_phase.tif`, `_corr.tif`, plus `_dem.tif` and
+  `_lv_theta.tif`. But `data/processed_tiffs/<product>/` contains only the `.tif`s.
+
+* **Root Cause:**
+  Phase-1's extractor (`download_hyp3_products.py`, `WANTED_TIFF_SUFFIXES`)
+  deliberately extracted only the GeoTIFFs we needed for our custom pipeline; the
+  HyP3 `.txt` metadata (orbit/baseline/etc., which MintPy reads for the `.rsc`) was
+  never unpacked from `data/raw_zips/*.zip`.
+
+* **Resolution (planned for MintPy step 2):**
+  Before `prep_hyp3.py`, extract the `.txt` for each frame106 KEEP pair from
+  `data/raw_zips/` into a MintPy work dir (alongside unw_phase/corr/dem/lv_theta).
+  Not a bug in the existing pipeline — a known input requirement for the MintPy path.
+
+---
+
+### [2026-05-31] `.gitignore`: inline comments unsupported; broad `.env.*` was hiding `.env.template`
+
+* **Symptom:**
+  After adding `!.env.template` with a trailing `# comment` on the same line, the
+  template was *still* git-ignored. Separately, `.env.template` (a committable doc)
+  had never been trackable.
+
+* **Root Causes:**
+  1. `.gitignore` does **not** support inline comments — `!.env.template   # ...` is
+     parsed as a literal pattern (filename incl. the spaces and `#`), so the negation
+     never applied.
+  2. The broad pattern `.env.*` matches `.env.template`, so the convention doc was
+     silently excluded from version control.
+
+* **Resolution:**
+  Put the comment on its own line and the negation alone: a `# comment` line followed
+  by `!.env.template` (placed AFTER `.env.*`). Verified: `.env.template` is now
+  trackable while the real `.env` stays ignored. (Gotcha for any future `!negation`.)
+
+---
+
 ### [2026-05-27] Conda Environment Creation Failure (Memory Error & OneDrive Sync Lock)
 
 * **Symptom:**
