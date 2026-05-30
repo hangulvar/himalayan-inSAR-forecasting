@@ -33,3 +33,25 @@ baseline:
   # decorrelation. NOTE: declared here for the upcoming baseline-enforcement
   # step (roadmap 0b) but not yet applied by the submitter.
   max_perp_baseline_m: 150
+
+# --- Connectivity-rescue policy ---------------------------------------------
+# A rescue promotes a CONCERN interferogram to KEEP so it can BRIDGE two
+# otherwise-disconnected islands. A bridge is an unredundant single point of
+# failure — its noise is NOT averaged out by SBAS redundancy — so it must clear
+# a stricter quality bar than an ordinary KEEP pair. sbas_network_graph.py
+# applies this gate and refuses to bridge a gap with any pair that fails it; the
+# stack is then left disconnected (SVD / period-split downstream) rather than
+# injecting noise. Tighten/loosen these per AOI using the emitted audit.
+rescue_gate:
+  # NOISE gates (the primary controls) — both directly govern bridge reliability:
+  max_atmos_r2: 0.45      # phase-elevation R^2 ceiling (QUARANTINE line is 0.5)
+  min_coherence: 0.6      # mean coherence of surviving pixels floor
+  # COVERAGE sanity floor (completeness, not noise) — low by design so a sparse
+  # but clean bridge is not discarded; raise toward 30 to also demand coverage.
+  min_surviving_pct: 15
+
+# Manual override ON TOP of the scientific gate: stacks to force-skip entirely
+# (e.g. one you have decided to period-split regardless). Canonical labels.
+# Default empty — the gate above already excludes decorrelated stacks (e.g. the
+# only frame484 bridge has R^2~0.50 and is rejected automatically).
+exclude_from_rescue: []

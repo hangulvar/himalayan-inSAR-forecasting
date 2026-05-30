@@ -31,12 +31,22 @@ class BaselineConfig:
 
 
 @dataclass(frozen=True)
+class RescueGateConfig:
+    """Quality bar a CONCERN pair must clear to be eligible as a bridge."""
+    max_atmos_r2: float
+    min_coherence: float
+    min_surviving_pct: float
+
+
+@dataclass(frozen=True)
 class Config:
     aoi_path: Path
     job_name_prefix: str
     search_start: datetime
     search_end: datetime
     baseline: BaselineConfig
+    rescue_gate: RescueGateConfig
+    exclude_from_rescue: tuple[str, ...]
 
 
 def _to_utc(value) -> datetime:
@@ -70,6 +80,7 @@ def load_config(path: str | Path | None = None) -> Config:
         aoi = PROJECT_ROOT / aoi
 
     b = raw.get("baseline") or {}
+    g = raw.get("rescue_gate") or {}
     return Config(
         aoi_path=aoi,
         job_name_prefix=str(raw["job_name_prefix"]),
@@ -80,4 +91,10 @@ def load_config(path: str | Path | None = None) -> Config:
             sbas_neighbors=int(b.get("sbas_neighbors", 1)),
             max_perp_baseline_m=float(b.get("max_perp_baseline_m", 150)),
         ),
+        rescue_gate=RescueGateConfig(
+            max_atmos_r2=float(g.get("max_atmos_r2", 0.45)),
+            min_coherence=float(g.get("min_coherence", 0.6)),
+            min_surviving_pct=float(g.get("min_surviving_pct", 15)),
+        ),
+        exclude_from_rescue=tuple(raw.get("exclude_from_rescue") or []),
     )
