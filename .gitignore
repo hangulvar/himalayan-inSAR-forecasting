@@ -52,6 +52,7 @@ pip-delete-this-directory.txt
 # --- Credentials & Secrets (CRITICAL) ---
 .netrc
 _netrc
+.cdsapirc
 .env
 .env.*
 secrets.json
