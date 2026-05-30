@@ -22,4 +22,5 @@ dependencies:
   - scipy=1.15.*
   - matplotlib-base=3.10.*   # -base: headless Agg, no GUI/Qt deps (scripts emit SVG/HTML)
   - python-dotenv
+  - pyyaml                   # config.yaml loader (workflows/config.py)
   - pip

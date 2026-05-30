@@ -2,29 +2,14 @@
 a single quarantine recommendation and per-stack health view.
 """
 import csv
-import re
 from collections import defaultdict
 from pathlib import Path
+
+from stacks import load_manifest, stack_for_product
 
 COH_CSV = Path("data/qa_masks/_coherence_mask_stats.csv")
 ATMOS_CSV = Path("data/qa_masks/_atmospheric_audit.csv")
 OUT_CSV = Path("data/qa_masks/_quarantine_list.csv")
-
-
-def stack_key(name: str) -> str:
-    m = re.search(r"S1AA_\d{8}T(\d{6})_", name)
-    if not m:
-        return "unknown"
-    hms = m.group(1)
-    if hms.startswith("1304"):
-        return "ASC_path100_frame102"
-    if hms.startswith("1256"):
-        s = int(hms[4:6])
-        return "ASC_path27_frame101" if s < 50 else "ASC_path27_frame106"
-    if hms.startswith("0059"):
-        s = int(hms[4:6])
-        return "DESC_path34_frame479" if s < 25 else "DESC_path34_frame484"
-    return "unknown"
 
 
 def main() -> None:
@@ -32,6 +17,7 @@ def main() -> None:
     atm = {r["product"]: r for r in csv.DictReader(open(ATMOS_CSV, encoding="utf-8"))}
 
     products = sorted(set(coh) | set(atm))
+    manifest = load_manifest()
 
     # Build joined view + categorize.
     rows = []
@@ -70,7 +56,7 @@ def main() -> None:
 
         rows.append({
             "product": p,
-            "stack": stack_key(p),
+            "stack": stack_for_product(p, manifest),
             "decision": decision,
             "surviving_pct": c.get("surviving_pct", ""),
             "mean_coh_survivors": c.get("mean_coherence_survivors", ""),

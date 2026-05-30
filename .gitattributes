@@ -1,0 +1,9 @@
+# Keep container build artifacts LF-only so a fresh clone builds reliably on any
+# OS (Windows autocrlf must not rewrite these). They are the reproducibility
+# artifact — CRLF in the explicit lock or Dockerfile can break the build.
+docker/conda-linux-64.lock     text eol=lf
+docker/Dockerfile              text eol=lf
+docker/environment.docker.yml  text eol=lf
+docker-compose.yml             text eol=lf
+.dockerignore                  text eol=lf
+*.sh                           text eol=lf

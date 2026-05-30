@@ -10,38 +10,19 @@ from pathlib import Path
 
 import numpy as np
 
+from stacks import load_manifest, stack_for_product
+
 CSV_PATH = Path("data/qa_masks/_coherence_mask_stats.csv")
-
-
-def stack_key(product_name: str) -> str:
-    """Map a HyP3 product folder name to its (direction, path, frame) stack.
-
-    The Sentinel-1 acquisition time-of-day uniquely identifies each frame within
-    each orbit, as established during the submission run.
-    """
-    m = re.search(r"S1AA_\d{8}T(\d{6})_", product_name)
-    if not m:
-        return "unknown"
-    hms = m.group(1)
-    if hms.startswith("1304"):
-        return "ASC_path100_frame102"
-    if hms.startswith("1256"):
-        # Distinguish frame 101 (~T125632) vs frame 106 (~T125657) by seconds.
-        seconds = int(hms[4:6])
-        return "ASC_path27_frame101" if seconds < 50 else "ASC_path27_frame106"
-    if hms.startswith("0059"):
-        seconds = int(hms[4:6])
-        return "DESC_path34_frame479" if seconds < 25 else "DESC_path34_frame484"
-    return "unknown"
 
 
 def main() -> None:
     rows = list(csv.DictReader(open(CSV_PATH, encoding="utf-8")))
+    manifest = load_manifest()
     by_stack: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         if r["status"] != "ok":
             continue
-        by_stack[stack_key(r["product"])].append(r)
+        by_stack[stack_for_product(r["product"], manifest)].append(r)
 
     print(f"{'Stack':<24}  {'n':>3}  {'survivor % (min/med/max)':<26}  {'coh of survivors (min/med/max)'}")
     print("-" * 100)

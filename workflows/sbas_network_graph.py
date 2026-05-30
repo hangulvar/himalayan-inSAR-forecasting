@@ -39,6 +39,9 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from config import load_config
+from stacks import label_from_job_name
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QUARANTINE_CSV = PROJECT_ROOT / "data" / "qa_masks" / "_quarantine_list.csv"
 # Note the leading underscore — keeps the directory from being treated as a
@@ -53,26 +56,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger("sbas_network_graph")
-
-
-# ------------------------------------------------------------------------------
-# Stack identification (mirrors _consolidate_quarantine.py)
-# ------------------------------------------------------------------------------
-def stack_key(product_name: str) -> str:
-    """Map a HyP3 product folder name to its (direction, path, frame) stack."""
-    m = re.search(r"S1AA_\d{8}T(\d{6})_", product_name)
-    if not m:
-        return "unknown"
-    hms = m.group(1)
-    if hms.startswith("1304"):
-        return "ASC_path100_frame102"
-    if hms.startswith("1256"):
-        s = int(hms[4:6])
-        return "ASC_path27_frame101" if s < 50 else "ASC_path27_frame106"
-    if hms.startswith("0059"):
-        s = int(hms[4:6])
-        return "DESC_path34_frame479" if s < 25 else "DESC_path34_frame484"
-    return "unknown"
 
 
 def parse_pair_dates(product_name: str) -> tuple[datetime, datetime] | None:
@@ -140,20 +123,19 @@ def fetch_bperp_per_stack(stack_acq_names: dict[str, list[str]]) -> dict[str, di
     return result
 
 
-def fetch_granule_names_per_stack() -> dict[str, list[str]]:
+def fetch_granule_names_per_stack(job_name_prefix: str) -> dict[str, list[str]]:
     """Pull SLC granule names from HyP3 job_parameters['granules']."""
     import hyp3_sdk as sdk
 
     hyp3 = sdk.HyP3()
-    jobs = [j for j in hyp3.find_jobs() if j.name and j.name.startswith("Ramban_NH44")]
+    jobs = [j for j in hyp3.find_jobs() if j.name and j.name.startswith(job_name_prefix)]
     logger.info(f"Pulled {len(jobs)} HyP3 jobs to extract granule names.")
 
     stack_to_granules: dict[str, set[str]] = defaultdict(set)
     for job in jobs:
         if not job.files:
             continue
-        product_name = job.files[0]["filename"].replace(".zip", "")
-        stack = stack_key(product_name)
+        stack = label_from_job_name(job.name, job_name_prefix)
         if stack == "unknown":
             continue
         granules = job.job_parameters.get("granules", []) if job.job_parameters else []
@@ -547,6 +529,7 @@ def write_report(results: list[dict]) -> None:
 # ------------------------------------------------------------------------------
 def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    cfg = load_config()
 
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     logger.info(f"Loaded {len(rows)} products from {QUARANTINE_CSV.name}")
@@ -564,7 +547,7 @@ def main() -> int:
             "sec_date": dates[1],
         })
 
-    stack_granules = fetch_granule_names_per_stack()
+    stack_granules = fetch_granule_names_per_stack(cfg.job_name_prefix)
     bperp_per_stack = fetch_bperp_per_stack(stack_granules)
 
     stack_date_to_bperp: dict[str, dict[datetime, float]] = {}

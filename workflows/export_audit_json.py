@@ -31,6 +31,8 @@ import logging
 import sys
 from pathlib import Path
 
+from config import load_config
+
 # ------------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 AUDIT_CSV = PROJECT_ROOT / "data" / "qa_masks" / "_atmospheric_audit.csv"
@@ -45,8 +47,8 @@ logging.basicConfig(
 logger = logging.getLogger("export_audit_json")
 
 
-def build_product_to_jobid_map() -> dict[str, str]:
-    """Map each Ramban_NH44 HyP3 product zip stem to its job_id UUID.
+def build_product_to_jobid_map(job_name_prefix: str) -> dict[str, str]:
+    """Map each HyP3 product zip stem (under the job-name prefix) to its job_id.
 
     Failures (no auth, no jobs) return an empty dict — the JSON will then
     have null job_ids but still be well-formed.
@@ -61,7 +63,7 @@ def build_product_to_jobid_map() -> dict[str, str]:
         hyp3 = sdk.HyP3()
         jobs = [
             j for j in hyp3.find_jobs()
-            if j.name and j.name.startswith("Ramban_NH44")
+            if j.name and j.name.startswith(job_name_prefix)
         ]
     except Exception as e:
         logger.warning(f"HyP3 auth/lookup failed: {e}. job_ids will be null.")
@@ -87,7 +89,8 @@ def main() -> int:
     rows = list(csv.DictReader(open(AUDIT_CSV, encoding="utf-8")))
     logger.info(f"Read {len(rows)} rows from {AUDIT_CSV.name}.")
 
-    product_to_jobid = build_product_to_jobid_map()
+    cfg = load_config()
+    product_to_jobid = build_product_to_jobid_map(cfg.job_name_prefix)
 
     records: list[dict] = []
     for r in rows:

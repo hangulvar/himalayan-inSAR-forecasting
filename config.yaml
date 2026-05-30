@@ -1,0 +1,35 @@
+# ============================================================================
+# Pipeline configuration
+# ----------------------------------------------------------------------------
+# Point the whole pipeline at an Area of Interest by editing this file (or pass
+# `--config path/to/other.yaml` to any workflow script). Every script reads
+# these values via workflows/config.py instead of hardcoding Ramban.
+# ============================================================================
+
+# --- Area of Interest -------------------------------------------------------
+# Path (relative to the project root, or absolute) to the AOI polygon.
+# Must be GeoJSON in EPSG:4326. Draw it in Google Earth Pro -> Save As .kml ->
+# convert to GeoJSON (geopandas/QGIS). See InSAR_hazard_forecasting_Context.md.
+aoi_path: ramban_aoi.geojson
+
+# HyP3 job-name prefix. Every submitted job is named
+#   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
+# and downstream steps filter on this prefix. Use a short, unique slug per AOI.
+job_name_prefix: Ramban_NH44
+
+# --- Catalog search window (inclusive), ISO dates ---------------------------
+# Pick the period whose ground motion matters. Here: the 2025 monsoon and
+# immediate post-monsoon, when slope failure is most likely.
+search_start: 2025-05-01
+search_end: 2025-10-31
+
+# --- Pair-network / baseline rules ------------------------------------------
+baseline:
+  # Max temporal baseline (days) for a valid interferometric pair.
+  max_temporal_baseline_days: 24
+  # SBAS forward neighbours per scene (1 = consecutive chain; 3 = SBAS N=3).
+  sbas_neighbors: 1
+  # Max perpendicular baseline (m). Pairs above this risk layover / volume
+  # decorrelation. NOTE: declared here for the upcoming baseline-enforcement
+  # step (roadmap 0b) but not yet applied by the submitter.
+  max_perp_baseline_m: 150
