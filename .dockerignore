@@ -1,0 +1,40 @@
+# Normal builds use the tiny ./docker context (see docker-compose.yml), so this
+# file is a safety net: if anyone runs `docker build .` from the repo root, never
+# ship the heavy data or secrets to the Docker daemon.
+
+# Heavy data + outputs (mounted as a volume at run time, never baked in)
+data/
+logs/
+
+# Version control + caches
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Conda / virtualenvs
+.conda/
+.venv/
+env/
+venv/
+
+# Secrets — must never enter an image layer
+.netrc
+_netrc
+.env
+.env.*
+
+# Large / binary geospatial formats
+*.zip
+*.tar
+*.gz
+*.tif
+*.tiff
+*.nc
+*.nc4
+*.h5
+*.hdf
+*.hdf5

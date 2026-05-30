@@ -1,0 +1,22 @@
+# Run the Himalayan InSAR pipeline in a reproducible Linux container.
+#
+# The image (built from ./docker) carries ONLY the conda environment. The whole
+# project — code, the ~73 GB data/ dir, logs/, and ramban_aoi.geojson — is
+# bind-mounted at /app, so nothing large is baked into the image and edits made
+# on the host are picked up immediately. See docker/README.md for usage.
+
+services:
+  insar:
+    build:
+      context: ./docker          # tiny build context — just the Dockerfile + env spec
+    image: insar-himalaya:latest
+    working_dir: /app
+    volumes:
+      # The whole project: code, data/, logs/, ramban_aoi.geojson.
+      # PROJECT_ROOT in every script resolves to /app, so data/ lands at /app/data.
+      - .:/app
+      # Phase-1 ASF credentials (read-only). Phases 2-4 do NOT need this.
+      # To run Phase 1: set NETRC_PATH to your host ~/.netrc and uncomment:
+      # - ${NETRC_PATH}:/home/mambauser/.netrc:ro
+    stdin_open: true             # keep STDIN open for an interactive shell
+    tty: true

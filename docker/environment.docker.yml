@@ -1,0 +1,25 @@
+# Linux (conda-forge) environment for the Himalayan InSAR pipeline container.
+#
+# Mirrors the root environment.yml, but:
+#   - conda-forge ONLY (drops the `defaults` channel) for a clean, redistributable,
+#     reproducible image with no Anaconda-channel ToS entanglement;
+#   - version-pinned to the documented working set (see error_history_log.md);
+#   - omits jupyterlab (dev-only; not imported by any pipeline script);
+#   - pip deps (hyp3_sdk, asf_search) live in docker/Dockerfile, not here.
+#
+# This is the human-readable SPEC. The byte-exact reproducibility artifact is
+# docker/conda-linux-64.lock, generated from the first successful build
+# (see docker/README.md). No `name:` key — it is installed into the base env.
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10.*
+  - gdal=3.10.*
+  - rasterio=1.4.*
+  - geopandas=1.1.*
+  - shapely=2.1.*
+  - numpy=2.2.*
+  - scipy=1.15.*
+  - matplotlib-base=3.10.*   # -base: headless Agg, no GUI/Qt deps (scripts emit SVG/HTML)
+  - python-dotenv
+  - pip
