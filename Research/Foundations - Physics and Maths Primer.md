@@ -651,6 +651,40 @@ bad data is a feature, not a failure.
 
 ---
 
+# Part C-quater — From a Hazard Map to a Forecast (Milestone 11)
+
+## CF1. Inverse-velocity time-to-failure (Fukuzono/Voight)
+
+So far the hazard map says *where* a slope is dangerous. The inverse-velocity method takes the
+next step — estimating *when* it might fail — from the per-pixel movement timeline we already
+produce (B5), with no new data.
+
+**The idea.** A slope heading for collapse enters "tertiary creep": it speeds up in a
+characteristic way. Fukuzono (1985) noticed that the **inverse** of velocity, 1/v, plotted against
+time falls in a roughly **straight line that reaches zero at the moment of failure**. So you fit a
+line to the recent 1/v points and read off where it crosses zero — the projected failure time t_f.
+
+**Gentle formula.** If velocity grows like v ∝ 1/(t_f − t), then 1/v ∝ (t_f − t) — a straight line
+hitting zero at t = t_f. Fit 1/v = a + b·t; the crossing is **t_f = −a/b**, and the lead time is
+t_f − today.
+
+**Everyday analogy.** A kettle's whistle rising in pitch — extrapolate the trend and you can guess
+when it'll peak. Inverse velocity does this for a slope. But it only works once the slope is
+*genuinely accelerating*: a slope creeping at a *steady* pace has a flat 1/v line that never
+reaches zero, so it (correctly) predicts no failure.
+
+**The catch (and the discipline).** 1/v blows up when v is near zero, so the method is very
+noise-sensitive — left ungated it will happily fit a "failure" to random wobble. The safeguard is
+*gates*: only trust a prediction when the slope is **consistently** moving the failure direction
+and the 1/v line is **significantly** decreasing. We learned this the hard way (Part E / error log).
+
+🔗 **In our project: Milestone 11.** We screen every alert zone this way. Honestly, with only
+~3.5 months of data at our ~30 mm/yr noise floor, **no zone shows significant acceleration** — all
+are steady creep. The machinery is built and noise-hardened, and will project a failure date
+automatically once the data shows acceleration (a longer series, or a real event onset).
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -751,6 +785,15 @@ physically-impossible velocities (2–5× noisier than the ascending tracks) tha
 period-split only worsened. We dumped both rather than dilute a good result, and documented
 exactly why. Knowing when to throw data away is part of the method, not an exception to it.
 
+**Q: Can your system predict *when* a slope will fail, not just where?**
+A: The machinery is in place — the inverse-velocity (Fukuzono) method: as a slope accelerates,
+1/velocity falls linearly to zero at the failure time, using the time series we already produce
+(CF1). Honestly, none of our zones are accelerating right now — they're creeping *steadily* over a
+short, noisy window — so it correctly returns "no imminent failure," not a fabricated date. It will
+project dates as the record lengthens or a real acceleration begins. And we gate it hard: inverse
+velocity will otherwise fit "failures" to noise — we caught exactly that in our own first run and
+fixed it (Part E).
+
 ---
 
 # Part E — Honest Limitations
@@ -772,8 +815,12 @@ Being able to state weaknesses is what makes you credible.
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
   coverage and cross-checking is still ahead.
-- **Measurement ≠ prediction:** we currently quantify motion; turning that into a
-  validated hazard forecast is the upcoming work.
+- **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
+  (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
+  *steady* creep — no zone is yet accelerating, so no failure dates are projected.
+  "Steady" ≠ "safe"; the screen is deliberately conservative and will return dates once
+  the series lengthens or a real acceleration begins. It is not yet validated against a
+  landslide inventory (the credibility step still ahead).
 - **Assumed soil strength:** the Factor-of-Safety uses textbook cohesion/friction
   values for Himalayan soil, not site measurements — so FS is a *relative*
   screening layer, not an absolute prediction.

@@ -23,6 +23,36 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] Inverse-velocity TTF v1 reported false "failures" — noise dressed as signal
+
+* **Symptom:**
+  The first run of `inverse_velocity_ttf.py` flagged **7 alert zones as ACCELERATING with a
+  failure in 11–51 days**. But each flagged zone had a **positive** net velocity
+  (+37 / +14 / +11 mm/yr) — i.e. moving *toward* the sensor, the opposite of a downslope
+  failure. A confident "fails in 11 days" on a slope that isn't even moving the failure way.
+
+* **Root Cause (three compounding):**
+  1. **Window dilution** — averaging a 5×5 window around a ~3-pixel zone mixed the creep
+     signal with stable neighbours, so the series didn't represent the zone (the orchestrator
+     reports these zones creeping at ≤ −15 mm/yr, but the diluted window read positive).
+  2. **No direction gate** — the inverse-velocity fit used the negative *sub-intervals* of a
+     net-positive, noisy series (cherry-picking), manufacturing a spurious decreasing 1/|v|.
+  3. **Raw vs high-pass mismatch** — the creep mask used `*_mean_velocity_los.tif` while the
+     orchestrator defines creep from `*_mean_velocity_los_highpass.tif`, so the wrong pixels
+     were selected (and 66 zones came back INSUFFICIENT).
+
+* **Resolution:**
+  Mask the window to creep pixels using the **high-pass** velocity (orchestrator-consistent);
+  HARD-gate before any TTF — the zone must be genuinely creeping (**net ≤ −15 mm/yr**) AND move
+  **consistently** in the failure direction (≥70% of smoothed velocities negative); keep
+  R²≥0.5 on the 1/|v| fit. Result: **0 accelerating, all STEADY** across all 3 ASC stacks — the
+  honest outcome. Lesson: an extrapolation method (inverse velocity) will *always* return a
+  number; the discipline is the GATES — require consistent failure-direction motion and match
+  the upstream signal definition before trusting it. Same "noise dressed as signal" class as
+  the DESC velocity bias above; caught here in our own output.
+
+---
+
 ### [2026-05-31] MintPy on the disconnected DESC stacks — quality traps that led to dumping both
 
 Not bugs — data-quality findings worth recording so we don't repeat the evaluation.
