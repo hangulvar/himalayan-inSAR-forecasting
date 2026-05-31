@@ -701,11 +701,15 @@ is C = I·D = 14.82·D^0.61 (D in hours). Exceed C over any duration and the tri
 **Everyday analogy.** A sink with a slow drain: a gentle trickle is fine, but open the tap and it
 overflows. Soil has a drainage rate; rain above that rate, for long enough, saturates and fails it.
 
-🔗 **In our project: Milestone 12.** We pulled real ERA5-Land daily rainfall for Ramban across
-May–Oct 2025 (1,233 mm) and screened it against Caine. Exactly one day crossed the line —
-**26 Aug 2025, ~134 mm/day** — the season's true trigger, versus the old made-up "120 mm/72h
-monsoon." It couples with CF1 (measured creep) and the Factor of Safety (C4): *where* + *is it
-moving* + *did the trigger fire* → one warning.
+🔗 **In our project: Milestones 12–13.** We pulled real ERA5-Land daily rainfall for Ramban across
+May–Oct 2025 (1,233 mm) and screened it against Caine — exactly one day crossed the line, **26 Aug
+2025, ~134 mm/day**, the season's true trigger (vs the made-up "120 mm/72h monsoon"). We then
+**coupled** it into the Factor of Safety: the infinite-slope FS is *exactly linear in saturation m*
+(C4), so for any day's measured wetness we blend the two end-member maps,
+**FS_real = (1−m)·FS_dry + m·FS_saturated**, with no recompute. Walking that across the season gives
+a **time-resolved hazard** — alert zones rise through the monsoon, peak at 222 on 26 Aug, then decay
+as the soil dries. So now: *where* (C5) + *is it moving* (CF1) + *did the trigger fire & how wet is
+it now* (CF2) → one warning that **tracks real weather over time**.
 
 ---
 

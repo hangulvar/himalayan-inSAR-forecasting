@@ -47,6 +47,7 @@ if sys.platform == "win32":
 
 import argparse
 import base64
+import csv
 import io
 import json
 import logging
@@ -62,6 +63,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 VEL_DIR = PROJECT_ROOT / "data" / "velocity"
 HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
 OUT_DIR = PROJECT_ROOT / "data" / "alerts"
+RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 LOG_DIR.mkdir(exist_ok=True)
@@ -86,6 +88,44 @@ FS_FAIL = 1.0
 MIN_CLUSTER_PX = 3        # drop isolated single/double-pixel specks (Phase 3 noise finding)
 CRITICAL_VEL = -50.0      # mm/yr → escalate severity
 CRITICAL_FS = 0.7
+
+
+# ------------------------------------------------------------------------------
+# Real-rainfall coupling — replaces the mock saturation with the MEASURED daily
+# wetness (from fetch_rainfall.py + rainfall_id_threshold.py). FS is exactly linear
+# in saturation m (infinite-slope model, constant unit weight), so for any real m we
+# interpolate FS_real = (1-m)*FS_dry + m*FS_saturated from the two end-member rasters
+# instead of re-running the geomechanical engine.
+# ------------------------------------------------------------------------------
+def load_wetness():
+    """Ordered (dates, rain_mm{}, wetness_0_1{}) from the rainfall pipeline outputs."""
+    path = RAIN_DIR / "ramban_wetness_daily.csv"
+    if not path.exists():
+        sys.exit(f"Missing {path} — run fetch_rainfall.py + rainfall_id_threshold.py first.")
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    dates = [r["date"] for r in rows]
+    return (dates,
+            {r["date"]: float(r["rain_mm"]) for r in rows},
+            {r["date"]: float(r["wetness_0_1"]) for r in rows})
+
+
+def trigger_days() -> set:
+    p = RAIN_DIR / "id_threshold_report.json"
+    return set(json.loads(p.read_text(encoding="utf-8"))["trigger_days"]) if p.exists() else set()
+
+
+def real_rainfall_cfg(date_str: str) -> dict:
+    """Scenario cfg for a real date: saturation m from the daily wetness, 72h rainfall
+    from the trailing 3-day total, and whether the day crossed the ID threshold."""
+    dates, rain, mwet = load_wetness()
+    if date_str not in mwet:
+        sys.exit(f"{date_str} not in wetness series ({dates[0]}..{dates[-1]}).")
+    i = dates.index(date_str)
+    rain72 = sum(rain[d] for d in dates[max(0, i - 2):i + 1])
+    return {"name": date_str, "rainfall_mm_72h": round(rain72),
+            "saturation": round(mwet[date_str], 3), "fs_layer": "FS_real",
+            "rain_day_mm": round(rain[date_str], 1),
+            "is_trigger": date_str in trigger_days()}
 
 
 # ------------------------------------------------------------------------------
@@ -117,16 +157,27 @@ class InSARAuditor:
 class MeteorologicalTrigger:
     """Mock rainfall scenario → saturation → selects the applicable FS raster."""
 
-    def __init__(self, stack: str, scenario: str):
+    def __init__(self, stack: str, scenario: str, cfg=None):
         self.stack = stack
         self.scenario = scenario
-        self.cfg = SCENARIOS[scenario]
-        fs_path = HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif"
-        with rasterio.open(fs_path) as s:
-            self.fs = s.read(1)
-        logger.info(f"[Agent 2: Meteorological Trigger] scenario='{scenario}' "
-                    f"rainfall={self.cfg['rainfall_mm_72h']} mm/72h -> "
-                    f"saturation m={self.cfg['saturation']} -> uses {self.cfg['fs_layer']}.")
+        self.cfg = cfg if cfg is not None else SCENARIOS[scenario]
+        if self.cfg["fs_layer"] == "FS_real":     # real-rainfall: interpolate end-members
+            m = float(self.cfg["saturation"])
+            with rasterio.open(HAZ_DIR / f"{stack}_FS_dry.tif") as s:
+                fs_dry = s.read(1)
+            with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
+                fs_sat = s.read(1)
+            self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
+            logger.info(f"[Agent 2: Meteorological Trigger] REAL rainfall {scenario}: "
+                        f"day {self.cfg.get('rain_day_mm')} mm, 72h {self.cfg['rainfall_mm_72h']} mm "
+                        f"-> saturation m={m:.2f} -> FS_real=(1-m)*FS_dry+m*FS_saturated"
+                        f"{'  [ID-THRESHOLD TRIGGER]' if self.cfg.get('is_trigger') else ''}.")
+        else:
+            with rasterio.open(HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif") as s:
+                self.fs = s.read(1)
+            logger.info(f"[Agent 2: Meteorological Trigger] scenario='{scenario}' "
+                        f"rainfall={self.cfg['rainfall_mm_72h']} mm/72h -> "
+                        f"saturation m={self.cfg['saturation']} -> uses {self.cfg['fs_layer']}.")
 
     def unstable_mask(self, fs_fail: float) -> np.ndarray:
         return np.isfinite(self.fs) & (self.fs < fs_fail)
@@ -407,10 +458,80 @@ def write_report(path: Path, stack: str, scenario: str, cfg: dict, alerts: list[
 
 
 # ------------------------------------------------------------------------------
-def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR) -> dict:
+# Season hazard timeline — the time-resolved view the mock scenarios cannot give.
+# ------------------------------------------------------------------------------
+def hazard_timeline(stack: str, out_dir: Path) -> None:
+    """Alert-zone count per day, driven by the REAL daily saturation. Same FS<1 AND
+    creep rule, but FS_real is re-interpolated for each day's measured wetness, so the
+    hazard rises and falls with the actual rainfall (peaking on the trigger day)."""
+    auditor = InSARAuditor(stack)
+    creep = auditor.creep_mask(VEL_CREEP_THR)
+    with rasterio.open(HAZ_DIR / f"{stack}_FS_dry.tif") as s:
+        fs_dry = s.read(1)
+    with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
+        fs_sat = s.read(1)
+    dates, rain, mwet = load_wetness()
+    trig = trigger_days()
+    px_km2 = (abs(auditor.transform.a) / 1000.0) ** 2
+
+    rows = []
+    for d in dates:
+        m = mwet[d]
+        fs = (1.0 - m) * fs_dry + m * fs_sat
+        labels, n = ndimage.label(creep & np.isfinite(fs) & (fs < FS_FAIL))
+        if n:
+            sizes = np.bincount(labels.ravel())[1:]
+            keep = sizes[sizes >= MIN_CLUSTER_PX]
+            nz, area = int(keep.size), float(keep.sum() * px_km2)
+        else:
+            nz, area = 0, 0.0
+        rows.append((d, rain[d], m, nz, area))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "hazard_timeline.csv"
+    csv_path.write_text(
+        "date,rain_mm,saturation_m,n_alert_zones,alert_area_km2\n"
+        + "\n".join(f"{d},{r:.2f},{m:.3f},{nz},{a:.4f}" for d, r, m, nz, a in rows),
+        encoding="utf-8")
+    _timeline_figure(out_dir / "hazard_timeline.png", rows, trig, stack)
+    peak = max(rows, key=lambda x: x[3])
+    logger.info(f"[hazard timeline] {len(rows)} days -> {csv_path.name} + .png ; "
+                f"peak {peak[3]} zones on {peak[0]} (m={peak[2]:.2f}, {peak[1]:.0f} mm); "
+                f"trigger day(s): {sorted(trig) if trig else 'none'}")
+
+
+def _timeline_figure(path: Path, rows, trig: set, stack: str) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    dates = [r[0] for r in rows]
+    x = np.arange(len(rows))
+    rain = np.array([r[1] for r in rows])
+    nz = np.array([r[3] for r in rows])
+    fig, ax = plt.subplots(figsize=(11, 5))
+    ax.bar(x, rain, color="#9ecae1", width=1.0)
+    ax.set_ylabel("daily rainfall (mm)", color="#3182bd")
+    ax2 = ax.twinx()
+    ax2.plot(x, nz, color="#cc3311", lw=1.6)
+    ax2.set_ylabel("alert zones (FS<1 & creep)", color="#cc3311")
+    for i, d in enumerate(dates):
+        if d in trig:
+            ax.axvline(i, color="k", ls="--", alpha=0.6)
+    tick = np.linspace(0, len(rows) - 1, 7).astype(int)
+    ax.set_xticks(tick)
+    ax.set_xticklabels([dates[i] for i in tick], fontsize=8)
+    ax.set_title(f"{stack}: hazard driven by REAL rainfall — alert zones (red) vs daily rain "
+                 f"(blue); dashed = ID-threshold trigger")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
+
+# ------------------------------------------------------------------------------
+def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR, cfg=None) -> dict:
     logger.info(f"===== Orchestrating scenario '{scenario}' for {stack} =====")
     auditor = InSARAuditor(stack)
-    met = MeteorologicalTrigger(stack, scenario)
+    met = MeteorologicalTrigger(stack, scenario, cfg)
     reasoner = CascadingReasoner(stack, auditor)
 
     creep = auditor.creep_mask(VEL_CREEP_THR)
@@ -447,12 +568,24 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
     ap.add_argument("--scenario", choices=list(SCENARIOS) + ["all"], default="all")
+    ap.add_argument("--date", default=None,
+                    help="Run a REAL-rainfall-driven scenario for this date (YYYY-MM-DD): the "
+                         "saturation comes from the measured daily wetness, not a mock scenario.")
+    ap.add_argument("--rainfall-timeline", action="store_true",
+                    help="Write the season alert-zone timeline driven by real daily rainfall.")
     ap.add_argument("--out-dir", default=None,
                     help="Output directory for alerts/report/dashboard "
                          "(default: data/alerts/). Use per-stack dirs to avoid collisions.")
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
+    if args.rainfall_timeline:
+        hazard_timeline(args.stack, out_dir)
+        return 0
+    if args.date:
+        run_scenario(args.stack, args.date, out_dir, real_rainfall_cfg(args.date))
+        logger.info(f"Real-rainfall scenario {args.date} -> {out_dir}/dashboard_{args.date}.html")
+        return 0
     scenarios = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
     results = {sc: run_scenario(args.stack, sc, out_dir) for sc in scenarios}
 
