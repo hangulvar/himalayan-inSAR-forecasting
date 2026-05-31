@@ -23,6 +23,31 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] Multi-line bash / heredocs through PowerShell -> docker -> bash get mangled
+
+* **Symptom:**
+  Two failures while running MintPy step 3 via `docker compose run --rm mintpy bash -lc
+  '<multi-line script>'` from PowerShell. (1) A `python - <<PY ... PY` heredoc lost its
+  inner double-quotes and bash reported `here-document ... delimited by end-of-file` +
+  `python: command not found`. (2) A `{ ...; } 2>&1 | tee` block failed with
+  `-c: line 8: syntax error: unexpected end of file` (exit 2) — MintPy never started.
+
+* **Root Cause:**
+  Passing a complex multi-line single-quoted argument through the PowerShell ->
+  docker-compose -> `bash -lc` chain does not preserve the script verbatim (heredoc
+  bodies, `{ }` grouping, and embedded quotes get re-tokenised). It is a quoting/transport
+  problem, not a MintPy or bash bug.
+
+* **Resolution:**
+  **Never inline multi-line shell/python through this chain — put it in a committed file
+  and invoke with a trivial one-liner.** For step 3: `workflows/mintpy_f106_era5.cfg` (the
+  MintPy config, so no heredoc is needed to write it), `workflows/run_mintpy_era5_f106.sh`
+  (the run + export sequence; `bash /app/workflows/run_mintpy_era5_f106.sh`), and
+  `workflows/crossval_mintpy.py`. This is quoting-safe, reproducible, and reviewable. For
+  one-off Python checks, prefer a small `workflows/*.py` over `python -c "..."`.
+
+---
+
 ### [2026-05-31] MintPy 1.6.2 inversion crash on Python 3.14 / numpy 2.4 (array-vs-scalar strictness)
 
 * **Symptom:**

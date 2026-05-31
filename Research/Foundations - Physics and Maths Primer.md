@@ -605,9 +605,13 @@ computes the extra signal delay the air added on each radar pass, and **subtract
 MintPy instead *models* the haze from that day's weather record and removes it, keeping
 the photo.
 
-🔗 **In our project: Milestone 8.** We built MintPy its own container and verified the
-ERA5 download credentials; next we cross-validate MintPy against our custom engine on
-frame106, then switch the ERA5 correction on.
+🔗 **In our project: Milestones 8–9.** We built MintPy its own container, verified the
+ERA5 download credentials, and ran MintPy on frame106 with the correction first OFF
+(Milestone 8) then **ON** (Milestone 9). Switching ERA5 on **nearly doubled** the
+agreement with our independent custom engine (Pearson r **+0.28 → +0.55** on the same
+pixels) and **cut MintPy's velocity scatter from ~39 to ~21 mm/yr** — direct evidence
+that the atmosphere, not real ground motion, dominated the earlier disagreement. Two
+independent SBAS implementations now corroborate each other at r≈0.55–0.59.
 
 ---
 
@@ -714,8 +718,11 @@ Being able to state weaknesses is what makes you credible.
   until ascending + descending are combined.
 - **80 m pixels:** each pixel averages an 80 m patch — fine for hillside-scale
   creep, too coarse for a single boulder.
-- **Residual atmosphere:** our simple plane-deramp + high-pass removes the worst,
-  not all, of the atmospheric noise (~30 mm/yr floor).
+- **Residual atmosphere:** our *custom* engine's simple plane-deramp + high-pass
+  removes the worst, not all, of the atmospheric noise (~30 mm/yr floor). The MintPy
+  path now adds a *physical* ERA5 correction (CT3) that cut its velocity scatter to
+  ~21 mm/yr on frame106 — but that gain is so far proven on one stack, not yet rolled
+  through the hazard/alert products (those still run on the custom velocities).
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
