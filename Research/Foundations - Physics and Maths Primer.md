@@ -683,6 +683,30 @@ and the 1/v line is **significantly** decreasing. We learned this the hard way (
 are steady creep. The machinery is built and noise-hardened, and will project a failure date
 automatically once the data shows acceleration (a longer series, or a real event onset).
 
+## CF2. Rainfall intensity–duration (ID) thresholds — the trigger
+
+CF1 reads the slope's *motion*; CF2 reads the thing that sets it off — *rainfall*. The
+field-standard landslide TRIGGER is an intensity–duration threshold. The insight: a burst matters
+more than the total — 100 mm in 6 hours is far more dangerous than 100 mm over a week, because the
+ground can't drain fast enough.
+
+**The idea.** Plot mean rainfall intensity I (mm/h) against duration D (h). Decades of landslide
+records define a line I = a·D^(−b) — high for short bursts, lower for long soaks — above which
+slopes have historically failed. We use the classic global Caine (1980) curve, I = 14.82·D^(−0.39),
+as a conservative baseline.
+
+**Gentle formula.** For a window of duration D, the cumulative rain that just reaches the threshold
+is C = I·D = 14.82·D^0.61 (D in hours). Exceed C over any duration and the trigger fires.
+
+**Everyday analogy.** A sink with a slow drain: a gentle trickle is fine, but open the tap and it
+overflows. Soil has a drainage rate; rain above that rate, for long enough, saturates and fails it.
+
+🔗 **In our project: Milestone 12.** We pulled real ERA5-Land daily rainfall for Ramban across
+May–Oct 2025 (1,233 mm) and screened it against Caine. Exactly one day crossed the line —
+**26 Aug 2025, ~134 mm/day** — the season's true trigger, versus the old made-up "120 mm/72h
+monsoon." It couples with CF1 (measured creep) and the Factor of Safety (C4): *where* + *is it
+moving* + *did the trigger fire* → one warning.
+
 ---
 
 # Part D — Interview Prep: Likely Questions & Confident Answers
@@ -785,6 +809,14 @@ physically-impossible velocities (2–5× noisier than the ascending tracks) tha
 period-split only worsened. We dumped both rather than dilute a good result, and documented
 exactly why. Knowing when to throw data away is part of the method, not an exception to it.
 
+**Q: How do you know *when* rain is dangerous, not just that it's the monsoon?**
+A: Intensity–duration thresholds — the field standard. It's not the total that matters but the
+rate: a known curve (we use Caine 1980) says how much rain over how short a time has historically
+triggered failures. We screened the real 2025 rainfall for Ramban and it flagged one specific day,
+**26 August (~134 mm)**, as the season's trigger — far more actionable than "the monsoon is wet."
+Caveat: our modelled rainfall under-counts mountain cloudbursts, so a gauge product would likely
+flag *more* trigger days.
+
 **Q: Can your system predict *when* a slope will fail, not just where?**
 A: The machinery is in place — the inverse-velocity (Fukuzono) method: as a slope accelerates,
 1/velocity falls linearly to zero at the failure time, using the time series we already produce
@@ -815,6 +847,11 @@ Being able to state weaknesses is what makes you credible.
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
   coverage and cross-checking is still ahead.
+- **Rainfall is modelled + a global threshold:** the live rainfall (CF2) is ERA5-Land
+  (reanalysis, ~9 km), which *under*-estimates intense orographic bursts; a gauge product
+  (CHIRPS/GPM) is the planned cross-check and would likely flag MORE triggers, not fewer.
+  The ID curve is a conservative *global* one (Caine 1980); a regional Himalayan curve is the
+  refinement. And the real wetness is not yet coupled into the Factor of Safety (the next step).
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.

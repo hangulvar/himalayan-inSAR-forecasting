@@ -23,6 +23,29 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] CDS returns GRIB (not netCDF); MintPy GDAL has no GRIB/netCDF driver → read with pygrib
+
+* **Symptom:**
+  `fetch_rainfall.py` requested ERA5-Land `total_precipitation` as `data_format=netcdf`, but the
+  downloaded `.nc` was actually GRIB, and GDAL refused it: *"recognized by driver GRIB, but plugin
+  gdal_GRIB.so is not available."* A probe showed the MintPy image's GDAL has **neither** the GRIB
+  **nor** the netCDF driver (both plugin-split and absent), and `cfgrib`/`xarray`/`netCDF4` are all
+  missing. Only **pygrib** is installed (it ships with pyaps3).
+
+* **Root Cause:**
+  The new CDS endpoint hands back GRIB for ERA5-Land regardless of the requested format on this
+  path, and this conda-forge GDAL build ships GRIB/netCDF as optional plugins that aren't included.
+
+* **Resolution:**
+  Request `data_format=grib` and read with **pygrib** (`grbs = pygrib.open(...)`; `g.values`,
+  `g.validDate`) — the one reader guaranteed present. ERA5-Land `tp` is metres-accumulated from
+  00 UTC, so a day's total is the **00:00-of-next-day** message (×1000 → mm). Separately, the CDS
+  year/month/day request returns the full month×day **cross-product**, so clamp the result to
+  [start, end]. (If netCDF is ever needed here: `conda install -c conda-forge libgdal-grib
+  libgdal-netcdf`, but pygrib avoids touching the image.)
+
+---
+
 ### [2026-05-31] Inverse-velocity TTF v1 reported false "failures" — noise dressed as signal
 
 * **Symptom:**
