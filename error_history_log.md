@@ -23,6 +23,48 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] MintPy 1.6.2 inversion crash on Python 3.14 / numpy 2.4 (array-vs-scalar strictness)
+
+* **Symptom:**
+  `smallbaselineApp.py` loaded our HyP3 stack, built the network, picked a reference,
+  and began `invert_network` (95,178/109,077 px) — then crashed:
+  `TypeError: only 0-dimensional arrays can be converted to Python scalars` →
+  `ValueError: setting an array element with a sequence` at
+  `ifgram_inversion.py: inv_quality[idx] = inv_quali`.
+
+* **Root Cause:**
+  The unpinned `environment.mintpy.yml` solved to **Python 3.14.5 + numpy 2.4.6**
+  (both bleeding-edge, late-2025) with **MintPy 1.6.2** (Jul-2025). numpy 2.x removed
+  the implicit size-1-array → scalar conversion MintPy's inversion-quality code
+  relied on, so assigning a size-1 array to a scalar slot now raises.
+
+* **Resolution:**
+  Pin a tested generation in `docker/environment.mintpy.yml`: `python=3.11.*` and
+  `numpy<2` (1.26 restores the old auto-conversion). Rebuild `insar-mintpy`. (MintPy
+  uses its own image, so this numpy pin doesn't affect the `insar` env's numpy 2.2.)
+
+---
+
+### [2026-05-31] MintPy work dir on the OneDrive bind mount → PermissionError on `utime`
+
+* **Symptom:**
+  `smallbaselineApp.py` from a work dir under `/app/data/...` (the OneDrive/WSL2 bind
+  mount) crashed immediately: `PermissionError: [Errno 1] Operation not permitted:
+  '.../smallbaselineApp.cfg'` inside `shutil.copy2` → `copystat` → `utime`.
+
+* **Root Cause:**
+  MintPy preserves file metadata (`copy2`/`copystat` sets timestamps via `utime`);
+  the drvfs bind mount of the OneDrive-backed Windows folder does not permit `utime`
+  by the container user. Plain reads/writes work; only metadata-timestamp ops fail.
+
+* **Resolution:**
+  Run MintPy with its **work dir on the container-local fs** (`/tmp/...`), reading the
+  clipped inputs from the bind mount (reads are fine) and copying only the final
+  outputs (velocity.h5 / GeoTIFF) back to `data/mintpy/<stack>/`. Verified: load /
+  network / reference / inversion-start all succeed from `/tmp`.
+
+---
+
 ### [2026-05-31] MintPy `prep_hyp3.py` requires the HyP3 `.txt` metadata file (we only extracted `.tif`s)
 
 * **Symptom:**
