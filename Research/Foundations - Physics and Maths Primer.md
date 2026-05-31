@@ -783,6 +783,15 @@ assumed soil strength and a coarse terrain model, so we read it qualitatively
 (monsoon = widespread elevated risk) and trust the *combined* hazard pixels
 (physics AND measured motion) far more than FS alone.
 
+**Q: Have you validated this against real landslides?**
+A: We ran the first back-test against documented Ramban failures. Spatially it's promising — 8 of 9
+known NH-44 black-spots (Panthyal, Khooni Nallah, Digdol…) fall within ~2 km of a flagged zone. But
+the back-test caught a real problem: our rainfall trigger picked late August, while the documented
+2025 failures were April–May. It exposed that our window starts too late (1 May) and that the
+reanalysis rainfall we used under-counts mountain cloudbursts — so the fix is an April start + a
+gauge product. A validation that finds its own gaps is doing its job; the rigorous *scored* test
+awaits the official GSI Bhukosh inventory (~302 mapped Ramban slides).
+
 **Q: Aren't your soil strength numbers just guesses?**
 A: Yes — they're literature values for Himalayan soil, not site measurements.
 That's why the FS map is a *relative* screening tool, not an absolute prediction,
@@ -855,13 +864,19 @@ Being able to state weaknesses is what makes you credible.
   (reanalysis, ~9 km), which *under*-estimates intense orographic bursts; a gauge product
   (CHIRPS/GPM) is the planned cross-check and would likely flag MORE triggers, not fewer.
   The ID curve is a conservative *global* one (Caine 1980); a regional Himalayan curve is the
-  refinement. And the real wetness is not yet coupled into the Factor of Safety (the next step).
+  refinement. The real wetness IS now coupled into the FS (Milestone 13), but the back-test exposed
+  the cost of the modelled rainfall: it **missed the documented 8 May 2025 failure** (ERA5-Land's
+  rainfall that day fell below the threshold).
+- **Validation is first-pass (Milestone 14):** the back-test shows the map flags the right corridor
+  (8/9 documented NH-44 hotspots within ~2 km) but that the rainfall-trigger *timing* is **not yet
+  validated** — it picked 26 Aug, whereas the documented 2025 failures were Apr–May (our window
+  starts 1 May, and ERA5-Land under-counts the bursts). Inventory coords are approximate; a *scored*
+  precision/recall test needs the GSI Bhukosh inventory (~302 mapped Ramban slides).
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.
   "Steady" ≠ "safe"; the screen is deliberately conservative and will return dates once
-  the series lengthens or a real acceleration begins. It is not yet validated against a
-  landslide inventory (the credibility step still ahead).
+  the series lengthens or a real acceleration begins.
 - **Assumed soil strength:** the Factor-of-Safety uses textbook cohesion/friction
   values for Himalayan soil, not site measurements — so FS is a *relative*
   screening layer, not an absolute prediction.

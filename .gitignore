@@ -124,6 +124,7 @@ data/*
 !data/raw_zips/
 !data/processed_tiffs/
 !data/qa_masks/
+!data/inventory/
 
 logs/*
 !logs/.gitkeep
@@ -137,6 +138,11 @@ data/processed_tiffs/*
 
 data/qa_masks/*
 !data/qa_masks/.gitkeep
+
+# Track ONLY the small curated landslide inventory (back-test ground truth); ignore the
+# rest of data/inventory/ (generated reports/figures).
+data/inventory/*
+!data/inventory/ramban_documented_landslides.geojson
 
 #CLAUDE-2.0-2024-06-11
 CLAUDE.md

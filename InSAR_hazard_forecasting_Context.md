@@ -394,7 +394,16 @@ failure-timing); and no validation against real events.
 ### Area 4 — Validation & uncertainty (credibility)
 - **Back-test flagged zones against a landslide inventory** — documented Ramban
   failures; NASA Global Landslide Catalog; GSI Bhukosh (India). This converts "rough
-  hazard map" → "validated forecast."
+  hazard map" → "validated forecast." *(First pass DONE 2026-06-01 — `backtest_inventory.py`
+  vs a small curated inventory: spatially plausible, but the rainfall trigger MISSED the
+  Apr–May 2025 events; see `RESULTS_AND_KPIS.md` §9.)*
+  - **Enrich with GSI Bhukosh landslide data (recommended next).** GSI's georeferenced
+    inventory holds **~302 field-mapped landslides in the Ramban sub-basin** (and is
+    nationwide via the NGDR / Bhukosh / Bhusanket portals + WFS) — the authoritative ground
+    truth. Ingesting it (the back-test tool takes it unchanged) upgrades the current
+    *indicative* coincidence check to a **scored precision/recall** validation. This
+    generalizes: **for any new AOI, pull that region's GSI Bhukosh inventory** (NASA GLC is
+    only ~2007–2018 and too sparse for a single corridor) to validate before trusting the map.
 - **Uncertainty quantification** — per-pixel velocity error bars propagated into FS/alerts.
 - **Susceptibility model** (logistic regression / random forest on conditioning factors)
   trained + validated on the inventory → independent corroboration of the physics.
