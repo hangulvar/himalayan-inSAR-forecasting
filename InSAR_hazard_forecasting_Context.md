@@ -437,6 +437,69 @@ single physics assumption.
 
 ---
 
+## 📄 Path to Publication
+
+*(Added 2026-05-31. An honest assessment of publishability + the route to being
+taken seriously by the scientific community. Companion to the Expansion Roadmap above.)*
+
+**Current status (be honest about which bar you're aiming at):** a strong,
+reproducible **engineering MVP** with a replicable, AOI-portable architecture — **NOT
+yet a validated scientific result**. The architecture of the vision is captured; the
+data quality (atmosphere), physics calibration, and — above all — *validation* are not.
+
+**What peer reviewers in InSAR / geohazards will check (the bar):**
+1. **Validation against independent ground truth** — the #1 gate. A hazard map with no
+   check against reality (landslide inventory, GNSS, field reports, optical change, or
+   a documented failure event) reads as an unvalidated demo.
+2. **Atmospheric correction applied** (ERA5 / GACOS) — the ~30 mm/yr floor *without*
+   APS is a near-automatic reviewer flag. (= MintPy step 3.)
+3. **Uncertainty / error quantification** — velocity precision, detection limit,
+   propagated into the hazard.
+4. **Comparison to an established method** — MintPy-vs-custom cross-validation (started).
+5. **Justified / sensitivity-tested physics** — the soil parameters can't be arbitrary.
+6. **Honest scope** — overclaiming gets rejected; precise modest claims earn respect.
+   *Today we clear #4 (partly) + the honesty bar; NOT yet #1–#3, #5.*
+
+**Publication ladder (match the claim to the evidence):**
+- **NOW (most realistic):** a **software / reproducibility paper** — **JOSS** (reviews
+  the *software*: works, documented, tested, reproducible) or a technical note. Docker
+  + open data + open code + tests are a strong fit.
+- **AFTER validation + ERA5 + a 2nd AOI:** an applied journal — **Remote Sensing
+  (MDPI)**, **Natural Hazards**, **GMD** (model description), or **Landslides**
+  (top-tier, hardest).
+- **AVOID** claiming "operational forecasting" — the evidence won't support it.
+
+**How to ensure it's taken seriously (highest leverage first):**
+1. **Add validation** (even modest: back-test flagged zones vs documented Ramban/NH-44
+   failures; corroborate creep vs Sentinel-2 optical change via GEE; compare to the
+   NASA Global Landslide Catalog). The single biggest credibility lever.
+2. **Finish MintPy + ERA5** and report the cross-validation — removes the two biggest
+   reviewer flags at once.
+3. **Quantify uncertainty.**
+4. **Sensitivity-test the soil parameters.**
+5. **Reproducibility as a headline** — public GitHub, a tagged release + **Zenodo DOI**,
+   the Docker image, "reproduce in N commands." Aligns with open-science values.
+6. **Get a domain co-author / mentor** (InSAR or geohazards researcher — e.g. an IIT,
+   WIHG Dehradun, NRSC/ISRO, a university group). Highest-leverage move for a beginner;
+   bring them the reproducible repo as your calling card.
+7. **Ground in the literature** — Berardino et al. (SBAS, 2002), Ferretti (PS), Yunjun
+   et al. (MintPy, 2019), Guzzetti et al. (rainfall ID thresholds), Fukuzono / Voight
+   (inverse-velocity time-to-failure), the Joshimath InSAR studies.
+8. **Preprint first** (EGUsphere / ESS Open Archive) for community feedback.
+
+**Recommended two-step strategy:** (1) a near-term **JOSS / methods + reproducibility**
+paper on the open, containerized, AOI-portable pipeline (achievable with what exists +
+tests/docs polish + a 2nd-AOI run); then (2) after MintPy+ERA5 + validation, an applied
+**case-study** paper. Keep the honest *"reproducible screening tool, not an operational
+forecast"* framing. **Start seeking a co-author now.**
+
+**On being a beginner:** the community judges the *work*, not credentials — beginners
+publish when the work meets the bar. The honest-limitations discipline already in
+`milestone.md` and the Foundations primer is exactly the scientific maturity reviewers
+respect; keep it.
+
+---
+
 ## The Guiding Principle
 
 By auditing noise *before* trusting any deformation map, this pipeline avoids the
