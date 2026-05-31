@@ -114,7 +114,22 @@ The leading underscore on diagnostic files keeps them out of the per-product dir
 
 ## 🛠️ Environment Setup
 
-### Conda (required)
+### Docker (recommended) — reproducible Linux container
+
+The whole pipeline now runs in a reproducible **Linux container**, which eliminates
+the Windows-specific issues (notably the `0xC06D007F` BLAS-DLL crash). Build once,
+then run any phase; the project (code + the ~73 GB `data/`) is bind-mounted at `/app`
+so nothing large is baked into the image.
+
+```bash
+docker compose build                                  # builds insar-himalaya:latest
+docker compose run --rm insar python workflows/agentic_orchestrator.py
+```
+
+Full build/run/credentials guide: **[`docker/README.md`](docker/README.md)**. MintPy
+(field-standard SBAS, heavier deps) has its **own** image: `docker compose build mintpy`.
+
+### Conda (native, alternative)
 
 ```bash
 # From the project root (which is inside OneDrive — that's fine for source code,
@@ -202,7 +217,11 @@ Without this step, every `hyp3_sdk.HyP3()` call will fail with `AuthenticationEr
 
 ### Step 4: (Optional) `.env` for non-Earthdata services
 
-Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if you'll use those. The `.gitignore` is pre-configured to never commit `.env`.
+Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if you'll use those. The `.gitignore` is pre-configured to never commit `.env`. `.env` also records the **host paths** of your credential files (`NETRC_PATH`, `CDSAPI_RC`) so the Docker containers auto-mount them.
+
+### Step 5: (Optional) Copernicus CDS / ERA5 — for the MintPy tropospheric correction
+
+Only needed for MintPy's ERA5 atmospheric correction. Copy `.cdsapirc.template` to `~/.cdsapirc` (Windows `%USERPROFILE%\.cdsapirc`) and paste your **CDS Personal Access Token** from https://cds.climate.copernicus.eu/how-to-api (new-CDS format: `url:` + `key:`), then accept the *"ERA5 hourly data on pressure levels"* licence on the CDS site. Set `CDSAPI_RC=<that path>` in `.env` so the `mintpy` container mounts it read-only. The real `.cdsapirc` is git-ignored. Full notes: `SESSION_REVIEW.md` §4.
 
 ---
 
@@ -243,6 +262,29 @@ python workflows/build_3d_dashboard.py           # → data/alerts/dashboard_3d.
 
 **See the demo:** open `data/alerts/dashboard_monsoon.html` (2-D, per scenario)
 or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
+
+### Configuration, multi-stack & MintPy (current)
+
+- **`config.yaml`** controls the AOI, job-name prefix, time window, baseline rules,
+  and the connectivity-rescue gate — point the pipeline at a new valley by editing it
+  (no code edits). Scripts read it via `workflows/config.py` (`--config` to override).
+- **One-time (existing Ramban data):** seed the product→stack manifest with
+  `python workflows/stacks.py --seed-legacy` (new AOIs get it from the downloader).
+- **Automated, quality-gated connectivity rescue:**
+  `python workflows/sbas_network_graph.py --recommend-only` →
+  `python workflows/apply_connectivity_rescues.py` (offline; only clean bridges).
+- **Multi-stack driver (Phases 2–4 + AOI union):** `python workflows/run_multistack.py`
+  — inverts all connectable stacks, builds per-look hazard and a **union** hazard/alert
+  product (`data/mosaic/`, `data/alerts/mosaic_asc/`).
+- **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
+  --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
+  [`docker/README.md`](docker/README.md) and `SESSION_REVIEW.md` §4.
+
+Any command runs in Docker too, e.g. `docker compose run --rm insar python workflows/run_multistack.py`.
+
+> ℹ️ The status table and per-script notes here describe the original Phase 1–4A
+> pathfinder run. For the **latest state** (Docker, multi-stack union, MintPy) always
+> read **`SESSION_REVIEW.md`** first.
 
 ### What each script produces
 
