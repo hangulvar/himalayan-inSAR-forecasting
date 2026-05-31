@@ -28,7 +28,7 @@ import sys
 import zipfile
 from pathlib import Path
 
-from osgeo import gdal
+from osgeo import gdal, ogr, osr
 
 gdal.UseExceptions()
 
@@ -49,23 +49,107 @@ def keep_products(stack: str) -> list[str]:
                   if r["stack"] == stack and r["decision"] == "KEEP")
 
 
-def target_grid(stack: str):
-    """(te=(xmin,ymin,xmax,ymax), width, height, epsg) from the custom velocity grid."""
+def aoi_bounds_in_epsg(aoi_path: Path, epsg: str):
+    """AOI polygon bounds reprojected into EPSG:<epsg> (meters). osgeo-only so this
+    stays runnable in the lean MintPy image (no geopandas)."""
+    ds = ogr.Open(str(aoi_path))
+    if ds is None:
+        sys.exit(f"Cannot open AOI: {aoi_path}")
+    lyr = ds.GetLayer()
+    src = lyr.GetSpatialRef()
+    dst = osr.SpatialReference()
+    dst.ImportFromEPSG(int(epsg))
+    src.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    dst.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    ct = osr.CoordinateTransformation(src, dst)
+    minx = miny = float("inf")
+    maxx = maxy = float("-inf")
+    for feat in lyr:
+        g = feat.GetGeometryRef().Clone()
+        g.Transform(ct)
+        x0, x1, y0, y1 = g.GetEnvelope()
+        minx, maxx = min(minx, x0), max(maxx, x1)
+        miny, maxy = min(miny, y0), max(maxy, y1)
+    return minx, miny, maxx, maxy
+
+
+def grid_from_products(products: list[str], aoi_path: Path, buffer_km: float):
+    """Products' common extent ∩ (AOI + buffer), snapped to the first product's grid.
+    Mirrors custom_sbas_inverter.compute_clipped_grid so a DESC stack with no custom
+    velocity raster gets the SAME footprint as the ASC stacks (just in its own LOS
+    geometry) — the basis for later ASC/DESC decomposition. gdalwarp (-te/-ts/near)
+    in main() forces every product onto this exact grid."""
+    lefts, rights, tops, bottoms = [], [], [], []
+    res, epsgs = set(), set()
+    anchor = None
+    for p in products:
+        src = PROCESSED / p / f"{p}_unw_phase.tif"
+        if not src.exists():
+            sys.exit(f"Missing {src} — cannot derive grid.")
+        ds = gdal.Open(str(src))
+        gt = ds.GetGeoTransform()
+        w, h = ds.RasterXSize, ds.RasterYSize
+        rx, ry = gt[1], -gt[5]
+        left, top = gt[0], gt[3]
+        lefts.append(left); rights.append(left + w * rx)
+        tops.append(top); bottoms.append(top - h * ry)
+        res.add((round(rx, 4), round(ry, 4)))
+        epsgs.add(ds.GetSpatialRef().GetAuthorityCode(None))
+        if anchor is None:
+            anchor = (left, top)
+    if len(res) != 1 or len(epsgs) != 1:
+        sys.exit(f"Inconsistent res/epsg across products: res={res} epsg={epsgs}")
+    rx, ry = list(res)[0]
+    epsg = list(epsgs)[0]
+
+    left, right = max(lefts), min(rights)        # intersection of all products
+    top, bottom = min(tops), max(bottoms)
+
+    minx, miny, maxx, maxy = aoi_bounds_in_epsg(aoi_path, epsg)
+    buf = buffer_km * 1000.0
+    left = max(left, minx - buf); right = min(right, maxx + buf)
+    top = min(top, maxy + buf); bottom = max(bottom, miny - buf)
+    if right <= left or top <= bottom:
+        sys.exit("AOI does not overlap the product footprint.")
+
+    ax, ay = anchor                              # snap to the native pixel grid
+    left = ax + round((left - ax) / rx) * rx
+    top = ay + round((top - ay) / ry) * ry
+    width = max(1, int(round((right - left) / rx)))
+    height = max(1, int(round((top - bottom) / ry)))
+    right, bottom = left + width * rx, top - height * ry
+    return (left, bottom, right, top), width, height, epsg, \
+        f"AOI+{buffer_km:g}km grid from {len(products)} products"
+
+
+def target_grid(stack: str, products: list[str], aoi_path: Path, buffer_km: float):
+    """(te=(xmin,ymin,xmax,ymax), width, height, epsg, source).
+
+    Prefer the custom velocity grid when present (ASC stacks — gives MintPy an
+    IDENTICAL grid for cross-validation). For a stack with no custom result (a
+    disconnected DESC stack only MintPy can invert), derive the equivalent
+    AOI+buffer grid directly from the products."""
     ref = VEL / f"{stack}_mean_velocity_los_highpass.tif"
-    if not ref.exists():
-        sys.exit(f"Custom velocity raster missing: {ref} — run Phase 2 first.")
-    ds = gdal.Open(str(ref))
-    gt = ds.GetGeoTransform()
-    w, h = ds.RasterXSize, ds.RasterYSize
-    left, top = gt[0], gt[3]
-    right, bottom = left + w * gt[1], top + h * gt[5]
-    epsg = ds.GetSpatialRef().GetAuthorityCode(None)
-    return (left, bottom, right, top), w, h, epsg
+    if ref.exists():
+        ds = gdal.Open(str(ref))
+        gt = ds.GetGeoTransform()
+        w, h = ds.RasterXSize, ds.RasterYSize
+        left, top = gt[0], gt[3]
+        right, bottom = left + w * gt[1], top + h * gt[5]
+        epsg = ds.GetSpatialRef().GetAuthorityCode(None)
+        return (left, bottom, right, top), w, h, epsg, "custom-velocity grid"
+    return grid_from_products(products, aoi_path, buffer_km)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
+    ap.add_argument("--aoi", default=str(PROJECT_ROOT / "ramban_aoi.geojson"),
+                    help="AOI polygon (EPSG:4326); used only when the stack has no "
+                         "custom velocity raster (e.g. disconnected DESC stacks).")
+    ap.add_argument("--buffer-km", type=float, default=3.0,
+                    help="AOI buffer (km) for the derived grid; matches the custom "
+                         "inverter's --buffer-km default.")
     args = ap.parse_args()
     stack = args.stack
 
@@ -73,9 +157,11 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     products = keep_products(stack)
-    te, w, h, epsg = target_grid(stack)
+    if not products:
+        sys.exit(f"No KEEP products for stack {stack} in {QUARANTINE_CSV}.")
+    te, w, h, epsg, gsrc = target_grid(stack, products, Path(args.aoi), args.buffer_km)
     print(f"{stack}: {len(products)} KEEP pairs -> {out}")
-    print(f"target grid {w}x{h} EPSG:{epsg} te={tuple(round(x,1) for x in te)}")
+    print(f"target grid {w}x{h} EPSG:{epsg} ({gsrc}) te={tuple(round(x,1) for x in te)}")
 
     n_warp = n_skip = n_txt = n_missing = 0
     for p in products:

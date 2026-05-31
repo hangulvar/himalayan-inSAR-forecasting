@@ -615,6 +615,42 @@ independent SBAS implementations now corroborate each other at r≈0.55–0.59.
 
 ---
 
+## CT4. Disconnected networks, SVD, and the courage to discard a stack
+
+Recall B4: turning interferograms into a timeline needs the acquisition dates to form one
+connected chain. Sometimes too many pairs are thrown out (vegetation, weather) and the chain
+breaks into **islands** of dates separated by gaps the maths can't cross. Two things then go
+wrong — and both sank our descending tracks (Milestone 10):
+
+**1. Rank-deficiency (the gap problem).** If the dates split into islands, you cannot know
+the *relative* motion between islands — no interferogram bridges them. MintPy still returns
+an answer using the **SVD** (singular value decomposition), a linear-algebra tool that gives
+the **minimum-norm** solution: the smallest, simplest motion consistent with the data. That's
+a reasonable *guess* across the gap, but it's a regularization assumption, not a measurement —
+so the velocity "can be biased" (MintPy says exactly that).
+
+**2. Short-baseline noise amplification.** Velocity is a *slope* = displacement ÷ time. Shrink
+the time window — e.g. analyse one short island on its own (a **period-split**) — and the same
+measurement noise is divided by a smaller time, so the velocity *error grows*. A ~3-month
+window is roughly twice as noisy as a ~6-month one, from the arithmetic alone.
+
+**Everyday analogy:** estimating a car's speed from two photos. Over an hour, a 1-metre
+position error barely dents the speed; over five seconds, that same error makes the speed look
+wildly wrong. Short baseline → noisy speed.
+
+**Quality coherence ≠ trustworthy velocity.** A pixel can have high *temporal coherence* (its
+timeline fits the interferograms well *within* each island) yet a meaningless velocity (the
+slope across SVD-bridged or short windows). Good fit ≠ good slope — a subtle trap.
+
+🔗 **In our project: Milestone 10.** Both descending stacks were dumped. One had no coherent
+anchor anywhere (~1% usable). The other gave physically-impossible velocities — std **57 mm/yr**
+on the full (SVD-bridged) network, *worse* at **137 mm/yr** when period-split — versus
+**21–30 mm/yr** for the ascending stacks. A real signal can't be 2–5× noisier just from the
+opposite look direction, so it's noise; we refused to fold it into a good result. Discarding
+bad data is a feature, not a failure.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -708,14 +744,23 @@ A: In this demo it's *what-if* scenarios — dry, monsoon, extreme — that set 
 saturated the slopes are. That already shows the system reacting (dry → few
 alerts, monsoon → many). Wiring in live rainfall forecasts is the next step.
 
+**Q: What do you do when a data source doesn't meet your quality bar?**
+A: Discard it — explicitly and on the record. Both our descending satellite tracks failed:
+one had no coherent reference pixel anywhere (~1% usable), the other produced
+physically-impossible velocities (2–5× noisier than the ascending tracks) that a textbook
+period-split only worsened. We dumped both rather than dilute a good result, and documented
+exactly why. Knowing when to throw data away is part of the method, not an exception to it.
+
 ---
 
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
 
-- **LOS only (for now):** we measure slanted motion, not pure vertical/horizontal,
-  until ascending + descending are combined.
+- **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
+  vertical/horizontal. Combining ascending + descending would fix this — but both our
+  descending tracks were evaluated and **rejected as too noisy** (Milestone 10 / CT4), so
+  the vertical/east-west decomposition waits on better descending data.
 - **80 m pixels:** each pixel averages an 80 m patch — fine for hillside-scale
   creep, too coarse for a single boulder.
 - **Residual atmosphere:** our *custom* engine's simple plane-deramp + high-pass

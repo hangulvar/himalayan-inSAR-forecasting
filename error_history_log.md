@@ -23,6 +23,35 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-05-31] MintPy on the disconnected DESC stacks — quality traps that led to dumping both
+
+Not bugs — data-quality findings worth recording so we don't repeat the evaluation.
+
+* **frame484 — auto reference-point fails (`No pixel ... > 0.85`).**
+  `smallbaselineApp.py` aborted at `reference_point`: `RuntimeError: No pixel with average
+  spatial coherence > 0.85 are found for automatic reference point selection!`. Root cause:
+  the stack is pervasively decorrelated (19/33 pairs QUARANTINE). Lowering
+  `mintpy.reference.minCoherence` to 0.6 lets it proceed, but then only **858/109,077 px
+  (0.8%)** are invertible against a random edge-pixel reference → junk. **Resolution: DUMP
+  the stack.** Lesson: a failed 0.85 auto-reference on a whole frame is itself strong
+  evidence the stack is unusable; lowering the floor is a *probe*, not a fix.
+
+* **frame479 — disconnected-network velocity is biased; period-split made it WORSE.**
+  MintPy handles the 3-island disconnect natively (`***WARNING: the network is NOT fully
+  connected … Continue to use SVD to resolve the offset between different subsets`,
+  `L2 min-norm on: deformation velocity`) and inverts 99.3% of pixels — but the velocity is
+  physically implausible (std **57 mm/yr**, 9,016 px >100 mm/yr). Period-splitting to the
+  connected monsoon island (`mintpy.network.startDate/endDate`) removed the disconnect but
+  made velocity *worse* (std **137 mm/yr**, 30,378 px >100). Root cause: (1) the ~84-day
+  window amplifies velocity noise (velocity = displacement/time → short baseline ≈ 2× the
+  noise); (2) monsoon decorrelation. **Resolution: DUMP the stack.** Two lessons: **(a) high
+  temporalCoherence (good inversion *fit*) does NOT imply a trustworthy *velocity*** on a
+  short or disconnected network; **(b) min-norm-velocity can *look* cleaner only because it
+  regularizes cross-gap motion toward zero** — a fiction, not a measurement. Compare to the
+  ASC stacks (std 21–30 mm/yr, ~0 implausible px) to judge.
+
+---
+
 ### [2026-05-31] Multi-line bash / heredocs through PowerShell -> docker -> bash get mangled
 
 * **Symptom:**
