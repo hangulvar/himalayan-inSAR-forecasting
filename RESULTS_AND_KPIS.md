@@ -15,7 +15,8 @@ checkout, a machine wipe, and (critically) the **removal of the mock scenarios**
 `[MOCK]` / `[REAL]` / `[MEASURED]` tag. When a result is superseded, add a new dated row and mark
 the old one *(superseded)* — do not delete it.
 
-_Last updated: 2026-06-01 (Session 8, branch `mvp-expansion`)._
+_Last updated: 2026-06-01 (Session 9, branch `mvp-expansion`) — added §10 slope-parallel velocity
+(V_slope) and §11 snowmelt/freeze-thaw drivers + April-extended trigger._
 
 ---
 
@@ -171,6 +172,13 @@ reporting, NOT field-mapped) vs the ASC union monsoon zones (405). 2026-06-01.
 validated** — the back-test correctly exposes that the current ERA5 / May-start setup misses the
 real events. Honest "rough map → *partially* validated" result; it directs the next fixes.
 
+**Re-run 2026-06-01 (extended window + water = rain+snowmelt):** with the window extended to
+**2025-04-01** (so the 27 Apr event is now IN scope) and the trigger driven by water = rain+snowmelt,
+the result is **unchanged: spatial 8/9, temporal 0/2 MISS** (acute trigger still 26 Aug). This
+**sharpens** the diagnosis (see §11): the miss is an **orographic-rain-undercount** problem
+(ERA5-Land), not a missing-snowmelt one → the gauge product (CHIRPS/GPM) + regional I–D curve is the
+real fix. (The FS-coupled hazard timeline, by contrast, *does* show substantial spring hazard — §11.)
+
 **Sources** (inventory provenance — also embedded in the GeoJSON `sources`):
 [Mongabay 2025](https://india.mongabay.com/2025/09/study-maps-the-most-unstable-slopes-along-an-important-himalayan-highway/) ·
 [India TV 2025-05-08](https://www.indiatvnews.com/jammu-and-kashmir/heavy-rain-triggers-mudslides-in-ramban-traffic-disrupted-as-jammu-srinagar-nh-44-closed-commuters-advised-to-stay-indoors-2025-05-08-989228) ·
@@ -179,6 +187,80 @@ real events. Honest "rough map → *partially* validated" result; it directs the
 [Kashmir Observer](https://kashmirobserver.net/2023/09/30/navigating-danger-nh-44s-battle-against-landslides/) ·
 [GSI Bhukosh/Bhusanket](https://bhusanket.gsi.gov.in/) ·
 [NASA GLC/COOLR (~2007–2018)](https://gpm.nasa.gov/landslides/data.html)
+
+---
+
+## 10. Slope-parallel velocity (V_slope) — LOS projected onto downslope  `[MEASURED]`
+
+Source: `slope_velocity.py` (V_slope = V_LOS / (d·l); high-pass velocity; LOS unit vector from HyP3
+`lv_theta`/`lv_phi`; downslope from the bundled DEM slope+aspect; masks |C| < 0.3 and slope < 10°).
+2026-06-01. `d·l` = the **LOS sensitivity** C: |C|≈1 = downslope faces along LOS (well observed),
+|C|≈0 = downslope ⟂ LOS (single-look **blind spot**).
+
+| stack | valid px | well-observed | blind-spot % | median \|C\| | LOS-creep → slope-creep | median amp |
+|---|---|---|---|---|---|---|
+| frame106 | 14,045 | 10,136 | **28 %** | 0.53 | 3,752 → 3,712 | **×1.48** |
+| frame102 | 25,831 | 15,025 | **42 %** | 0.40 | 4,338 → 4,818 | ×1.58 |
+| frame101 | 3,655 | 2,770 | **24 %** | 0.61 | 274 → 392 | ×1.41 |
+
+**Finding:** projecting LOS onto the downslope direction (a) quantifies the ASC **single-look blind
+spot** — **24–42 %** of valid ground has its downslope ~perpendicular to the LOS, so its motion is
+under-/un-observed; and (b) **de-projects (amplifies) the creep magnitude ×1.4–1.6** (median), since
+|C|≤1 — sharpening the creep and the inverse-velocity TTF. On frame102/101 slope-creep *exceeds*
+LOS-creep: de-projection lifts sub-threshold LOS pixels over the creep cutoff. The cheap single-look
+approximation of the (DESC-deferred) ASC/DESC decomposition. Outputs per stack: `*_v_slope.tif`,
+`*_los_sensitivity.tif`, `*_v_slope_report.{json,md}`. Internal check: frame106 valid=14,045 and
+LOS-creep=3,752 match §1/§2 exactly. *Honest scope: ASC-only → assumes pure-downslope motion; blind
+to cross-LOS motion (the blind fraction above).*
+
+**Wired in (opt-in, 2026-06-01):** `agentic_orchestrator.py --use-vslope` and
+`inverse_velocity_ttf.py --use-vslope` now detect creep from `-v_slope` (downslope, blind pixels
+excluded) instead of raw LOS — **off by default to preserve the LOS `[MOCK]` baselines** (§5b). frame106
+monsoon comparison: **222 zones (LOS) → 236 (V_slope)** — de-projection lifts more pixels over the −15
+creep cut even after dropping the blind 28 %. TTF stays 0 accelerating / all STEADY (acceleration is
+scale-invariant; V_slope only refines the creep-pixel selection). Outputs tagged `"velocity_basis"`.
+
+**Area-wide V_slope union — `run_multistack.py --use-vslope`** (parallel product in `data/mosaic_vslope/`
++ `data/alerts/mosaic_asc_vslope/`; **LOS baseline §5c built & preserved unchanged**), 2026-06-01:
+
+| metric (3 ASC union) | LOS baseline §5c | V_slope |
+|---|---|---|
+| mosaic HIGH px | 5,268 | **5,493** |
+| HIGH confirmed by ≥2 looks | 291 | **399 (+37 %)** |
+| monsoon union zones (critical) | 405 (204) | **433 (279)** |
+| dry union zones | 55 | 66 |
+
+**Finding (beyond amplification):** projecting each look into a common *downslope* frame partly removes
+the per-look LOS-geometry difference, so the two ASC looks **agree more often** — multi-look-confirmed
+HIGH rises **291 → 399 (+37 %)**. So V_slope is not just "bigger numbers": it measurably **improves
+cross-geometry corroboration**, the most trustworthy class of detection. Geomechanical writes a distinct
+`*_hazard_class_vslope.tif` (FS/slope/twi are velocity-independent → kept canonical).
+
+## 11. Snowmelt + freeze-thaw drivers + April-extended trigger  `[REAL / MEASURED]`
+
+Source: `fetch_rainfall.py` (ERA5-Land `total_precipitation` + `snowmelt` + `2m_temperature`,
+**2025-04-01 → 2025-10-31**) + `rainfall_id_threshold.py` (Caine on water = rain+snowmelt; freeze-thaw
+flag Tmin<0<Tmax) + `agentic_orchestrator.py --rainfall-timeline`. 2026-06-01. Motivated by §9's
+temporal miss (Apr–May = NW-Himalaya snowmelt/freeze-thaw season).
+
+- **Season water = 1,409 mm** = rain **1,350** + snowmelt **59** (214 days). Peak water day **133.5 mm
+  (26 Aug)**. Snowmelt is concentrated in **early April** (~2–3.5 mm/day) and decays by late April.
+- **Acute ID-threshold trigger days: still 1 → 26 Aug** (unchanged). Snowmelt (≤3.5 mm/day) is far
+  below the conservative global Caine burst threshold (1 d = 103 mm), so it adds **no** new acute trigger.
+- **Freeze-thaw days (AOI-mean Tmin<0<Tmax): 0** — the AOI-*mean* temperature never crosses 0 °C in
+  Apr–Oct (valley floor masks high-slope freezing). *Limitation: per-elevation (per-cell + DEM)
+  temperature is needed to resolve high-slope freeze-thaw; AOI-mean under-represents it.*
+- **FS-coupled spring hazard (timeline), by contrast, IS substantial:** alert zones reach **136 on
+  20 Apr** (m=0.66, a real 27 mm rain event), **78 on 27 Apr** (m=0.33), **54 on 8 May** (m=0.20) —
+  the map *does* light up in spring once April is included. Peak remains **222 on 26 Aug**.
+
+**Finding:** the snowmelt + freeze-thaw drivers are now physically in the pipeline, but on AOI-mean
+ERA5-Land they are **sub-threshold for the acute trigger** and the documented Apr–May failures remain
+a **temporal miss (§9 re-run: 0/2)**. This is the valuable sharpening: the gap is driven by
+**ERA5-Land under-counting orographic rain bursts** (e.g. 8 May = 9.3 mm in ERA5-Land vs documented
+heavy rain/mudslides), *not* by missing snowmelt water → next fix is the **gauge product
+(CHIRPS/GPM) + a regional Himalayan I–D curve** (Area 7 #3, deferred). Snowmelt's genuine role is
+**chronic spring saturation**, visible in the timeline, not as an acute trigger.
 
 ---
 

@@ -134,20 +134,26 @@ def real_rainfall_cfg(date_str: str) -> dict:
 class InSARAuditor:
     """Reads Phase-2 velocity + temporal coherence; flags confident creep."""
 
-    def __init__(self, stack: str):
+    def __init__(self, stack: str, use_vslope: bool = False):
         self.stack = stack
-        with rasterio.open(VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif") as s:
-            self.velocity = s.read(1)
+        self.vel_kind = "downslope V_slope" if use_vslope else "LOS"
+        name = "v_slope" if use_vslope else "mean_velocity_los_highpass"
+        with rasterio.open(VEL_DIR / f"{stack}_{name}.tif") as s:
+            v = s.read(1)
             self.transform = s.transform
             self.crs = s.crs
             self.width, self.height = s.width, s.height
+        # V_slope is +ve downslope and already masks single-look blind pixels (|C|<0.3) to
+        # NaN. Negate it so the failure direction stays NEGATIVE, matching the LOS sign
+        # convention every downstream step (creep<thr, severity<=-50, sort, narrative) uses.
+        self.velocity = -v if use_vslope else v
         tcoh = VEL_DIR / f"{stack}_temporal_coherence.tif"
         self.tcoh = rasterio.open(tcoh).read(1) if tcoh.exists() else None
 
     def creep_mask(self, vel_thr: float) -> np.ndarray:
         m = np.isfinite(self.velocity) & (self.velocity < vel_thr)
         logger.info(f"[Agent 1: InSAR Auditor] {int(m.sum()):,} pixels creeping "
-                    f"(LOS velocity < {vel_thr} mm/yr).")
+                    f"({self.vel_kind} velocity < {vel_thr} mm/yr).")
         return m
 
 
@@ -268,7 +274,7 @@ class CascadingReasoner:
         reason = (
             f"{cfg['fs_layer']} = {mean_fs:.2f} (< {FS_FAIL}: theoretically unstable "
             f"under {cfg['rainfall_mm_72h']} mm/72h rainfall) coincides with measured "
-            f"LOS creep of {mean_vel:.0f} mm/yr (peak {max_vel:.0f}) over "
+            f"{a.vel_kind} creep of {mean_vel:.0f} mm/yr (peak {max_vel:.0f}) over "
             f"{area_m2/1e6:.3f} km² of {mean_slope:.0f}° slope."
         )
         return {
@@ -460,11 +466,11 @@ def write_report(path: Path, stack: str, scenario: str, cfg: dict, alerts: list[
 # ------------------------------------------------------------------------------
 # Season hazard timeline — the time-resolved view the mock scenarios cannot give.
 # ------------------------------------------------------------------------------
-def hazard_timeline(stack: str, out_dir: Path) -> None:
+def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None:
     """Alert-zone count per day, driven by the REAL daily saturation. Same FS<1 AND
     creep rule, but FS_real is re-interpolated for each day's measured wetness, so the
     hazard rises and falls with the actual rainfall (peaking on the trigger day)."""
-    auditor = InSARAuditor(stack)
+    auditor = InSARAuditor(stack, use_vslope)
     creep = auditor.creep_mask(VEL_CREEP_THR)
     with rasterio.open(HAZ_DIR / f"{stack}_FS_dry.tif") as s:
         fs_dry = s.read(1)
@@ -528,9 +534,10 @@ def _timeline_figure(path: Path, rows, trig: set, stack: str) -> None:
 
 
 # ------------------------------------------------------------------------------
-def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR, cfg=None) -> dict:
+def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR, cfg=None,
+                 use_vslope: bool = False) -> dict:
     logger.info(f"===== Orchestrating scenario '{scenario}' for {stack} =====")
-    auditor = InSARAuditor(stack)
+    auditor = InSARAuditor(stack, use_vslope)
     met = MeteorologicalTrigger(stack, scenario, cfg)
     reasoner = CascadingReasoner(stack, auditor)
 
@@ -544,6 +551,7 @@ def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR, cfg=None) -
         "scenario": {"name": scenario, **met.cfg},
         "thresholds": {"fs_fail": FS_FAIL, "vel_creep_mmyr": VEL_CREEP_THR,
                        "min_cluster_px": MIN_CLUSTER_PX},
+        "velocity_basis": auditor.vel_kind,
         "summary": {
             "n_alert_zones": len(alerts),
             "n_critical": sum(1 for a in alerts if a["severity"] == "CRITICAL"),
@@ -573,6 +581,10 @@ def main() -> int:
                          "saturation comes from the measured daily wetness, not a mock scenario.")
     ap.add_argument("--rainfall-timeline", action="store_true",
                     help="Write the season alert-zone timeline driven by real daily rainfall.")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Detect creep from the slope-parallel velocity (*_v_slope.tif, "
+                         "downslope-projected, single-look blind pixels excluded) instead of raw "
+                         "LOS. Sharper/more physical; off by default to preserve the LOS baselines.")
     ap.add_argument("--out-dir", default=None,
                     help="Output directory for alerts/report/dashboard "
                          "(default: data/alerts/). Use per-stack dirs to avoid collisions.")
@@ -580,14 +592,15 @@ def main() -> int:
 
     out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
     if args.rainfall_timeline:
-        hazard_timeline(args.stack, out_dir)
+        hazard_timeline(args.stack, out_dir, args.use_vslope)
         return 0
     if args.date:
-        run_scenario(args.stack, args.date, out_dir, real_rainfall_cfg(args.date))
+        run_scenario(args.stack, args.date, out_dir, real_rainfall_cfg(args.date), args.use_vslope)
         logger.info(f"Real-rainfall scenario {args.date} -> {out_dir}/dashboard_{args.date}.html")
         return 0
     scenarios = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
-    results = {sc: run_scenario(args.stack, sc, out_dir) for sc in scenarios}
+    results = {sc: run_scenario(args.stack, sc, out_dir, use_vslope=args.use_vslope)
+               for sc in scenarios}
 
     logger.info("-" * 60)
     logger.info("Scenario comparison (the cascade in action):")

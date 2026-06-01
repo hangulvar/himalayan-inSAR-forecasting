@@ -23,6 +23,32 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-06-01] pygrib `validDate` mis-dates multi-step ERA5-Land messages → use `validityDate`/`validityTime`
+
+* **Symptom:**
+  Extending `fetch_rainfall.py` to fetch `2m_temperature` at 00/06/12/18 UTC, the `--test` print
+  showed every daily sample stamped **00:00** and a **stray 2025-03-31** entry when only Apr 1–3 were
+  requested. Bucketing temperature by day for the daily Tmin/Tmax would mix one day's daytime samples
+  with the next day's midnight sample (and drop/duplicate at the boundary) → corrupt freeze-thaw flag.
+
+* **Root Cause:**
+  ERA5-Land encodes each step against the **analysis** time: `dataDate`+`dataTime` is the model-init
+  (always 00:00), while the true valid time lives in `validityDate`+`validityTime`. A day's 00:00
+  reading is delivered as **step-24 of the previous analysis day** (e.g. dataDate 0331, step 24 →
+  validity 0401 00:00). pygrib's `.validDate` returned the analysis date here, not the validity time,
+  so the hour was lost and the midnight sample slid to the wrong calendar day. (The earlier
+  accumulated-only `tp` fetch happened to look right because it requested a single 00:00 step.)
+
+* **Resolution:**
+  In `read_messages`, build the valid datetime from `int(g.validityDate)` + `int(g.validityTime)`
+  instead of `g.validDate`. The existing day-mapping then works unchanged: accumulated vars (tp/smlt,
+  validityTime 0, step 24) → day = validity − 1 day; temperature → bucket by validity calendar day
+  (all 4 hourly samples of day D carry validityDate D). Verified on the cached test gribs: each day
+  has exactly 4 distinct-hour samples with sensible Tmin/Tmax, no stray dates. Lesson: for GRIB, trust
+  the `validity*` keys, never the analysis `dataDate`/`.validDate`, whenever steps/forecast hours are in play.
+
+---
+
 ### [2026-05-31] CDS returns GRIB (not netCDF); MintPy GDAL has no GRIB/netCDF driver → read with pygrib
 
 * **Symptom:**

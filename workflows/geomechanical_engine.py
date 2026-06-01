@@ -194,6 +194,11 @@ def main() -> int:
     ap.add_argument("--fs-marginal", type=float, default=1.3)
     ap.add_argument("--vel-creep-thr", type=float, default=-15.0,
                     help="LOS velocity mm/yr below which a pixel counts as creeping")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Fuse creep from the slope-parallel velocity (*_v_slope.tif, downslope-"
+                         "projected, blind pixels excluded) instead of raw LOS. Writes a distinct "
+                         "*_hazard_class_vslope.tif (FS/slope/twi are velocity-independent and kept "
+                         "canonical), so the LOS hazard baseline is preserved.")
     args = ap.parse_args()
 
     stack = args.stack
@@ -231,8 +236,14 @@ def main() -> int:
                     f"%<1.0 (unstable)={frac_fail:.1f}%")
 
     # --- Hazard fusion: physics (FS_saturated) + observation (InSAR creep) ---
-    with rasterio.open(vel_hp) as s:
+    creep_src = (VEL_DIR / f"{stack}_v_slope.tif") if args.use_vslope else vel_hp
+    if not creep_src.exists():
+        raise SystemExit(f"Creep velocity raster missing: {creep_src} — "
+                         f"run {'slope_velocity.py' if args.use_vslope else 'Phase 2'} first.")
+    with rasterio.open(creep_src) as s:
         vel = s.read(1)  # mm/yr, same grid; NaN where no measurement
+    if args.use_vslope:
+        vel = -vel       # +downslope -> negative, matching the creep-threshold sign
     creep = np.isfinite(vel) & (vel < args.vel_creep_thr)
     unstable = np.isfinite(fs_sat) & (fs_sat < args.fs_fail)
     marginal = np.isfinite(fs_sat) & (fs_sat < args.fs_marginal)
@@ -252,13 +263,18 @@ def main() -> int:
 
     # --- Write outputs ---
     prof = dict(profile, dtype="float32", count=1, nodata=np.nan, compress="lzw")
-    outputs = {
-        "slope_deg": slope_deg.astype(np.float32),
-        "twi": twi,
-        "FS_dry": fs_dry,
-        "FS_saturated": fs_sat,
-        "hazard_class": hazard,
-    }
+    if args.use_vslope:
+        # FS/slope/twi are velocity-independent (identical to the LOS run); write only the
+        # creep-fused hazard, to a distinct name so the LOS baseline raster stands.
+        outputs = {"hazard_class_vslope": hazard}
+    else:
+        outputs = {
+            "slope_deg": slope_deg.astype(np.float32),
+            "twi": twi,
+            "FS_dry": fs_dry,
+            "FS_saturated": fs_sat,
+            "hazard_class": hazard,
+        }
     for name, arr in outputs.items():
         path = OUT_DIR / f"{stack}_{name}.tif"
         with rasterio.open(path, "w", **prof) as d:

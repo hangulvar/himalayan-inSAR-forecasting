@@ -177,6 +177,11 @@ def main() -> int:
                          "orchestrator; gates which window pixels and zones are 'creeping'.")
     ap.add_argument("--horizon-days", type=float, default=365.0,
                     help="Report a TTF only if projected failure is within this horizon.")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Select each zone's creep pixels from *_v_slope.tif (downslope-projected, "
+                         "single-look blind pixels excluded) instead of raw LOS. The Fukuzono fit "
+                         "still runs on the LOS time series (acceleration is scale-invariant), so "
+                         "this refines WHICH pixels are analysed, not the accel test.")
     ap.add_argument("--max-figs", type=int, default=3)
     args = ap.parse_args()
     stack = args.stack
@@ -190,10 +195,15 @@ def main() -> int:
     t_days, dates, cube = load_timeseries(stack)
     # High-pass velocity to match the orchestrator's creep definition (agentic_
     # orchestrator reads *_mean_velocity_los_highpass.tif); a raw-velocity mask would
-    # miss the localized creep pixels the alert zones are actually built from.
-    vel_path = PROJECT_ROOT / "data" / "velocity" / f"{stack}_mean_velocity_los_highpass.tif"
+    # miss the localized creep pixels the alert zones are actually built from. With
+    # --use-vslope, select on the slope-parallel velocity instead (negated so +downslope
+    # -> negative, matching the creep-threshold sign), which excludes blind-spot pixels.
+    vel_name = "v_slope" if args.use_vslope else "mean_velocity_los_highpass"
+    vel_path = PROJECT_ROOT / "data" / "velocity" / f"{stack}_{vel_name}.tif"
     with rasterio.open(vel_path) as vsrc:
         vel = vsrc.read(1).astype(np.float64)
+    if args.use_vslope:
+        vel = -vel
     out_dir = alerts_path.parent
 
     results, counts = [], {"ACCELERATING": 0, "ACCEL_BEYOND_HORIZON": 0,
@@ -222,7 +232,9 @@ def main() -> int:
         make_figure(rec, res, dates, out_dir / f"ttf_zone{rec['id']}.png")
 
     # Write report (drop the heavy _fit tuple).
-    report = {"stack": stack, "method": "Fukuzono inverse-velocity (LOS)",
+    report = {"stack": stack,
+              "method": "Fukuzono inverse-velocity (LOS series; "
+                        + ("V_slope creep-pixel selection)" if args.use_vslope else "LOS selection)"),
               "alerts_source": alerts_path.name, "n_zones": len(alerts),
               "params": {"window_radius": args.window_radius, "r2_min": args.r2_min,
                          "horizon_days": args.horizon_days},

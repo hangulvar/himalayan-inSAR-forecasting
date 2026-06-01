@@ -53,6 +53,8 @@ HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
 ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
 MOSAIC_DIR = PROJECT_ROOT / "data" / "mosaic"
 MOSAIC_ALERTS_DIR = ALERTS_DIR / "mosaic_asc"
+MOSAIC_VSLOPE_DIR = PROJECT_ROOT / "data" / "mosaic_vslope"
+MOSAIC_ALERTS_VSLOPE_DIR = ALERTS_DIR / "mosaic_asc_vslope"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 SCENARIOS = ["dry", "monsoon", "extreme"]
@@ -131,6 +133,35 @@ def run_phases_per_stack(stack: str, force: bool) -> None:
         logger.info("[%s] Phase 4 — up to date, skipping", stack)
 
 
+def run_vslope_per_stack(stack: str, force: bool) -> None:
+    """V_slope pass: slope-parallel velocity -> V_slope-fused hazard + alerts, into
+    distinct outputs (*_v_slope.tif, *_hazard_class_vslope.tif, data/alerts/<stack>_vslope/)
+    so the LOS baseline stands. Reuses the canonical FS rasters from the LOS Phase 3."""
+    vel = VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif"
+    vslope = VEL_DIR / f"{stack}_v_slope.tif"
+    haz_v = HAZ_DIR / f"{stack}_hazard_class_vslope.tif"
+    alerts_v = ALERTS_DIR / f"{stack}_vslope" / "alerts_monsoon.json"
+
+    if force or _stale(vslope, vel):
+        logger.info("[%s] V_slope — slope-parallel velocity projection", stack)
+        _run("slope_velocity.py", "--stack", stack)
+    else:
+        logger.info("[%s] V_slope velocity — up to date, skipping", stack)
+
+    if force or _stale(haz_v, vslope):
+        logger.info("[%s] V_slope — hazard fusion", stack)
+        _run("geomechanical_engine.py", "--stack", stack, "--use-vslope")
+    else:
+        logger.info("[%s] V_slope hazard — up to date, skipping", stack)
+
+    if force or _stale(alerts_v, vslope):
+        logger.info("[%s] V_slope — per-stack alerts", stack)
+        _run("agentic_orchestrator.py", "--stack", stack, "--use-vslope",
+             "--out-dir", str(ALERTS_DIR / f"{stack}_vslope"))
+    else:
+        logger.info("[%s] V_slope alerts — up to date, skipping", stack)
+
+
 # ------------------------------------------------------------------------------
 # Mosaic: union hazard raster
 # ------------------------------------------------------------------------------
@@ -164,12 +195,13 @@ def _reproject_band(path: Path, transform, width, height, crs, resampling):
     return dst
 
 
-def mosaic_hazard(stacks: list[str]) -> dict:
+def mosaic_hazard(stacks: list[str], haz_suffix: str = "", out_dir: Path = MOSAIC_DIR) -> dict:
     """Union each stack's hazard_class onto a common grid: a pixel takes the
     MAX class seen by any look (HIGH if any look says HIGH). Also writes a
     per-pixel 'how many looks flagged HIGH' coverage layer."""
-    haz_paths = [HAZ_DIR / f"{s}_hazard_class.tif" for s in stacks
-                 if (HAZ_DIR / f"{s}_hazard_class.tif").exists()]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    haz_paths = [HAZ_DIR / f"{s}_hazard_class{haz_suffix}.tif" for s in stacks
+                 if (HAZ_DIR / f"{s}_hazard_class{haz_suffix}.tif").exists()]
     if not haz_paths:
         raise SystemExit("No per-stack hazard rasters found; run Phase 3 first.")
     transform, w, h, crs = _common_grid(haz_paths)
@@ -185,9 +217,9 @@ def mosaic_hazard(stacks: list[str]) -> dict:
     prof = {"driver": "GTiff", "dtype": "float32", "count": 1, "crs": crs,
             "transform": transform, "width": w, "height": h,
             "nodata": np.nan, "compress": "lzw"}
-    with rasterio.open(MOSAIC_DIR / "MOSAIC_ASC_hazard_class.tif", "w", **prof) as d:
+    with rasterio.open(out_dir / "MOSAIC_ASC_hazard_class.tif", "w", **prof) as d:
         d.write(union, 1)
-    with rasterio.open(MOSAIC_DIR / "MOSAIC_ASC_n_looks_high.tif", "w",
+    with rasterio.open(out_dir / "MOSAIC_ASC_n_looks_high.tif", "w",
                        **dict(prof, dtype="int16", nodata=0)) as d:
         d.write(n_high.astype(np.int16), 1)
 
@@ -225,10 +257,10 @@ def _merge_group(group: list[dict]) -> dict:
     }
 
 
-def union_alerts(stacks: list[str], scenario: str) -> list[dict]:
+def union_alerts(stacks: list[str], scenario: str, alerts_suffix: str = "") -> list[dict]:
     zones: list[dict] = []
     for s in stacks:
-        f = ALERTS_DIR / s / f"alerts_{scenario}.json"
+        f = ALERTS_DIR / f"{s}{alerts_suffix}" / f"alerts_{scenario}.json"
         if not f.exists():
             continue
         for a in json.loads(f.read_text(encoding="utf-8")).get("alerts", []):
@@ -253,11 +285,12 @@ def union_alerts(stacks: list[str], scenario: str) -> list[dict]:
     return merged
 
 
-def write_union_alerts(stacks: list[str]) -> dict:
-    MOSAIC_ALERTS_DIR.mkdir(parents=True, exist_ok=True)
+def write_union_alerts(stacks: list[str], alerts_suffix: str = "",
+                       out_dir: Path = MOSAIC_ALERTS_DIR) -> dict:
+    out_dir.mkdir(parents=True, exist_ok=True)
     summary = {}
     for sc in SCENARIOS:
-        zones = union_alerts(stacks, sc)
+        zones = union_alerts(stacks, sc, alerts_suffix)
         n_crit = sum(1 for z in zones if z["severity"] == "CRITICAL")
         n_multi = sum(1 for z in zones if z["n_looks"] >= 2)
         payload = {
@@ -269,9 +302,9 @@ def write_union_alerts(stacks: list[str]) -> dict:
                         "n_confirmed_multi_look": n_multi},
             "zones": zones,
         }
-        (MOSAIC_ALERTS_DIR / f"alerts_{sc}.json").write_text(
+        (out_dir / f"alerts_{sc}.json").write_text(
             json.dumps(payload, indent=2), encoding="utf-8")
-        _write_union_briefing(MOSAIC_ALERTS_DIR / f"alert_report_{sc}.md", sc, stacks, zones)
+        _write_union_briefing(out_dir / f"alert_report_{sc}.md", sc, stacks, zones)
         summary[sc] = payload["summary"]
         logger.info("Union alerts [%s]: %d zones (%d critical, %d multi-look confirmed)",
                     sc, len(zones), n_crit, n_multi)
@@ -316,6 +349,10 @@ def main() -> int:
                     help="Explicit stack list (default: all 'connected' stacks).")
     ap.add_argument("--force", action="store_true",
                     help="Recompute every stage even if outputs are up to date.")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Also build a parallel AOI product from the slope-parallel velocity "
+                         "(downslope-projected creep, blind pixels excluded) into data/mosaic_vslope/ "
+                         "and data/alerts/mosaic_asc_vslope/. The LOS baseline is built + preserved.")
     args = ap.parse_args()
 
     stacks = args.stacks if args.stacks else connected_stacks()
@@ -326,7 +363,7 @@ def main() -> int:
     for stack in stacks:
         run_phases_per_stack(stack, args.force)
 
-    logger.info("=== Building AOI-wide union mosaic ===")
+    logger.info("=== Building AOI-wide union mosaic (LOS) ===")
     haz_counts = mosaic_hazard(stacks)
     alert_summary = write_union_alerts(stacks)
 
@@ -340,6 +377,22 @@ def main() -> int:
     logger.info("Outputs: data/mosaic/MOSAIC_ASC_hazard_class.tif , "
                 "data/alerts/mosaic_asc/alerts_<scenario>.json + briefings; "
                 "per-stack alerts in data/alerts/<stack>/")
+
+    if args.use_vslope:
+        logger.info("=== V_slope pass — downslope-projected creep (parallel product) ===")
+        for stack in stacks:
+            run_vslope_per_stack(stack, args.force)
+        logger.info("=== Building AOI-wide union mosaic (V_slope) ===")
+        hv = mosaic_hazard(stacks, "_vslope", MOSAIC_VSLOPE_DIR)
+        av = write_union_alerts(stacks, "_vslope", MOSAIC_ALERTS_VSLOPE_DIR)
+        logger.info("V_slope mosaic — HIGH=%d (>=2 looks: %d)  [LOS was HIGH=%d (>=2: %d)]",
+                    hv["high"], hv["high_multi_look"], haz_counts["high"],
+                    haz_counts["high_multi_look"])
+        for sc in SCENARIOS:
+            logger.info("  %-8s V_slope union zones=%d (LOS=%d)",
+                        sc, av[sc]["n_union_zones"], alert_summary[sc]["n_union_zones"])
+        logger.info("V_slope outputs: data/mosaic_vslope/ , data/alerts/mosaic_asc_vslope/ , "
+                    "per-stack in data/alerts/<stack>_vslope/")
     return 0
 
 

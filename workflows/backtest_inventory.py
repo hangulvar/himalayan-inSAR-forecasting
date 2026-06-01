@@ -178,8 +178,9 @@ def write_md(path: Path, r: dict) -> None:
               "- Inventory coordinates here are **approximate place-centroids from public reporting**, "
               "not field-mapped scarps — replace with the GSI Bhukosh georeferenced inventory for a "
               "rigorous spatial back-test (this tool ingests it unchanged).",
-              "- Our analysis window starts 2025-05-01, so pre-May events are out of scope by design; "
-              "and the rainfall is ERA5-Land (under-counts orographic bursts)."]
+              "- The analysis window now starts 2025-04-01 (extended from 2025-05-01 to cover the "
+              "documented 27 Apr event), and the trigger runs on WATER = rain + snowmelt (ERA5-Land), "
+              "which still under-counts orographic bursts — a gauge product (CHIRPS/GPM) is the cross-check."]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

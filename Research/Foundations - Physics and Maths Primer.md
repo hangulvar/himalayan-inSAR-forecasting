@@ -713,6 +713,60 @@ it now* (CF2) → one warning that **tracks real weather over time**.
 
 ---
 
+## CF3. Snowmelt & freeze-thaw — the other water (and what a negative result teaches)
+
+Rain isn't the only water that loads a Himalayan slope. In spring, **melting snow** soaks the ground,
+and repeated **freeze–thaw** (water freezes in cracks, expands, prises rock apart, then thaws and
+lubricates) mechanically weakens it. The back-test (Milestone 14) caught our rain-only trigger missing
+the **April–May 2025** failures — exactly the snowmelt/freeze-thaw season — so we added both.
+
+**The idea.** Treat the water reaching the slope as **water = rain + snowmelt**, and screen *that*
+against the rainfall trigger curve (CF2); separately flag days whose temperature swings across 0 °C
+(Tmin < 0 < Tmax) as freeze–thaw.
+
+**Everyday analogy.** A fridge defrosting: the puddle isn't from new spills, it's yesterday's ice
+turning to water. Snowmelt is the mountain's slow defrost feeding the slope days after the snow fell.
+
+**Gentle formula.** water_d = rain_d + snowmelt_d; freeze_thaw_d = (Tmin_d < 0 °C) AND (Tmax_d > 0 °C).
+
+🔗 **In our project: Milestone 16 — and an honest negative result.** Real ERA5-Land gave **59 mm of
+snowmelt** for the season (vs 1,350 mm rain), mostly early April. That's far below the heavy-burst
+trigger line, so it added **no new trigger day**, and the freeze-thaw flag was **0** because the
+*area-average* temperature never crossed freezing (the warm valley floor hides the cold high slopes —
+proper freeze-thaw needs temperature *by elevation*). The lesson is the value: this **rules snowmelt
+out** as the reason we missed April–May and points at the true culprit — the global rainfall record
+**under-counts intense mountain cloudbursts** (it logged ~9 mm on a documented mudslide day). So the
+next fix is pinpointed: a **rain-gauge product (CHIRPS/GPM) + a regional trigger curve**. (Ruling a
+cause *out* is real progress.)
+
+## CF4. Slope-parallel velocity (V_slope) — reading the motion downhill
+
+Our radar measures only the motion *along its line of sight* (A6) — a slanted direction. A landslide
+moves *downhill*. So the radar under-reads creep, and on some slopes is nearly blind to it. With one
+look direction we can't fully separate up/down from sideways (that needs ascending + descending, CT2,
+still deferred), but we **can** project the LOS speed onto the steepest-descent direction, assuming
+the motion is downslope.
+
+**The idea.** Build two unit vectors at each pixel: the LOS direction **l** (from the radar geometry,
+HyP3's `lv_theta`/`lv_phi`) and the downslope direction **d** (from the DEM's slope + aspect). Their
+dot product **C = d·l** is the **sensitivity**: how much of a downhill motion the radar actually sees.
+
+**Gentle formula.** V_slope = V_LOS / (d·l). Because |d·l| ≤ 1, this *amplifies* the measured speed
+(recovering the part the radar missed). Where |d·l| is tiny (downhill ⟂ LOS), the slope is a **blind
+spot** and we mask it.
+
+**Everyday analogy.** Watching a car drive away at an angle through a narrow doorway: you only see part
+of its speed. If you know the road's direction, you can work out its true speed — unless it crosses
+your view exactly sideways, when you can't judge it at all.
+
+🔗 **In our project: Milestone 15.** Across the 3 ascending tracks, **24–42 %** of measured ground turns
+out to be a single-look **blind spot** (downhill nearly perpendicular to the LOS) — we now map exactly
+where we're flying blind. For the rest, projecting to downslope **magnifies creep ×1.4–1.6**, sharpening
+both the creep map and the failure-timing method (CF1). It's the cheap, single-track stand-in for the
+full vertical+east-west decomposition awaiting better descending data.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -839,6 +893,22 @@ project dates as the record lengthens or a real acceleration begins. And we gate
 velocity will otherwise fit "failures" to noise — we caught exactly that in our own first run and
 fixed it (Part E).
 
+**Q: You only have one look direction — how do you get *downhill* motion, and where are you blind?**
+A: We project the line-of-sight speed onto the steepest-descent direction from the DEM (V_slope = V_LOS
+÷ d·l, CF4). The dot product d·l is the sensitivity: it tells us that **24–42 %** of our measured ground
+has its downhill direction nearly perpendicular to the radar, so it's a single-look **blind spot** — we
+map exactly where. For the rest, projecting recovers the part the radar missed (×1.4–1.6). It's honest
+about the one-track limit and is the cheap stand-in for the full ascending+descending decomposition.
+
+**Q: You added snowmelt to fix the spring miss — did it work?**
+A: No — and that's a useful result. Real snowmelt was only ~59 mm for the season (vs 1,350 mm rain),
+far below the heavy-burst trigger line, so it added no new trigger day; and freeze-thaw didn't register
+on the area-*average* temperature (the warm valley hides the cold high slopes). So we *ruled snowmelt
+out* as the reason we missed April–May, which points squarely at the real cause: the global rainfall
+record under-counts the intense cloudbursts that trigger these slides (it logged ~9 mm on a documented
+mudslide day). The fix is now pinpointed — a gauge product + a regional trigger curve. The drivers are
+built and waiting for elevation-aware temperature.
+
 ---
 
 # Part E — Honest Limitations
@@ -848,7 +918,9 @@ Being able to state weaknesses is what makes you credible.
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our
   descending tracks were evaluated and **rejected as too noisy** (Milestone 10 / CT4), so
-  the vertical/east-west decomposition waits on better descending data.
+  the vertical/east-west decomposition waits on better descending data. We now *quantify* this
+  limit with the slope-parallel projection (V_slope, CF4 / Milestone 15): **24–42 %** of measured
+  ground is a single-look blind spot (downhill ~perpendicular to the LOS).
 - **80 m pixels:** each pixel averages an 80 m patch — fine for hillside-scale
   creep, too coarse for a single boulder.
 - **Residual atmosphere:** our *custom* engine's simple plane-deramp + high-pass
@@ -869,9 +941,12 @@ Being able to state weaknesses is what makes you credible.
   rainfall that day fell below the threshold).
 - **Validation is first-pass (Milestone 14):** the back-test shows the map flags the right corridor
   (8/9 documented NH-44 hotspots within ~2 km) but that the rainfall-trigger *timing* is **not yet
-  validated** — it picked 26 Aug, whereas the documented 2025 failures were Apr–May (our window
-  starts 1 May, and ERA5-Land under-counts the bursts). Inventory coords are approximate; a *scored*
-  precision/recall test needs the GSI Bhukosh inventory (~302 mapped Ramban slides).
+  validated** — it picked 26 Aug, whereas the documented 2025 failures were Apr–May. Extending the
+  window to April and adding **snowmelt + freeze-thaw** (Milestone 16 / CF3) did **not** fix it: the
+  re-run still misses (0/2), because the gap is an **orographic-rain-undercount** problem
+  (ERA5-Land), not a missing-snowmelt one — which sharpens, rather than closes, the diagnosis. Inventory
+  coords are approximate; a *scored* precision/recall test needs the GSI Bhukosh inventory (~302 mapped
+  Ramban slides), and the acute Apr–May trigger needs a gauge product (CHIRPS/GPM) + a regional I–D curve.
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.
