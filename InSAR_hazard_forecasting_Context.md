@@ -369,6 +369,16 @@ failure-timing); and no validation against real events.
 - **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
   SqueeSAR-style) — recover coherence in *partially* vegetated Himalayan slopes (the
   biggest local win against vegetation decorrelation).
+- **NISAR (NASA–ISRO SAR, launched Jul 2025) — the most promising future DATA upgrade.**
+  Dual-band **L + S**; the headline win is the **L-band penetrating vegetation** → it recovers
+  coherence exactly where our C-band Sentinel-1 decorrelates (our worst enemy — the vegetation gaps
+  behind the ~14% coverage and the ~30 mm/yr floor), plus finer resolution, 12-day repeat, free +
+  open. *(Correction to a common impression: the real lever is L-band coherence, not merely "higher
+  resolution.")* **Not yet in our pipeline** — it is Sentinel-1/HyP3-tuned, NISAR L2 InSAR products +
+  the processing ecosystem are still maturing post-commissioning, and a NISAR-only series is short
+  for now. Action: track ASF NISAR availability; treat as **complementary** to Sentinel-1 (not a
+  replacement); adapt ingestion (wavelength scaling, product format) once a usable Ramban L-band
+  stack exists.
 - **Enforce the <150 m perpendicular-baseline rule** (outstanding from Phase 1).
 - *Payoff:* trust slower/smaller motions; fewer false creep flags.
 
@@ -433,12 +443,49 @@ failure-timing); and no validation against real events.
 - **Hosted dashboard** (Streamlit) + a **combined union 3-D dashboard** over the
   multi-track mosaic (today's 3-D view is the single frame106 patch).
 
+### Area 7 — Physics-guided refinements (from a PGML / MT-InSAR literature review, 2026-06-01)
+A Physics-Guided ML (PINN) + MT-InSAR methodology was reviewed. **Verdict: borrow the feature
+engineering + physics, SKIP the ML stack.** This project is *already* physics-guided (deterministic
+infinite-slope FS fused with InSAR observation), which solves the very problem the PINN targets
+(physical realism under sparse data) *without* a neural net. A PINN / CNN-LSTM-SAM / GCN would demand
+a training corpus, soil-hydraulic parameters, and a long, dense time series we do NOT have (~14
+epochs, ~3.5 months, single-look, ~30 mm/yr floor) — forcing it would manufacture the over-confident,
+physically-implausible output the literature itself warns about. **Adopt these four, in priority:**
+
+1. ★★★ **Snowmelt + freeze-thaw triggers** (most scientifically motivated — fixes a *validated* gap).
+   The back-test (Area 4) showed the rainfall-only trigger MISSED the documented **Apr–May 2025**
+   Ramban failures — exactly the NW-Himalaya snowmelt / freeze-thaw season. Add a snowmelt +
+   2 m-temperature driver alongside the Caine rainfall ID threshold. Feasible with existing CDS creds
+   (ERA5-Land carries snowmelt, snow depth, 2 m temperature). [extends Area 3]
+2. ★★★ **Slope-parallel velocity projection (V_slope)** (highest value-for-effort). Project the LOS
+   velocity onto the downslope direction (DEM slope + aspect) → landslide-relevant creep; sharpens the
+   creep mask AND the inverse-velocity TTF. No new data; ~1 day. It is the single-look approximation
+   of the (DESC-deferred) ASC/DESC decomposition. Caveat: ASC-only → assumes downslope motion (standard). [Area 2]
+3. ★★ **Normalized Channel Steepness Index (K_sn)** — a tectonics-aware conditioning factor
+   (Himalayan channel over-steepening from uplift; a documented strong predictor in regional landslide
+   models). Compute from the 12.5 m DEM (channel network + slope–area) and add to the hazard
+   conditioning (today: slope + TWI proxy only). Pairs with the FS-hardening bundle. [extends Area 3]
+4. ★★ **Matric-suction / Bishop effective-stress FS refinement** — replace the linear
+   `FS_real = (1−m)·FS_dry + m·FS_saturated` with a *physical* suction→effective-stress link (rainfall
+   reduces matric suction = apparent cohesion → FS drops). Deterministic, using literature Van Genuchten
+   parameters (site-measured soil remains a standing limitation). Part of the FS-hardening bundle. [extends Area 3]
+
+**Explicitly SKIP for now** (revisit only with a real inventory + a much longer/denser series): the full
+**PINN + hybrid physics loss** (L_data+L_phys+L_bc), **CNN-LSTM-SAM**, **GCN**, and the "**digital twin
+pre-trained on numerical simulations**" (we have no simulation corpus). We already hold lightweight
+analogs — the antecedent-precipitation index (≈ LSTM rainfall memory), inverse-velocity TTF (≈ temporal
+acceleration), multi-look corroboration + clustering (≈ GCN spatial coupling). If we ever go ML, start
+with a **simple RF / logistic susceptibility on the GSI inventory** (Area 4), not a PINN.
+
 ### Suggested priority (highest leverage first)
-1. **Finish MintPy + ERA5** (Area 1) — also unlocks SVD/DESC for Area 2.
+1. **Finish MintPy + ERA5** (Area 1) — also unlocks SVD/DESC for Area 2. *(DONE.)*
 2. **Inverse-velocity time-to-failure** (Area 3) — turns hazard → forecast using
-   existing data; biggest scientific + narrative jump for least cost.
-3. **Live rainfall (GEE CHIRPS/GPM) + ID thresholds** (Areas 3/5) — real trigger.
-4. **GEE corroboration + inventory validation** (Areas 4/5) — multi-sensor robustness.
+   existing data; biggest scientific + narrative jump for least cost. *(DONE.)*
+3. **Live rainfall (GEE CHIRPS/GPM) + ID thresholds** (Areas 3/5) — real trigger. *(Started — ERA5-Land.)*
+4. **GEE corroboration + inventory validation** (Areas 4/5) — multi-sensor robustness. *(Back-test first pass DONE.)*
+5. **Snowmelt/freeze-thaw trigger + V_slope projection** (Area 7 #1–2) — the two cheapest high-value
+   physics borrows; **snowmelt directly fixes the back-test's temporal miss** (Apr–May 2025 events).
+   *(Updated near-term priority, 2026-06-01: 1–2 done → this is the next push.)*
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall,
 soil moisture, and a validated landslide inventory — never trust a single sensor or a
