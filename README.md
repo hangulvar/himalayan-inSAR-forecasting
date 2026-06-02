@@ -16,6 +16,17 @@ The whole chain runs start to finish on a pathfinder satellite stack:
 | **4A — Agentic warning system** | 3-agent orchestrator → geolocated alerts + HTML dashboard | ✅ Complete |
 | **4B — Interactive 3-D UI** | Draped-terrain 3-D hazard explorer (`dashboard_3d.html`) | ✅ Complete |
 
+#### Beyond the MVP — production hardening + a forecasting/validation investigation
+
+The MVP is the *foundation*; substantial post-MVP work has since landed (full detail + every headline number in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md)):
+
+- **Reproducibility & scale:** Dockerized (Linux container); AOI-parameterized; all **3 ascending stacks** inverted into a **union hazard mosaic**. The 2 descending stacks were evaluated and honestly **rejected** as too noisy.
+- **Field-standard cross-check:** **MintPy + ERA5 tropospheric correction** corroborates the custom SBAS engine on frame106 (agreement r ≈ 0.55–0.59 after correction).
+- **Hazard → forecast:** **inverse-velocity time-to-failure** (Fukuzono) screening, and **slope-parallel velocity (V_slope)** projection that quantifies the single-look blind spot and improves cross-geometry agreement.
+- **Rainfall-trigger investigation (a worked, honest scientific arc):** real ERA5-Land rainfall + a **verified regional Himalayan intensity–duration curve**, cross-checked against **CHIRPS** and **half-hourly GPM IMERG** (via Google Earth Engine), then back-tested against documented 2025 failures. **Key finding:** the documented **April–May 2025** NH-44 failures were **not** acute-rainfall-driven — *three independent rainfall products agree there was no triggering downpour*. A per-elevation freeze-thaw + chronic-saturation analysis instead shows the spring slopes were **slowly *primed***. The investigation now turns to a **verified landslide inventory (GSI Bhukosh)** and non-meteorological factors.
+
+This honest, ruling-things-out style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives — is the project's scientific posture, and the explicit path toward a defensible, publishable tool.
+
 **New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
 ---
@@ -288,6 +299,8 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   `python workflows/fetch_chirps.py` (CHIRPS gauge rainfall via GEE; needs Step 6 auth) →
   `python workflows/rainfall_id_threshold.py --csv <daily.csv> --threshold {caine1980|nwhimalaya}`
   (global vs regional Himalayan I-D curve) →
+  `python workflows/rainfall_specificity.py --csv <daily.csv>` (sensitivity/selectivity trade-off) and/or
+  `python workflows/fetch_gpm_imerg.py` (half-hourly GPM IMERG sub-daily-intensity test; needs Step 6 auth) →
   `python workflows/agentic_orchestrator.py --rainfall-timeline` (couples rain into FS) →
   `python workflows/backtest_inventory.py --trigger-report <id_threshold_report.json>`
   (validate vs the documented landslide inventory). `inverse_velocity_ttf.py` screens for

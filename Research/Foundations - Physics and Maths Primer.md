@@ -739,6 +739,17 @@ out** as the reason we missed April–May and points at the true culprit — the
 next fix is pinpointed: a **rain-gauge product (CHIRPS/GPM) + a regional trigger curve**. (Ruling a
 cause *out* is real progress.)
 
+🔗 **Update — Milestone 19: freeze-thaw, resolved by elevation.** The "0 freeze-thaw days" above was an
+artifact of the *area-average*. Temperature falls ~**6.5 °C per km** of height (the **lapse rate**), so we
+estimated the temperature at each elevation band from the DEM and counted again: freeze-thaw **switches on
+around ~2,500 m** and strengthens upward, while the road/failure sites in the **warm valley (~1,540 m) still
+see zero**. So freeze-thaw works the **higher source slopes above the road**, not the road itself. And the
+ground was **moderately wet** on both 2025 event days (≈33 % / 20 % of the season's peak wetness) from
+snowmelt + earlier rain — even with no rain that day. Net picture: the spring slopes were **slowly primed**
+(damp + freeze-thaw aloft), not storm-triggered — a *mechanistic* story, honestly tagged as first-order
+(constant lapse rate, reference height = DEM mean), that explains *vulnerability* but not the exact failure
+date.
+
 ## CF4. Slope-parallel velocity (V_slope) — reading the motion downhill
 
 Our radar measures only the motion *along its line of sight* (A6) — a slanted direction. A landslide
@@ -809,6 +820,16 @@ swapping one ~5 km product for another doesn't help if the triggering rain is *s
 smaller than the pixel) or if the spring failures simply weren't acute-rainfall-driven (snowmelt-soaked
 ground, construction, fuzzy dates). The honest redirection: finer/faster rain (GPM IMERG, 0.1°/30-min) or a
 chronic-saturation framing — not another daily gauge product. (Milestone 17.)
+
+**So we tested the sub-daily angle too — and closed the question.** GPM IMERG measures rain every 30 minutes,
+so it sees short convective bursts a *daily* total averages away. Screening the peak short-duration intensity
+against the curve (and using the big 26 Aug storm as a positive control — it crossed at E≈12, validating the
+method): **27 Apr was dry (E=0), 8 May only grazed the line over 3 h (E=1.09) with sub-hourly peaks below it
+— no cloudburst.** So **three independent products — daily reanalysis, daily gauge-blend, and half-hourly
+satellite — all agree** there was no triggering downpour on the spring failure days. The rainfall hypothesis
+is *definitively* rejected; the cause is more likely snowmelt-soaked ground, construction disturbance, or
+imprecise reported dates. The lesson: a good negative result, triangulated across independent measurements,
+is as valuable as a positive one — it stops you optimizing the wrong dial. (Milestone 18.)
 
 ---
 
@@ -960,13 +981,16 @@ map exactly where. For the rest, projecting recovers the part the radar missed (
 about the one-track limit and is the cheap stand-in for the full ascending+descending decomposition.
 
 **Q: You added snowmelt to fix the spring miss — did it work?**
-A: No — and that's a useful result. Real snowmelt was only ~59 mm for the season (vs 1,350 mm rain),
-far below the heavy-burst trigger line, so it added no new trigger day; and freeze-thaw didn't register
-on the area-*average* temperature (the warm valley hides the cold high slopes). So we *ruled snowmelt
-out* as the reason we missed April–May, which points squarely at the real cause: the global rainfall
-record under-counts the intense cloudbursts that trigger these slides (it logged ~9 mm on a documented
-mudslide day). The fix is now pinpointed — a gauge product + a regional trigger curve. The drivers are
-built and waiting for elevation-aware temperature.
+A: No — and chasing *why* became the most interesting result in the project. Snowmelt was only ~59 mm
+(vs 1,350 mm rain), too small to trigger; that pointed at the rainfall *record* under-counting cloudbursts,
+so I tested that too — a regional trigger curve (caught the events but over-fired), then gauge rain
+(**CHIRPS**), then half-hourly **GPM IMERG**. The twist: the gauge and sub-daily products showed *even less*
+rain on the event days, not more. So **three independent rainfall datasets agree there was no triggering
+downpour** (CF5) — rainfall is *ruled out*, not pinpointed. Then I made the temperature elevation-aware
+(Milestone 19): freeze-thaw only switches on above ~2,500 m, not at the valley road. The honest end-point:
+the spring slides were **slowly *primed*** (damp ground + freeze-thaw on the upper slopes), not
+storm-triggered — so the next questions are the landslide *record* (verified dates) and ground disturbance,
+not the weather. Ruling a whole class of cause out, with independent data, is real scientific progress.
 
 ---
 

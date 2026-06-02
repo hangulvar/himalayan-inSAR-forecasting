@@ -16,9 +16,11 @@ checkout, a machine wipe, and (critically) the **removal of the mock scenarios**
 the old one *(superseded)* — do not delete it.
 
 _Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`) — added §12 regional Himalayan I–D
-curve (the temporal-miss fix), §12b/§12c CHIRPS plumbing + specificity prototype, and **§12d — CHIRPS
-RAN and the gauge hypothesis is REFUTED** (CHIRPS is drier than ERA5-Land on the spring event dates).
-Prior: §10 slope-parallel velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
+curve (the temporal-miss fix), §12b/§12c CHIRPS plumbing + specificity prototype, **§12d — CHIRPS RAN, gauge
+hypothesis REFUTED**, **§12e — GPM IMERG sub-daily test: rainfall question CONCLUSIVELY CLOSED** (three
+independent products agree there was no acute spring rain), and **§12f — spring conditioning** (per-elevation
+freeze-thaw + chronic saturation = priming, not an acute trigger). Prior: §10 slope-parallel velocity
+(V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
 
 ---
 
@@ -264,6 +266,11 @@ heavy rain/mudslides), *not* by missing snowmelt water → next fix is the **gau
 (CHIRPS/GPM) + a regional Himalayan I–D curve** (Area 7 #3, deferred). Snowmelt's genuine role is
 **chronic spring saturation**, visible in the timeline, not as an acute trigger.
 
+> **↪ Subsequently resolved (§12d–§12f):** the "gauge product is the next fix" hypothesis above was then
+> *tested and refuted* — CHIRPS and half-hourly GPM IMERG showed *even less* rain on the event days, so
+> **rainfall is ruled out** as the spring trigger (three independent products agree). Snowmelt's chronic-
+> saturation role was confirmed quantitatively in §12f (per-elevation freeze-thaw + antecedent wetness).
+
 ---
 
 ## 12. Regional Himalayan I–D curve + GEE CHIRPS gauge rainfall  `[REAL / MEASURED — curve VERIFIED]`
@@ -321,7 +328,7 @@ NH-44). *The regional curve's coefficients + units are now **verified** (verific
 is cleared to become the canonical/default curve; default is kept at `caine1980` only to avoid re-baselining
 the `[MOCK]` KPIs this session.* Outputs (suffixed, non-destructive): `id_threshold_report_{caine,nwhimalaya}_era5.{json,md}`, `id_threshold_*_era5.png`.
 
-## 12b. GEE CHIRPS gauge-rainfall fetch — BUILT, awaiting auth  `[infrastructure]`
+## 12b. GEE CHIRPS gauge-rainfall fetch — BUILT + RAN  `[infrastructure]`
 
 Source: `workflows/fetch_chirps.py` (new). Pulls CHIRPS daily (`UCSB-CHG/CHIRPS/DAILY`, 0.05°,
 satellite+gauge) AOI-mean per day via Google Earth Engine → `data/rainfall/ramban_chirps_daily.csv`
@@ -402,6 +409,65 @@ chronic spring saturation, not an acute trigger — now corroborated from the ra
 I-D curve (§12) remains the right threshold fix; the rainfall *source* is no longer the suspect for spring.
 Outputs (suffixed): `*_nwhimalaya_chirps.*`, `specificity_report_chirps.*`. *Note: EECU-frugal — one
 batched `reduceRegion` per day over the ~0.2°×0.2° AOI; no DEM pulled (bundled DEM used).*
+
+## 12e. GPM IMERG sub-daily test — the rainfall question is CONCLUSIVELY CLOSED  `[REAL / MEASURED]`
+
+Source: `workflows/fetch_gpm_imerg.py` (new; GEE `NASA/GPM_L3/IMERG_V07`, half-hourly, AOI-mean rain rate)
+→ peak mean intensity at D = 0.5/1/3/6/12/24 h, screened vs the verified regional curve at each duration.
+2026-06-02. Tests the one dimension the daily products can't see: a short, intense **convective burst** that
+triggers a slope but shows only as a modest daily total. EECU-frugal (event windows only; raw series cached
+→ re-runs free). Ran in the rebuilt `insar` image (earthengine-api + creds mount validated end-to-end).
+
+| day | daily mm | peak I(0.5h) | peak I(1h) | peak I(3h) | **max E** | class |
+|---|---|---|---|---|---|---|
+| **27 Apr** (event) | 0.0 | 0.01 | 0.01 | 0.0 | **0.00** | below threshold |
+| **8 May** (event) | 8.6 | 3.17 / 4.0 | 2.83 / 3.0 | 2.08 / 1.9 | **1.09** | marginal |
+| 20 Apr (no failure) | 27.1 | 6.55 | 6.19 | 4.28 | **2.25** | clear crossing |
+| **26 Aug control** | — | 21.2 | 20.5 | 16.7 | **12.3** | clear crossing (method validated) |
+
+**Finding (conclusive):** on the documented event days, IMERG sub-daily intensity does **not** clearly cross
+the regional threshold — **27 Apr is bone-dry (E=0.0)** and **8 May only marginally touches at 3 h (E=1.09)**
+with sub-hourly peaks *below* the line. The 26 Aug control crosses massively (E≈12 — method validated), and a
+genuine burst on **20 Apr (E=2.25) produced no reported failure**. So **three fully independent products —
+daily reanalysis (ERA5-Land), daily satellite-gauge (CHIRPS), and half-hourly satellite (IMERG) — all agree
+there was no acute triggering rainfall on the documented spring 2025 NH-44 failure dates.** The "Apr–May miss
+is a rainfall-data problem" hypothesis is **definitively rejected**. The spring failures are very likely
+**not acute-rainfall-driven**: chronic snowmelt/antecedent saturation (per §11's spring FS timeline), NHAI
+tunnel/road construction at Digdol/Khooni Nallah, or imprecise news-derived event dates — those are the
+remaining hypotheses. Outputs: `data/rainfall/imerg_subdaily_report.{json,md}`, `imerg_subdaily.png`,
+cached `imerg_raw_*.csv`.
+
+## 12f. Spring conditioning — per-elevation freeze-thaw + chronic saturation (the non-acute mechanism)  `[REAL / MODELED]`
+
+Source: `workflows/spring_conditioning.py` (new; EECU-free — ERA5-Land daily CSV + the bundled 80 m DEM,
+no GEE). 2026-06-02. Now that an acute rainfall trigger is ruled out (§12e), this characterizes the two
+*slow priming* mechanisms for the spring NH-44 failures.
+
+**Per-elevation freeze-thaw** (lapse-rate ELR 6.5 °C/km; z_ref = AOI-mean DEM elev **1670 m**; AOI p5–p95
+**802–2576 m**) — the AOI-mean gives **0** freeze-thaw days *by construction*; resolving by elevation:
+
+| elevation | % AOI | freeze-thaw days (spring Apr–May) |
+|---|---|---|
+| 1000 m | 22 % | 0 |
+| 1500 m (≈ event/road) | 30 % | **0** |
+| 2000 m | 27 % | 4 |
+| 2500 m | 16 % | **12** |
+
+Freeze-thaw **onset ≈ 2500 m**; at the documented event/corridor elevation (~1540 m, valley) it is **0** —
+so freeze-thaw weakening acts on the **higher source slopes above the road**, not the road itself.
+
+**Chronic antecedent saturation:** spring snowmelt **56 mm**; spring wetness-memory (API) mean **34 mm**,
+max **106 mm** (season p95 162). On the event days — despite ~0 acute rain — antecedent wetness was
+**33 % (27 Apr)** and **20 % (8 May)** of the season peak: the slopes were *moderately primed*, not dry.
+
+**Finding:** the spring signature is **PRIMING, not an acute trigger** — moderate chronic saturation
+(snowmelt + antecedent rain) plus freeze-thaw cycling on the upper source slopes (≥~2000–2500 m) — fully
+consistent with §12e (no acute rain). It explains *susceptibility* but still **does not pinpoint a discrete
+trigger** for the specific dates, which keeps the non-meteorological / inventory-date hypotheses (NHAI
+construction; GSI-verified dates) live. *Scope `[MODELED]`: lapse-rate downscaling is first-order (constant
+ELR; z_ref = DEM-mean — ERA5-Land orography would refine it); freeze-thaw elevations ±few-hundred m;
+mechanistic framing, not a calibrated trigger.* Outputs: `data/rainfall/spring_conditioning_report.{json,md}`,
+`spring_conditioning.png`.
 
 ---
 

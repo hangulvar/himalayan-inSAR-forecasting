@@ -636,6 +636,73 @@ search toward finer/faster rain data or treating spring as a slow snowmelt-soaki
 
 ---
 
+## ✅ Milestone 18 — The Last Rainfall Check: Was It a Quick Cloudburst?  *(GPM IMERG sub-daily test, 2026-06-02)*
+
+**What we set out to do:** Milestone 17 left one rainfall idea untested. Daily rain totals can *hide* a
+short, violent cloudburst — 30 minutes of torrential rain can trigger a slope yet barely move the *daily*
+number. So we brought in **GPM IMERG**, a satellite product that measures rain **every 30 minutes**, to ask:
+on the days those spring slopes failed, was there a brief, intense burst the daily products simply averaged
+away?
+
+**What we did, plainly:** we pulled the half-hourly rain rate over the area for the two-week spring window
+(and, as a sanity check, the big 26 August storm), and measured the most intense burst at every timescale
+from 30 minutes to a day — then compared it to the Himalaya danger line. To be kind to the cloud-computing
+budget, we only pulled the days that matter and saved them so re-runs cost nothing.
+
+**What we found — the question is now firmly settled:**
+- The **26 August** check lit up exactly as it should (rain *twelve times* over the danger line) — proving
+  the method works.
+- But on the actual spring failure days: **27 April was completely dry**, and **8 May had only a mild burst
+  that stayed *under* the danger line** at every short timescale (it only grazed it over 3 hours). No
+  cloudburst.
+- Curiously, there *was* a real burst on **20 April that crossed the line — yet nothing was reported to have
+  failed that day** — another hint that rain alone doesn't explain these slides.
+
+**Why this matters:** we have now checked the rain **three independent ways** — a weather-model record, a
+rain-gauge-blended product, and a 30-minute satellite — and **all three agree there was no triggering
+downpour on the days the spring slopes failed.** That's a strong, honest conclusion: the spring disasters
+were **almost certainly not caused by rain we failed to see.** The likely real causes are slower or
+non-weather ones — **ground left soggy by melting snow** (which our danger map already flags in spring), the
+heavy **road-and-tunnel construction** at those exact spots, or **imprecise dates** in the news reports. We
+closed a question properly instead of leaving it hanging.
+
+**Plain-language result:** rain is now **ruled out** as the hidden cause of the spring slides — confirmed
+from three independent angles. The investigation turns to soggy-ground (snowmelt) and ground-disturbance
+explanations, with a cleaner, better-dated landslide record as the next thing to fetch.
+
+---
+
+## ✅ Milestone 19 — If Not Rain, Then What? The "Slowly Primed Slope" Picture  *(Spring conditioning, 2026-06-02)*
+
+**What we set out to do:** with a sudden downpour ruled out (Milestone 18), we checked the two *slow* ways a
+spring slope gets dangerous: **freeze–thaw** (water in cracks freezing and thawing, prying rock apart night
+after night) and **soggy ground** (snowmelt and earlier rain leaving the slope wet long before it fails). Both
+can be read from data we already have — the daily temperatures and the elevation map — so it cost nothing new.
+
+**What we did, plainly:** the area's *average* temperature never dips below freezing (the warm valley floor
+drags the average up), which is why our earlier freeze–thaw check came back empty. The fix: use the elevation
+map to estimate temperature **at each height** (it gets ~6.5 °C colder per kilometre up) and count freeze–thaw
+days **band by band**. We also tracked how *wet* the ground already was, day by day, through spring.
+
+**What we found:**
+- **Freeze–thaw kicks in around 2,500 m** and gets stronger higher up — but the road and the failure sites
+  themselves sit low in the **warm valley (~1,540 m), with zero freeze–thaw**. So freeze–thaw is busy
+  loosening the **higher slopes above the road**, not the road itself.
+- The ground was **moderately wet** on both failure days (about a **third** as wet as the season's peak on
+  27 April, a fifth on 8 May) from snowmelt and earlier rain — **even though almost no rain fell that day.**
+
+**Why this matters:** it paints a coherent picture — the spring slopes were **slowly primed** (damp ground +
+freeze–thaw working the upper slopes) rather than hit by a single storm. That fits everything else we found.
+**Honest limit:** "primed" explains why a slope was *vulnerable*, but it still doesn't name the exact thing
+that let go on those specific dates — so the next job is a **better, verified landslide record** (real dates
+and locations) and a look at the **road/tunnel construction** at those spots.
+
+**Plain-language result:** the spring slides look like **slowly-primed slopes** (soggy ground + freeze–thaw
+up high), not storm-triggered ones — a consistent, honest picture that points the last questions at the
+**landslide record and the construction**, not the weather.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
@@ -647,12 +714,12 @@ thresholds replacing the mock weather (12)**, **real rain driving a time-resolve
 and a first **reality-check back-test against documented landslides (14)**. What remains is mostly
 *deepening trust* and *going live*:
 
-- **Fix the trigger timing the back-test exposed.** *Done (Milestone 17):* April start + a
-  Himalaya-specific trigger line, AND we ran the **gauge rainfall (CHIRPS)** — which turned out *drier*
-  here, ruling out "missed rainstorm" as the cause of the spring slides. *Still to do:* try **finer/faster
-  rain** (30-minute satellite data, GPM IMERG) for very local downpours; lean into the **snowmelt-soaking**
-  explanation (which the danger map already supports in spring); and bring in the official **GSI inventory**
-  (~302 mapped slides) to double-check the news-reported dates/places and get a properly-scored test.
+- **Spring-trigger cause — rainfall RULED OUT (M17–18), slope now understood as "slowly primed" (M19).**
+  Checked rain **three independent ways** (weather-model, gauge-blended CHIRPS, 30-minute GPM IMERG) — all
+  agree there was **no triggering downpour**; and the spring slopes were **slowly primed** (damp ground +
+  freeze–thaw up high), which explains *vulnerability* but not the exact trigger date. *Remaining leads (off
+  rain):* the official **GSI inventory** (~302 mapped slides) for **verified dates/places** + a properly-scored
+  test, and the **road/tunnel construction** angle at those exact spots.
 - **Better descending data for a true 3-D motion split.** Today's two descending tracks
   were rejected as too noisy (Milestone 10); the up/down-vs-sideways reconstruction waits
   on a longer unbroken series or point-like (persistent-scatterer) reflectors.

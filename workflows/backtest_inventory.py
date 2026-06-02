@@ -178,9 +178,11 @@ def write_md(path: Path, r: dict) -> None:
               "- Inventory coordinates here are **approximate place-centroids from public reporting**, "
               "not field-mapped scarps — replace with the GSI Bhukosh georeferenced inventory for a "
               "rigorous spatial back-test (this tool ingests it unchanged).",
-              "- The analysis window now starts 2025-04-01 (extended from 2025-05-01 to cover the "
-              "documented 27 Apr event), and the trigger runs on WATER = rain + snowmelt (ERA5-Land), "
-              "which still under-counts orographic bursts — a gauge product (CHIRPS/GPM) is the cross-check."]
+              "- The analysis window starts 2025-04-01 (to cover the documented 27 Apr event) and the "
+              "trigger runs on WATER = rain + snowmelt. NOTE (RESULTS_AND_KPIS.md §12d-f): the rainfall "
+              "source was subsequently stress-tested — ERA5-Land, CHIRPS, AND half-hourly GPM IMERG all "
+              "agree there was no acute triggering rain on the spring dates, so the Apr-May temporal miss "
+              "is NOT a rainfall-product problem; those events were not acute-rainfall-driven."]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

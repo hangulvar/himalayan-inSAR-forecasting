@@ -23,6 +23,35 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-06-02] Native `earthengine-api` + numpy/matplotlib crashes hard on Windows (exit 127) → run GEE+numpy scripts in the container
+
+* **Symptom:**
+  `workflows/fetch_gpm_imerg.py` (imports `ee` **and** numpy + matplotlib) run with the native
+  `insar_qa_env` python **aborted immediately after `import ee`** with **exit code 127**, no Python
+  traceback, no error message — only the google.api_core FutureWarning was printed. `fetch_chirps.py`
+  (also native, also `ee`) had worked fine; a standalone native numpy+matplotlib import also worked fine.
+
+* **Root Cause:**
+  The crash only happens when `earthengine-api` (which pulls **gRPC / protobuf** native extensions) is
+  loaded in the **same process** as **numpy/matplotlib (MKL/BLAS)**. On this Windows env the two native
+  stacks conflict at the C-DLL level → a hard process abort (Git Bash surfaces the Windows exception as
+  exit 127), not a catchable Python exception. `fetch_chirps.py` survived *only because it imports no
+  numpy*; the standalone numpy test survived because it loaded no gRPC. It is the same class of
+  Windows-native-DLL fragility as the historical `0xC06D007F` BLAS crash — exactly what the Linux
+  container exists to eliminate.
+
+* **Resolution:**
+  Run any script that needs **both** GEE and numpy/matplotlib **in the `insar` Docker container**, not
+  native. `earthengine-api` is already in `docker/Dockerfile`; rebuild once (`docker compose build
+  insar`) and the compose `EE_CREDENTIALS` mount + `EE_PROJECT_ID` (from the bind-mounted `.env`) make
+  `ee.Initialize` work in-container (validated end-to-end). Native is fine only for GEE-without-numpy
+  (e.g. `fetch_chirps.py`). Lesson: GEE+numpy = container; don't mix gRPC and MKL in a native Windows
+  process. **Related gotcha (same session):** in `docker compose run`, Git Bash **path-mangles a leading
+  `/app/...`** argument into `C:/Program Files/Git/app/...` → pass **container-relative** paths
+  (`data/rainfall/x.csv`), since the container working dir is already `/app`.
+
+---
+
 ### [2026-06-01] pygrib `validDate` mis-dates multi-step ERA5-Land messages → use `validityDate`/`validityTime`
 
 * **Symptom:**

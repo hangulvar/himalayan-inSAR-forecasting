@@ -24,10 +24,17 @@ hypothesis is REFUTED:** CHIRPS is *drier* than ERA5-Land here (998 vs 1,350 mm)
 independent ~5–9 km products agree there was little grid-scale acute rain on the documented spring dates**
 → the Apr–May miss is NOT a wrong-rainfall-product problem. **(3) Specificity-filter prototype**
 (`rainfall_specificity.py`): sweeps stringency k + antecedent dials; on both ERA5-Land and CHIRPS **no
-selective (<20% season) setting catches both events** (the 2/2 back-test is incidental nearby-day firing).
-**Next:** the spring trigger points away from grid rainfall → try **GPM IMERG (0.1°/30-min)** for sub-grid
-convection; treat spring as chronic snowmelt/antecedent saturation; **GSI Bhukosh** date/coord check. KPIs
-in committed `RESULTS_AND_KPIS.md` §12/§12b/§12c/**§12d** (+ §10–§11). Detail: §2 / §5._
+selective (<20% season) setting catches both events**. **(4) GPM IMERG sub-daily test**
+(`fetch_gpm_imerg.py`, half-hourly): **27 Apr E=0.0, 8 May E=1.09 (marginal)**, 26 Aug control E≈12 (method
+validated) → **rainfall is now CONCLUSIVELY RULED OUT**: three independent products (daily reanalysis, daily
+gauge-blend, half-hourly satellite) agree there was no acute spring triggering rain. Also: regional curve
+coefficients **VERIFIED** (literature triangulation + numeric reproduction). **(5) Spring conditioning**
+(`spring_conditioning.py`, EECU-free): per-elevation freeze-thaw (onset ~2500 m; valley/event level ~1540 m =
+**0** days → freeze-thaw works the upper source slopes) + chronic saturation (event-day wetness 33%/20% of
+season peak despite ~0 acute rain) → spring slopes were **PRIMED, not storm-triggered** (explains
+susceptibility, not the discrete date). **Next:** the remaining spring leads are **non-rainfall** → **GSI
+Bhukosh** for verified dates/coords + scored back-test; NHAI-construction angle. KPIs in committed
+`RESULTS_AND_KPIS.md` §12–§12f (+ §10–§11). Detail: §2 / §5._
 
 ---
 
@@ -207,7 +214,7 @@ The core vision is fully built. Remaining work:
      a domain-informed polygon over the NH-44 corridor + slopes above the road +
      Chenab reach. Draw in Google Earth Pro → `.kml` → GeoJSON. **Bundle with the next
      HyP3 pull** — a new AOI forces a full Phase-1 re-run (credits + hours).
-1. **Production hardening — MintPy is the next MAJOR push (deliberately deferred until after the quick wins; this is the agreed sequencing):**
+1. **Production hardening — MintPy migration ✅ COMPLETE (all steps; kept here for the detailed record).** The next major hardening items are the *accuracy backlog* (12.5 m DEM, full APS, uncertainty, calibrated soil) and **validation (GSI Bhukosh)** — see §5. MintPy detail:
    - **MintPy migration**, run **inside its own container image** (heavy deps:
      cartopy/pyresample/pyaps3/h5py/dask — do NOT add to the lean `insar` image;
      never touch `insar_qa_env`). Sub-tasks, in order:
@@ -340,20 +347,25 @@ plausible, **trigger timing not yet validated**. KPIs → `RESULTS_AND_KPIS.md` 
   freeze-thaw days** (AOI-mean temp never < 0 °C), back-test **still 0/2 temporal**. Diagnosis
   sharpened: the Apr–May miss is **ERA5-Land orographic rain under-count**, not missing snowmelt.
 
-**Recommended next (Session 10 ran the full gauge swap — it's CLOSED as a clean negative):**
-1. ✅ **DONE — the gauge-rainfall swap (Area 7 #3) RAN and is REFUTED.** Regional I–D curve done
-   (`--threshold nwhimalaya`); CHIRPS fetched + screened + back-tested + specificity-analysed. Finding
-   (§12d): **CHIRPS is drier than ERA5-Land on the spring dates** (27 Apr 0.0 mm, 8 May 4.2 mm) — two
-   independent ~5–9 km products agree there was little grid-scale acute rain → the Apr–May miss is **not** a
-   rainfall-product problem. The spring-trigger search now points AWAY from grid rainfall:
-   (a) **GPM IMERG (0.1°, 30-min)** for sub-grid convective bursts — reuse the `fetch_chirps.py` pattern with
-   a new GEE asset; (b) treat spring as **chronic snowmelt/antecedent saturation** (per-elevation freeze-thaw
-   + the FS timeline already lights up in spring) rather than an acute trigger; (c) **sanity-check the
-   inventory dates/coords** (news-derived) — ideally the **GSI Bhukosh** inventory. (d) ✅ **Regional curve
-   VERIFIED** (2026-06-02): coefficients + units (mm/h, h) corroborated vs the JESS-2025 full regional family,
-   the source's stated units, and numeric cross-checks (I(48h)=0.60 vs Garhwal 0.45–0.50; 1-day 19.2 vs NH-44
-   ~14.35 mm/day) — cleared to become default; left at `caine1980` only to avoid re-baselining the `[MOCK]`
-   KPIs. Only residual: exact-digit confirm from the paywalled primary PDF (low risk).
+**Recommended next (Session 10 ran the full rainfall investigation — RAINFALL IS CONCLUSIVELY RULED OUT):**
+1. ✅ **DONE — the rainfall-source question is CLOSED (3 independent products agree).** Regional I–D curve
+   done + **VERIFIED** (`--threshold nwhimalaya`; coefficients/units triangulated + numerically reproduced —
+   §12 verification block); **CHIRPS** fetched/screened/back-tested/specificity-analysed (§12d: drier than
+   ERA5-Land on the spring dates); **GPM IMERG** half-hourly sub-daily test (§12e: 27 Apr E=0.0, 8 May E=1.09
+   marginal, 26 Aug control E≈12). All three — daily reanalysis, daily gauge-blend, half-hourly satellite —
+   agree **there was no acute triggering rain on the documented spring dates**. So the spring trigger is
+   **NOT a rainfall problem.**
+   - ✅ **DONE — spring conditioning (`spring_conditioning.py`, §12f):** per-elevation freeze-thaw (lapse-rate
+     onto the DEM) shows onset ~2500 m while the valley/event level (~1540 m) = **0** freeze-thaw days → it
+     weakens the **upper source slopes above the road**; chronic saturation = event-day wetness 33%/20% of the
+     season peak despite ~0 acute rain. ⇒ spring slopes were **PRIMED, not storm-triggered** — explains
+     *susceptibility* but not the discrete date.
+   - The remaining spring leads are therefore **non-rainfall**: (a) **GSI Bhukosh inventory** for **verified
+     dates/coords** (news-derived dates may be imprecise — IMERG found a 20 Apr burst with *no* reported
+     failure) + a scored spatial back-test; (b) probe the **NHAI tunnel/road-construction** angle at
+     Digdol/Khooni Nallah; (c) refine §12f with ERA5-Land true orography if a *calibrated* freeze-thaw is
+     wanted. The verified regional curve is ready to become the default monsoon trigger when re-baselining the
+     `[MOCK]` KPIs (only residual: exact-digit confirm from the paywalled primary PDF).
 2. **Per-elevation freeze-thaw** — the AOI-mean masks high-slope freezing; needs per-cell ERA5-Land
    temperature + DEM elevation bands (the current freeze-thaw flag returns 0 by construction).
 3. ✅ **DONE (Session 9 cont.) — V_slope wired through the whole pipeline** as opt-in `--use-vslope`
@@ -474,43 +486,40 @@ sensor or a single physics assumption.
 ## 7. End-of-session checklist
 
 Documentation ritual for 2026-06-02 (Session 10) — **all done**:
-- [x] `session_journey.md` — new dated entry (Session 10: GEE CHIRPS plumbing + regional I–D curve +
-      specificity-filter prototype [Push 3]).
-- [x] `milestone.md` — Milestone 17 (Himalaya-tuned trigger line + gauge-rain pipe + the over-trigger
-      diagnosis) added (plain language).
-- [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (regional vs global trigger line; gauge
-      vs reanalysis rain), 1 interview Q, 2 limitation bullets refreshed.
-- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat) **+ literature-
-      verification block** (Caine + NW-Himalaya coefficients/units corroborated, §12 tag → curve VERIFIED),
-      §12b/§12c CHIRPS plumbing + specificity prototype, **§12d CHIRPS RAN → gauge hypothesis REFUTED**.
-- [x] `workflows/rainfall_id_threshold.py` (committed in 1c69fe7) — re-edited: `THRESHOLDS` cites now carry
-      the 2026-06-02 verification (sources + units + numeric cross-checks). Re-compiled OK.
-- [x] `README.md` — Step 6 (GEE/CHIRPS auth) + a forecasting run-sequence bullet.
+- [x] `session_journey.md` — Session 10 entry with Pushes 1–7 (CHIRPS plumbing → regional curve →
+      specificity prototype → CHIRPS ran/refuted → literature verification → GPM IMERG → spring conditioning).
+- [x] `milestone.md` — Milestones 17 (Himalaya-tuned trigger + gauge pipe), **18 (GPM IMERG: rainfall ruled
+      out)**, **19 (spring conditioning: "slowly-primed slope")** added (plain language).
+- [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (gauge vs reanalysis; CHIRPS refuted; IMERG
+      closes it) + **CF3 update (freeze-thaw resolved by elevation)**, interview Q, limitation bullets.
+- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional curve + verification (curve VERIFIED), §12b/§12c
+      CHIRPS + specificity, §12d CHIRPS REFUTED, §12e GPM IMERG → rainfall CLOSED, **§12f spring conditioning**.
+- [x] `workflows/fetch_gpm_imerg.py` + `workflows/spring_conditioning.py` (**new, uncommitted**).
+- [x] `README.md` — Step 6 (GEE auth) + forecasting run-sequence bullet (now incl. specificity + IMERG).
 - [x] **`SESSION_REVIEW.md`** (this file) — refreshed to current state for a clean cold start.
-- [ ] `error_history_log.md` — no new entry (no production bug; a self-caught duplicate-loop typo + a Git
-      Bash `/app` path-mangling gotcha were fixed inline — use container-RELATIVE paths in `docker compose run`).
+- [ ] `error_history_log.md` — no new entry, but THREE reusable gotchas surfaced (worth an entry if you keep
+      one): (1) **native `ee`+numpy crashes hard on Windows** (exit 127, gRPC/MKL DLL conflict) → run GEE+numpy
+      scripts in the `insar` container, not native; (2) **Git Bash mangles `/app/...`** paths in
+      `docker compose run` → use container-RELATIVE paths; (3) keying a dict by `date` objects then looking up
+      with ISO strings silently misses → key by `.isoformat()`.
 
-**Git state.** The first Session-10 batch was **committed by the user as `1c69fe7`** ("Add GEE CHIRPS
-fetch, regional Himalayan I-D curve, and a specificity-filter prototype" — `fetch_chirps.py`,
-`rainfall_specificity.py`, `rainfall_id_threshold.py`, `docker/Dockerfile`, `docker-compose.yml`,
-`docker/ee_credentials.placeholder`, `.env.template`, `README.md`, and the then-state RESULTS/Primer).
-**STILL UNCOMMITTED** (the CHIRPS-ran + verification work, user commits manually): `RESULTS_AND_KPIS.md`
-(§12 verification block + §12b ran + §12d refuted), `workflows/rainfall_id_threshold.py` (verification cites),
-`Research/Foundations - Physics and Maths Primer.md` (CF5/Q/limitation updated to the negative + verification).
-Git-ignored/local-only (expected, NOT committable): `SESSION_REVIEW.md`, `session_journey.md`,
-`milestone.md`, `CLAUDE.md`; **`.env`** (now holds the real `EE_PROJECT_ID=tutorial-project-472812` +
-`EE_CREDENTIALS` — verified `git check-ignore`); and all `data/` outputs (`data/rainfall/
-ramban_chirps_daily.csv`, the `*_era5`/`*_chirps` suffixed trigger + specificity reports/PNGs,
-`data/inventory/backtest_report.*` [restored to the Caine baseline]). Run `git status` / `git add -p` to
-review. ⚠️ The real `.env` + `~/.config/earthengine/credentials` must NEVER be committed (both ignored).
-**Host change (not in git):** `earthengine-api 1.7.29` pip-installed into `insar_qa_env`; GEE OAuth token
-written to `~/.config/earthengine/credentials`.
+**Git state (user commits manually, in parallel).** Committed so far: `1c69fe7` (CHIRPS fetch + regional
+curve + specificity prototype) and `cf1d485` (CHIRPS-refuted result + verification). **STILL UNCOMMITTED at
+session close:** `workflows/fetch_gpm_imerg.py` + `workflows/spring_conditioning.py` (new), plus IMERG +
+conditioning doc updates to the committed files `RESULTS_AND_KPIS.md` (§12e/§12f + header), `README.md` (IMERG
+bullet), `Research/Foundations - Physics and Maths Primer.md` (CF5 IMERG close + CF3 elevation update).
+Git-ignored/local (NOT committable): `SESSION_REVIEW.md`, `session_journey.md`, `milestone.md`, `CLAUDE.md`;
+**`.env`** (real `EE_PROJECT_ID=tutorial-project-472812` + `EE_CREDENTIALS`); all `data/` outputs
+(`ramban_chirps_daily.csv`, `imerg_*` + `spring_conditioning_*` reports/PNGs, cached `imerg_raw_*.csv`,
+suffixed trigger/specificity reports, `backtest_report.*` [restored to Caine baseline]). ⚠️ The real `.env` +
+`~/.config/earthengine/credentials` must NEVER be committed (both ignored). **Host (not in git):**
+`earthengine-api 1.7.29` in `insar_qa_env`; `insar` image rebuilt with earthengine-api; GEE token at
+`~/.config/earthengine/credentials`.
 
-**Recommended first action next session:** the gauge swap is CLOSED (refuted — §12d). The spring-trigger
-question now points away from grid rainfall, so pick one of: (1) **GPM IMERG (0.1°/30-min)** for sub-grid
-convective bursts — reuse `fetch_chirps.py` with a new GEE asset (auth is already done; runs natively);
-(2) lean into **chronic spring saturation** — per-elevation freeze-thaw + the FS hazard timeline (which
-already lights up in spring) rather than an acute trigger; (3) **GSI Bhukosh** inventory to (a) sanity-check
-the news-derived spring dates/coords and (b) get a scored spatial back-test. The `nwhimalaya` curve is now
-**verified** (coefficients + units cross-checked 2026-06-02), so it can be made the default whenever you're
-ready to re-baseline the `[MOCK]` KPIs. See §5.
+**Recommended first action next session:** rainfall is **ruled out** (§12d/§12e) and spring conditioning is
+characterized (§12f: priming, not a discrete trigger) — both spring leads now point **off rainfall/weather**.
+Pick one of: (1) **GSI Bhukosh inventory** for **verified
+dates/coords** (the news-derived 27 Apr/8 May may be imprecise — IMERG found a 20 Apr burst with *no* reported
+failure) + a scored spatial back-test; (2) optionally probe the **NHAI construction** angle (Digdol/Khooni
+Nallah tunnelling). Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7). The verified
+`nwhimalaya` curve can become the default whenever you re-baseline the `[MOCK]` KPIs. See §5.
