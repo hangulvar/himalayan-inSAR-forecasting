@@ -797,9 +797,18 @@ line alone flipped the spring back-test to 2/2 on unchanged data — confirming 
 substantially a *too-cautious-line* problem — while honestly exposing the over-triggering still to fix.
 We then built the selectivity filter (`rainfall_specificity.py`) and it gave a *decisive* answer: scoring
 each day by how far above the line it sits (E = rain ÷ threshold), the 26 Aug cloudburst is E≈7, but
-27 Apr is only E≈1.4 and **8 May is E≈0.67 — *below* the line**. So on the present (reanalysis) rain, *no*
-strictness setting is both quiet and catches both events; 8 May is simply unreachable. That isolates the
-rain *measurement* (Dial 2) as the binding constraint — the quantitative case for CHIRPS.
+27 Apr is only E≈1.4 and **8 May is E≈0.67 — *below* the line**. So on the reanalysis rain, *no* strictness
+setting is both quiet and catches both events — pointing the finger at Dial 2, the rain *measurement*.
+
+**So we tested Dial 2 — and got an instructive negative.** We finished the Earth Engine sign-in and pulled
+**CHIRPS** (gauge-blended) for the AOI. It turned out **drier** than ERA5-Land here (998 vs 1,350 mm), and
+on the event days it recorded *less* rain, not more (27 Apr **0.0 mm**, 8 May **4.2 mm**; event E even
+lower, 0.70 / 0.57). So **two independent ~5–9 km products agree there was little grid-scale acute rain on
+the documented spring dates** — the gauge hypothesis is *refuted*, not confirmed. The lesson for Dial 2:
+swapping one ~5 km product for another doesn't help if the triggering rain is *sub-grid* (a local cell
+smaller than the pixel) or if the spring failures simply weren't acute-rainfall-driven (snowmelt-soaked
+ground, construction, fuzzy dates). The honest redirection: finer/faster rain (GPM IMERG, 0.1°/30-min) or a
+chronic-saturation framing — not another daily gauge product. (Milestone 17.)
 
 ---
 
@@ -883,15 +892,18 @@ gauge product. A validation that finds its own gaps is doing its job; the rigoro
 awaits the official GSI Bhukosh inventory (~302 mapped Ramban slides).
 
 **Q: You found your trigger missed the real spring landslides — did you fix it?**
-A: Partly, and honestly. There were two suspects: the *threshold line* and the *rain
-measurement*. We swapped the conservative **global** Caine line (≈100 mm/day) for the
-**published NW-Himalaya line** (≈19 mm/day — a separate NH-44 study confirms ~14 mm/day
-triggers slides here). On the *same* rainfall, that alone flipped the spring back-test
-from 0/2 to 2/2 — so the line was a big part of it. **But** the regional line then flags
-112 of 214 days, which is sensitive, not selective — so "2/2" is partly automatic. The
-remaining fix is sharper **gauge rainfall (CHIRPS)** — built and waiting on a sign-in —
-to test the one acute 8 May cloudburst, plus a "how rare is this rain?" filter. I'd rather
-report the over-triggering than hide it.
+A: Partly, and the *way* it failed is the interesting part. Two suspects: the *threshold
+line* and the *rain measurement*. Fixing the line — swapping the conservative **global**
+Caine curve (≈100 mm/day) for the **published NW-Himalaya** one (≈19 mm/day; a separate
+NH-44 study confirms ~14 mm/day triggers slides here) — flipped the spring back-test 0/2 →
+2/2 on the same rainfall. But that line fires on 112 of 214 days (sensitive, not selective),
+so "2/2" is partly automatic. Then I tested the measurement: I pulled the **gauge product
+CHIRPS** — and it came back *drier* than our reanalysis on the exact event days (0 mm on
+27 Apr, 4 mm on 8 May). So **two independent ~5 km products agree there was barely any
+heavy rain at grid scale when those slopes failed** — which means the spring events probably
+weren't a "missed rainstorm" at all, but a sub-grid local cell, snowmelt-soaked ground, or
+construction. I'd rather report that clean negative than pretend a gauge swap fixed it; it
+redirects me to finer/faster rain (30-min IMERG) or a saturation model.
 
 **Q: Aren't your soil strength numbers just guesses?**
 A: Yes — they're literature values for Himalayan soil, not site measurements.
@@ -979,13 +991,15 @@ Being able to state weaknesses is what makes you credible.
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
   coverage and cross-checking is still ahead.
-- **Rainfall trigger — both dials still being calibrated (CF5):** the live rainfall (CF2) is ERA5-Land
-  (reanalysis, ~9 km), which *under*-estimates intense orographic bursts; the gauge product **CHIRPS**
-  (Milestone 17) is now plumbed-in via Google Earth Engine but **awaits a one-time sign-in**, so the
-  acute-burst test is pending. On the threshold dial we **switched from the conservative global Caine
-  curve to the published NW-Himalaya regional curve** — which flipped the spring back-test 0/2 → 2/2 on
-  unchanged data — but it then fires on **112/214 days** (sensitive, not selective), so a return-period /
-  antecedent filter is still needed. The real wetness IS coupled into the FS (Milestone 13).
+- **Rainfall trigger — threshold fixed; the spring *source* mystery is now narrowed (CF5):** on the
+  threshold dial we **switched the conservative global Caine curve for the published NW-Himalaya regional
+  curve** — which flipped the spring back-test 0/2 → 2/2 — but it fires on **112/214 days** (sensitive, not
+  selective), so a return-period/antecedent filter is still needed. On the measurement dial we **ran the
+  gauge product CHIRPS (Milestone 17) and it was *drier* than ERA5-Land** on the event dates (27 Apr 0.0 mm,
+  8 May 4.2 mm) — so two independent ~5–9 km products agree there was little grid-scale acute rain when the
+  slopes failed. That **rules grid rainfall out** as the spring-trigger fix and points to sub-grid
+  convection (GPM IMERG) or a chronic snowmelt-saturation framing. The real wetness IS coupled into the FS
+  (Milestone 13).
 - **Validation is first-pass (Milestone 14, refined 17):** the back-test shows the map flags the right
   corridor (8/9 documented NH-44 hotspots within ~2 km). The rainfall-trigger *timing* miss (0/2 on
   Caine; Apr–May events vs a 26 Aug pick) was **largely a threshold problem**: the regional curve (CF5)

@@ -16,16 +16,17 @@ regional curve flips the temporal back-test 0/2 → 2/2** (27 Apr Δ0; 8 May Δ5
 **substantially a threshold problem**, confirmed on unchanged data. **Loud caveat:** it fires **112/214
 days** (sensitive, not selective) → still needs CHIRPS precision for the *acute* 8 May burst + a
 percentile/antecedent filter. Default stays Caine; regional is opt-in **pending user citation confirm**.
-**(2) GEE CHIRPS fetch BUILT** (`workflows/fetch_chirps.py`, gauge-blended daily rain → same CSV schema;
-`earthengine-api` in the `insar` image; creds mounted via `EE_CREDENTIALS`) — **awaiting the user's
-one-time GEE OAuth** (`earthengine authenticate` + `EE_PROJECT_ID`), then `docker compose build insar`.
-**(3) Specificity-filter prototype** (`workflows/rainfall_specificity.py`): sweeps stringency k +
-antecedent dials, scored vs the 2 events. **Decisive finding** — on ERA5-Land **NO setting is both
-selective (<20% season) AND catches both**; **8 May has E=0.67 (below the regional line) → unreachable by
-any threshold there** → isolates the rain *measurement* as the last lever (the quantitative case for
-CHIRPS). **Next:** finish GEE auth → CHIRPS → re-run ID(nwhimalaya) + specificity (does CHIRPS lift 8 May's
-E?); per-elevation freeze-thaw; **GSI Bhukosh** scored back-test. KPIs in committed `RESULTS_AND_KPIS.md`
-§12/§12b/§12c (+ §10–§11). Detail: §2 / §5._
+**(2) GEE CHIRPS fetch — BUILT *and RAN*** (`workflows/fetch_chirps.py`; auth done 2026-06-02, project
+`tutorial-project-472812` in git-ignored `.env`; ran natively, no image rebuild needed). **The gauge
+hypothesis is REFUTED:** CHIRPS is *drier* than ERA5-Land here (998 vs 1,350 mm), and on the event days
+**27 Apr 0.0 mm / 8 May 4.2 mm** (vs ERA5 0.1 / 9.3) — event rarity E even *lower* (0.70 / 0.57). **Two
+independent ~5–9 km products agree there was little grid-scale acute rain on the documented spring dates**
+→ the Apr–May miss is NOT a wrong-rainfall-product problem. **(3) Specificity-filter prototype**
+(`rainfall_specificity.py`): sweeps stringency k + antecedent dials; on both ERA5-Land and CHIRPS **no
+selective (<20% season) setting catches both events** (the 2/2 back-test is incidental nearby-day firing).
+**Next:** the spring trigger points away from grid rainfall → try **GPM IMERG (0.1°/30-min)** for sub-grid
+convection; treat spring as chronic snowmelt/antecedent saturation; **GSI Bhukosh** date/coord check. KPIs
+in committed `RESULTS_AND_KPIS.md` §12/§12b/§12c/**§12d** (+ §10–§11). Detail: §2 / §5._
 
 ---
 
@@ -338,18 +339,17 @@ plausible, **trigger timing not yet validated**. KPIs → `RESULTS_AND_KPIS.md` 
   freeze-thaw days** (AOI-mean temp never < 0 °C), back-test **still 0/2 temporal**. Diagnosis
   sharpened: the Apr–May miss is **ERA5-Land orographic rain under-count**, not missing snowmelt.
 
-**Recommended next (Session 10 built the regional curve + CHIRPS pipe; finish + harden it):**
-1. **★ Finish the gauge-rainfall swap (Area 7 #3) — MOSTLY BUILT (Session 10).** The regional I–D curve
-   is done and already flips the back-test 0/2 → 2/2 on ERA5-Land (`--threshold nwhimalaya`). REMAINING:
-   (a) **user completes the GEE OAuth** (`earthengine authenticate` + `EE_PROJECT_ID` in `.env` +
-   `docker compose build insar`), then run `fetch_chirps.py --check` → full season →
-   `rainfall_id_threshold.py --csv data/rainfall/ramban_chirps_daily.csv --threshold nwhimalaya` →
-   `backtest_inventory.py` + `rainfall_specificity.py --csv ramban_chirps_daily.csv` — **the open
-   question: does CHIRPS resolve the acute 8 May burst** ERA5-Land logged at 9.3 mm? (b) ✅ **DONE — the
-   specificity filter** (`rainfall_specificity.py`) is built; it proved that on ERA5-Land *no* setting is
-   both selective and catches both events (8 May E=0.67 is unreachable) — re-run on CHIRPS to see if gauge
-   rain opens a selective window. (c) **Confirm the `nwhimalaya` citation** so it can become the canonical
-   KPI / default. *Highest-value next push.*
+**Recommended next (Session 10 ran the full gauge swap — it's CLOSED as a clean negative):**
+1. ✅ **DONE — the gauge-rainfall swap (Area 7 #3) RAN and is REFUTED.** Regional I–D curve done
+   (`--threshold nwhimalaya`); CHIRPS fetched + screened + back-tested + specificity-analysed. Finding
+   (§12d): **CHIRPS is drier than ERA5-Land on the spring dates** (27 Apr 0.0 mm, 8 May 4.2 mm) — two
+   independent ~5–9 km products agree there was little grid-scale acute rain → the Apr–May miss is **not** a
+   rainfall-product problem. The spring-trigger search now points AWAY from grid rainfall:
+   (a) **GPM IMERG (0.1°, 30-min)** for sub-grid convective bursts — reuse the `fetch_chirps.py` pattern with
+   a new GEE asset; (b) treat spring as **chronic snowmelt/antecedent saturation** (per-elevation freeze-thaw
+   + the FS timeline already lights up in spring) rather than an acute trigger; (c) **sanity-check the
+   inventory dates/coords** (news-derived) — ideally the **GSI Bhukosh** inventory. (d) Still open: confirm
+   the `nwhimalaya` citation to make the regional curve canonical/default (user deferred — no time).
 2. **Per-elevation freeze-thaw** — the AOI-mean masks high-slope freezing; needs per-cell ERA5-Land
    temperature + DEM elevation bands (the current freeze-thaw flag returns 0 by construction).
 3. ✅ **DONE (Session 9 cont.) — V_slope wired through the whole pipeline** as opt-in `--use-vslope`
@@ -476,12 +476,12 @@ Documentation ritual for 2026-06-02 (Session 10) — **all done**:
       diagnosis) added (plain language).
 - [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (regional vs global trigger line; gauge
       vs reanalysis rain), 1 interview Q, 2 limitation bullets refreshed.
-- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat) + §12b CHIRPS
-      fetch (built, awaiting auth) + §12c specificity-filter prototype (8 May E=0.67 → CHIRPS needed).
+- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat), §12b/§12c CHIRPS
+      plumbing + specificity prototype, **§12d CHIRPS RAN → gauge hypothesis REFUTED** (drier than ERA5-Land).
 - [x] `README.md` — Step 6 (GEE/CHIRPS auth) + a forecasting run-sequence bullet.
 - [x] **`SESSION_REVIEW.md`** (this file) — refreshed to current state for a clean cold start.
-- [ ] `error_history_log.md` — no new entry (no production bug; a self-caught duplicate-loop typo was
-      fixed immediately during editing).
+- [ ] `error_history_log.md` — no new entry (no production bug; a self-caught duplicate-loop typo + a Git
+      Bash `/app` path-mangling gotcha were fixed inline — use container-RELATIVE paths in `docker compose run`).
 
 **Git state at session close: UNCOMMITTED work present (user commits manually).** New/changed
 **committable** files this session: `workflows/fetch_chirps.py` (new — GEE CHIRPS fetch),
@@ -491,15 +491,19 @@ Documentation ritual for 2026-06-02 (Session 10) — **all done**:
 `docker-compose.yml` (EE creds mount + `MPLCONFIGDIR` on `insar`), `.env.template` (EE_PROJECT_ID note +
 `EE_CREDENTIALS`), `README.md` (Step 6 + forecasting bullet), `RESULTS_AND_KPIS.md` (§12/§12b/§12c),
 `Research/Foundations - Physics and Maths Primer.md` (CF5 + Q + limitations).
-Git-ignored/local-only (expected): `SESSION_REVIEW.md`, `session_journey.md`, `milestone.md`, `CLAUDE.md`,
-and `data/` outputs (suffixed `data/rainfall/id_threshold_report_{caine,nwhimalaya}_era5.*`,
-`data/rainfall/specificity_report.*` + `specificity.png`, `data/inventory/backtest_report.*` from the demo
-runs). Run `git status` / `git add -p` to review. ⚠️ The real `.env` + `~/.config/earthengine/credentials`
-must NEVER be committed (ignored).
+Git-ignored/local-only (expected, NOT committable): `SESSION_REVIEW.md`, `session_journey.md`,
+`milestone.md`, `CLAUDE.md`; **`.env`** (now holds the real `EE_PROJECT_ID=tutorial-project-472812` +
+`EE_CREDENTIALS` — verified `git check-ignore`); and all `data/` outputs (`data/rainfall/
+ramban_chirps_daily.csv`, the `*_era5`/`*_chirps` suffixed trigger + specificity reports/PNGs,
+`data/inventory/backtest_report.*` [restored to the Caine baseline]). Run `git status` / `git add -p` to
+review. ⚠️ The real `.env` + `~/.config/earthengine/credentials` must NEVER be committed (both ignored).
+**Host change (not in git):** `earthengine-api 1.7.29` pip-installed into `insar_qa_env`; GEE OAuth token
+written to `~/.config/earthengine/credentials`.
 
-**Recommended first action next session:** complete the **GEE OAuth** (`earthengine authenticate`,
-set `EE_PROJECT_ID` + `EE_CREDENTIALS` in `.env`, `docker compose build insar`), then run the CHIRPS
-chain (`fetch_chirps.py --check` → full → `rainfall_id_threshold.py --csv ramban_chirps_daily.csv
---threshold nwhimalaya` → `backtest_inventory.py`) to answer **does CHIRPS catch the acute 8 May burst**.
-Then add a specificity filter (percentile/return-period or Shah et al. antecedent) to the 112/214-day
-over-trigger, and confirm the `nwhimalaya` citation to make it canonical. See §5.
+**Recommended first action next session:** the gauge swap is CLOSED (refuted — §12d). The spring-trigger
+question now points away from grid rainfall, so pick one of: (1) **GPM IMERG (0.1°/30-min)** for sub-grid
+convective bursts — reuse `fetch_chirps.py` with a new GEE asset (auth is already done; runs natively);
+(2) lean into **chronic spring saturation** — per-elevation freeze-thaw + the FS hazard timeline (which
+already lights up in spring) rather than an acute trigger; (3) **GSI Bhukosh** inventory to (a) sanity-check
+the news-derived spring dates/coords and (b) get a scored spatial back-test. Also still open: confirm the
+`nwhimalaya` citation to make the regional curve canonical/default (user deferred). See §5.

@@ -16,9 +16,9 @@ checkout, a machine wipe, and (critically) the **removal of the mock scenarios**
 the old one *(superseded)* — do not delete it.
 
 _Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`) — added §12 regional Himalayan I–D
-curve (the temporal-miss fix) + §12b GEE CHIRPS gauge-rainfall plumbing + §12c specificity-filter
-prototype (proves 8 May can't trigger on ERA5-Land → CHIRPS needed). Prior: §10 slope-parallel
-velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
+curve (the temporal-miss fix), §12b/§12c CHIRPS plumbing + specificity prototype, and **§12d — CHIRPS
+RAN and the gauge hypothesis is REFUTED** (CHIRPS is drier than ERA5-Land on the spring event dates).
+Prior: §10 slope-parallel velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
 
 ---
 
@@ -310,9 +310,10 @@ satellite+gauge) AOI-mean per day via Google Earth Engine → `data/rainfall/ram
 in the **same schema** as the ERA5-Land CSV (snowmelt/temperature merged from it), so
 `rainfall_id_threshold.py` + `backtest_inventory.py` consume it unchanged. `earthengine-api` added to
 the `insar` image (`docker/Dockerfile`); GEE OAuth credentials mounted via `EE_CREDENTIALS` in `.env`
-(placeholder fallback). **Not yet run** — GEE auth is an interactive browser OAuth the user must complete
-once (`earthengine authenticate` + `EE_PROJECT_ID`). Non-GEE code paths (AOI geometry, ERA5 merge,
-arg-parse) smoke-tested OK. *Pending KPI:* does CHIRPS resolve the 8 May burst that ERA5-Land missed?
+(placeholder fallback). **RAN 2026-06-02** (GEE auth completed; native fetch via `insar_qa_env`, project
+`tutorial-project-472812`) — **see §12d for the result** (the gauge hypothesis was refuted). Auth token at
+`~/.config/earthengine/credentials`, project id in git-ignored `.env`. The image rebuild was not needed —
+`fetch_chirps.py` does no heavy linalg, so it ran natively; the container path remains available.
 
 ## 12c. Specificity-filter prototype — the regional trigger's sensitivity/selectivity trade-off  `[REAL / MEASURED]`
 
@@ -344,6 +345,45 @@ threshold on ERA5-Land** — its reanalysis rain is simply too small (9.3 mm). T
 **CHIRPS** gauge swap: gauge rain that records the real spring bursts would raise their E and open a
 selective-and-sensitive window. The prototype is ready to re-run on `ramban_chirps_daily.csv`.
 Outputs: `data/rainfall/specificity_report.{json,md}`, `specificity.png`.
+
+## 12d. CHIRPS gauge rainfall — RAN, and the hypothesis is REFUTED  `[REAL / MEASURED]`
+
+Source: `fetch_chirps.py` (Earth Engine, project `tutorial-project-472812`, auth done 2026-06-02) →
+`ramban_chirps_daily.csv` → `rainfall_id_threshold.py`/`rainfall_specificity.py`/`backtest_inventory.py`,
+all `--..._chirps`. The hypothesis (§9/§11/§12b): *ERA5-Land under-counts orographic bursts, so a
+gauge-blended product (CHIRPS) will record the spring rain and catch the 27 Apr / 8 May events.*
+
+**CHIRPS is DRIER than ERA5-Land here, not wetter:**
+
+| | CHIRPS | ERA5-Land |
+|---|---|---|
+| season total (214 d) | **998 mm** | 1,350 mm (0.74×) |
+| 27 Apr (event day) | **0.0 mm** | 0.1 mm |
+| 8 May (event day) | **4.2 mm** | 9.3 mm |
+| 3-day sum → 8 May | **10.5 mm** | 16.6 mm |
+| 26 Aug (monsoon peak) | 91.5 mm | 133.5 mm |
+| regional-curve trigger days | 81 | 112 |
+
+**Event rarity E (rain ÷ regional threshold; E<1 = event day itself below the line):**
+27 Apr **E=0.70** (CHIRPS) vs 1.41 (ERA5); 8 May **E=0.57** vs 0.67; peak 26 Aug E=4.76. On CHIRPS *both*
+spring events sit **further below** the regional line than on ERA5-Land. Specificity headline unchanged:
+**no selective (<20 % season) setting catches both** (CHIRPS k=1.5 → 0/2, worse than ERA5's 1/2). The
+back-test reads 2/2 only because the over-sensitive raw trigger fires on *nearby* days (27 Apr Δ4, 8 May
+Δ7) — the event days themselves never trigger.
+
+**Finding (the decisive honest negative):** the gauge swap is **REFUTED by the data** — CHIRPS does not
+resolve the spring bursts; it records *less* acute rain than ERA5-Land on the exact event dates. **Two
+independent ~5–9 km products (reanalysis + satellite-gauge) agree there was little grid-scale acute rain
+on the documented spring 2025 NH-44 failure dates.** So the Apr–May miss is **not** a "wrong rainfall
+product" problem. Likely causes, redirected: (a) **sub-grid convective cells** below ~5 km (would need
+GPM IMERG 0.1°/30-min or station data); (b) **chronic snowmelt + antecedent saturation / freeze-thaw**
+(non-acute — consistent with §11's FS timeline lighting up in spring, and Milestone 16); (c) **non-
+meteorological triggers** — Digdol/Khooni Nallah are active NHAI tunnel/road-construction zones; (d)
+approximate news-derived event dates/coords. This *confirms and strengthens* §11: snowmelt's role is
+chronic spring saturation, not an acute trigger — now corroborated from the rainfall side. The regional
+I-D curve (§12) remains the right threshold fix; the rainfall *source* is no longer the suspect for spring.
+Outputs (suffixed): `*_nwhimalaya_chirps.*`, `specificity_report_chirps.*`. *Note: EECU-frugal — one
+batched `reduceRegion` per day over the ~0.2°×0.2° AOI; no DEM pulled (bundled DEM used).*
 
 ---
 

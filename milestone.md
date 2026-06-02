@@ -607,19 +607,32 @@ lets us dial up the strictness. The result, in plain terms: as we make it strict
 drops fast — but **the two real spring slides drop out too**, because in our current weather record they're
 barely on the line (27 Apr) or **even below it (8 May)**. The big 26 Aug cloudburst, by contrast, towers
 **7×** over the line. So with the weather data we have, you simply **cannot be both quiet and catch the
-spring events** — the 8 May rain is missing from the record, so *no* setting can flag it. That nails the
-last open question: the fix isn't a cleverer rule, it's **better rain data (CHIRPS)** — and the filter is
-already built to re-run the instant that data lands.
+spring events**. The obvious next suspect was the rain data itself — so we **finished the Google sign-in
+and actually pulled CHIRPS**.
 
-**Why this matters:** we've confirmed the diagnosis with a number you can hold onto (0/2 → 2/2), turned
-the trigger line into a documented, citeable, swappable choice, and laid the last pipe — gauge rainfall —
-ready to run the moment the Google Earth Engine sign-in is done. The science stays honest: we're reporting
-both the win *and* the over-triggering it exposed.
+**And here's the honest twist — CHIRPS made the case *worse*, which is itself the finding.** The
+gauge-blended product turned out to be **drier** than our old weather record over this area, and on the two
+event days it recorded *less* rain, not more: **0 mm on 27 April and ~4 mm on 8 May**. So **two completely
+independent rainfall products now agree there was barely any heavy rain at the map-grid scale on the days
+those slopes actually failed.** That flips the whole story: the spring disasters probably **weren't caused
+by a big rainstorm our data missed** — more likely a *very local* downpour smaller than the ~5–9 km map
+squares, or the slow build-up of **snowmelt-soaked ground** (which our danger map already shows lighting up
+in spring), or even the heavy **road-and-tunnel construction** at those exact spots, or simply fuzzy dates
+from news reports. We chased the leading suspect to ground and ruled it out — a clean, honest negative that
+**redirects** the next search (finer/faster rain like 30-minute satellite data, or treating spring as a
+slow-saturation problem) instead of chasing the wrong fix.
+
+**Why this matters:** we tuned the trigger line to these mountains (a documented, citeable, swappable
+choice), built and ran the gauge-rainfall pipe end-to-end, and used it to **test — and disprove — the
+leading explanation** for the missed spring slides. That's three solid outcomes: a better trigger line, a
+reusable rainfall pipe (it'll take the next data source unchanged), and a *ruled-out* suspect. The science
+stays honest: we report the win (the line), the catch (over-triggering), and the negative (gauge rain
+didn't help) — and we now know to look elsewhere for the spring trigger.
 
 **Plain-language result:** the warning now has a **Himalaya-tuned trigger line** instead of a global
-hand-me-down, and a **gauge-rain pipe** waiting on a one-time sign-in. The tuned line already explains the
-missed spring slides — while honestly revealing it now needs a "how unusual is this rain?" filter to be
-trustworthy.
+hand-me-down, and we **plugged in proper rain-gauge data and checked** — only to find it's *drier* here, so
+the missed spring slides weren't a "missed rainstorm" after all. A clean, honest dead-end that points the
+search toward finer/faster rain data or treating spring as a slow snowmelt-soaking problem.
 
 ---
 
@@ -634,11 +647,12 @@ thresholds replacing the mock weather (12)**, **real rain driving a time-resolve
 and a first **reality-check back-test against documented landslides (14)**. What remains is mostly
 *deepening trust* and *going live*:
 
-- **Fix the trigger timing the back-test exposed.** *Done so far (Milestone 17):* April start +
-  Himalaya-specific trigger line → spring events now caught (0/2 → 2/2). *Still to do:* finish the
-  Google Earth Engine sign-in and run the **gauge rainfall (CHIRPS)** to test the acute 8 May
-  cloudburst, add a "how rare is this rain?" filter so the trigger stops over-firing, and bring in the
-  official GSI inventory (~302 mapped slides) for a properly-scored spatial test.
+- **Fix the trigger timing the back-test exposed.** *Done (Milestone 17):* April start + a
+  Himalaya-specific trigger line, AND we ran the **gauge rainfall (CHIRPS)** — which turned out *drier*
+  here, ruling out "missed rainstorm" as the cause of the spring slides. *Still to do:* try **finer/faster
+  rain** (30-minute satellite data, GPM IMERG) for very local downpours; lean into the **snowmelt-soaking**
+  explanation (which the danger map already supports in spring); and bring in the official **GSI inventory**
+  (~302 mapped slides) to double-check the news-reported dates/places and get a properly-scored test.
 - **Better descending data for a true 3-D motion split.** Today's two descending tracks
   were rejected as too noisy (Milestone 10); the up/down-vs-sideways reconstruction waits
   on a longer unbroken series or point-like (persistent-scatterer) reflectors.
