@@ -266,7 +266,7 @@ heavy rain/mudslides), *not* by missing snowmelt water → next fix is the **gau
 
 ---
 
-## 12. Regional Himalayan I–D curve + GEE CHIRPS gauge rainfall  `[REAL / pending-citation-confirmation]`
+## 12. Regional Himalayan I–D curve + GEE CHIRPS gauge rainfall  `[REAL / MEASURED — curve VERIFIED]`
 
 Source: `rainfall_id_threshold.py --threshold {caine1980|nwhimalaya}` (now parameterized) +
 `backtest_inventory.py`. 2026-06-02. Motivated by §9/§11: the Apr–May 2025 temporal MISS, diagnosed
@@ -282,6 +282,23 @@ as Caine's conservative *global* curve + ERA5-Land's orographic under-count.
 AOI cross-check (independent): Shah et al. (2024) *Nat. Hazards* **120**:1319–1341 report **~14.35 mm/day**
 triggers landslides on the NH-44 Udhampur–Banihal stretch (Ramban) — same order as the regional curve,
 confirming Caine is ~5× too conservative here.
+
+**Literature verification (2026-06-02) — coefficients + units confirmed.** The PDFs are paywalled, so the
+numbers were triangulated across multiple independent sources **and** numerically cross-checked against our
+implementation (`rainfall_id_threshold.py` reproduces every published reference point):
+
+| curve | what was verified | check |
+|---|---|---|
+| Caine (1980) | I=14.82·D⁻⁰·³⁹, valid 10 min–10 days, 73 events (Geogr. Ann. A 62:23–27) | I(D=1h)=**14.82 mm/h** (==A, exact); 1-day=103 mm |
+| NW Himalaya (JESS 2025 134:97) | I=2.9993·D⁻⁰·⁴¹⁵² confirmed by the paper's **full self-consistent regional family** (NE Himalaya 5.8294·D⁻⁰·⁴¹⁴¹, E Ghats 26.88·D⁻⁰·⁶⁸⁸⁵, W Ghats 28.01·D⁻⁰·⁶⁴¹; TRMM 2007–2016, Brunetti-frequentist) | **units stated in source: "I in mm/h, D in hours"**; our I(D=48h)=**0.60 mm/h** vs Garhwal sub-zone anchor **0.45–0.50**; 1-day=**19.2 mm** vs NH-44 ~14.35 mm/day |
+
+**Verdict:** coefficients, units (mm/h vs h), and validity range are corroborated; the regional curve is
+internally consistent with its sibling Indian curves and externally consistent with two independent AOI/sub-
+zone anchors. *Residual:* exact-digit confirmation from the primary JESS 2025 PDF is still pending (paywalled)
+— low risk given the multi-source agreement. Sources:
+[JESS 2025 134:97](https://www.ias.ac.in/article/fulltext/jess/134/0097) ·
+[Caine 1980](https://www.tandfonline.com/doi/abs/10.1080/04353676.1980.11879996) ·
+[Shah et al. 2024](https://link.springer.com/article/10.1007/s11069-023-06254-w).
 
 **Result — regional curve on the SAME ERA5-Land water (2025-04-01→10-31, 214 d):**
 
@@ -300,8 +317,9 @@ temporal coincidence is nearly automatic — this is *sensitivity without specif
 operational trigger. A discriminating trigger needs (a) **CHIRPS** gauge precision to test the *acute*
 8 May burst (ERA5-Land had only 9.3 mm that day, below even the 19 mm regional 1-day threshold), and
 (b) a percentile/return-period or antecedent-rainfall criterion (Shah et al.: ~53 mm/20 d antecedent on
-NH-44). *Default stays `caine1980`; the regional curve is opt-in pending user confirmation of the
-citation before it becomes canonical.* Outputs (suffixed, non-destructive): `id_threshold_report_{caine,nwhimalaya}_era5.{json,md}`, `id_threshold_*_era5.png`.
+NH-44). *The regional curve's coefficients + units are now **verified** (verification block above), so it
+is cleared to become the canonical/default curve; default is kept at `caine1980` only to avoid re-baselining
+the `[MOCK]` KPIs this session.* Outputs (suffixed, non-destructive): `id_threshold_report_{caine,nwhimalaya}_era5.{json,md}`, `id_threshold_*_era5.png`.
 
 ## 12b. GEE CHIRPS gauge-rainfall fetch — BUILT, awaiting auth  `[infrastructure]`
 

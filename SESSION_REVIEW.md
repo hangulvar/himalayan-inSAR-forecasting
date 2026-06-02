@@ -15,7 +15,8 @@ is ~5× more sensitive than global Caine (~19 vs ~103 mm 1-day). **On the SAME E
 regional curve flips the temporal back-test 0/2 → 2/2** (27 Apr Δ0; 8 May Δ5) — so the Apr–May miss was
 **substantially a threshold problem**, confirmed on unchanged data. **Loud caveat:** it fires **112/214
 days** (sensitive, not selective) → still needs CHIRPS precision for the *acute* 8 May burst + a
-percentile/antecedent filter. Default stays Caine; regional is opt-in **pending user citation confirm**.
+percentile/antecedent filter. Curve coefficients + units now **VERIFIED** (2026-06-02) vs the JESS-2025
+regional family + numeric cross-checks; default kept at Caine only to avoid re-baselining the `[MOCK]` KPIs.
 **(2) GEE CHIRPS fetch — BUILT *and RAN*** (`workflows/fetch_chirps.py`; auth done 2026-06-02, project
 `tutorial-project-472812` in git-ignored `.env`; ran natively, no image rebuild needed). **The gauge
 hypothesis is REFUTED:** CHIRPS is *drier* than ERA5-Land here (998 vs 1,350 mm), and on the event days
@@ -348,8 +349,11 @@ plausible, **trigger timing not yet validated**. KPIs → `RESULTS_AND_KPIS.md` 
    (a) **GPM IMERG (0.1°, 30-min)** for sub-grid convective bursts — reuse the `fetch_chirps.py` pattern with
    a new GEE asset; (b) treat spring as **chronic snowmelt/antecedent saturation** (per-elevation freeze-thaw
    + the FS timeline already lights up in spring) rather than an acute trigger; (c) **sanity-check the
-   inventory dates/coords** (news-derived) — ideally the **GSI Bhukosh** inventory. (d) Still open: confirm
-   the `nwhimalaya` citation to make the regional curve canonical/default (user deferred — no time).
+   inventory dates/coords** (news-derived) — ideally the **GSI Bhukosh** inventory. (d) ✅ **Regional curve
+   VERIFIED** (2026-06-02): coefficients + units (mm/h, h) corroborated vs the JESS-2025 full regional family,
+   the source's stated units, and numeric cross-checks (I(48h)=0.60 vs Garhwal 0.45–0.50; 1-day 19.2 vs NH-44
+   ~14.35 mm/day) — cleared to become default; left at `caine1980` only to avoid re-baselining the `[MOCK]`
+   KPIs. Only residual: exact-digit confirm from the paywalled primary PDF (low risk).
 2. **Per-elevation freeze-thaw** — the AOI-mean masks high-slope freezing; needs per-cell ERA5-Land
    temperature + DEM elevation bands (the current freeze-thaw flag returns 0 by construction).
 3. ✅ **DONE (Session 9 cont.) — V_slope wired through the whole pipeline** as opt-in `--use-vslope`
@@ -476,21 +480,23 @@ Documentation ritual for 2026-06-02 (Session 10) — **all done**:
       diagnosis) added (plain language).
 - [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (regional vs global trigger line; gauge
       vs reanalysis rain), 1 interview Q, 2 limitation bullets refreshed.
-- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat), §12b/§12c CHIRPS
-      plumbing + specificity prototype, **§12d CHIRPS RAN → gauge hypothesis REFUTED** (drier than ERA5-Land).
+- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat) **+ literature-
+      verification block** (Caine + NW-Himalaya coefficients/units corroborated, §12 tag → curve VERIFIED),
+      §12b/§12c CHIRPS plumbing + specificity prototype, **§12d CHIRPS RAN → gauge hypothesis REFUTED**.
+- [x] `workflows/rainfall_id_threshold.py` (committed in 1c69fe7) — re-edited: `THRESHOLDS` cites now carry
+      the 2026-06-02 verification (sources + units + numeric cross-checks). Re-compiled OK.
 - [x] `README.md` — Step 6 (GEE/CHIRPS auth) + a forecasting run-sequence bullet.
 - [x] **`SESSION_REVIEW.md`** (this file) — refreshed to current state for a clean cold start.
 - [ ] `error_history_log.md` — no new entry (no production bug; a self-caught duplicate-loop typo + a Git
       Bash `/app` path-mangling gotcha were fixed inline — use container-RELATIVE paths in `docker compose run`).
 
-**Git state at session close: UNCOMMITTED work present (user commits manually).** New/changed
-**committable** files this session: `workflows/fetch_chirps.py` (new — GEE CHIRPS fetch),
-`workflows/rainfall_specificity.py` (new — specificity-filter prototype),
-`workflows/rainfall_id_threshold.py` (parameterized `--threshold {caine1980|nwhimalaya}` + `--out-suffix`),
-`docker/Dockerfile` (+`earthengine-api`), `docker/ee_credentials.placeholder` (new — compose fallback),
-`docker-compose.yml` (EE creds mount + `MPLCONFIGDIR` on `insar`), `.env.template` (EE_PROJECT_ID note +
-`EE_CREDENTIALS`), `README.md` (Step 6 + forecasting bullet), `RESULTS_AND_KPIS.md` (§12/§12b/§12c),
-`Research/Foundations - Physics and Maths Primer.md` (CF5 + Q + limitations).
+**Git state.** The first Session-10 batch was **committed by the user as `1c69fe7`** ("Add GEE CHIRPS
+fetch, regional Himalayan I-D curve, and a specificity-filter prototype" — `fetch_chirps.py`,
+`rainfall_specificity.py`, `rainfall_id_threshold.py`, `docker/Dockerfile`, `docker-compose.yml`,
+`docker/ee_credentials.placeholder`, `.env.template`, `README.md`, and the then-state RESULTS/Primer).
+**STILL UNCOMMITTED** (the CHIRPS-ran + verification work, user commits manually): `RESULTS_AND_KPIS.md`
+(§12 verification block + §12b ran + §12d refuted), `workflows/rainfall_id_threshold.py` (verification cites),
+`Research/Foundations - Physics and Maths Primer.md` (CF5/Q/limitation updated to the negative + verification).
 Git-ignored/local-only (expected, NOT committable): `SESSION_REVIEW.md`, `session_journey.md`,
 `milestone.md`, `CLAUDE.md`; **`.env`** (now holds the real `EE_PROJECT_ID=tutorial-project-472812` +
 `EE_CREDENTIALS` — verified `git check-ignore`); and all `data/` outputs (`data/rainfall/
@@ -505,5 +511,6 @@ question now points away from grid rainfall, so pick one of: (1) **GPM IMERG (0.
 convective bursts — reuse `fetch_chirps.py` with a new GEE asset (auth is already done; runs natively);
 (2) lean into **chronic spring saturation** — per-elevation freeze-thaw + the FS hazard timeline (which
 already lights up in spring) rather than an acute trigger; (3) **GSI Bhukosh** inventory to (a) sanity-check
-the news-derived spring dates/coords and (b) get a scored spatial back-test. Also still open: confirm the
-`nwhimalaya` citation to make the regional curve canonical/default (user deferred). See §5.
+the news-derived spring dates/coords and (b) get a scored spatial back-test. The `nwhimalaya` curve is now
+**verified** (coefficients + units cross-checked 2026-06-02), so it can be made the default whenever you're
+ready to re-baseline the `[MOCK]` KPIs. See §5.

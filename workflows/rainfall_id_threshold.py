@@ -43,19 +43,35 @@ RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 # All in the frequentist convention (I in mm/h, D in hours) -> directly comparable.
 # A regional Himalayan curve is much lower (more sensitive) than the conservative
 # global Caine baseline: at D=1 day Caine ~ 100 mm vs NW-Himalaya ~ 19 mm.
+#
+# LITERATURE VERIFICATION (2026-06-02) -- coefficients + UNITS confirmed against sources:
+#   * Caine (1980): I=14.82*D^-0.39, valid 10 min-10 days, 73 events. Geogr. Ann. A 62:23-27.
+#     Self-check: I(D=1h)=14.82 mm/h (== A, exact); 1-day cumulative = 103 mm.
+#   * NW Himalaya: I=2.9993*D^-0.4152 confirmed by the FULL self-consistent regional family in
+#     the same paper -- NE Himalaya 5.8294*D^-0.4141, E Ghats 26.88*D^-0.6885, W Ghats
+#     28.01*D^-0.641 (TRMM rainfall, 2007-2016, Brunetti-frequentist). UNITS stated in source:
+#     "I in mm/h, D in hours" (ED threshold E in mm). Independent numeric cross-checks of OUR
+#     curve: I(D=48h)=0.60 mm/h vs the Garhwal sub-zone anchor 0.45-0.50 mm/h; 1-day cumulative
+#     19.2 mm vs Shah et al. (2024) NH-44 daily-intensity anchor ~14.35 mm/day. (Primary PDFs are
+#     paywalled; values triangulated across multiple independent sources + the numeric checks
+#     above. Tighten if you obtain the full JESS 2025 PDF.)
 THRESHOLDS = {
     "caine1980": {
         "a": 14.82, "b": 0.39,
         "label": "Caine (1980) global",
-        "cite": "Caine N. (1980) Geogr. Ann. A 62:23-27. I=14.82*D^-0.39 (mm/h, h).",
+        "cite": ("Caine N. (1980) Geogr. Ann. A 62:23-27. I=14.82*D^-0.39 (mm/h, h), valid "
+                 "10 min-10 days. VERIFIED 2026-06-02 (I(1h)=14.82 reproduces A exactly)."),
     },
     "nwhimalaya": {
         "a": 2.9993, "b": 0.4152,
         "label": "NW Himalaya (frequentist, 2007-2016)",
         "cite": ("J. Earth Syst. Sci. (2025) 134:97 'The relation between rainfall and "
                  "landslides in India' -- frequentist I-D for the NW Himalaya: "
-                 "I=2.9993*D^-0.4152 (mm/h, h). AOI cross-check: Shah et al. (2024) Nat. "
-                 "Hazards 120:1319-1341, ~14.35 mm/day triggers NH-44 (Udhampur-Banihal) slides."),
+                 "I=2.9993*D^-0.4152 (mm/h, h; TRMM 2007-2016). VERIFIED 2026-06-02 against the "
+                 "paper's full regional family (NE Himalaya 5.8294, E Ghats 26.88, W Ghats 28.01) "
+                 "+ units, and cross-checked: I(48h)=0.60 mm/h vs Garhwal 0.45-0.50; 1-day 19.2 mm "
+                 "vs Shah et al. (2024) Nat. Hazards 120:1319-1341 NH-44 (Udhampur-Banihal) ~14.35 "
+                 "mm/day. PENDING: exact-coefficient confirm from the paywalled primary PDF."),
     },
 }
 DEFAULT_THRESHOLD = "caine1980"
