@@ -32,10 +32,11 @@ RUN micromamba install -y -n base -f /tmp/environment.docker.yml \
 # Activate base for the remaining build steps, so `pip` below is base's pip.
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
-# ASF cloud APIs (Phase 1 submit/download). Pinned here rather than in the conda
-# spec to keep pip deps explicit and avoid env-file pip-section ambiguity under
-# micromamba.
-RUN pip install --no-cache-dir hyp3_sdk==7.7.6 asf_search==12.2.2
+# Cloud-API Python clients (Phase 1 ASF submit/download + GEE for fetch_chirps.py).
+# Pinned here rather than in the conda spec to keep pip deps explicit and avoid
+# env-file pip-section ambiguity under micromamba. earthengine-api matches the
+# spec in requirements.txt; it is a thin REST client (no heavy native deps).
+RUN pip install --no-cache-dir hyp3_sdk==7.7.6 asf_search==12.2.2 "earthengine-api>=0.1.300"
 
 WORKDIR /app
 

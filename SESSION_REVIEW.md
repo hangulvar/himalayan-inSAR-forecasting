@@ -5,22 +5,27 @@ dashboard, **overwritten at the end of each working session** to always reflect
 the *current* state — not a historical log. (For history, see
 `session_journey.md`.)
 
-_Last updated: 2026-06-01 (Session 9, branch `mvp-expansion`). **Current state:** the full MVP
+_Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`). **Current state:** the full MVP
 (radar → audited data → SBAS velocity → physics hazard → explainable rainfall-driven warning,
-plus a 3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 9** did the two
-★★★ physics borrows (Area 7 #1–2): **(1) V_slope — slope-parallel velocity** (`slope_velocity.py`):
-projects LOS onto downslope, quantifying the ASC single-look **blind spot = 24–42%** of valid ground
-and **amplifying creep ×1.4–1.6**; outputs `*_v_slope.tif` + `*_los_sensitivity.tif` per ASC stack.
-**(2) Snowmelt + freeze-thaw drivers + April-extended window** (`fetch_rainfall.py` now pulls
-`snowmelt` + `2m_temperature`; trigger screens **water = rain+snowmelt**): an **honest negative** —
-season snowmelt only **59 mm** (≪ rain 1,350), **0 new acute trigger** (still 26 Aug), **0 freeze-thaw
-days** at AOI-mean elevation; back-test re-run **still 8/9 spatial, 0/2 temporal MISS**. The value is
-the **sharpened diagnosis**: the Apr–May miss is an **orographic-rain-undercount** problem (ERA5-Land,
-8 May = 9.3 mm), NOT missing snowmelt → confirms **gauge rainfall (CHIRPS/GPM) + regional I–D curve**
-(Area 7 #3) as the real fix. (The FS-coupled hazard timeline DOES show real spring hazard: 136 zones
-on 20 Apr.) **Next:** the deferred **CHIRPS/GPM** swap; per-elevation freeze-thaw; wire V_slope into
-the creep mask + TTF; **GSI Bhukosh** for a scored back-test. KPIs in committed `RESULTS_AND_KPIS.md`
-§10–§11. Detail: §2 / §5._
+plus a 3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 10** did the
+gauge-rainfall step (Area 7 #3): **(1) Regional Himalayan I–D curve** — `rainfall_id_threshold.py` is
+now `--threshold {caine1980|nwhimalaya}`; the researched regional curve **I = 2.9993·D⁻⁰·⁴¹⁵²** (J.
+Earth Syst. Sci. 2025 134:97; AOI cross-check Shah et al. 2024 Nat. Hazards 120, NH-44 ~14.35 mm/day)
+is ~5× more sensitive than global Caine (~19 vs ~103 mm 1-day). **On the SAME ERA5-Land data the
+regional curve flips the temporal back-test 0/2 → 2/2** (27 Apr Δ0; 8 May Δ5) — so the Apr–May miss was
+**substantially a threshold problem**, confirmed on unchanged data. **Loud caveat:** it fires **112/214
+days** (sensitive, not selective) → still needs CHIRPS precision for the *acute* 8 May burst + a
+percentile/antecedent filter. Default stays Caine; regional is opt-in **pending user citation confirm**.
+**(2) GEE CHIRPS fetch BUILT** (`workflows/fetch_chirps.py`, gauge-blended daily rain → same CSV schema;
+`earthengine-api` in the `insar` image; creds mounted via `EE_CREDENTIALS`) — **awaiting the user's
+one-time GEE OAuth** (`earthengine authenticate` + `EE_PROJECT_ID`), then `docker compose build insar`.
+**(3) Specificity-filter prototype** (`workflows/rainfall_specificity.py`): sweeps stringency k +
+antecedent dials, scored vs the 2 events. **Decisive finding** — on ERA5-Land **NO setting is both
+selective (<20% season) AND catches both**; **8 May has E=0.67 (below the regional line) → unreachable by
+any threshold there** → isolates the rain *measurement* as the last lever (the quantitative case for
+CHIRPS). **Next:** finish GEE auth → CHIRPS → re-run ID(nwhimalaya) + specificity (does CHIRPS lift 8 May's
+E?); per-elevation freeze-thaw; **GSI Bhukosh** scored back-test. KPIs in committed `RESULTS_AND_KPIS.md`
+§12/§12b/§12c (+ §10–§11). Detail: §2 / §5._
 
 ---
 
@@ -333,11 +338,18 @@ plausible, **trigger timing not yet validated**. KPIs → `RESULTS_AND_KPIS.md` 
   freeze-thaw days** (AOI-mean temp never < 0 °C), back-test **still 0/2 temporal**. Diagnosis
   sharpened: the Apr–May miss is **ERA5-Land orographic rain under-count**, not missing snowmelt.
 
-**Recommended next (the diagnosis is now pinpointed):**
-1. **★ Gauge rainfall (CHIRPS/GPM) + regional Himalayan I–D curve (Area 7 #3) — now the clearly
-   indicated fix** for the acute Apr–May trigger (Session 9 ruled snowmelt out as the cause; ERA5-Land
-   under-counts the bursts). Then re-run `rainfall_id_threshold.py` → `backtest_inventory.py`.
-   *Highest-value next push.* (Heavier: new data source, likely GEE or direct download.)
+**Recommended next (Session 10 built the regional curve + CHIRPS pipe; finish + harden it):**
+1. **★ Finish the gauge-rainfall swap (Area 7 #3) — MOSTLY BUILT (Session 10).** The regional I–D curve
+   is done and already flips the back-test 0/2 → 2/2 on ERA5-Land (`--threshold nwhimalaya`). REMAINING:
+   (a) **user completes the GEE OAuth** (`earthengine authenticate` + `EE_PROJECT_ID` in `.env` +
+   `docker compose build insar`), then run `fetch_chirps.py --check` → full season →
+   `rainfall_id_threshold.py --csv data/rainfall/ramban_chirps_daily.csv --threshold nwhimalaya` →
+   `backtest_inventory.py` + `rainfall_specificity.py --csv ramban_chirps_daily.csv` — **the open
+   question: does CHIRPS resolve the acute 8 May burst** ERA5-Land logged at 9.3 mm? (b) ✅ **DONE — the
+   specificity filter** (`rainfall_specificity.py`) is built; it proved that on ERA5-Land *no* setting is
+   both selective and catches both events (8 May E=0.67 is unreachable) — re-run on CHIRPS to see if gauge
+   rain opens a selective window. (c) **Confirm the `nwhimalaya` citation** so it can become the canonical
+   KPI / default. *Highest-value next push.*
 2. **Per-elevation freeze-thaw** — the AOI-mean masks high-slope freezing; needs per-cell ERA5-Land
    temperature + DEM elevation bands (the current freeze-thaw flag returns 0 by construction).
 3. ✅ **DONE (Session 9 cont.) — V_slope wired through the whole pipeline** as opt-in `--use-vslope`
@@ -457,31 +469,37 @@ sensor or a single physics assumption.
 
 ## 7. End-of-session checklist
 
-Documentation ritual for 2026-06-01 (Session 9) — **all done**:
-- [x] `session_journey.md` — new dated entry (Session 9: V_slope + snowmelt/freeze-thaw + April window).
-- [x] `error_history_log.md` — new entry (pygrib `.validDate` mis-dates multi-step ERA5-Land → use `validityDate`).
-- [x] `milestone.md` — Milestones 15 (V_slope) + 16 (snowmelt/freeze-thaw) added (plain language).
-- [x] `Research/Foundations - Physics and Maths Primer.md` — CF3 (snowmelt/freeze-thaw) + CF4 (V_slope)
-      concepts, 2 interview Qs, 2 limitation bullets refreshed.
-- [x] **`RESULTS_AND_KPIS.md`** (committed) — KPI ledger updated through §10 (V_slope) + §11 (snowmelt).
+Documentation ritual for 2026-06-02 (Session 10) — **all done**:
+- [x] `session_journey.md` — new dated entry (Session 10: GEE CHIRPS plumbing + regional I–D curve +
+      specificity-filter prototype [Push 3]).
+- [x] `milestone.md` — Milestone 17 (Himalaya-tuned trigger line + gauge-rain pipe + the over-trigger
+      diagnosis) added (plain language).
+- [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (regional vs global trigger line; gauge
+      vs reanalysis rain), 1 interview Q, 2 limitation bullets refreshed.
+- [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional I–D curve (0/2→2/2 + caveat) + §12b CHIRPS
+      fetch (built, awaiting auth) + §12c specificity-filter prototype (8 May E=0.67 → CHIRPS needed).
+- [x] `README.md` — Step 6 (GEE/CHIRPS auth) + a forecasting run-sequence bullet.
 - [x] **`SESSION_REVIEW.md`** (this file) — refreshed to current state for a clean cold start.
+- [ ] `error_history_log.md` — no new entry (no production bug; a self-caught duplicate-loop typo was
+      fixed immediately during editing).
 
 **Git state at session close: UNCOMMITTED work present (user commits manually).** New/changed
-committable files this session: `workflows/slope_velocity.py` (new), `workflows/fetch_rainfall.py`
-(rewritten: +snowmelt/+2m_temperature/April window/validityDate fix), `workflows/rainfall_id_threshold.py`
-(rewritten: water=rain+snowmelt + freeze-thaw), `workflows/agentic_orchestrator.py` +
-`workflows/inverse_velocity_ttf.py` + `workflows/geomechanical_engine.py` + `workflows/run_multistack.py`
-(opt-in `--use-vslope` threaded through to a parallel V_slope union product), `workflows/backtest_inventory.py` (scope-note edit),
-`data/inventory/ramban_documented_landslides.geojson` (window-extension provenance edits),
-`RESULTS_AND_KPIS.md` (§10–§11), `Research/Foundations - Physics and Maths Primer.md` (CF3/CF4),
-`error_history_log.md` (validityDate entry). Git-ignored/local-only (expected): `SESSION_REVIEW.md`,
-`session_journey.md`, `milestone.md`, `CLAUDE.md`, and `data/` outputs (the new V_slope rasters,
-`data/rainfall/*` water+temp CSVs/report, `data/inventory/backtest_report.*`, `hazard_timeline.*`).
-Run `git status` / `git add -p` to review before committing.
+**committable** files this session: `workflows/fetch_chirps.py` (new — GEE CHIRPS fetch),
+`workflows/rainfall_specificity.py` (new — specificity-filter prototype),
+`workflows/rainfall_id_threshold.py` (parameterized `--threshold {caine1980|nwhimalaya}` + `--out-suffix`),
+`docker/Dockerfile` (+`earthengine-api`), `docker/ee_credentials.placeholder` (new — compose fallback),
+`docker-compose.yml` (EE creds mount + `MPLCONFIGDIR` on `insar`), `.env.template` (EE_PROJECT_ID note +
+`EE_CREDENTIALS`), `README.md` (Step 6 + forecasting bullet), `RESULTS_AND_KPIS.md` (§12/§12b/§12c),
+`Research/Foundations - Physics and Maths Primer.md` (CF5 + Q + limitations).
+Git-ignored/local-only (expected): `SESSION_REVIEW.md`, `session_journey.md`, `milestone.md`, `CLAUDE.md`,
+and `data/` outputs (suffixed `data/rainfall/id_threshold_report_{caine,nwhimalaya}_era5.*`,
+`data/rainfall/specificity_report.*` + `specificity.png`, `data/inventory/backtest_report.*` from the demo
+runs). Run `git status` / `git add -p` to review. ⚠️ The real `.env` + `~/.config/earthengine/credentials`
+must NEVER be committed (ignored).
 
-**Recommended first action next session:** the diagnosis is now pinpointed → do the **gauge-rainfall
-swap (CHIRPS/GPM) + a regional Himalayan I–D curve** (Area 7 #3) — Session 9 *ruled snowmelt out* as
-the cause of the Apr–May miss (ERA5-Land under-counts the orographic bursts). Then re-run
-`rainfall_id_threshold.py` → `agentic_orchestrator.py --rainfall-timeline` → `backtest_inventory.py`.
-Cheap alternative if a new data source isn't wanted yet: **wire `*_v_slope.tif` into the creep mask +
-inverse-velocity TTF**. See §5.
+**Recommended first action next session:** complete the **GEE OAuth** (`earthengine authenticate`,
+set `EE_PROJECT_ID` + `EE_CREDENTIALS` in `.env`, `docker compose build insar`), then run the CHIRPS
+chain (`fetch_chirps.py --check` → full → `rainfall_id_threshold.py --csv ramban_chirps_daily.csv
+--threshold nwhimalaya` → `backtest_inventory.py`) to answer **does CHIRPS catch the acute 8 May burst**.
+Then add a specificity filter (percentile/return-period or Shah et al. antecedent) to the 112/214-day
+over-trigger, and confirm the `nwhimalaya` citation to make it canonical. See §5.

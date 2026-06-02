@@ -767,6 +767,42 @@ full vertical+east-west decomposition awaiting better descending data.
 
 ---
 
+## CF5. Regional vs global trigger lines, and gauge vs reanalysis rain
+
+The rainfall trigger (CF2) has **two** dials, and getting either wrong mistimes the warning.
+
+**Dial 1 — the threshold line.** The intensity–duration curve I = a·D^(−b) is *fitted to a region's own
+history*. The classic **Caine (1980)** curve is a **global** average — deliberately conservative — so for
+a specific, very wet, very steep place it sits far too high. For the NW Himalaya the published curve is
+I = 2.9993·D^(−0.4152): about **19 mm of rain in a day** trips it, versus Caine's **~100 mm/day**. A
+locally-confirmed line (a separate NH-44 study finds slides at ~14 mm/day) is **~5× more sensitive**.
+
+**Dial 2 — the rain measurement itself.** A *reanalysis* like ERA5-Land is a physics model on a coarse
+grid; it **smooths away** the intense, localized cloudbursts that mountains squeeze out of the air
+(*orographic* rain). A **gauge-blended** product like **CHIRPS** mixes satellite estimates with real
+ground rain-gauge readings, so it recovers more of those bursts.
+
+**Everyday analogy.** Dial 1 is the *speed limit* — a national default vs the one actually posted for
+this hairpin bend. Dial 2 is your *speedometer's accuracy* — a rough estimate vs a calibrated reading. To
+catch real speeding you need both the right limit **and** a trustworthy gauge.
+
+**The catch (a real lesson).** Lowering the line catches more real events — but lower it too far and it
+flags *everything*. Our regional line caught both missed spring events (0/2 → 2/2) but then fired on
+**112 of 214 days**: **sensitive, not selective**. The fix is a "how rare is this rain?" filter
+(percentile / return-period) and an *antecedent* (how-wet-already) criterion on top of the line.
+
+🔗 **In our project: Milestone 17.** We made the threshold a documented, citeable switch (`caine1980`
+vs `nwhimalaya`) and built the CHIRPS gauge-rain pipe (Google Earth Engine) ready to run. The regional
+line alone flipped the spring back-test to 2/2 on unchanged data — confirming the missed events were
+substantially a *too-cautious-line* problem — while honestly exposing the over-triggering still to fix.
+We then built the selectivity filter (`rainfall_specificity.py`) and it gave a *decisive* answer: scoring
+each day by how far above the line it sits (E = rain ÷ threshold), the 26 Aug cloudburst is E≈7, but
+27 Apr is only E≈1.4 and **8 May is E≈0.67 — *below* the line**. So on the present (reanalysis) rain, *no*
+strictness setting is both quiet and catches both events; 8 May is simply unreachable. That isolates the
+rain *measurement* (Dial 2) as the binding constraint — the quantitative case for CHIRPS.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -845,6 +881,17 @@ the back-test caught a real problem: our rainfall trigger picked late August, wh
 reanalysis rainfall we used under-counts mountain cloudbursts — so the fix is an April start + a
 gauge product. A validation that finds its own gaps is doing its job; the rigorous *scored* test
 awaits the official GSI Bhukosh inventory (~302 mapped Ramban slides).
+
+**Q: You found your trigger missed the real spring landslides — did you fix it?**
+A: Partly, and honestly. There were two suspects: the *threshold line* and the *rain
+measurement*. We swapped the conservative **global** Caine line (≈100 mm/day) for the
+**published NW-Himalaya line** (≈19 mm/day — a separate NH-44 study confirms ~14 mm/day
+triggers slides here). On the *same* rainfall, that alone flipped the spring back-test
+from 0/2 to 2/2 — so the line was a big part of it. **But** the regional line then flags
+112 of 214 days, which is sensitive, not selective — so "2/2" is partly automatic. The
+remaining fix is sharper **gauge rainfall (CHIRPS)** — built and waiting on a sign-in —
+to test the one acute 8 May cloudburst, plus a "how rare is this rain?" filter. I'd rather
+report the over-triggering than hide it.
 
 **Q: Aren't your soil strength numbers just guesses?**
 A: Yes — they're literature values for Himalayan soil, not site measurements.
@@ -932,21 +979,20 @@ Being able to state weaknesses is what makes you credible.
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
   coverage and cross-checking is still ahead.
-- **Rainfall is modelled + a global threshold:** the live rainfall (CF2) is ERA5-Land
-  (reanalysis, ~9 km), which *under*-estimates intense orographic bursts; a gauge product
-  (CHIRPS/GPM) is the planned cross-check and would likely flag MORE triggers, not fewer.
-  The ID curve is a conservative *global* one (Caine 1980); a regional Himalayan curve is the
-  refinement. The real wetness IS now coupled into the FS (Milestone 13), but the back-test exposed
-  the cost of the modelled rainfall: it **missed the documented 8 May 2025 failure** (ERA5-Land's
-  rainfall that day fell below the threshold).
-- **Validation is first-pass (Milestone 14):** the back-test shows the map flags the right corridor
-  (8/9 documented NH-44 hotspots within ~2 km) but that the rainfall-trigger *timing* is **not yet
-  validated** — it picked 26 Aug, whereas the documented 2025 failures were Apr–May. Extending the
-  window to April and adding **snowmelt + freeze-thaw** (Milestone 16 / CF3) did **not** fix it: the
-  re-run still misses (0/2), because the gap is an **orographic-rain-undercount** problem
-  (ERA5-Land), not a missing-snowmelt one — which sharpens, rather than closes, the diagnosis. Inventory
-  coords are approximate; a *scored* precision/recall test needs the GSI Bhukosh inventory (~302 mapped
-  Ramban slides), and the acute Apr–May trigger needs a gauge product (CHIRPS/GPM) + a regional I–D curve.
+- **Rainfall trigger — both dials still being calibrated (CF5):** the live rainfall (CF2) is ERA5-Land
+  (reanalysis, ~9 km), which *under*-estimates intense orographic bursts; the gauge product **CHIRPS**
+  (Milestone 17) is now plumbed-in via Google Earth Engine but **awaits a one-time sign-in**, so the
+  acute-burst test is pending. On the threshold dial we **switched from the conservative global Caine
+  curve to the published NW-Himalaya regional curve** — which flipped the spring back-test 0/2 → 2/2 on
+  unchanged data — but it then fires on **112/214 days** (sensitive, not selective), so a return-period /
+  antecedent filter is still needed. The real wetness IS coupled into the FS (Milestone 13).
+- **Validation is first-pass (Milestone 14, refined 17):** the back-test shows the map flags the right
+  corridor (8/9 documented NH-44 hotspots within ~2 km). The rainfall-trigger *timing* miss (0/2 on
+  Caine; Apr–May events vs a 26 Aug pick) was **largely a threshold problem**: the regional curve (CF5)
+  now gives 2/2 — but that coincidence is partly automatic given 112 trigger days, so it is **not yet a
+  rigorous pass**. Inventory coords are approximate; a *scored* precision/recall test needs the GSI
+  Bhukosh inventory (~302 mapped Ramban slides), and a *selective* acute trigger still needs CHIRPS
+  precision plus a how-rare-is-this-rain filter.
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.

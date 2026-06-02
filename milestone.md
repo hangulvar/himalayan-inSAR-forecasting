@@ -573,6 +573,56 @@ danger map now breathes with the real spring weather, and we've **precisely iden
 
 ---
 
+## ✅ Milestone 17 — A Himalaya-Tuned Trigger Line (and a Gauge-Rain Pipe)  *(Regional I–D curve + GEE CHIRPS, 2026-06-02)*
+
+**What we set out to do:** Milestone 16 pinned the blame for the missed April–May 2025 disasters on two
+things: a **trigger line copied from a *global* average** (far too cautious for these mountains), and a
+weather record that **under-counts mountain cloudbursts**. This milestone tackles both: swap in a
+**Himalaya-specific trigger line**, and build the pipe to bring in **rain-gauge-based** rainfall.
+
+**What we did, plainly:**
+- We looked up the **published rainfall trigger line for the Northwest Himalaya** (from a 2025 study of
+  real Indian landslides) and a **cross-check study for our exact road**, the NH-44 Udhampur–Banihal
+  stretch that runs through Ramban. Both agree the danger line here is about **15–19 mm of rain in a day**
+  — versus the global textbook value of about **100 mm/day** we'd been using. Roughly **five times** too
+  cautious. We made the trigger line a simple switch, so we can run either the old global line or the new
+  regional one.
+- We built the plumbing to pull **CHIRPS** — a rainfall product that blends satellite estimates with
+  *ground rain-gauge readings* — for our area, day by day, from Google Earth Engine. It drops into the
+  exact same slot our old weather data used, so everything downstream just works.
+
+**What we found (a real, measurable result — with an honest catch):**
+- Just switching to the **regional trigger line** — *without any new rainfall yet* — flips the
+  reality-check from **0 of 2** documented spring events caught to **2 of 2**. So a big part of the
+  problem really was the over-cautious global line, exactly as diagnosed.
+- **The honest catch:** the regional line is *so* sensitive that it now flags **112 of 214 days** as
+  "trigger" days. When more than half the season is a trigger, "we caught the event" almost can't fail —
+  it's **sensitive but not yet *selective***. A genuinely useful warning needs the sharper gauge rainfall
+  (to test whether the one *acute* 8 May cloudburst really stands out) plus a "how rare is this?" rule so
+  it stops crying wolf. That's the clearly-marked next step.
+
+**We then built the "how rare is this?" filter and learned something decisive.** It scores each day by
+*how far above* the danger line the rain sits (just touching = 1; a true cloudburst = much higher), and
+lets us dial up the strictness. The result, in plain terms: as we make it stricter, the season's noise
+drops fast — but **the two real spring slides drop out too**, because in our current weather record they're
+barely on the line (27 Apr) or **even below it (8 May)**. The big 26 Aug cloudburst, by contrast, towers
+**7×** over the line. So with the weather data we have, you simply **cannot be both quiet and catch the
+spring events** — the 8 May rain is missing from the record, so *no* setting can flag it. That nails the
+last open question: the fix isn't a cleverer rule, it's **better rain data (CHIRPS)** — and the filter is
+already built to re-run the instant that data lands.
+
+**Why this matters:** we've confirmed the diagnosis with a number you can hold onto (0/2 → 2/2), turned
+the trigger line into a documented, citeable, swappable choice, and laid the last pipe — gauge rainfall —
+ready to run the moment the Google Earth Engine sign-in is done. The science stays honest: we're reporting
+both the win *and* the over-triggering it exposed.
+
+**Plain-language result:** the warning now has a **Himalaya-tuned trigger line** instead of a global
+hand-me-down, and a **gauge-rain pipe** waiting on a one-time sign-in. The tuned line already explains the
+missed spring slides — while honestly revealing it now needs a "how unusual is this rain?" filter to be
+trustworthy.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
@@ -584,9 +634,11 @@ thresholds replacing the mock weather (12)**, **real rain driving a time-resolve
 and a first **reality-check back-test against documented landslides (14)**. What remains is mostly
 *deepening trust* and *going live*:
 
-- **Fix the trigger timing the back-test exposed.** Start the analysis window in April and switch to
-  a rain-gauge product (CHIRPS/GPM) + a Himalaya-specific trigger curve, then re-run the back-test;
-  and bring in the official GSI inventory (~302 mapped slides) for a properly-scored spatial test.
+- **Fix the trigger timing the back-test exposed.** *Done so far (Milestone 17):* April start +
+  Himalaya-specific trigger line → spring events now caught (0/2 → 2/2). *Still to do:* finish the
+  Google Earth Engine sign-in and run the **gauge rainfall (CHIRPS)** to test the acute 8 May
+  cloudburst, add a "how rare is this rain?" filter so the trigger stops over-firing, and bring in the
+  official GSI inventory (~302 mapped slides) for a properly-scored spatial test.
 - **Better descending data for a true 3-D motion split.** Today's two descending tracks
   were rejected as too noisy (Milestone 10); the up/down-vs-sideways reconstruction waits
   on a longer unbroken series or point-like (persistent-scatterer) reflectors.

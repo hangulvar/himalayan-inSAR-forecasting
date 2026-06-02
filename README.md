@@ -223,6 +223,10 @@ Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if y
 
 Only needed for MintPy's ERA5 atmospheric correction. Copy `.cdsapirc.template` to `~/.cdsapirc` (Windows `%USERPROFILE%\.cdsapirc`) and paste your **CDS Personal Access Token** from https://cds.climate.copernicus.eu/how-to-api (new-CDS format: `url:` + `key:`), then accept the *"ERA5 hourly data on pressure levels"* licence on the CDS site. Set `CDSAPI_RC=<that path>` in `.env` so the `mintpy` container mounts it read-only. The real `.cdsapirc` is git-ignored. Full notes: `SESSION_REVIEW.md` §4.
 
+### Step 6: (Optional) Google Earth Engine — for CHIRPS gauge rainfall
+
+Only needed for `workflows/fetch_chirps.py` (gauge-blended CHIRPS daily rainfall, the cross-check to ERA5-Land). One-time host setup: (1) have a Google Cloud project with the **Earth Engine API** enabled (https://code.earthengine.google.com); (2) run `earthengine authenticate` — opens a browser, writes `~/.config/earthengine/credentials`; (3) set `EE_PROJECT_ID` in `.env`, and `EE_CREDENTIALS=<host path to that credentials file>` so the `insar` container mounts it read-only (falls back to a harmless placeholder so all other scripts run without GEE). `earthengine-api` is already in the `insar` image — **rebuild once** after pulling: `docker compose build insar`. The real credentials file is git-ignored.
+
 ---
 
 ## 🚀 The Pipeline (Phases 1 – 4A) — How To Reproduce
@@ -279,6 +283,15 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
   --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
   [`docker/README.md`](docker/README.md) and `SESSION_REVIEW.md` §4.
+- **Forecasting / rainfall trigger (real-weather-driven):**
+  `python workflows/fetch_rainfall.py` (ERA5-Land water + temperature; `mintpy` image) **or**
+  `python workflows/fetch_chirps.py` (CHIRPS gauge rainfall via GEE; needs Step 6 auth) →
+  `python workflows/rainfall_id_threshold.py --csv <daily.csv> --threshold {caine1980|nwhimalaya}`
+  (global vs regional Himalayan I-D curve) →
+  `python workflows/agentic_orchestrator.py --rainfall-timeline` (couples rain into FS) →
+  `python workflows/backtest_inventory.py --trigger-report <id_threshold_report.json>`
+  (validate vs the documented landslide inventory). `inverse_velocity_ttf.py` screens for
+  accelerating creep. Add `--use-vslope` to the orchestrator/TTF for the downslope basis.
 
 Any command runs in Docker too, e.g. `docker compose run --rm insar python workflows/run_multistack.py`.
 

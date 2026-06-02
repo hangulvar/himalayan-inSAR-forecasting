@@ -15,8 +15,10 @@ checkout, a machine wipe, and (critically) the **removal of the mock scenarios**
 `[MOCK]` / `[REAL]` / `[MEASURED]` tag. When a result is superseded, add a new dated row and mark
 the old one *(superseded)* — do not delete it.
 
-_Last updated: 2026-06-01 (Session 9, branch `mvp-expansion`) — added §10 slope-parallel velocity
-(V_slope) and §11 snowmelt/freeze-thaw drivers + April-extended trigger._
+_Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`) — added §12 regional Himalayan I–D
+curve (the temporal-miss fix) + §12b GEE CHIRPS gauge-rainfall plumbing + §12c specificity-filter
+prototype (proves 8 May can't trigger on ERA5-Land → CHIRPS needed). Prior: §10 slope-parallel
+velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
 
 ---
 
@@ -261,6 +263,87 @@ a **temporal miss (§9 re-run: 0/2)**. This is the valuable sharpening: the gap 
 heavy rain/mudslides), *not* by missing snowmelt water → next fix is the **gauge product
 (CHIRPS/GPM) + a regional Himalayan I–D curve** (Area 7 #3, deferred). Snowmelt's genuine role is
 **chronic spring saturation**, visible in the timeline, not as an acute trigger.
+
+---
+
+## 12. Regional Himalayan I–D curve + GEE CHIRPS gauge rainfall  `[REAL / pending-citation-confirmation]`
+
+Source: `rainfall_id_threshold.py --threshold {caine1980|nwhimalaya}` (now parameterized) +
+`backtest_inventory.py`. 2026-06-02. Motivated by §9/§11: the Apr–May 2025 temporal MISS, diagnosed
+as Caine's conservative *global* curve + ERA5-Land's orographic under-count.
+
+**The two I–D curves (both mm/h vs h, directly comparable):**
+
+| curve | A | B | 1-day cumulative threshold | source |
+|---|---|---|---|---|
+| `caine1980` (global, default) | 14.82 | 0.39 | ≈ **103 mm** | Caine (1980) Geogr. Ann. A 62:23–27 |
+| `nwhimalaya` (regional) | 2.9993 | 0.4152 | ≈ **19 mm** | J. Earth Syst. Sci. (2025) **134:97**, frequentist on 2007–2016 events |
+
+AOI cross-check (independent): Shah et al. (2024) *Nat. Hazards* **120**:1319–1341 report **~14.35 mm/day**
+triggers landslides on the NH-44 Udhampur–Banihal stretch (Ramban) — same order as the regional curve,
+confirming Caine is ~5× too conservative here.
+
+**Result — regional curve on the SAME ERA5-Land water (2025-04-01→10-31, 214 d):**
+
+| metric | `caine1980` (§7 baseline) | `nwhimalaya` (regional) |
+|---|---|---|
+| ID-threshold trigger days | **1** (26 Aug) | **112** of 214 |
+| 1-day exceedance days | 1 | 13 |
+| back-test TEMPORAL (vs 27 Apr / 8 May) | **0/2 MISS** | **2/2 COINCIDES** (27 Apr Δ0; 8 May Δ5) |
+| back-test SPATIAL | 8/9 | 8/9 (unchanged) |
+
+**Finding:** switching to the published **regional** I–D curve flips the temporal back-test from
+**0/2 → 2/2**, on the *unchanged* ERA5-Land data — so the Apr–May miss was substantially a *threshold*
+problem (the global Caine curve is far too conservative for the NW Himalaya), not only a rainfall-source
+problem. ⚠️ **Specificity caveat (loud):** the regional curve fires **112/214 days**, so a ±10-day
+temporal coincidence is nearly automatic — this is *sensitivity without specificity*, not yet an
+operational trigger. A discriminating trigger needs (a) **CHIRPS** gauge precision to test the *acute*
+8 May burst (ERA5-Land had only 9.3 mm that day, below even the 19 mm regional 1-day threshold), and
+(b) a percentile/return-period or antecedent-rainfall criterion (Shah et al.: ~53 mm/20 d antecedent on
+NH-44). *Default stays `caine1980`; the regional curve is opt-in pending user confirmation of the
+citation before it becomes canonical.* Outputs (suffixed, non-destructive): `id_threshold_report_{caine,nwhimalaya}_era5.{json,md}`, `id_threshold_*_era5.png`.
+
+## 12b. GEE CHIRPS gauge-rainfall fetch — BUILT, awaiting auth  `[infrastructure]`
+
+Source: `workflows/fetch_chirps.py` (new). Pulls CHIRPS daily (`UCSB-CHG/CHIRPS/DAILY`, 0.05°,
+satellite+gauge) AOI-mean per day via Google Earth Engine → `data/rainfall/ramban_chirps_daily.csv`
+in the **same schema** as the ERA5-Land CSV (snowmelt/temperature merged from it), so
+`rainfall_id_threshold.py` + `backtest_inventory.py` consume it unchanged. `earthengine-api` added to
+the `insar` image (`docker/Dockerfile`); GEE OAuth credentials mounted via `EE_CREDENTIALS` in `.env`
+(placeholder fallback). **Not yet run** — GEE auth is an interactive browser OAuth the user must complete
+once (`earthengine authenticate` + `EE_PROJECT_ID`). Non-GEE code paths (AOI geometry, ERA5 merge,
+arg-parse) smoke-tested OK. *Pending KPI:* does CHIRPS resolve the 8 May burst that ERA5-Land missed?
+
+## 12c. Specificity-filter prototype — the regional trigger's sensitivity/selectivity trade-off  `[REAL / MEASURED]`
+
+Source: `workflows/rainfall_specificity.py` (new) on `ramban_era5land_daily.csv`, `--threshold nwhimalaya`.
+2026-06-02. Quantifies how to make the over-sensitive regional curve (§12: 112/214 days) selective, scored
+vs the 2 documented events (±10 d). Each day ranked by peak I–D **exceedance ratio** E = max_D(cum_D /
+threshold_D); E≥1 = raw trigger fires. Two independent dials: **stringency k** (alert if E≥k) and an
+**antecedent floor** (alert if E≥1 AND API ≥ percentile).
+
+| stringency k | ≈1-day mm | alert days | % season | events caught (27 Apr / 8 May Δ) |
+|---|---|---|---|---|
+| **1.0** (raw regional) | 19 | 112 | 52.3 % | **2/2** (Δ0 / Δ5) |
+| 1.5 | 29 | 47 | 22.0 % | 1/2 (Δ2 / Δ13) |
+| 2.0 | 39 | 27 | 12.6 % | 1/2 (Δ6 / Δ17) |
+| 3.0 | 58 | 15 | 7.0 % | 0/2 |
+| 5.0 (≈ Caine) | 96 | 2 | 0.9 % | 0/2 |
+
+Antecedent dial (at k=1): API≥p75 → 54 days (25 %), 1/2; API≥p90 → 22 days (10 %), 1/2.
+
+**Event rarity (E = how far above the regional lower bound; 1.0 = on the line):** 27 Apr **E=1.41**
+(71st pct); **8 May E=0.67** (39th pct — *below* even the regional line); season peak 26 Aug **E=6.94**.
+
+**Finding (the decisive one):** on ERA5-Land there is **NO operating point that is both selective
+(<20 % of season) and catches both events** — the spring events sit at E≈0.7–1.4 (just on/under the line),
+so any stringency that suppresses routine monsoon also suppresses them (k is essentially a 1-D dial
+sliding from regional→Caine; §12's two endpoints). The **8 May event (E=0.67) cannot be triggered by *any*
+threshold on ERA5-Land** — its reanalysis rain is simply too small (9.3 mm). This **isolates the rain
+*measurement*** (not the threshold) as the remaining lever and is the rigorous, quantitative case for the
+**CHIRPS** gauge swap: gauge rain that records the real spring bursts would raise their E and open a
+selective-and-sensitive window. The prototype is ready to re-run on `ramban_chirps_daily.csv`.
+Outputs: `data/rainfall/specificity_report.{json,md}`, `specificity.png`.
 
 ---
 

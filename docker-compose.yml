@@ -11,6 +11,11 @@ services:
       context: ./docker          # tiny build context — just the Dockerfile + env spec
     image: insar-himalaya:latest
     working_dir: /app
+    environment:
+      # The read-only EE-credentials mount below makes Docker create /home/mambauser/.config
+      # owned by root, so matplotlib can't write its default cache there. Point it at a
+      # writable dir so every matplotlib script stays quiet (and faster).
+      - MPLCONFIGDIR=/tmp/matplotlib
     volumes:
       # The whole project: code, data/, logs/, ramban_aoi.geojson.
       # PROJECT_ROOT in every script resolves to /app, so data/ lands at /app/data.
@@ -18,6 +23,11 @@ services:
       # Phase-1 ASF credentials (read-only). Phases 2-4 do NOT need this.
       # To run Phase 1: set NETRC_PATH to your host ~/.netrc and uncomment:
       # - ${NETRC_PATH}:/home/mambauser/.netrc:ro
+      # Google Earth Engine OAuth credentials (read-only) for fetch_chirps.py.
+      # Set EE_CREDENTIALS in .env to your host ~/.config/earthengine/credentials
+      # (written by `earthengine authenticate`); falls back to a harmless placeholder
+      # so every OTHER insar script runs without any GEE setup. NEVER commit the real file.
+      - ${EE_CREDENTIALS:-./docker/ee_credentials.placeholder}:/home/mambauser/.config/earthengine/credentials:ro
     stdin_open: true             # keep STDIN open for an interactive shell
     tty: true
 

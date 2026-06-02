@@ -39,18 +39,37 @@ import numpy as np  # noqa: E402
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 
-CAINE_A, CAINE_B = 14.82, 0.39          # I[mm/h] = A * D[h]^(-B), Caine (1980)
+# Power-law intensity-duration landslide thresholds: I[mm/h] = A * D[h]^(-B).
+# All in the frequentist convention (I in mm/h, D in hours) -> directly comparable.
+# A regional Himalayan curve is much lower (more sensitive) than the conservative
+# global Caine baseline: at D=1 day Caine ~ 100 mm vs NW-Himalaya ~ 19 mm.
+THRESHOLDS = {
+    "caine1980": {
+        "a": 14.82, "b": 0.39,
+        "label": "Caine (1980) global",
+        "cite": "Caine N. (1980) Geogr. Ann. A 62:23-27. I=14.82*D^-0.39 (mm/h, h).",
+    },
+    "nwhimalaya": {
+        "a": 2.9993, "b": 0.4152,
+        "label": "NW Himalaya (frequentist, 2007-2016)",
+        "cite": ("J. Earth Syst. Sci. (2025) 134:97 'The relation between rainfall and "
+                 "landslides in India' -- frequentist I-D for the NW Himalaya: "
+                 "I=2.9993*D^-0.4152 (mm/h, h). AOI cross-check: Shah et al. (2024) Nat. "
+                 "Hazards 120:1319-1341, ~14.35 mm/day triggers NH-44 (Udhampur-Banihal) slides."),
+    },
+}
+DEFAULT_THRESHOLD = "caine1980"
 DURATIONS_D = [1, 2, 3, 5, 7, 10, 15]   # days
 
 
-def caine_threshold_intensity(d_hours: np.ndarray) -> np.ndarray:
-    return CAINE_A * d_hours ** (-CAINE_B)         # mm/h
+def threshold_intensity(d_hours: np.ndarray, a: float, b: float) -> np.ndarray:
+    return a * d_hours ** (-b)                      # mm/h
 
 
-def caine_threshold_cumulative(d_days: float) -> float:
-    """Cumulative rainfall (mm) over d_days that just reaches the Caine threshold."""
+def threshold_cumulative(d_days: float, a: float, b: float) -> float:
+    """Cumulative rainfall (mm) over d_days that just reaches the I-D threshold."""
     d_h = d_days * 24.0
-    return float(caine_threshold_intensity(np.array([d_h]))[0] * d_h)
+    return float(threshold_intensity(np.array([d_h]), a, b)[0] * d_h)
 
 
 def _col(rows, name, default):
@@ -92,7 +111,16 @@ def antecedent_index(water: np.ndarray, k: float = 0.9, n: int = 14) -> np.ndarr
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--csv", default=str(RAIN_DIR / "ramban_era5land_daily.csv"))
+    ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default=DEFAULT_THRESHOLD,
+                    help="I-D curve: 'caine1980' (global, conservative; default) or "
+                         "'nwhimalaya' (regional, ~5x more sensitive). See THRESHOLDS.")
+    ap.add_argument("--out-suffix", default="",
+                    help="Append to the output filenames (e.g. '_nwhimalaya') so a "
+                         "regional run does not overwrite the Caine baseline.")
     args = ap.parse_args()
+    thr = THRESHOLDS[args.threshold]
+    a, b = thr["a"], thr["b"]
+    sfx = args.out_suffix
     csv_path = Path(args.csv)
     if not csv_path.exists():
         raise SystemExit(f"Missing rainfall CSV: {csv_path} — run fetch_rainfall.py first.")
@@ -103,7 +131,7 @@ def main() -> int:
     per_dur, trigger = {}, np.zeros(n, dtype=bool)
     for D in DURATIONS_D:
         cum = rolling_sum(water, D)
-        thr_cum = caine_threshold_cumulative(D)
+        thr_cum = threshold_cumulative(D, a, b)
         exc = np.isfinite(cum) & (cum > thr_cum)
         trigger |= exc
         idx = np.where(exc)[0]
@@ -121,10 +149,14 @@ def main() -> int:
 
     trig_idx = np.where(trigger)[0]
     ft_idx = np.where(freeze_thaw)[0]
+    rain_source = "CHIRPS (gauge-blended)" if "chirps" in csv_path.name.lower() else "ERA5-Land"
     report = {
         "source": csv_path.name,
-        "threshold": "Caine (1980) I=14.82*D^-0.39 (global)",
-        "trigger_basis": "water = rain + snowmelt (ERA5-Land)",
+        "threshold_id": args.threshold,
+        "threshold": f"{thr['label']} I={a}*D^-{b}",
+        "threshold_citation": thr["cite"],
+        "threshold_a_mmph": a, "threshold_b": b,
+        "trigger_basis": f"water = rain + snowmelt ({rain_source})",
         "season": {"start": dates[0].isoformat(), "end": dates[-1].isoformat(),
                    "days": n,
                    "rain_total_mm": round(float(np.nansum(rain)), 1),
@@ -140,18 +172,20 @@ def main() -> int:
         "n_freeze_thaw_days": int(freeze_thaw.sum()),
     }
     RAIN_DIR.mkdir(parents=True, exist_ok=True)
-    (RAIN_DIR / "id_threshold_report.json").write_text(json.dumps(report, indent=2),
-                                                       encoding="utf-8")
-    write_md(RAIN_DIR / "id_threshold_report.md", report, per_dur)
-    write_wetness(RAIN_DIR / "ramban_wetness_daily.csv",
+    (RAIN_DIR / f"id_threshold_report{sfx}.json").write_text(json.dumps(report, indent=2),
+                                                             encoding="utf-8")
+    write_md(RAIN_DIR / f"id_threshold_report{sfx}.md", report, per_dur)
+    write_wetness(RAIN_DIR / f"ramban_wetness_daily{sfx}.csv",
                   dates, rain, snowmelt, water, api, sat, freeze_thaw)
-    make_figure(RAIN_DIR / "id_threshold.png", dates, rain, snowmelt, trigger, freeze_thaw, per_dur)
+    make_figure(RAIN_DIR / f"id_threshold{sfx}.png", dates, rain, snowmelt,
+                trigger, freeze_thaw, per_dur, a, b, thr["label"])
 
+    print(f"threshold: {thr['label']}  (I={a}*D^-{b}, mm/h vs h)")
     s = report["season"]
     print(f"water {dates[0]}..{dates[-1]}  rain={s['rain_total_mm']:.0f} + "
           f"snowmelt={s['snowmelt_total_mm']:.0f} = {s['water_total_mm']:.0f} mm  "
           f"max-day={s['max_water_day_mm']:.1f} mm ({s['max_water_day']})")
-    print(f"ID-threshold (Caine 1980, on water) trigger days: {int(trigger.sum())}")
+    print(f"ID-threshold ({args.threshold}, on water) trigger days: {int(trigger.sum())}")
     for D in DURATIONS_D:
         pd = per_dur[D]
         print(f"  D={D:2d}d  thr={pd['threshold_cumulative_mm']:6.0f} mm  "
@@ -162,8 +196,8 @@ def main() -> int:
     print(f"  freeze-thaw days (Tmin<0<Tmax): {int(freeze_thaw.sum())}"
           + (f"  e.g. {report['freeze_thaw_days'][0]}..{report['freeze_thaw_days'][-1]}"
              if ft_idx.size else ""))
-    print(f"  -> {RAIN_DIR/'id_threshold_report.json'} , .md , id_threshold.png , "
-          f"ramban_wetness_daily.csv")
+    print(f"  -> {RAIN_DIR / f'id_threshold_report{sfx}.json'} , .md , "
+          f"id_threshold{sfx}.png , ramban_wetness_daily{sfx}.csv")
     return 0
 
 
@@ -178,11 +212,12 @@ def write_md(path: Path, report: dict, per_dur: dict) -> None:
     s = report["season"]
     lines = [
         f"# Rainfall + snowmelt intensity-duration trigger — {report['source']}", "",
-        "Real ERA5-Land daily **water input (rain + snowmelt)** over the AOI, screened against",
-        "the **Caine (1980)** global intensity-duration landslide threshold (I = 14.82*D^-0.39).",
+        f"Daily **water input (rain + snowmelt)** over the AOI ({report['trigger_basis']}), screened",
+        f"against the **{report['threshold']}** intensity-duration landslide threshold.",
         "Water plotting above the curve has historically triggered failures. Snowmelt is added to",
         "rain because the back-test showed rainfall alone missed the Apr-May 2025 (snowmelt-season)",
         "failures; freeze-thaw days are flagged as the paired spring weakening mechanism.", "",
+        f"- threshold: **{report['threshold_id']}** — {report['threshold_citation']}",
         f"- season: **{s['start']} -> {s['end']}** ({s['days']} days)",
         f"- water: **{s['water_total_mm']:.0f} mm** = rain {s['rain_total_mm']:.0f} + "
         f"snowmelt {s['snowmelt_total_mm']:.0f}; peak water day **{s['max_water_day_mm']:.1f} mm** "
@@ -190,7 +225,7 @@ def write_md(path: Path, report: dict, per_dur: dict) -> None:
         f"- **ID-threshold trigger days: {report['n_trigger_days']}** "
         f"({', '.join(report['trigger_days']) if report['trigger_days'] else 'none'})",
         f"- **freeze-thaw days (Tmin<0<Tmax): {report['n_freeze_thaw_days']}**", "",
-        "| duration | Caine cumulative threshold | exceedance days | season max (date) |",
+        "| duration | cumulative threshold | exceedance days | season max (date) |",
         "|---|---|---|---|",
     ]
     for D in report["durations_days"]:
@@ -198,20 +233,31 @@ def write_md(path: Path, report: dict, per_dur: dict) -> None:
         lines.append(f"| {D} d | {pd['threshold_cumulative_mm']:.0f} mm | "
                      f"{pd['n_exceedance_days']} | {pd['max_cumulative_mm']:.0f} mm "
                      f"({pd['max_cumulative_date']}) |")
+    is_regional = report["threshold_id"] != "caine1980"
+    is_gauge = "chirps" in report["source"].lower()
+    notes = []
+    if is_regional:
+        notes.append("This run uses a **regional** Himalayan I-D curve — far more sensitive than the "
+                     "global Caine baseline (Caine ~100 mm/day vs this ~19 mm/day at D=1 d).")
+    else:
+        notes.append("Caine is a conservative GLOBAL baseline; the regional `nwhimalaya` curve "
+                     "(~5x more sensitive) is the refinement (`--threshold nwhimalaya`).")
+    notes.append("This run uses **CHIRPS** gauge-blended rain (resolves orographic bursts ERA5-Land "
+                 "under-counts)." if is_gauge else
+                 "ERA5-Land under-counts orographic precipitation, so the **CHIRPS** gauge product "
+                 "(fetch_chirps.py) is the cross-check.")
+    notes.append("Snowmelt is treated as ID-curve water input (first-order); a dedicated snowmelt "
+                 "threshold is the refinement.")
     lines += ["",
               "**Trigger days (any duration exceeded):** "
               + (", ".join(report["trigger_days"]) if report["trigger_days"]
-                 else "_none — no water window crossed the global threshold this season._"),
-              "",
-              "_Note: Caine is a conservative GLOBAL baseline; a regional Himalayan I-D curve",
-              "(typically lower) is the refinement. ERA5-Land underestimates orographic",
-              "precipitation, so a gauge product (CHIRPS/GPM) is the planned cross-check. Snowmelt",
-              "is treated as ID-curve water input (first-order); a dedicated snowmelt threshold is",
-              "the refinement._"]
+                 else "_none — no water window crossed the threshold this season._"),
+              "", "_Note: " + " ".join(notes) + "_"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def make_figure(path: Path, dates, rain, snowmelt, trigger, freeze_thaw, per_dur) -> None:
+def make_figure(path: Path, dates, rain, snowmelt, trigger, freeze_thaw, per_dur,
+                a: float, b: float, label: str) -> None:
     x = np.arange(len(dates))
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7))
     ax1.bar(x, rain, color="#4477aa", width=1.0, label="rain")
@@ -232,8 +278,8 @@ def make_figure(path: Path, dates, rain, snowmelt, trigger, freeze_thaw, per_dur
     d_h = np.array([D * 24.0 for D in per_dur])
     obs_I = np.array([per_dur[D]["max_cumulative_mm"] / (D * 24.0) for D in per_dur])
     dd = np.logspace(np.log10(12), np.log10(24 * 20), 100)
-    ax2.loglog(dd, caine_threshold_intensity(dd), "k-", label="Caine (1980) threshold")
-    above = obs_I > caine_threshold_intensity(d_h)
+    ax2.loglog(dd, threshold_intensity(dd, a, b), "k-", label=f"{label} threshold")
+    above = obs_I > threshold_intensity(d_h, a, b)
     ax2.scatter(d_h[~above], obs_I[~above], c="#4477aa", label="season max (below)")
     ax2.scatter(d_h[above], obs_I[above], c="#cc3311", label="season max (ABOVE -> trigger)")
     for D, di, ii in zip(per_dur, d_h, obs_I):
