@@ -539,9 +539,17 @@ suffixed trigger/specificity reports, `backtest_report.*` [restored to Caine bas
 **Recommended first action next session:** the spring picture is now **primed slopes + a 20 Apr cloudburst
 trigger, both captured by the model** (§12g — a date correction reversed the earlier "rainfall ruled out").
 The clear next step is **GSI Bhukosh** for **verified dates/coords** (the 20 Apr correction shows exactly why
-ground-truth dates matter) + a **scored** precision/recall back-test — note this needs YOUR manual portal
-download (login + interactive map; the portal is firewalled from the agent's environment). Then: make the
-regional curve **selective** (it fires 112/214 days) + pair with sub-daily IMERG for localized cells; probe
-the **NHAI construction** angle. Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7).
-The verified `nwhimalaya` curve can become the default acute trigger when re-baselining the `[MOCK]` KPIs.
-See §5.
+ground-truth dates matter) + a **scored** precision/recall back-test. Then: make the regional curve
+**selective** (it fires 112/214 days) + pair with sub-daily IMERG for localized cells; probe the **NHAI
+construction** angle. Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7). The
+verified `nwhimalaya` curve can become the default acute trigger when re-baselining the `[MOCK]` KPIs. See §5.
+
+> **⏸ Deferred manual setups (user-side, take time — both DOCUMENTED in `README.md` Step 7):** **(1) GACOS**
+> tropospheric correction (free no-MATLAB weather-model cross-check to ERA5, §13 — submit AOI+dates at
+> gacos.net, drop the `.ztd` files, MintPy `method=gacos`); **(2) GSI Bhukosh** landslide inventory (scored
+> validation, §12g — register + interactive portal download). Both are unreachable from the agent
+> (firewalled / login-gated). ⚠️ The GSI portal **may have moved** (Bhukosh/Bhusanket/NGDR/Bhuvan) — README
+> Step 7 lists the current entry points (as of 2025 the GSI inventory is on the **NGDR** portal
+> **geodataindia.gov.in** + Bhukosh; Bhusanket = forecast bulletins) and fallbacks. When either file lands in
+> the repo, the agent does the rest (the `compare_tropo_methods.py` gacos column / the `backtest_inventory.py`
+> polygon adapter).
