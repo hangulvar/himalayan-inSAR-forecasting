@@ -24,17 +24,19 @@ hypothesis is REFUTED:** CHIRPS is *drier* than ERA5-Land here (998 vs 1,350 mm)
 independent ~5–9 km products agree there was little grid-scale acute rain on the documented spring dates**
 → the Apr–May miss is NOT a wrong-rainfall-product problem. **(3) Specificity-filter prototype**
 (`rainfall_specificity.py`): sweeps stringency k + antecedent dials; on both ERA5-Land and CHIRPS **no
-selective (<20% season) setting catches both events**. **(4) GPM IMERG sub-daily test**
-(`fetch_gpm_imerg.py`, half-hourly): **27 Apr E=0.0, 8 May E=1.09 (marginal)**, 26 Aug control E≈12 (method
-validated) → **rainfall is now CONCLUSIVELY RULED OUT**: three independent products (daily reanalysis, daily
-gauge-blend, half-hourly satellite) agree there was no acute spring triggering rain. Also: regional curve
-coefficients **VERIFIED** (literature triangulation + numeric reproduction). **(5) Spring conditioning**
-(`spring_conditioning.py`, EECU-free): per-elevation freeze-thaw (onset ~2500 m; valley/event level ~1540 m =
-**0** days → freeze-thaw works the upper source slopes) + chronic saturation (event-day wetness 33%/20% of
-season peak despite ~0 acute rain) → spring slopes were **PRIMED, not storm-triggered** (explains
-susceptibility, not the discrete date). **Next:** the remaining spring leads are **non-rainfall** → **GSI
-Bhukosh** for verified dates/coords + scored back-test; NHAI-construction angle. KPIs in committed
-`RESULTS_AND_KPIS.md` §12–§12f (+ §10–§11). Detail: §2 / §5._
+selective (<20% season) setting catches both events**. **(4) GPM IMERG sub-daily test** + **(5) spring
+conditioning** (`fetch_gpm_imerg.py`, `spring_conditioning.py`): on the *then-assumed* dates IMERG showed no
+burst, and per-elevation freeze-thaw (onset ~2500 m; valley/event ~1540 m = 0 days) + chronic saturation
+suggested "primed slopes." Regional curve coefficients **VERIFIED** (literature + numeric reproduction).
+**(6) ⭐ DATE CORRECTION — the validation win (§12g):** sourcing GSI revealed the *real* major April event was
+the **20 Apr 2025 cloudburst** (3 deaths; NH-44 washed out at 5 sites; 40 mm/3 hr, ~100 mm/1 hr) — **not** the
+news-derived 27 Apr our inventory used. **It WAS acute-rainfall-triggered and the model detects it** (regional
+curve Δ=0; IMERG **E=2.25**; back-test now **4/4** temporal). So the interim "rainfall ruled out" was a
+**wrong-date artifact**. Honest picture: **primed slopes + a 20 Apr cloudburst trigger — model captures
+both**; 8 May stays marginal; daily AOI-mean products dilute the localized cell (sub-daily/point rain
+resolves it). **Next:** the **GSI Bhukosh** inventory (verified dates/coords) for a scored back-test — the
+date correction shows exactly why this matters; + NHAI-construction angle. KPIs in committed
+`RESULTS_AND_KPIS.md` §12–§12g (+ §10–§11). Detail: §2 / §5._
 
 ---
 
@@ -347,25 +349,22 @@ plausible, **trigger timing not yet validated**. KPIs → `RESULTS_AND_KPIS.md` 
   freeze-thaw days** (AOI-mean temp never < 0 °C), back-test **still 0/2 temporal**. Diagnosis
   sharpened: the Apr–May miss is **ERA5-Land orographic rain under-count**, not missing snowmelt.
 
-**Recommended next (Session 10 ran the full rainfall investigation — RAINFALL IS CONCLUSIVELY RULED OUT):**
-1. ✅ **DONE — the rainfall-source question is CLOSED (3 independent products agree).** Regional I–D curve
-   done + **VERIFIED** (`--threshold nwhimalaya`; coefficients/units triangulated + numerically reproduced —
-   §12 verification block); **CHIRPS** fetched/screened/back-tested/specificity-analysed (§12d: drier than
-   ERA5-Land on the spring dates); **GPM IMERG** half-hourly sub-daily test (§12e: 27 Apr E=0.0, 8 May E=1.09
-   marginal, 26 Aug control E≈12). All three — daily reanalysis, daily gauge-blend, half-hourly satellite —
-   agree **there was no acute triggering rain on the documented spring dates**. So the spring trigger is
-   **NOT a rainfall problem.**
-   - ✅ **DONE — spring conditioning (`spring_conditioning.py`, §12f):** per-elevation freeze-thaw (lapse-rate
-     onto the DEM) shows onset ~2500 m while the valley/event level (~1540 m) = **0** freeze-thaw days → it
-     weakens the **upper source slopes above the road**; chronic saturation = event-day wetness 33%/20% of the
-     season peak despite ~0 acute rain. ⇒ spring slopes were **PRIMED, not storm-triggered** — explains
-     *susceptibility* but not the discrete date.
-   - The remaining spring leads are therefore **non-rainfall**: (a) **GSI Bhukosh inventory** for **verified
-     dates/coords** (news-derived dates may be imprecise — IMERG found a 20 Apr burst with *no* reported
-     failure) + a scored spatial back-test; (b) probe the **NHAI tunnel/road-construction** angle at
-     Digdol/Khooni Nallah; (c) refine §12f with ERA5-Land true orography if a *calibrated* freeze-thaw is
-     wanted. The verified regional curve is ready to become the default monsoon trigger when re-baselining the
-     `[MOCK]` KPIs (only residual: exact-digit confirm from the paywalled primary PDF).
+**Recommended next (Session 10 ran the full rainfall investigation; a DATE CORRECTION then flipped the
+conclusion to a validation win — §12g):**
+1. ✅ **DONE — rainfall investigation + the corrected conclusion.** Regional I–D curve done + **VERIFIED**
+   (`--threshold nwhimalaya`; §12 verification block); **CHIRPS** (§12d) + **GPM IMERG** (§12e) + **spring
+   conditioning** (§12f) all run. *Interim* reading was "rainfall ruled out (3 products agree no acute spring
+   rain); slopes merely primed." **CORRECTED (§12g):** the real major April event was the **20 Apr 2025
+   cloudburst** (3 deaths; NH-44 washed out at 5 sites; 40 mm/3 hr, ~100 mm/1 hr) — *not* the news-derived
+   27 Apr our inventory used. It **WAS acute-rainfall-triggered and the model detects it** (regional curve
+   Δ=0; IMERG **E=2.25**; back-test **4/4** temporal on the corrected inventory). So: **primed slopes + a
+   20 Apr cloudburst trigger — the model captures both**; 8 May stays marginal/priming-dominated; the daily
+   **AOI-mean** products dilute the localized cell (sub-daily/point rain resolves it). The verified regional
+   curve is ready to become the default acute trigger when re-baselining the `[MOCK]` KPIs.
+   - The next spring leads: (a) **GSI Bhukosh inventory** for **verified dates/coords** (the 20 Apr correction
+     shows *exactly* why this matters) + a scored precision/recall back-test; (b) make the regional curve
+     **selective** (it fires 112/214 days) + pair with sub-daily data for localized cells; (c) probe the
+     **NHAI tunnel/road-construction** angle at the documented sites.
 2. **Per-elevation freeze-thaw** — the AOI-mean masks high-slope freezing; needs per-cell ERA5-Land
    temperature + DEM elevation bands (the current freeze-thaw flag returns 0 by construction).
 3. ✅ **DONE (Session 9 cont.) — V_slope wired through the whole pipeline** as opt-in `--use-vslope`
@@ -493,15 +492,18 @@ Documentation ritual for 2026-06-02 (Session 10) — **all done**:
 - [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (gauge vs reanalysis; CHIRPS refuted; IMERG
       closes it) + **CF3 update (freeze-thaw resolved by elevation)**, interview Q, limitation bullets.
 - [x] **`RESULTS_AND_KPIS.md`** (committed) — §12 regional curve + verification (curve VERIFIED), §12b/§12c
-      CHIRPS + specificity, §12d CHIRPS REFUTED, §12e GPM IMERG → rainfall CLOSED, **§12f spring conditioning**.
-- [x] `workflows/fetch_gpm_imerg.py` + `workflows/spring_conditioning.py` (**new, uncommitted**).
+      CHIRPS + specificity, §12d CHIRPS, §12e IMERG, §12f spring conditioning, **§12g DATE CORRECTION → major
+      20 Apr cloudburst WAS rainfall-triggered + model detects it (corrects §12d–e)**; §12d/§12e flagged ↪corrected.
+- [x] `workflows/fetch_gpm_imerg.py` (+20 Apr event, corrected verdict) + `workflows/spring_conditioning.py`
+      (**new, uncommitted**); `data/inventory/ramban_documented_landslides.geojson` (+20 Apr cloudburst event).
 - [x] `README.md` — Step 6 (GEE auth) + forecasting run-sequence bullet (now incl. specificity + IMERG).
 - [x] **`SESSION_REVIEW.md`** (this file) — refreshed to current state for a clean cold start.
-- [ ] `error_history_log.md` — no new entry, but THREE reusable gotchas surfaced (worth an entry if you keep
-      one): (1) **native `ee`+numpy crashes hard on Windows** (exit 127, gRPC/MKL DLL conflict) → run GEE+numpy
-      scripts in the `insar` container, not native; (2) **Git Bash mangles `/app/...`** paths in
-      `docker compose run` → use container-RELATIVE paths; (3) keying a dict by `date` objects then looking up
-      with ISO strings silently misses → key by `.isoformat()`.
+- [x] `error_history_log.md` — TWO new committed entries: (a) **wrong inventory DATE inverted a conclusion**
+      (the 20 Apr cloudburst lesson — also in CLAUDE.md §5); (b) **native `ee`+numpy crashes on Windows**
+      (exit 127, gRPC/MKL) → run GEE+numpy in the container. Other inline gotchas: Git Bash mangles `/app/...`
+      → use container-relative paths; key dicts by `.isoformat()` not `date` objects.
+- [x] `CLAUDE.md` §5 — added the "verify ground-truth dates, never news-derived; a wrong date can invert a
+      conclusion" learning (git-ignored, so mirrored to the committed `error_history_log.md`).
 
 **Git state (user commits manually, in parallel).** Committed so far: `1c69fe7` (CHIRPS fetch + regional
 curve + specificity prototype) and `cf1d485` (CHIRPS-refuted result + verification). **STILL UNCOMMITTED at
@@ -516,10 +518,12 @@ suffixed trigger/specificity reports, `backtest_report.*` [restored to Caine bas
 `earthengine-api 1.7.29` in `insar_qa_env`; `insar` image rebuilt with earthengine-api; GEE token at
 `~/.config/earthengine/credentials`.
 
-**Recommended first action next session:** rainfall is **ruled out** (§12d/§12e) and spring conditioning is
-characterized (§12f: priming, not a discrete trigger) — both spring leads now point **off rainfall/weather**.
-Pick one of: (1) **GSI Bhukosh inventory** for **verified
-dates/coords** (the news-derived 27 Apr/8 May may be imprecise — IMERG found a 20 Apr burst with *no* reported
-failure) + a scored spatial back-test; (2) optionally probe the **NHAI construction** angle (Digdol/Khooni
-Nallah tunnelling). Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7). The verified
-`nwhimalaya` curve can become the default whenever you re-baseline the `[MOCK]` KPIs. See §5.
+**Recommended first action next session:** the spring picture is now **primed slopes + a 20 Apr cloudburst
+trigger, both captured by the model** (§12g — a date correction reversed the earlier "rainfall ruled out").
+The clear next step is **GSI Bhukosh** for **verified dates/coords** (the 20 Apr correction shows exactly why
+ground-truth dates matter) + a **scored** precision/recall back-test — note this needs YOUR manual portal
+download (login + interactive map; the portal is firewalled from the agent's environment). Then: make the
+regional curve **selective** (it fires 112/214 days) + pair with sub-daily IMERG for localized cells; probe
+the **NHAI construction** angle. Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7).
+The verified `nwhimalaya` curve can become the default acute trigger when re-baselining the `[MOCK]` KPIs.
+See §5.

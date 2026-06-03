@@ -697,9 +697,39 @@ freeze–thaw working the upper slopes) rather than hit by a single storm. That 
 that let go on those specific dates — so the next job is a **better, verified landslide record** (real dates
 and locations) and a look at the **road/tunnel construction** at those spots.
 
-**Plain-language result:** the spring slides look like **slowly-primed slopes** (soggy ground + freeze–thaw
-up high), not storm-triggered ones — a consistent, honest picture that points the last questions at the
-**landslide record and the construction**, not the weather.
+**Plain-language result:** the spring slides looked like **slowly-primed slopes** (soggy ground + freeze–thaw
+up high) — a consistent picture that pointed the last questions at the landslide record and the construction.
+*(But see Milestone 20 — checking the record next changed this answer.)*
+
+---
+
+## ✅ Milestone 20 — Checking the Record Flipped the Answer (a date was wrong)  *(Inventory date correction, 2026-06-02)*
+
+**What we set out to do:** start fetching the official Indian landslide record (GSI Bhukosh) to *verify* our
+findings with real, field-mapped dates and locations — the gold-standard check we'd been pointing toward.
+
+**The honest surprise — we'd had a date wrong.** The official portal needs a manual login (and is blocked
+from the tool's side), so we first verified the events against **peer-reviewed papers + news**. That revealed
+the **real deadly April event was a cloudburst on 20 April 2025** — three people killed at Seri Bagna, the
+highway washed away at five places, with **torrential rain (~100 mm in an hour locally)**. Our list had
+"27 April" (a news article written a week later) and **completely missed 20 April** — the actual disaster.
+
+**Why this matters — it reversed our conclusion (for the better):** we had earlier concluded the spring
+slides "weren't triggered by rain." But once we used the **correct date**, the picture flipped: **20 April
+WAS a violent rain event, and our system actually flags it** — both the Himalaya-tuned trigger line and the
+30-minute satellite rain catch it. In other words, *the warning system would have fired for the deadly
+event* — we'd just been checking it against the wrong day. The fuller, truer story is now **soaked slopes
+PLUS a cloudburst** working together, and the model sees both. (The smaller 8 May event still looks minor;
+and ordinary *daily-average* rain maps under-count these pinpoint cloudbursts, so you need the 30-minute data
+to see them.)
+
+**The real lesson (worth more than the result):** *a single wrong date in the record had inverted our
+finding.* We let the evidence overturn our own earlier conclusion — and it's a textbook argument for getting
+the **verified official landslide record (GSI Bhukosh)**, which is exactly the next step.
+
+**Plain-language result:** correcting one wrong date turned "rain didn't cause the spring slides" into "the
+deadly 20 April slide *was* a cloudburst — and our system catches it." A humbling, honest course-correction,
+and quietly a validation win.
 
 ---
 
@@ -714,12 +744,12 @@ thresholds replacing the mock weather (12)**, **real rain driving a time-resolve
 and a first **reality-check back-test against documented landslides (14)**. What remains is mostly
 *deepening trust* and *going live*:
 
-- **Spring-trigger cause — rainfall RULED OUT (M17–18), slope now understood as "slowly primed" (M19).**
-  Checked rain **three independent ways** (weather-model, gauge-blended CHIRPS, 30-minute GPM IMERG) — all
-  agree there was **no triggering downpour**; and the spring slopes were **slowly primed** (damp ground +
-  freeze–thaw up high), which explains *vulnerability* but not the exact trigger date. *Remaining leads (off
-  rain):* the official **GSI inventory** (~302 mapped slides) for **verified dates/places** + a properly-scored
-  test, and the **road/tunnel construction** angle at those exact spots.
+- **Spring-trigger cause — now understood as "primed slope + a cloudburst" (M17–20).** After checking rain
+  three ways and the slope conditioning, a **date correction (M20)** showed the deadly **20 April 2025
+  cloudburst** WAS rain-triggered and **our system catches it** — overturning an earlier "rain didn't do it"
+  reading that rested on a wrong date. *Remaining leads:* the official **GSI inventory** for **verified
+  dates/places** + a properly-scored test (*needs your manual portal download*), making the trigger line more
+  **selective**, and the **road/tunnel construction** angle.
 - **Better descending data for a true 3-D motion split.** Today's two descending tracks
   were rejected as too noisy (Milestone 10); the up/down-vs-sideways reconstruction waits
   on a longer unbroken series or point-like (persistent-scatterer) reflectors.

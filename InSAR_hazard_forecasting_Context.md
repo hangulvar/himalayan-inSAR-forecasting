@@ -77,24 +77,31 @@ NH-44 failures. We chased this to ground:
    flipped the back-test 0/2 → 2/2 but fired 112/214 days (sensitive, not selective).
 3. Swapped to **gauge rainfall (CHIRPS via GEE)** → *refuted*: CHIRPS is **drier** than ERA5-Land on the
    event days, not wetter.
-4. Tested **half-hourly GPM IMERG** for a sub-daily convective burst → none on the event days.
-5. **Conclusion (three independent products agree): there was no acute triggering rain on those dates.**
-   A per-elevation freeze-thaw + chronic-saturation analysis shows the spring slopes were **slowly
-   *primed*** (moisture + upslope freeze-thaw), not storm-triggered — which explains *susceptibility* but
-   not the *discrete trigger*.
+4. Tested **half-hourly GPM IMERG** for a sub-daily convective burst → none on 27 Apr / 8 May.
+5. **Interim conclusion (later corrected):** "three products agree — no acute spring rain." A
+   per-elevation freeze-thaw + chronic-saturation analysis showed the slopes were **slowly *primed***.
+6. ⭐ **DATE CORRECTION (the validation win, §12g):** sourcing GSI revealed the *real* major April event was
+   the **20 April 2025 cloudburst** (3 deaths; NH-44 washed out at 5 sites; **40 mm/3 hr, ~100 mm/1 hr**) —
+   *not* the news-derived 27 Apr our inventory used. The 20 Apr event **WAS acute-rainfall-triggered, and
+   the model detects it**: the regional curve flags it at **Δ=0** and sub-daily IMERG resolves the burst
+   (**E=2.25**). So the "rainfall ruled out" reading was an **artifact of a one-week date error**. Refined,
+   honest picture: **primed slopes + a 20 Apr cloudburst trigger → the failure, and the model captures
+   both.** (Standing caveat: daily *AOI-mean* products dilute the localized cell, so sub-daily/point rain is
+   what resolves it; the smaller 8 May event stays marginal/priming-dominated.) **Lesson: inventory-date
+   accuracy is critical** — which is precisely why the GSI verified-date inventory is the next push.
 
 **Where it's headed next (the direction):**
-- **Validation is now the #1 gate** (it always was — see "Path to Publication" below). The spring
-  question is **non-meteorological**, so the next move is the **GSI Bhukosh inventory** (~302 field-mapped
-  Ramban landslides) for *verified dates/coords*, a **scored precision/recall** back-test, and a check of
-  the **NHAI tunnel/road-construction** factor at the documented sites.
+- **Validation is the #1 gate** (it always was — see "Path to Publication" below). The 20 Apr correction
+  shows *why*: the next move is the **GSI Bhukosh inventory** (~302 field-mapped Ramban landslides) for
+  *verified dates/coords*, a **scored precision/recall** back-test, plus the **NHAI tunnel/road-
+  construction** factor at the documented sites.
 - **Then the standing accuracy backlog** (unchanged, still the path to a defensible tool): **12.5 m ALOS
   DEM**, **full spatiotemporal APS / lower the ~30 mm/yr floor**, **uncertainty quantification**,
   **calibrated soil parameters**, roll the ERA5-corrected velocity through the hazard chain, and the
   remaining physics borrows (K_sn, matric-suction FS).
-- **Then going live / polish:** real-time rainfall ingestion (the *monsoon* trigger, where the verified
-  regional curve IS the right tool — distinct from the ruled-out *spring* case), a hybrid-LLM narration
-  layer, and a hosted union 3-D dashboard.
+- **Then going live / polish:** real-time rainfall ingestion (the verified regional curve is the right
+  tool for acute triggers — it caught the 20 Apr cloudburst; pair with sub-daily IMERG since AOI-mean daily
+  products dilute localized cells), a hybrid-LLM narration layer, and a hosted union 3-D dashboard.
 
 **The throughline:** this has matured from "build the MVP" to "**stress-test what it claims, and rule
 things out honestly.**" Ruling rainfall out as the spring cause — with three independent datasets — is
@@ -504,14 +511,16 @@ a training corpus, soil-hydraulic parameters, and a long, dense time series we d
 epochs, ~3.5 months, single-look, ~30 mm/yr floor) — forcing it would manufacture the over-confident,
 physically-implausible output the literature itself warns about. **Adopt these four, in priority:**
 
-1. ★★★ **Snowmelt + freeze-thaw triggers** — ✅ **DONE (Session 9–10), with an *honest negative* that
-   reframed the whole question.** Added the snowmelt + 2 m-temperature driver and a per-elevation
-   freeze-thaw analysis. Result: snowmelt (59 mm) is far too small to trigger, and — pursued further —
-   **rainfall of *any* product (ERA5-Land, CHIRPS, half-hourly IMERG) shows no acute trigger on the
-   Apr–May 2025 dates** (see the "Update — 2026-06-02" block). The spring slopes were *primed* (chronic
-   saturation + upslope freeze-thaw), not storm-triggered. So this did **not** "fix the miss" — it
-   **ruled rainfall out** as the spring cause, redirecting to the inventory/validation track. (Original
-   hypothesis here — "snowmelt fixes the Apr–May miss" — is now **disproved**; kept for honesty.) [Area 3/4]
+1. ★★★ **Snowmelt + freeze-thaw + the full rainfall investigation** — ✅ **DONE (Session 9–10), with a
+   conclusion that was itself corrected.** Snowmelt (59 mm) is too small to trigger; per-elevation
+   freeze-thaw + chronic saturation show the slopes were *primed*. The rainfall products initially looked
+   like "no acute spring trigger" — **but that was against the wrong inventory dates.** The DATE CORRECTION
+   (§12g / "Update — 2026-06-02" block) found the real major event was the **20 Apr 2025 cloudburst**, which
+   **was** acute-rainfall-triggered and **the model detects** (regional curve Δ=0; IMERG E=2.25). So the
+   honest result: **primed slopes + a cloudburst trigger** — the model captures both; the smaller 8 May
+   event is priming-dominated; and the daily AOI-mean products dilute the localized cell (sub-daily/point
+   rain resolves it). (Original hypothesis "snowmelt fixes the Apr–May miss" is disproved; the *interim*
+   "rainfall ruled out" is also corrected — kept for honesty.) [Area 3/4]
 2. ★★★ **Slope-parallel velocity projection (V_slope)** — ✅ **DONE (Session 9).** Projects LOS onto the
    downslope direction (DEM slope + aspect); quantified the single-look **blind spot (24–42 %)** and
    improved cross-geometry corroboration (≥2-look HIGH +37 %). Wired opt-in (`--use-vslope`); LOS stays
@@ -536,10 +545,11 @@ with a **simple RF / logistic susceptibility on the GSI inventory** (Area 4), no
 1. ✅ **Finish MintPy + ERA5** (Area 1) — also unlocked SVD/DESC for Area 2. *(DONE.)*
 2. ✅ **Inverse-velocity time-to-failure** (Area 3) — hazard → forecast from existing data. *(DONE.)*
 3. ✅ **Live rainfall + ID thresholds** (Areas 3/5) — ERA5-Land + **verified regional curve** + **CHIRPS**
-   + **half-hourly GPM IMERG** (all via GEE). *(DONE — and it produced the key finding that the Apr–May
-   2025 spring failures are NOT acute-rainfall-driven; three independent products agree.)*
+   + **half-hourly GPM IMERG** (all via GEE). *(DONE — and after a date correction (§12g) the key finding
+   is that the major **20 Apr 2025 cloudburst** WAS acute-rainfall-triggered and the model detects it;
+   the daily AOI-mean products dilute the localized cell, so sub-daily/point rain is what resolves it.)*
 4. ✅ **Snowmelt/freeze-thaw + V_slope** (Area 7 #1–2) + **per-elevation freeze-thaw / chronic saturation**.
-   *(DONE — see #3; the spring slopes were primed, not storm-triggered.)*
+   *(DONE — see #3; primed slopes + the 20 Apr cloudburst trigger, the model captures both — §12g.)*
 5. ★ **NEXT — Inventory validation (the #1 publication gate): GSI Bhukosh** (~302 field-mapped Ramban
    landslides) for *verified dates/coords* + a **scored precision/recall** back-test (Area 4); check the
    **NHAI-construction** factor at the documented sites. *(This is the current next push.)*
@@ -551,8 +561,8 @@ with a **simple RF / logistic susceptibility on the GSI inventory** (Area 4), no
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall,
 soil moisture, and a validated landslide inventory — never trust a single sensor or a
-single physics assumption. *(Sessions 9–10 lived this: three independent rainfall products were needed
-to confidently rule rainfall out as the spring trigger.)*
+single physics assumption — **and never trust a single inventory date:** a one-week error (27 Apr vs the
+real 20 Apr cloudburst) had inverted the spring conclusion until the date was corrected (§12g).*
 
 ---
 

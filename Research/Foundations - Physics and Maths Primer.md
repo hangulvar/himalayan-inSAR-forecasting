@@ -746,9 +746,10 @@ around ~2,500 m** and strengthens upward, while the road/failure sites in the **
 see zero**. So freeze-thaw works the **higher source slopes above the road**, not the road itself. And the
 ground was **moderately wet** on both 2025 event days (≈33 % / 20 % of the season's peak wetness) from
 snowmelt + earlier rain — even with no rain that day. Net picture: the spring slopes were **slowly primed**
-(damp + freeze-thaw aloft), not storm-triggered — a *mechanistic* story, honestly tagged as first-order
-(constant lapse rate, reference height = DEM mean), that explains *vulnerability* but not the exact failure
-date.
+(damp + freeze-thaw aloft) — a *mechanistic* story, honestly tagged as first-order (constant lapse rate,
+reference height = DEM mean), that explains *vulnerability*. (Subsequent date correction, CF5/Milestone 20:
+the major 20 Apr event then *was* tipped over by a cloudburst — so the full picture is **primed slope +
+acute trigger**, not priming alone.)
 
 ## CF4. Slope-parallel velocity (V_slope) — reading the motion downhill
 
@@ -821,15 +822,18 @@ smaller than the pixel) or if the spring failures simply weren't acute-rainfall-
 ground, construction, fuzzy dates). The honest redirection: finer/faster rain (GPM IMERG, 0.1°/30-min) or a
 chronic-saturation framing — not another daily gauge product. (Milestone 17.)
 
-**So we tested the sub-daily angle too — and closed the question.** GPM IMERG measures rain every 30 minutes,
-so it sees short convective bursts a *daily* total averages away. Screening the peak short-duration intensity
-against the curve (and using the big 26 Aug storm as a positive control — it crossed at E≈12, validating the
-method): **27 Apr was dry (E=0), 8 May only grazed the line over 3 h (E=1.09) with sub-hourly peaks below it
-— no cloudburst.** So **three independent products — daily reanalysis, daily gauge-blend, and half-hourly
-satellite — all agree** there was no triggering downpour on the spring failure days. The rainfall hypothesis
-is *definitively* rejected; the cause is more likely snowmelt-soaked ground, construction disturbance, or
-imprecise reported dates. The lesson: a good negative result, triangulated across independent measurements,
-is as valuable as a positive one — it stops you optimizing the wrong dial. (Milestone 18.)
+**So we tested the sub-daily angle too — and then a date check overturned the answer (the honest part).**
+GPM IMERG measures rain every 30 minutes, so it sees short convective bursts a *daily* total averages away.
+On the dates our inventory listed (27 Apr dry, 8 May only grazing the line), IMERG showed no cloudburst — so
+we *first* concluded rainfall was ruled out. **But sourcing a better inventory revealed the real major event
+was the 20 April 2025 cloudburst** (3 deaths, NH-44 destroyed at 5 sites, ~100 mm/1 hr) — a date our
+news-derived list had *wrong*. Re-screened, **20 Apr is a clear crossing (E=2.25)** and the regional curve
+flags it at Δ=0 — so the deadly spring event **WAS rainfall-triggered, and the model catches it.** What
+survives from the "negative" is only the *measurement* lesson: the daily **AOI-mean** products dilute a
+localized cell, so you need **sub-daily / point** rain (IMERG) to see it. The refined picture: **primed
+slopes + a cloudburst trigger**, model captures both. The deeper lesson: triangulating across datasets is
+good, but **a single wrong inventory date can invert your conclusion** — verify the ground truth.
+(Milestones 18–20.)
 
 ---
 
@@ -981,16 +985,18 @@ map exactly where. For the rest, projecting recovers the part the radar missed (
 about the one-track limit and is the cheap stand-in for the full ascending+descending decomposition.
 
 **Q: You added snowmelt to fix the spring miss — did it work?**
-A: No — and chasing *why* became the most interesting result in the project. Snowmelt was only ~59 mm
-(vs 1,350 mm rain), too small to trigger; that pointed at the rainfall *record* under-counting cloudbursts,
-so I tested that too — a regional trigger curve (caught the events but over-fired), then gauge rain
-(**CHIRPS**), then half-hourly **GPM IMERG**. The twist: the gauge and sub-daily products showed *even less*
-rain on the event days, not more. So **three independent rainfall datasets agree there was no triggering
-downpour** (CF5) — rainfall is *ruled out*, not pinpointed. Then I made the temperature elevation-aware
-(Milestone 19): freeze-thaw only switches on above ~2,500 m, not at the valley road. The honest end-point:
-the spring slides were **slowly *primed*** (damp ground + freeze-thaw on the upper slopes), not
-storm-triggered — so the next questions are the landslide *record* (verified dates) and ground disturbance,
-not the weather. Ruling a whole class of cause out, with independent data, is real scientific progress.
+A: It became the project's best lesson in scientific honesty. Snowmelt (~59 mm) was too small to trigger,
+which pointed at the rainfall *record*, so I tested a regional trigger curve, then gauge rain (**CHIRPS**),
+then half-hourly **GPM IMERG**. On the dates my inventory listed (27 Apr / 8 May) all three showed little
+rain, so I *first* concluded rainfall was ruled out and the slopes were merely "primed." **Then, sourcing a
+better landslide inventory, I found my dates were wrong** — the real deadly event was the **20 April 2025
+cloudburst** (3 deaths, NH-44 destroyed, ~100 mm/1 hr). Re-checked, **20 Apr is a clear rainfall trigger**
+(IMERG E=2.25; the regional curve flags it at Δ=0) — so the major spring failure **was** rainfall-driven and
+the model catches it. The refined, honest answer: **primed slopes + a cloudburst trigger**, model captures
+both; the smaller 8 May event stays marginal; and the daily *AOI-mean* products under-read the localized
+cell (so you need sub-daily/point rain). The meta-lesson I'd lead with in an interview: I let the evidence
+**reverse my own published conclusion** — and a single wrong inventory date was what had flipped it, which is
+exactly why verified ground truth (GSI Bhukosh) is the next step.
 
 ---
 
@@ -1019,18 +1025,19 @@ Being able to state weaknesses is what makes you credible.
   threshold dial we **switched the conservative global Caine curve for the published NW-Himalaya regional
   curve** — which flipped the spring back-test 0/2 → 2/2 — but it fires on **112/214 days** (sensitive, not
   selective), so a return-period/antecedent filter is still needed. On the measurement dial we **ran the
-  gauge product CHIRPS (Milestone 17) and it was *drier* than ERA5-Land** on the event dates (27 Apr 0.0 mm,
-  8 May 4.2 mm) — so two independent ~5–9 km products agree there was little grid-scale acute rain when the
-  slopes failed. That **rules grid rainfall out** as the spring-trigger fix and points to sub-grid
-  convection (GPM IMERG) or a chronic snowmelt-saturation framing. The real wetness IS coupled into the FS
-  (Milestone 13).
-- **Validation is first-pass (Milestone 14, refined 17):** the back-test shows the map flags the right
-  corridor (8/9 documented NH-44 hotspots within ~2 km). The rainfall-trigger *timing* miss (0/2 on
-  Caine; Apr–May events vs a 26 Aug pick) was **largely a threshold problem**: the regional curve (CF5)
-  now gives 2/2 — but that coincidence is partly automatic given 112 trigger days, so it is **not yet a
-  rigorous pass**. Inventory coords are approximate; a *scored* precision/recall test needs the GSI
-  Bhukosh inventory (~302 mapped Ramban slides), and a *selective* acute trigger still needs CHIRPS
-  precision plus a how-rare-is-this-rain filter.
+  gauge product CHIRPS (Milestone 17) and it was *drier* than ERA5-Land** on the (then-assumed) event dates.
+  **Date correction (Milestone 20):** the real major event was the **20 Apr 2025 cloudburst**, which the
+  regional curve + sub-daily IMERG *do* flag (E=2.25) — so the spring trigger is **not** ruled out; the daily
+  *AOI-mean* products just dilute the localized cloudburst cell (sub-daily/point rain resolves it). Refined
+  open item: make the regional curve *selective* (still over-fires) and use sub-daily data for localized
+  cells. The real wetness IS coupled into the FS (Milestone 13).
+- **Validation is first-pass + self-corrected (Milestones 14, 17, 20):** the back-test flags the right
+  corridor (10/11 documented NH-44 hotspots within ~2 km). On the corrected inventory the regional curve
+  gives **4/4** temporal and **catches the major 20 Apr cloudburst at Δ=0** — but that coincidence is partly
+  automatic (the curve fires 112/214 days), so it is **not yet a rigorous pass**. A one-week inventory-date
+  error had earlier flipped the spring conclusion, which is exactly why a *scored* precision/recall test on
+  the **GSI Bhukosh** inventory (verified dates/coords) is the next step; a *selective* acute trigger still
+  needs a how-rare-is-this-rain filter + sub-daily data for localized cells.
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.

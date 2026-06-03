@@ -17,10 +17,10 @@ the old one *(superseded)* — do not delete it.
 
 _Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`) — added §12 regional Himalayan I–D
 curve (the temporal-miss fix), §12b/§12c CHIRPS plumbing + specificity prototype, **§12d — CHIRPS RAN, gauge
-hypothesis REFUTED**, **§12e — GPM IMERG sub-daily test: rainfall question CONCLUSIVELY CLOSED** (three
-independent products agree there was no acute spring rain), and **§12f — spring conditioning** (per-elevation
-freeze-thaw + chronic saturation = priming, not an acute trigger). Prior: §10 slope-parallel velocity
-(V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
+hypothesis REFUTED**, §12e — GPM IMERG sub-daily test, §12f — spring conditioning (priming), and **§12g — inventory DATE
+CORRECTION: the major spring event (20 Apr cloudburst) WAS rainfall-triggered and the model detects it —
+correcting §12d–e's "rainfall ruled out" (it was a wrong-date artifact)**. Prior: §10 slope-parallel
+velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
 
 ---
 
@@ -266,10 +266,10 @@ heavy rain/mudslides), *not* by missing snowmelt water → next fix is the **gau
 (CHIRPS/GPM) + a regional Himalayan I–D curve** (Area 7 #3, deferred). Snowmelt's genuine role is
 **chronic spring saturation**, visible in the timeline, not as an acute trigger.
 
-> **↪ Subsequently resolved (§12d–§12f):** the "gauge product is the next fix" hypothesis above was then
-> *tested and refuted* — CHIRPS and half-hourly GPM IMERG showed *even less* rain on the event days, so
-> **rainfall is ruled out** as the spring trigger (three independent products agree). Snowmelt's chronic-
-> saturation role was confirmed quantitatively in §12f (per-elevation freeze-thaw + antecedent wetness).
+> **↪ Subsequently resolved (§12d–§12g):** the "gauge product is the next fix" hypothesis was tested
+> (CHIRPS + IMERG showed *even less* rain on the then-assumed dates) — but a **date correction (§12g)** then
+> showed the real major event (20 Apr cloudburst) WAS rainfall-triggered and the model detects it; the daily
+> *AOI-mean* dilution is the genuine limitation. Snowmelt's chronic-saturation role was confirmed in §12f.
 
 ---
 
@@ -396,6 +396,10 @@ spring events sit **further below** the regional line than on ERA5-Land. Specifi
 back-test reads 2/2 only because the over-sensitive raw trigger fires on *nearby* days (27 Apr Δ4, 8 May
 Δ7) — the event days themselves never trigger.
 
+> **↪ CORRECTED by §12g:** "the exact event dates" here were the *wrong* dates (27 Apr / 8 May). On the real
+> major date (20 Apr) the rain WAS extreme; the daily AOI-mean still under-reads it (localized cell), so the
+> *measurement* point holds, but "rainfall not the cause" was wrong — see §12g.
+
 **Finding (the decisive honest negative):** the gauge swap is **REFUTED by the data** — CHIRPS does not
 resolve the spring bursts; it records *less* acute rain than ERA5-Land on the exact event dates. **Two
 independent ~5–9 km products (reanalysis + satellite-gauge) agree there was little grid-scale acute rain
@@ -425,16 +429,21 @@ triggers a slope but shows only as a modest daily total. EECU-frugal (event wind
 | 20 Apr (no failure) | 27.1 | 6.55 | 6.19 | 4.28 | **2.25** | clear crossing |
 | **26 Aug control** | — | 21.2 | 20.5 | 16.7 | **12.3** | clear crossing (method validated) |
 
+> **↪ CORRECTED by §12g (2026-06-02):** the "no acute spring rain / not rainfall-driven" reading below was
+> an **artifact of imprecise news dates** — the real major event was the **20 Apr 2025 cloudburst**, which
+> IMERG flags at **E=2.25 (clear crossing)** and which *was* acute-rainfall-triggered. The daily-product
+> *measurement* limitation (AOI-mean dilutes the localized cell) stands; the *interpretation* was wrong.
+
 **Finding (conclusive):** on the documented event days, IMERG sub-daily intensity does **not** clearly cross
 the regional threshold — **27 Apr is bone-dry (E=0.0)** and **8 May only marginally touches at 3 h (E=1.09)**
 with sub-hourly peaks *below* the line. The 26 Aug control crosses massively (E≈12 — method validated), and a
 genuine burst on **20 Apr (E=2.25) produced no reported failure**. So **three fully independent products —
 daily reanalysis (ERA5-Land), daily satellite-gauge (CHIRPS), and half-hourly satellite (IMERG) — all agree
 there was no acute triggering rainfall on the documented spring 2025 NH-44 failure dates.** The "Apr–May miss
-is a rainfall-data problem" hypothesis is **definitively rejected**. The spring failures are very likely
-**not acute-rainfall-driven**: chronic snowmelt/antecedent saturation (per §11's spring FS timeline), NHAI
-tunnel/road construction at Digdol/Khooni Nallah, or imprecise news-derived event dates — those are the
-remaining hypotheses. Outputs: `data/rainfall/imerg_subdaily_report.{json,md}`, `imerg_subdaily.png`,
+is a rainfall-data problem" hypothesis is **definitively rejected** *(later CORRECTED — §12g: this rested on
+the wrong dates)*. The spring failures are very likely **not acute-rainfall-driven**: chronic
+snowmelt/antecedent saturation (per §11's spring FS timeline), NHAI tunnel/road construction at Digdol/Khooni
+Nallah, **or imprecise news-derived event dates** — *this last one proved correct (§12g)*. Outputs: `data/rainfall/imerg_subdaily_report.{json,md}`, `imerg_subdaily.png`,
 cached `imerg_raw_*.csv`.
 
 ## 12f. Spring conditioning — per-elevation freeze-thaw + chronic saturation (the non-acute mechanism)  `[REAL / MODELED]`
@@ -468,6 +477,41 @@ construction; GSI-verified dates) live. *Scope `[MODELED]`: lapse-rate downscali
 ELR; z_ref = DEM-mean — ERA5-Land orography would refine it); freeze-thaw elevations ±few-hundred m;
 mechanistic framing, not a calibrated trigger.* Outputs: `data/rainfall/spring_conditioning_report.{json,md}`,
 `spring_conditioning.png`.
+
+## 12g. Inventory date correction — the major spring event WAS rainfall-triggered (a validation win)  `[REAL / MEASURED]`
+
+Source: literature review (peer-reviewed + news) → corrected `data/inventory/ramban_documented_landslides.geojson`
+→ re-run `backtest_inventory.py` + `fetch_gpm_imerg.py`. 2026-06-02. **This corrects §12d–§12f's framing.**
+
+While sourcing GSI Bhukosh (which needs a manual portal login — see SESSION_REVIEW), the literature revealed
+the **real major April 2025 event was the 20 April cloudburst** — *not* the news-derived 27 Apr / 8 May our
+inventory had used. The **20 Apr 2025 Ramban cloudburst** (night 19–20 Apr; Karol→Marog; Seri Bagna **3
+deaths**; NH-44 washed out at ~5 sites; documented **~100 mm/1 hr localized, 40 mm/3 hr, 60–140 mm/day**) is
+peer-reviewed (Springer *Landslides* 2025, doi 10.1007/s10346-025-02580-1; ScienceDirect 2026) — **and it was
+acute-rainfall-triggered.**
+
+**Back-test vs the corrected inventory (11 locations, 4 dated events):**
+
+| trigger | spatial | temporal | 20 Apr (major) |
+|---|---|---|---|
+| Caine (global) | 10/11 | **0/4** | MISS (only fires 26 Aug) |
+| Regional `nwhimalaya` | 10/11 | **4/4** | **COINCIDES Δ=0 (a trigger day)** |
+
+IMERG sub-daily screen on the event days: **20 Apr E=2.25 (clear crossing)**, 27 Apr E=0.0 (dry → confirms
+it was mis-dated), 8 May E=1.09 (marginal).
+
+**Corrected finding (supersedes the §12d–e "rainfall ruled out" reading):** the **major, deadly spring
+event WAS acute-rainfall-driven, and the model detects it** — the regional I–D curve flags 20 Apr at Δ=0
+*and* (independently, so not just a specificity artifact) IMERG resolves a genuine sub-daily burst there
+(E=2.25). The earlier "three products agree no acute spring rain / rainfall ruled out" was an **artifact of
+an imprecise news date** (27 Apr) — we had been validating against the wrong day. What remains true from
+§12d: the **daily AOI-mean** products (ERA5-Land 27 mm, CHIRPS) *under-read* the 20 Apr cloudburst because it
+was a **localized cell diluted by AOI-averaging** — so the *measurement* lesson stands (sub-daily/point data,
+not daily AOI-mean, resolves it), but the *interpretation* (not rainfall-driven) was wrong. The smaller
+**8 May** event stays marginal/priming-dominated. **Synthesis:** primed slopes (§12f) **+** a 20 Apr
+cloudburst trigger = the failure — the model captures *both*. **Methodological lesson:** inventory-date
+accuracy is critical — a one-week error had inverted the conclusion; this is exactly why the GSI Bhukosh
+verified-date inventory matters. Outputs: refreshed `backtest_report.*`, `imerg_subdaily_report.*`.
 
 ---
 

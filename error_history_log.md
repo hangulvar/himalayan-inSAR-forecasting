@@ -23,6 +23,39 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-06-02] Validation error of judgement — a wrong inventory DATE inverted a scientific conclusion
+
+* **Symptom:**
+  The back-test concluded the documented **Apr–May 2025** NH-44 spring failures were **not** rainfall-
+  triggered: on the inventory's dates (27 Apr / 8 May) ERA5-Land, CHIRPS, and half-hourly IMERG all showed
+  little/no acute rain, so we wrote "rainfall ruled out; the slopes were merely *primed*." This was
+  **published into the committed ledger and the primer** before it was found to be wrong.
+
+* **Root Cause:**
+  The landslide inventory used **news-derived, approximate event dates** with no field/authoritative
+  verification. The real major April event was the **20 April 2025 Ramban cloudburst** (peer-reviewed —
+  Springer *Landslides* 10.1007/s10346-025-02580-1; 3 deaths at Seri Bagna; NH-44 washed out at 5 sites;
+  **40 mm/3 hr, ~100 mm/1 hr localized**). Our inventory had **27 Apr** — which was merely the *publication
+  date* of a follow-up news article about the 20 Apr disaster — and **omitted 20 April entirely**. Two
+  compounding traps: (a) confusing an article's *publication* date with the *event* date; (b) a localized
+  cloudburst cell is **diluted by AOI-mean** rainfall (ERA5-Land logged only ~27 mm AOI-mean on 20 Apr), so
+  the daily area-average looked benign even though point rainfall was extreme.
+
+* **Resolution:**
+  Cross-checked the events against peer-reviewed papers + multiple news sources, corrected the inventory
+  (added the 20 Apr cloudburst at Seri Bagna + Kela Morh; flagged the 27 Apr entry low-confidence), and
+  re-ran. **The conclusion reversed:** temporal back-test **Caine 0/4 → regional 4/4** with 20 Apr at
+  **Δ=0**, and the IMERG sub-daily screen on 20 Apr is a **clear crossing (E=2.25)** — so the deadly event
+  *was* acute-rainfall-triggered and the model *does* detect it (the AOI-mean daily products just under-read
+  the localized cell; sub-daily/point rain resolves it). Documented openly (append-don't-overwrite): new
+  `RESULTS_AND_KPIS.md` **§12g** + ↪corrected pointers on §11/§12d/§12e; corrected README, primer, Context,
+  inventory GeoJSON, and the two scripts. **Lessons:** verify event dates/coords against authoritative
+  sources (GSI Bhukosh) before trusting a back-test; separate publication-date from event-date; use
+  sub-daily/point rain (not AOI-mean) before declaring "no rain"; and revise a documented conclusion openly
+  when the evidence changes. (Also in `CLAUDE.md` §5.)
+
+---
+
 ### [2026-06-02] Native `earthengine-api` + numpy/matplotlib crashes hard on Windows (exit 127) → run GEE+numpy scripts in the container
 
 * **Symptom:**

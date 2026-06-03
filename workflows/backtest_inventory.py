@@ -178,11 +178,12 @@ def write_md(path: Path, r: dict) -> None:
               "- Inventory coordinates here are **approximate place-centroids from public reporting**, "
               "not field-mapped scarps — replace with the GSI Bhukosh georeferenced inventory for a "
               "rigorous spatial back-test (this tool ingests it unchanged).",
-              "- The analysis window starts 2025-04-01 (to cover the documented 27 Apr event) and the "
-              "trigger runs on WATER = rain + snowmelt. NOTE (RESULTS_AND_KPIS.md §12d-f): the rainfall "
-              "source was subsequently stress-tested — ERA5-Land, CHIRPS, AND half-hourly GPM IMERG all "
-              "agree there was no acute triggering rain on the spring dates, so the Apr-May temporal miss "
-              "is NOT a rainfall-product problem; those events were not acute-rainfall-driven."]
+              "- Window starts 2025-04-01; trigger runs on WATER = rain + snowmelt. KEY NOTE "
+              "(RESULTS_AND_KPIS.md §12g): a DATE CORRECTION found the real major April event was the "
+              "20 Apr 2025 Ramban cloudburst (3 deaths) — which WAS acute-rainfall-triggered and the model "
+              "catches (regional curve Delta=0; IMERG E=2.25). An earlier 'rainfall ruled out' reading was a "
+              "wrong-date artifact (news-derived 27 Apr). Caveat: daily AOI-mean products dilute the "
+              "localized cloudburst cell, so sub-daily/point rain is what resolves it."]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
