@@ -20,7 +20,9 @@ curve (the temporal-miss fix), §12b/§12c CHIRPS plumbing + specificity prototy
 hypothesis REFUTED**, §12e — GPM IMERG sub-daily test, §12f — spring conditioning (priming), and **§12g — inventory DATE
 CORRECTION: the major spring event (20 Apr cloudburst) WAS rainfall-triggered and the model detects it —
 correcting §12d–e's "rainfall ruled out" (it was a wrong-date artifact)**. Prior: §10 slope-parallel
-velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger._
+velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger. Also **§13 — tropospheric-
+correction method comparison** (none vs ERA5 vs empirical height-correlation; ERA5 −31 % scatter, a
+Bekaert/TRAIN-style attack on the ~30 mm/yr noise floor)._
 
 ---
 
@@ -512,6 +514,35 @@ not daily AOI-mean, resolves it), but the *interpretation* (not rainfall-driven)
 cloudburst trigger = the failure — the model captures *both*. **Methodological lesson:** inventory-date
 accuracy is critical — a one-week error had inverted the conclusion; this is exactly why the GSI Bhukosh
 verified-date inventory matters. Outputs: refreshed `backtest_report.*`, `imerg_subdaily_report.*`.
+
+---
+
+## 13. Tropospheric-correction method comparison (the ~30 mm/yr noise floor)  `[MEASURED]`
+
+Source: `workflows/compare_tropo_methods.py` over 3 MintPy runs on frame106 (`run_mintpy_era5_f106.sh` =
+ERA5; `run_mintpy_height_f106.sh` = empirical; step-2 = none), same **3,109** coh≥0.7 pixels. 2026-06-03.
+A **Bekaert et al. (2015, "TRAIN")**-style statistical comparison — the concrete attack on the noise floor,
+prompted by reviewing the TRAIN toolbox (kept Python-native; MintPy ships these methods, so no MATLAB).
+
+| method | velocity std (mm/yr) | Δ scatter | r vs custom (raw) | r (high-pass) | RMS off-rm |
+|---|---|---|---|---|---|
+| **none** (no correction) | 30.5 | — | +0.419 | +0.459 | 33.1 |
+| **ERA5** (weather model; pyaps) | **21.0** | **−31 %** | **+0.587** | **+0.545** | **25.2** |
+| **height-correlation** (empirical, topo-correlated; Doin 2009) | 30.6 | ~0 % | +0.547 | +0.523 | 29.3 |
+
+**Finding:** **ERA5 is decisively the best on every metric** (scatter 30.5 → 21.0 mm/yr, −31 %; agreement
++0.42 → +0.59) — it confirms and quantifies the project's already-adopted choice. The **empirical
+height-correlation** correction **improves cross-engine agreement** (r +0.42 → +0.55, RMS 33 → 29) but
+**barely reduces scatter** (30.5 → 30.6) — textbook behaviour: it removes only the *stratified*
+(elevation-correlated) delay, so the two SBAS engines agree more, but it leaves the *turbulent* atmosphere
+that dominates the noise floor here. So the floor is **turbulence-dominated, not stratified** — a
+weather-model (ERA5/GACOS) correction is required; the cheap topo-only method is insufficient. This is a
+reviewer-grade "we compared correction methods" result (publication bar #4). Outputs:
+`data/mintpy/tropo_method_comparison.{json,md,png}`, `mintpy_out/velocity_mintpy_height.tif`.
+
+**References:** Bekaert et al. (2015) *Remote Sens. Environ.* 170:40-47 (TRAIN) · Doin et al. (2009)
+*J. Appl. Geophys.* 69:35-50 (height-correlation) · Jolivet et al. (2011) *GRL* 38:L17311 + Hersbach et al.
+(2020) (ERA5/pyaps) · Yunjun et al. (2019) *Comput. Geosci.* 133:104331 (MintPy).
 
 ---
 

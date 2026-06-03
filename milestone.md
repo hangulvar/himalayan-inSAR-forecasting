@@ -733,6 +733,39 @@ and quietly a validation win.
 
 ---
 
+## ✅ Milestone 21 — Three Ways to Scrub the Haze: Which Works Best?  *(Tropospheric-correction comparison, 2026-06-03)*
+
+**What we set out to do:** our biggest measurement weakness is a ~30 mm/yr "fuzziness" floor caused mostly by
+the **atmosphere** (the air bends the radar signal differently on each pass). A reader pointed us to a
+well-known toolkit (**TRAIN**) for cleaning this up. It's written in MATLAB (a different language from our
+tools), so rather than bolt it on, we did the *experiment it's famous for* — **compare the cleaning
+methods** — using tools we already have (MintPy, in Python).
+
+**What we did, plainly:** we ran the same data three ways and measured how "quiet" each result is and how
+well it agrees with our own independently-built engine:
+1. **No cleaning** (baseline).
+2. **Weather-model cleaning** — download the actual weather (ERA5) for each radar pass and subtract the delay it caused.
+3. **Cheap shortcut cleaning** — just assume the haze tracks *elevation* and fit that from the data (no weather download).
+
+**What we found:**
+- The **weather-model (ERA5)** method is the clear winner: it cut the fuzziness by **31%** (from ~30 to
+  ~21 mm/yr) and made our two independent engines agree much better.
+- The **cheap shortcut** barely reduced the fuzziness — though it *did* improve agreement a bit. The reason
+  is neat: the haze has two parts, one that tracks **elevation** (which the shortcut removes) and one that's
+  **random weather swirl** (which it can't). Here the *random* part dominates — so only the real weather
+  model can clean it.
+
+**Why this matters:** it **confirms, with numbers, that the weather-model correction we already adopted is
+the right call** — and shows *why* the cheaper trick isn't enough here. That's exactly the kind of
+"we tried the alternatives and measured them" evidence that reviewers expect, and it directly strengthens
+the part of the project that was weakest (the noise floor) — without adding a new language or toolchain.
+
+**Plain-language result:** of three haze-cleaning recipes, the **real-weather one wins (−31% noise)**; the
+cheap elevation-only shortcut can't touch the random weather swirl that dominates here. A tidy, measured win
+for the part of the project that needed it most.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

@@ -613,6 +613,20 @@ pixels) and **cut MintPy's velocity scatter from ~39 to ~21 mm/yr** — direct e
 that the atmosphere, not real ground motion, dominated the earlier disagreement. Two
 independent SBAS implementations now corroborate each other at r≈0.55–0.59.
 
+**Two flavours of atmosphere (Milestone 21 — the method comparison).** The air delay has
+two parts: a **stratified** part that tracks *elevation* (thicker air column lower down —
+think haze that's denser in the valley), and a **turbulent** part (random weather swirls).
+There are two ways to remove it: a **weather-model** correction (ERA5) that models the *real
+3-D air* that day, or a cheap **empirical "height-correlation"** correction (Doin 2009 — the
+same idea as the TRAIN toolbox's *power-law* method) that just fits delay-vs-elevation from
+the radar data, no weather needed. We compared all three (none / ERA5 / height-correlation)
+on the *same* pixels: **ERA5 cut the scatter 31 %** (30.5 → 21 mm/yr); the empirical method
+*improved agreement* between the two engines but **barely moved the scatter** — because it
+only removes the *stratified* part, leaving the *turbulent* haze that actually dominates our
+floor. Lesson: here you **need the weather model**; the cheap topo-only trick isn't enough.
+(This is the kind of "we compared correction methods" check reviewers look for — Bekaert et
+al. 2015.)
+
 ---
 
 ## CT4. Disconnected networks, SVD, and the courage to discard a stack

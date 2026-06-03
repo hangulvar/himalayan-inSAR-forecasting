@@ -5,9 +5,16 @@ dashboard, **overwritten at the end of each working session** to always reflect
 the *current* state — not a historical log. (For history, see
 `session_journey.md`.)
 
-_Last updated: 2026-06-02 (Session 10, branch `mvp-expansion`). **Current state:** the full MVP
+_Last updated: 2026-06-03 (Session 11, branch `mvp-expansion`). **Current state:** the full MVP
 (radar → audited data → SBAS velocity → physics hazard → explainable rainfall-driven warning,
-plus a 3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 10** did the
+plus a 3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 11 (newest):** reviewed
+the **TRAIN** tropo toolbox (Bekaert 2015) and ran a Python-native, MATLAB-free **tropospheric-correction
+method comparison** on frame106 (none vs ERA5 vs empirical height-correlation) — **ERA5 cuts velocity scatter
+−31 % (30.5→21.0 mm/yr); the empirical topo-only method barely moves it** (the floor is turbulence-dominated,
+not stratified) → confirms+quantifies the ERA5 choice; KPIs `RESULTS_AND_KPIS.md` **§13**. Also gave a
+maturity read: **forecasting = scaffolding built, not operational** (trigger validated on 20 Apr, but TTF
+projects no dates, trigger over-fires, no uncertainty, not live); **replicability = infra high, science
+medium** (each AOI needs its own I-D curve + inventory + soil calibration). **Session 10** did the
 gauge-rainfall step (Area 7 #3): **(1) Regional Himalayan I–D curve** — `rainfall_id_threshold.py` is
 now `--threshold {caine1980|nwhimalaya}`; the researched regional curve **I = 2.9993·D⁻⁰·⁴¹⁵²** (J.
 Earth Syst. Sci. 2025 134:97; AOI cross-check Shah et al. 2024 Nat. Hazards 120, NH-44 ~14.35 mm/day)
@@ -484,9 +491,20 @@ sensor or a single physics assumption.
 
 ## 7. End-of-session checklist
 
+**Session 11 (2026-06-03) — tropo-method comparison — done:** new `workflows/mintpy_f106_height.cfg` +
+`run_mintpy_height_f106.sh` (empirical height-correlation MintPy pass) + `compare_tropo_methods.py`
+(none/ERA5/height comparison → ERA5 −31 % scatter). Docs: `RESULTS_AND_KPIS.md` **§13** (committed, with
+citations), `README.md` (run note), Foundations primer (CT3 method-comparison note), Context Area 1, journey
+(Session 11 entry), milestone (**M21**), this header. All **uncommitted** (new files +
+RESULTS/README/primer/Context M; journals local). _Run GEE/MintPy CLI via `MSYS_NO_PATHCONV=1 docker compose
+run ...` to stop Git Bash mangling `/app/...`._
+
+---
+
 Documentation ritual for 2026-06-02 (Session 10) — **all done**:
-- [x] `session_journey.md` — Session 10 entry with Pushes 1–7 (CHIRPS plumbing → regional curve →
-      specificity prototype → CHIRPS ran/refuted → literature verification → GPM IMERG → spring conditioning).
+- [x] `session_journey.md` — Session 10 entry with Pushes 1–8 (CHIRPS plumbing → regional curve →
+      specificity prototype → CHIRPS ran/refuted → literature verification → GPM IMERG → spring conditioning →
+      GSI pivot + 20 Apr date correction).
 - [x] `milestone.md` — Milestones 17 (Himalaya-tuned trigger + gauge pipe), **18 (GPM IMERG: rainfall ruled
       out)**, **19 (spring conditioning: "slowly-primed slope")** added (plain language).
 - [x] `Research/Foundations - Physics and Maths Primer.md` — CF5 (gauge vs reanalysis; CHIRPS refuted; IMERG

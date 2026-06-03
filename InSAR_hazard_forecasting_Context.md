@@ -422,8 +422,17 @@ end-members + TWI-proxy downstream flag; *mock* rainfall; a *static* hazard map 
 failure-timing); and no validation against real events.
 
 ### Area 1 — Noise reduction (measurement accuracy; the ~30 mm/yr floor)
-- **MintPy ERA5 tropospheric correction** (in progress) — physically subtracts
-  atmospheric delay; biggest single lever. **GACOS** (free) as an alternative/cross-check.
+- **MintPy ERA5 tropospheric correction** — ✅ **DONE + benchmarked.** Physically subtracts atmospheric
+  delay; the biggest single lever. A **TRAIN-style method comparison** (Bekaert et al. 2015; run Python-
+  native via MintPy, no MATLAB — see `RESULTS_AND_KPIS.md` §13) confirmed it: on frame106, **ERA5 cut
+  velocity scatter −31 % (30.5→21.0 mm/yr)**, while the cheap *empirical height-correlation* method (Doin
+  2009 — TRAIN's power-law analog) barely moved scatter (the floor here is **turbulence-dominated, not
+  stratified**). So a weather model is required. **GACOS** (Yu et al. 2018; free web service, `method=gacos`
+  in MintPy — no MATLAB) is the natural no-cost cross-check/alternative *(needs a manual GACOS download —
+  not yet done)*. Note re TRAIN itself: it's MATLAB + its weather-model half overlaps our ERA5, so we
+  borrowed its *idea* (compare methods) rather than the toolbox.
+- **DEM-error correction + coherence-weighted inversion** (MintPy native).
+- **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
 - **DEM-error correction + coherence-weighted inversion** (MintPy native).
 - **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
   SqueeSAR-style) — recover coherence in *partially* vegetated Himalayan slopes (the

@@ -294,6 +294,11 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
   --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
   [`docker/README.md`](docker/README.md) and `SESSION_REVIEW.md` §4.
+- **Tropospheric-correction method comparison (noise-floor attack, TRAIN-style):**
+  `docker compose run --rm mintpy bash /app/workflows/run_mintpy_era5_f106.sh` +
+  `run_mintpy_height_f106.sh` (ERA5 weather-model vs empirical height-correlation), then
+  `docker compose run --rm insar python workflows/compare_tropo_methods.py` → ERA5 cuts
+  velocity scatter **−31 %** (the empirical topo-only method does not); `RESULTS_AND_KPIS.md` §13.
 - **Forecasting / rainfall trigger (real-weather-driven):**
   `python workflows/fetch_rainfall.py` (ERA5-Land water + temperature; `mintpy` image) **or**
   `python workflows/fetch_chirps.py` (CHIRPS gauge rainfall via GEE; needs Step 6 auth) →
