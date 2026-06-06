@@ -70,10 +70,13 @@ def load_inventory(path: Path):
     return pts
 
 
-def load_zone_centroids(path: Path):
+def load_zone_centroids(path: Path, min_looks: int = 1):
+    """Centroids of flagged zones. min_looks>1 keeps only multi-look-confirmed
+    union zones (the robust core); per-stack alerts have no n_looks so are kept."""
     d = json.loads(path.read_text(encoding="utf-8"))
     items = d.get("alerts") or d.get("zones") or []
-    return [tuple(z["centroid_lonlat"]) for z in items if z.get("centroid_lonlat")]
+    return [tuple(z["centroid_lonlat"]) for z in items
+            if z.get("centroid_lonlat") and z.get("n_looks", 1) >= min_looks]
 
 
 def trigger_dates(path: Path):
@@ -156,10 +159,16 @@ def main() -> int:
     ap.add_argument("--roc-buffers-km", type=str, default=None,
                     help=f"Comma-separated buffer-km list for the distance-ROC sweep "
                          f"(default: {','.join(str(x) for x in DEFAULT_ROC_BUFFERS_KM)}).")
+    ap.add_argument("--min-looks", type=int, default=1,
+                    help="Keep only union zones confirmed by >= this many looks (1 = all; "
+                         "2 = the multi-look-confirmed robust core). No effect on per-stack alerts.")
+    ap.add_argument("--out-prefix", default="backtest",
+                    help="Output filename stem (backtest_report.* etc). Use a distinct stem "
+                         "to compare alert products without overwriting.")
     args = ap.parse_args()
 
     inv = load_inventory(Path(args.inventory))
-    zones = load_zone_centroids(Path(args.alerts))
+    zones = load_zone_centroids(Path(args.alerts), args.min_looks)
     trig = trigger_dates(Path(args.trigger_report))
     if not zones:
         raise SystemExit(f"No zone centroids in {args.alerts}")
@@ -246,6 +255,7 @@ def main() -> int:
 
     report = {
         "alerts_source": args.alerts, "n_flagged_zones": len(zones),
+        "min_looks": args.min_looks,
         "inventory_source": args.inventory, "n_documented": len(inv),
         "buffer_km": args.buffer_km, "trigger_days": trig,
         "spatial": {"n_detected": n_det, "n_total": len(inv),
@@ -257,12 +267,13 @@ def main() -> int:
         "per_location": spatial, "per_event": temporal,
     }
     INV_DIR.mkdir(parents=True, exist_ok=True)
-    (INV_DIR / "backtest_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    write_md(INV_DIR / "backtest_report.md", report)
-    make_map(INV_DIR / "backtest_map.png", inv, zones, spatial, args.buffer_km, null_pts, null_dists)
-    make_roc_plot(INV_DIR / "backtest_roc.png", roc_rows, auc)
+    pfx = args.out_prefix
+    (INV_DIR / f"{pfx}_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    write_md(INV_DIR / f"{pfx}_report.md", report)
+    make_map(INV_DIR / f"{pfx}_map.png", inv, zones, spatial, args.buffer_km, null_pts, null_dists)
+    make_roc_plot(INV_DIR / f"{pfx}_roc.png", roc_rows, auc)
 
-    print(f"flagged zones: {len(zones)}  |  documented locations: {len(inv)}")
+    print(f"flagged zones: {len(zones)} (min_looks={args.min_looks})  |  documented locations: {len(inv)}")
     print(f"SPATIAL: {n_det}/{len(inv)} documented locations within {args.buffer_km} km of a "
           f"flagged zone (median nearest {report['spatial']['nearest_km_median']} km)")
     print(f"TEMPORAL: model trigger day(s) {trig or 'none'}; "
@@ -276,7 +287,7 @@ def main() -> int:
           f"lift={at_buf['lift']}x  F1={at_buf['f1']}")
     print(f"   null-point median nearest-zone: {scored['null_nearest_km_median']} km "
           f"(vs real {report['spatial']['nearest_km_median']} km)")
-    print(f"  -> {INV_DIR/'backtest_report.json'} , .md , backtest_map.png , backtest_roc.png")
+    print(f"  -> {INV_DIR/f'{pfx}_report.json'} , .md , {pfx}_map.png , {pfx}_roc.png")
     return 0
 
 
