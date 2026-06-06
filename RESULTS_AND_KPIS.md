@@ -21,8 +21,9 @@ hypothesis REFUTED**, §12e — GPM IMERG sub-daily test, §12f — spring condi
 CORRECTION: the major spring event (20 Apr cloudburst) WAS rainfall-triggered and the model detects it —
 correcting §12d–e's "rainfall ruled out" (it was a wrong-date artifact)**. Prior: §10 slope-parallel
 velocity (V_slope), §11 snowmelt/freeze-thaw drivers + April-extended trigger. Also **§13 — tropospheric-
-correction method comparison** (none vs ERA5 vs empirical height-correlation; ERA5 −31 % scatter, a
-Bekaert/TRAIN-style attack on the ~30 mm/yr noise floor)._
+correction method comparison** (ERA5 −31 % scatter, TRAIN-style); **§14 — GSI field-validated inventory
+ingested** (138 AOI slides; spatial back-test 71 % within 2 km); **§15 — FS soil-parameter calibration**
+(φ 32°→36° from the GSI geotech study)._
 
 ---
 
@@ -543,6 +544,64 @@ reviewer-grade "we compared correction methods" result (publication bar #4). Out
 **References:** Bekaert et al. (2015) *Remote Sens. Environ.* 170:40-47 (TRAIN) · Doin et al. (2009)
 *J. Appl. Geophys.* 69:35-50 (height-correlation) · Jolivet et al. (2011) *GRL* 38:L17311 + Hersbach et al.
 (2020) (ERA5/pyaps) · Yunjun et al. (2019) *Comput. Geosci.* 133:104331 (MintPy).
+
+---
+
+## 14. GSI field-validated inventory ingested → authoritative spatial back-test  `[REAL / MEASURED]`
+
+Source: `workflows/ingest_gsi_inventory.py` extracts the GSI **"Landslide Inventory (Field Validated)"** table
+(user-provided `Research/LandslideInventory/landslide_report.pdf`, the all-India inventory, 582 pp) via
+`pdfplumber.extract_tables()`, clipped to the AOI bbox (+0.05°). 2026-06-03. **Finally replaces the ~11
+approximate news-derived points** (§9) with authoritative georeferenced ground truth — exactly what the
+§12g date-correction lesson said was needed.
+
+- **138 field-validated landslide records in the AOI** (lat 33.10–33.40, lon 75.10–75.40): **Ramban 83**,
+  Doda 22, Anantnag 18, Udhampur 10, Poonch 5. Movement: Slide 85, Fall 26, Composite 18, Flow 3, …
+  Outputs: `data/inventory/gsi_inventory_aoi.{csv,geojson,md}`. (Dates are year-level / mostly blank → this is
+  a **spatial** ground truth; acute-trigger *timing* stays with the §12g literature events.)
+- **Spatial back-test (ASC union monsoon zones, 405):** **71 % of the 138 mapped slides within 2 km** of a
+  flagged zone (54 % ≤1 km, 28 % ≤0.5 km; median nearest **0.84 km**, mean 1.38). A real coincidence against
+  field-mapped slides. ⚠️ **Still recall/detection, not full precision–recall:** 405 zones AOI-wide make
+  coincidence partly density-driven — a *scored* test needs a **specificity/precision** arm (do flagged zones
+  avoid no-landslide ground? a null/random-point control) + a distance ROC. The tool now ingests the
+  authoritative inventory unchanged; the precision arm is the remaining enhancement.
+
+**Companion GSI susceptibility brief** (`…/Meso Scale Landslide Susceptibility Mapping_ Batote … Doda.md`):
+GSI meso-scale (1:10,000) LSM of NH-244 Batote→Ganpat Bridge (Ramban/Doda, 2024-25): **~30 % "High"
+susceptibility, model AUC 0.84**, 35 field-verified instabilities — an **independent susceptibility benchmark**
+to corroborate our hazard map against. It also gives **site geotechnical parameters** (φ ≈ **36–39°** dry with
+significant **wet strength loss**; silty, low-permeability overburden 0.5–20 m thick) → a concrete path to
+**calibrate the FS soil parameters** (currently literature defaults c′=5 kPa/φ=32°/z=3 m — §0/§5a) and confirms
+**construction-driven instability** (road widening; Panthal/Makerkot bridge foundations) — supporting §12g's
+non-meteorological factor for 20 Apr.
+
+---
+
+## 15. FS soil-parameter calibration from the GSI geotechnical study  `[REAL params / ANALYTIC effect]`
+
+Source: `geomechanical_engine.py` soil defaults calibrated from the **GSI meso-scale (1:10,000) landslide-
+susceptibility field study** of NH-244 Batote(Chakwa Nala)→Ganpat Bridge, Ramban/Doda, J&K (GSI 2024-25;
+`Research/LandslideInventory/Meso Scale Landslide Susceptibility Mapping_…Doda.md`). 2026-06-03. Addresses
+the standing "soil parameters are generic literature defaults" limitation (§0, §5a).
+
+- **Friction angle φ: 32° → 36°** — the study measured **φ = 36.4–39.1°** on the site overburden (silty
+  colluvium/scree/RBM, >75 % fines, 0.5–20 m thick, moisture-sensitive); we adopt the conservative end (36°).
+- **Cohesion kept 5 kPa** — the study reports good *dry* strength but **"significant reduction when wet"**;
+  the hazard end-member is **saturated** (m=1), so the low wet-reduced cohesion is the relevant value. The
+  higher dry cohesion + a proper dry/wet (matric-suction) split is the deferred refinement (Area 7 #4).
+  γ=19 kN/m³ and z=3 m sit within the measured ranges.
+- **Effect (analytic infinite-slope FS, c′=5, γ=19, z=3):** φ=36° raises FS **~12–14 %** vs 32° (e.g. slope
+  28°: FS_dry 1.39 → 1.58, FS_sat 0.78 → 0.87). The **critical slope for saturated failure (FS_sat=1) shifts
+  22.0° → 24.6°** (dry FS=1: 37.4° → 41.4°) — i.e. the calibration **de-flags the gentle 22–25° band**
+  (fewer false-positive unstable slopes) while the steep slopes (AOI median ~28°) stay flagged.
+
+**Finding:** the hazard physics now uses a **site-measured** friction angle rather than a textbook value — a
+real reduction in the soil-assumption uncertainty (publication bar #5). The map will flag somewhat fewer
+zones; the exact zone-count change needs a hazard **re-run** (`run_multistack.py` — Docker), so the prior
+hazard KPIs (§5a/§5c, under φ=32) are preserved as the literature-default baseline and future runs use
+φ=36. *Remaining: site lab calibration of cohesion + the matric-suction dry/wet-cohesion split.*
+**Citation:** GSI National Landslide Susceptibility Mapping / meso-scale LSM, NH-244 Batote–Ganpat Bridge,
+Ramban–Doda (Geological Survey of India, 2024-25 field season).
 
 ---
 

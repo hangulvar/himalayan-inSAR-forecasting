@@ -186,10 +186,25 @@ def factor_of_safety(slope_rad, c_kpa, phi_deg, gamma, z, m):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
-    ap.add_argument("--cohesion-kpa", type=float, default=5.0)
-    ap.add_argument("--phi", type=float, default=32.0, help="friction angle (deg)")
+    # --- Soil shear-strength parameters -------------------------------------------------
+    # CALIBRATED (2026-06-03) from the GSI meso-scale (1:10,000) landslide-susceptibility
+    # field study of the NH-244 Batote(Chakwa Nala)->Ganpat Bridge corridor, Ramban/Doda,
+    # J&K (GSI 2024-25 field season; brief in Research/LandslideInventory/). That study
+    # measured a friction angle of phi = 36.4-39.1 deg on site overburden (silty colluvium/
+    # scree/RBM, 0.5-20 m thick, >75% fines, moisture-sensitive) -> we adopt phi=36 deg
+    # (conservative end), replacing the generic literature 32 deg. Cohesion is kept LOW
+    # (5 kPa) because the same study reports good DRY strength but "significant reduction
+    # when wet" -> the hazard end-member is SATURATED (m=1), so the wet-reduced cohesion is
+    # the relevant value; the higher dry cohesion + a proper dry/wet (matric-suction) split
+    # is the deferred refinement (Area 7 #4). gamma=19 and z=3 m sit within the measured
+    # ranges. Site-specific lab calibration of cohesion remains a standing limitation.
+    ap.add_argument("--cohesion-kpa", type=float, default=5.0,
+                    help="effective cohesion kPa (wet-reduced; GSI LSM dry value is higher)")
+    ap.add_argument("--phi", type=float, default=36.0,
+                    help="friction angle deg (GSI LSM Ramban/Doda: 36.4-39.1; default = conservative 36)")
     ap.add_argument("--gamma", type=float, default=19.0, help="soil unit weight kN/m³")
-    ap.add_argument("--soil-depth-m", type=float, default=3.0, help="failure depth z")
+    ap.add_argument("--soil-depth-m", type=float, default=3.0,
+                    help="failure depth z (GSI LSM overburden 0.5-20 m; 3 m = shallow translational)")
     ap.add_argument("--fs-fail", type=float, default=1.0)
     ap.add_argument("--fs-marginal", type=float, default=1.3)
     ap.add_argument("--vel-creep-thr", type=float, default=-15.0,

@@ -12,9 +12,14 @@ the **TRAIN** tropo toolbox (Bekaert 2015) and ran a Python-native, MATLAB-free 
 method comparison** on frame106 (none vs ERA5 vs empirical height-correlation) — **ERA5 cuts velocity scatter
 −31 % (30.5→21.0 mm/yr); the empirical topo-only method barely moves it** (the floor is turbulence-dominated,
 not stratified) → confirms+quantifies the ERA5 choice; KPIs `RESULTS_AND_KPIS.md` **§13**. Also gave a
-maturity read: **forecasting = scaffolding built, not operational** (trigger validated on 20 Apr, but TTF
-projects no dates, trigger over-fires, no uncertainty, not live); **replicability = infra high, science
-medium** (each AOI needs its own I-D curve + inventory + soil calibration). **Session 10** did the
+maturity read: **forecasting = scaffolding built, not operational**; **replicability = infra high, science
+medium**. **Then (user supplied the GSI inventory PDFs):** `ingest_gsi_inventory.py` extracted **138
+field-validated landslide records in the AOI** (Ramban 83) from `landslide_report.pdf` → CSV/GeoJSON;
+**spatial back-test = 71 % of mapped slides within 2 km** of a flagged zone (median 0.84 km) — authoritative
+ground truth replacing the 11 news points (**§14**). **And calibrated the FS physics** from the GSI
+geotech LSM brief: **friction angle φ 32° → 36°** (site-measured 36.4–39.1°) → FS +12–14 %, critical
+saturated-failure slope 22.0°→24.6° (fewer gentle-slope false positives); hazard re-run pending Docker
+(**§15**). **Session 10** did the
 gauge-rainfall step (Area 7 #3): **(1) Regional Himalayan I–D curve** — `rainfall_id_threshold.py` is
 now `--threshold {caine1980|nwhimalaya}`; the researched regional curve **I = 2.9993·D⁻⁰·⁴¹⁵²** (J.
 Earth Syst. Sci. 2025 134:97; AOI cross-check Shah et al. 2024 Nat. Hazards 120, NH-44 ~14.35 mm/day)

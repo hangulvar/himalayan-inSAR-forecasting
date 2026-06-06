@@ -766,6 +766,39 @@ for the part of the project that needed it most.
 
 ---
 
+## ✅ Milestone 22 — The Real Landslide Record Arrives, and the Physics Gets Calibrated  *(GSI inventory + soil-strength calibration, 2026-06-03)*
+
+**What we set out to do:** two long-standing gaps were "validate against a *real* mapped landslide record"
+and "stop using textbook guesses for the soil strength." A reader (you) supplied official **Geological
+Survey of India** documents, which let us close both in one go.
+
+**What we did, plainly:**
+- **A real landslide map.** One of the PDFs is the GSI **field-validated landslide inventory** — a table of
+  actual slides with their exact coordinates. We pulled out every record inside our study area: **138
+  field-mapped landslides** (83 in Ramban itself), saved as a clean spreadsheet + map file. This finally
+  replaces the ~11 rough points we'd scraped from news reports.
+- **A reality check.** We asked: do our flagged danger zones line up with where slides *actually* are?
+  **71% of the 138 real slides sit within 2 km of a flagged zone** (median just 0.84 km). A solid match
+  against ground truth — with the honest note that we still need to also prove we *don't* flag safe ground
+  (the next refinement).
+- **Calibrated the strength numbers.** A second GSI document measured the *actual* soil strength on these
+  very slopes — friction angle **36–39°** (we'd been assuming a generic 32°), with the crucial finding that
+  the soil **loses a lot of strength when wet.** We updated our physics to the real friction value. The
+  effect: the danger threshold for a wet slope shifts from ~22° to ~25° steepness, so we **stop flagging the
+  gentlest slopes** (fewer false alarms) while the genuinely steep ones stay flagged.
+
+**Why this matters:** these are the two things reviewers ask for first — *validation against real data* and
+*physics grounded in measurements, not assumptions.* We now have both, from the authoritative national
+agency. The same documents also give an independent "official" danger map (which scored well, 84% accurate)
+to cross-check ours against, and explicitly blame **road/tunnel construction** for some failures — backing
+up our earlier finding about the 20 April disaster.
+
+**Plain-language result:** we swapped guesswork for the **official landslide record** (real slides, real
+soil strength) — our danger map lines up with **71%** of mapped slides, and the physics now uses
+**measured** soil strength instead of a textbook number.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

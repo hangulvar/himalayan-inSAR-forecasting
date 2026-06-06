@@ -455,9 +455,9 @@ same slope — water removed the grip.
 
 🔗 **In our project:** **Milestone 3** computes FS for two cases — **dry (m=0)**
 and **monsoon-soaked (m=1)**. Result: dry, ~13% of slopes are unstable; soaked,
-~73% are. That flip *is* the seasonal hazard story. The soil numbers (c', φ', z)
-are textbook assumptions for Himalayan soil, not site measurements — an honest
-limitation.
+~73% are. That flip *is* the seasonal hazard story. The friction angle φ'=36° is now
+the **GSI site-measured** value (Milestone 22); cohesion c' and depth z remain
+assumptions — a partly-closed honest limitation.
 
 ## C5. Fusing physics with measurement — the hazard map
 
@@ -945,9 +945,11 @@ construction. I'd rather report that clean negative than pretend a gauge swap fi
 redirects me to finer/faster rain (30-min IMERG) or a saturation model.
 
 **Q: Aren't your soil strength numbers just guesses?**
-A: Yes — they're literature values for Himalayan soil, not site measurements.
-That's why the FS map is a *relative* screening tool, not an absolute prediction,
-and why we lean on the measured-motion half of the hazard rule.
+A: Less so now. The friction angle is **36°** — the value **GSI actually measured**
+on these slopes (their NH-244 Ramban/Doda field study reported 36.4–39.1°), so the
+biggest soil parameter is grounded in real data, not a textbook. Cohesion is still a
+conservative (wet-reduced) assumption pending lab values, so FS stays a *relative*
+screening tool — and we still lean on the measured-motion half of the hazard rule.
 
 **Q: You call it "agentic" — is there a real AI deciding things?**
 A: Not yet. The "agents" are three deterministic, rule-based modules (sensors +
@@ -1057,9 +1059,12 @@ Being able to state weaknesses is what makes you credible.
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.
   "Steady" ≠ "safe"; the screen is deliberately conservative and will return dates once
   the series lengthens or a real acceleration begins.
-- **Assumed soil strength:** the Factor-of-Safety uses textbook cohesion/friction
-  values for Himalayan soil, not site measurements — so FS is a *relative*
-  screening layer, not an absolute prediction.
+- **Soil strength — now partly site-calibrated (Milestone 22):** the friction angle is
+  **φ=36°**, the value **measured by GSI** on these very slopes (their NH-244 Ramban/Doda
+  field study, 36.4–39.1°), replacing the old textbook 32°. Cohesion is still a (low,
+  wet-reduced) assumption and a proper lab-measured + dry/wet (matric-suction) split is
+  outstanding — so FS remains a *relative* screening layer, but the biggest soil
+  assumption (friction) is now grounded in measurement.
 - **Coarse slope:** the 80 m DEM under-estimates true steepness, biasing FS
   toward "stable"; a 12.5 m DEM is the planned fix.
 - **Noisy hazard pixels:** the first hazard map flags too much — trustworthy

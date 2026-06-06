@@ -42,6 +42,7 @@ h5py>=3.6.0
 netcdf4>=1.5.8
 earthengine-api>=0.1.300
 hyp3-sdk>=2.0.0
+pdfplumber>=0.10.0   # extract the GSI landslide-inventory table from PDF (ingest_gsi_inventory.py)
 
 # Jupyter Environment
 jupyterlab>=3.4.0

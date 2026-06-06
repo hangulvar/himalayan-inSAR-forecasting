@@ -475,13 +475,13 @@ failure-timing); and no validation against real events.
   hazard map" → "validated forecast." *(First pass DONE 2026-06-01 — `backtest_inventory.py`
   vs a small curated inventory: spatially plausible, but the rainfall trigger MISSED the
   Apr–May 2025 events; see `RESULTS_AND_KPIS.md` §9.)*
-  - **Enrich with GSI Bhukosh landslide data (recommended next).** GSI's georeferenced
-    inventory holds **~302 field-mapped landslides in the Ramban sub-basin** (and is
-    nationwide via the NGDR / Bhukosh / Bhusanket portals + WFS) — the authoritative ground
-    truth. Ingesting it (the back-test tool takes it unchanged) upgrades the current
-    *indicative* coincidence check to a **scored precision/recall** validation. This
-    generalizes: **for any new AOI, pull that region's GSI Bhukosh inventory** (NASA GLC is
-    only ~2007–2018 and too sparse for a single corridor) to validate before trusting the map.
+  - **GSI field-validated inventory — ✅ INGESTED (2026-06-03; §14).** The user supplied GSI PDFs;
+    `ingest_gsi_inventory.py` (pdfplumber) extracted **138 field-mapped slides in the AOI** (Ramban 83)
+    from the GSI all-India inventory table → `data/inventory/gsi_inventory_aoi.{csv,geojson}`. Spatial
+    back-test: **71 % within 2 km** of a flagged zone (median 0.84 km) — authoritative ground truth,
+    replacing the 11 news points. *Remaining:* the **precision/specificity** arm (null-control ROC) for a
+    *fully scored* test. (Generalizes: for any new AOI, pull that region's GSI inventory — now on **NGDR
+    geodataindia.gov.in** + Bhukosh; NASA GLC is too sparse for a single corridor.)
 - **Uncertainty quantification** — per-pixel velocity error bars propagated into FS/alerts.
 - **Susceptibility model** (logistic regression / random forest on conditioning factors)
   trained + validated on the inventory → independent corroboration of the physics.
@@ -595,11 +595,13 @@ data quality (atmosphere), physics calibration, and — above all — *validatio
 3. **Uncertainty / error quantification** — velocity precision, detection limit,
    propagated into the hazard. *(Still open.)*
 4. **Comparison to an established method** — MintPy-vs-custom cross-validation. ✅ **DONE** (r ≈ 0.55–0.59).
-5. **Justified / sensitivity-tested physics** — the soil parameters can't be arbitrary. *(Still open.)*
+5. **Justified / sensitivity-tested physics** — the soil parameters can't be arbitrary. ⏳ **PARTLY**
+   (§15): the friction angle is now **GSI site-measured (φ=36°)**, not textbook; cohesion lab calibration +
+   matric-suction split outstanding.
 6. **Honest scope** — overclaiming gets rejected; precise modest claims earn respect.
-   *Today we clear #2 + #4 + the honesty bar, and have a **first-pass #1** (back-test vs a curated
-   inventory — which itself produced a real, defensible finding: the Apr–May 2025 events are not
-   rainfall-triggered). NOT yet: a **scored** #1 (needs GSI Bhukosh), #3, #5.*
+   *Today we clear #2 + #4 + the honesty bar; **#1** now has authoritative ground truth (GSI inventory, §14 —
+   71 % within 2 km) though the precision/specificity arm is pending; **#5** partly (φ measured, §15). NOT
+   yet: full scored #1, uncertainty #3, lab-calibrated cohesion #5.*
 
 **Publication ladder (match the claim to the evidence):**
 - **NOW (most realistic):** a **software / reproducibility paper** — **JOSS** (reviews
