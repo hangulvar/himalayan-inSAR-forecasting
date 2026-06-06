@@ -496,13 +496,18 @@ sensor or a single physics assumption.
 
 ## 7. End-of-session checklist
 
-**Session 11 (2026-06-03) — tropo-method comparison — done:** new `workflows/mintpy_f106_height.cfg` +
-`run_mintpy_height_f106.sh` (empirical height-correlation MintPy pass) + `compare_tropo_methods.py`
-(none/ERA5/height comparison → ERA5 −31 % scatter). Docs: `RESULTS_AND_KPIS.md` **§13** (committed, with
-citations), `README.md` (run note), Foundations primer (CT3 method-comparison note), Context Area 1, journey
-(Session 11 entry), milestone (**M21**), this header. All **uncommitted** (new files +
-RESULTS/README/primer/Context M; journals local). _Run GEE/MintPy CLI via `MSYS_NO_PATHCONV=1 docker compose
-run ...` to stop Git Bash mangling `/app/...`._
+**Session 11 (2026-06-03) — all done. New files (uncommitted):** `workflows/mintpy_f106_height.cfg` +
+`run_mintpy_height_f106.sh` + `compare_tropo_methods.py` (tropo comparison, **§13**: ERA5 −31 % scatter);
+`workflows/ingest_gsi_inventory.py` (GSI inventory PDF → CSV/GeoJSON, **§14**: 138 AOI slides, 71 %@2 km).
+**Modified (committed):** `geomechanical_engine.py` (**§15** soil calib φ 32°→36° from GSI LSM),
+`RESULTS_AND_KPIS.md` (§13/§14/§15 + header), `README.md` (tropo run note + Step 7 GACOS/GSI),
+`requirements.txt` (+pdfplumber), Foundations primer (CT3 + FS limitation + interview Qs),
+`InSAR_hazard_forecasting_Context.md` (Area 1/4 + publication bars). **Local journals:** session_journey
+(Session 11 Parts 1–2), milestone (**M21**, **M22**), this file. Git-ignored data: `data/inventory/
+gsi_inventory_aoi.{csv,geojson,md}`, `data/mintpy/tropo_method_comparison.*`, `mintpy_out/velocity_mintpy_height.tif`.
+**Docs ritual COMPLETE.** Gotchas this session: `MSYS_NO_PATHCONV=1 docker compose run …` (Git Bash mangles
+`/app/…`); `backtest_inventory.py` matplotlib savefig crashes NATIVELY (exit 127) → run it in Docker, or
+compute spatial coincidence in pure Python (as done here while Docker was down).
 
 ---
 
@@ -541,13 +546,14 @@ suffixed trigger/specificity reports, `backtest_report.*` [restored to Caine bas
 `earthengine-api 1.7.29` in `insar_qa_env`; `insar` image rebuilt with earthengine-api; GEE token at
 `~/.config/earthengine/credentials`.
 
-**Recommended first action next session:** the spring picture is now **primed slopes + a 20 Apr cloudburst
-trigger, both captured by the model** (§12g — a date correction reversed the earlier "rainfall ruled out").
-The clear next step is **GSI Bhukosh** for **verified dates/coords** (the 20 Apr correction shows exactly why
-ground-truth dates matter) + a **scored** precision/recall back-test. Then: make the regional curve
-**selective** (it fires 112/214 days) + pair with sub-daily IMERG for localized cells; probe the **NHAI
-construction** angle. Run GEE+numpy scripts **in the `insar` container** (native crashes — see §7). The
-verified `nwhimalaya` curve can become the default acute trigger when re-baselining the `[MOCK]` KPIs. See §5.
+**Recommended first action next session:** validation now has authoritative ground truth (GSI inventory §14,
+71 %@2 km) and the FS physics uses the **GSI-measured φ=36°** (§15). Two clean follow-ups: **(1) re-run the
+hazard** with φ=36 (`run_multistack.py`, Docker) to quantify the zone-count change + roll the ERA5-corrected
+velocity through; **(2) make the back-test fully *scored*** — add a precision/specificity arm (null-point
+control + distance ROC) to `backtest_inventory.py`. Also open: extract the 2 susceptibility-report PDFs
+(50046 Doda-Ramban, 50064 Doda-Kishtwar) for more inventory density; the matric-suction dry/wet-cohesion
+split (Area 7 #4); make the regional `nwhimalaya` curve selective + the default acute trigger. **Start Docker
+Desktop first** (it was down at session close). See §5.
 
 > **⏸ Deferred manual setups (user-side, take time — both DOCUMENTED in `README.md` Step 7):** **(1) GACOS**
 > tropospheric correction (free no-MATLAB weather-model cross-check to ERA5, §13 — submit AOI+dates at
