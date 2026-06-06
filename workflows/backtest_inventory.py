@@ -141,6 +141,37 @@ def nearest_zone_km(lon, lat, zones):
     return min(haversine_km(lon, lat, zlon, zlat) for zlon, zlat in zones)
 
 
+def roc_from_distances(real_dists, null_dists, buffers, buffer_km):
+    """Distance-ROC from nearest-zone distances for the real (positive) and null
+    (negative) points. Returns (roc_rows, auc, at_buffer_row). Shared by the
+    back-test and the rainfall-selectivity sweep so the scoring is identical."""
+    real_dists, null_dists = np.asarray(real_dists), np.asarray(null_dists)
+    roc_rows = []
+    for bkm in buffers:
+        tpr = float(np.mean(real_dists <= bkm))
+        fpr = float(np.mean(null_dists <= bkm))
+        prec = round(tpr / (tpr + fpr), 3) if (tpr + fpr) > 0 else None
+        lift = round(tpr / fpr, 2) if fpr > 0 else None
+        f1 = round(2 * prec * tpr / (prec + tpr), 3) if (prec and (prec + tpr) > 0) else None
+        roc_rows.append({"buffer_km": bkm, "tpr": round(tpr, 3), "fpr": round(fpr, 3),
+                         "specificity": round(1.0 - fpr, 3), "precision": prec,
+                         "lift": lift, "f1": f1})
+    # AUC via trapezoidal integration over (FPR, TPR), anchored at (0,0) and (1,1).
+    fprs = np.array([0.0] + [r["fpr"] for r in roc_rows] + [1.0])
+    tprs = np.array([0.0] + [r["tpr"] for r in roc_rows] + [1.0])
+    order = np.argsort(fprs)
+    auc = float(np.trapz(tprs[order], fprs[order]))
+    at_buf = next((r for r in roc_rows if abs(r["buffer_km"] - buffer_km) < 1e-9), None)
+    if at_buf is None:
+        tpr_b = float(np.mean(real_dists <= buffer_km))
+        fpr_b = float(np.mean(null_dists <= buffer_km))
+        at_buf = {"buffer_km": buffer_km, "tpr": round(tpr_b, 3), "fpr": round(fpr_b, 3),
+                  "specificity": round(1 - fpr_b, 3),
+                  "precision": round(tpr_b / (tpr_b + fpr_b), 3) if (tpr_b + fpr_b) > 0 else None,
+                  "lift": round(tpr_b / fpr_b, 2) if fpr_b > 0 else None, "f1": None}
+    return roc_rows, auc, at_buf
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--inventory", default=str(INV_DIR / "ramban_documented_landslides.geojson"))
@@ -216,35 +247,7 @@ def main() -> int:
 
     roc_buffers = (sorted(float(x) for x in args.roc_buffers_km.split(","))
                    if args.roc_buffers_km else DEFAULT_ROC_BUFFERS_KM)
-    roc_rows = []
-    for bkm in roc_buffers:
-        tpr = float(np.mean(real_dists <= bkm))         # detection rate on real points
-        fpr = float(np.mean(null_dists <= bkm))         # detection rate on null points
-        # precision under the assumption of equal class priors (one real per null point):
-        # TP/(TP+FP) = TPR / (TPR + FPR). Falls back to None when neither fires.
-        prec = round(tpr / (tpr + fpr), 3) if (tpr + fpr) > 0 else None
-        lift = round(tpr / fpr, 2) if fpr > 0 else None
-        f1 = round(2 * prec * tpr / (prec + tpr), 3) if (prec and (prec + tpr) > 0) else None
-        roc_rows.append({"buffer_km": bkm, "tpr": round(tpr, 3), "fpr": round(fpr, 3),
-                         "specificity": round(1.0 - fpr, 3), "precision": prec,
-                         "lift": lift, "f1": f1})
-
-    # AUC via trapezoidal integration over (FPR, TPR), anchored at (0,0) and (1,1).
-    fprs = np.array([0.0] + [r["fpr"] for r in roc_rows] + [1.0])
-    tprs = np.array([0.0] + [r["tpr"] for r in roc_rows] + [1.0])
-    order = np.argsort(fprs)
-    auc = float(np.trapz(tprs[order], fprs[order]))
-
-    # Headline metrics at the user-chosen --buffer-km (the same row as the spatial arm).
-    at_buf = next((r for r in roc_rows if abs(r["buffer_km"] - args.buffer_km) < 1e-9), None)
-    if at_buf is None:
-        tpr_b = float(np.mean(real_dists <= args.buffer_km))
-        fpr_b = float(np.mean(null_dists <= args.buffer_km))
-        at_buf = {"buffer_km": args.buffer_km, "tpr": round(tpr_b, 3),
-                  "fpr": round(fpr_b, 3), "specificity": round(1 - fpr_b, 3),
-                  "precision": round(tpr_b / (tpr_b + fpr_b), 3) if (tpr_b + fpr_b) > 0 else None,
-                  "lift": round(tpr_b / fpr_b, 2) if fpr_b > 0 else None,
-                  "f1": None}
+    roc_rows, auc, at_buf = roc_from_distances(real_dists, null_dists, roc_buffers, args.buffer_km)
 
     scored = {
         "n_null_points": len(null_pts), "null_seed": args.null_seed,

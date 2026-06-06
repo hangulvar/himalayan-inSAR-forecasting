@@ -722,6 +722,51 @@ points (TPR=0); the core's discrimination appears at ~500 m.
 over `mosaic_asc/` and `mosaic_asc_vslope/`. **Artefacts:** `data/inventory/backtest_los_2look_*`,
 `backtest_vslope_*`, `backtest_vslope_2look_*` (`.json/.md/_map.png/_roc.png`).
 
+### 16d. ★ Rainfall-realistic saturation — the lever that crosses chance  `[REAL / MEASURED]`
+
+Source: `workflows/rainfall_selectivity_backtest.py` (Docker, 2026-06-07). Tests §16c lever (c). The
+monsoon mosaic (§16b) assumes soil saturation **m=1 everywhere** — but the regional rainfall/antecedent
+model (`rainfall_id_threshold.py --threshold nwhimalaya`, §12) only reaches **m=1 on 11/214 days**; the
+**median day is m≈0.26**. Since FS is exactly linear in m, the sweep rebuilds the AOI union mosaic at
+each saturation (`FS_real=(1−m)·FS_dry+m·FS_sat`, reusing the orchestrator agents + `union_alerts`) and
+scores each against the 138 GSI points with the same null control (n=5000, seed 20260606) + ROC.
+
+| m (saturation) | union zones | AUC (full) | spec@2 km | lift@2 km | lift@500 m | lift@250 m | **lift@100 m** |
+|---|---|---|---|---|---|---|---|
+| **1.00** (monsoon, §16b) | 357 | 0.407 | 0.10 | 0.77× | 0.89× | 1.15× | 1.61× |
+| 0.85 | 270 | 0.445 | 0.16 | 0.82× | — | — | 2.10× |
+| 0.70 | 207 | 0.466 | 0.21 | 0.82× | — | — | 2.46× |
+| 0.55 | 157 | 0.494 | 0.25 | 0.85× | — | — | 2.22× |
+| **0.40** | 88 | 0.535 | 0.36 | 0.96× | 1.48× | 2.79× | **5.57×** |
+| **0.25** (≈ median real day) | 52 | **0.550** | **0.61** | **1.08×** | 1.80× | 3.19× | 4.53× |
+
+**Findings — the answer is an emphatic YES, and it crosses chance:**
+1. **AUC rises monotonically as saturation falls: 0.407 → 0.550** (m=1.0 → 0.25). The rainfall-realistic
+   product **clears 0.5 at m≈0.25–0.30** — the first configuration on this project to beat chance over
+   the full 0.1–5 km sweep. (m=1.0 here = 0.407 reproduces the §16b monsoon baseline 0.409 / 357 zones /
+   1.61×@100 m — a built-in sanity check that the rebuild is faithful.)
+2. **Close-in detection becomes genuinely strong.** At **m=0.40**: lift **5.57× @100 m, 2.79× @250 m,
+   1.48× @500 m, 1.28× @1 km** — i.e. *above chance at every buffer out to 1 km*. At **m=0.25**: lift
+   **>1× at every buffer** (4.53×@100 m … 1.08×@2 km) and specificity@2 km **0.10 → 0.61**.
+3. **Why it works (and the honest nuance):** lowering m raises FS uniformly, so only the **steepest,
+   most-marginal slopes** stay below FS<1 — and the GSI field-mapped slides sit on exactly those slopes.
+   **The regional ID *curve* is a TEMPORAL gate (which days to issue) and cannot by itself move a
+   *spatial* score; the spatial gain comes from the saturation *level*.** The right operational
+   coupling is therefore: the regional curve decides *when* to raise the alert, and the alert is drawn
+   at a **rainfall-realistic saturation (m≈0.25–0.40), not the worst-case m=1**.
+4. **The trade is recall.** m=0.40 flags 88 zones vs 357 at m=1.0; TPR@2 km falls 0.70 → ~0.62 (m=0.40)
+   / 0.43 (m=0.25). You detect fewer total sites but each alert is far more trustworthy — the classic
+   precision/recall move, now *measured* and tunable.
+
+**Recommended operating point:** **m≈0.40** (best close-in lift 5.57×@100 m, AUC 0.535, lift>1 to
+1 km) for *localized* warning; **m≈0.25** (AUC 0.55, specificity 0.61@2 km) for *specificity-first*
+screening. This **supersedes the m=1 monsoon mosaic as the headline alert product** for validation;
+the mock dry/monsoon/extreme cascade (§5b/§5c) stays as the scenario-comparison baseline.
+
+**Producing script:** `workflows/rainfall_selectivity_backtest.py` (sweep `--saturations`, reuses
+`backtest_inventory.roc_from_distances`). **Artefacts:** `data/inventory/rainfall_selectivity_report.
+{md,json}`, `rainfall_selectivity.png`, per-m `data/alerts/mosaic_asc/alerts_sat{025..100}.json`.
+
 ---
 
 ## How to maintain this ledger

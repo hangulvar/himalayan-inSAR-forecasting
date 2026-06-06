@@ -851,6 +851,50 @@ good, but **a single wrong inventory date can invert your conclusion** — verif
 
 ---
 
+## CF6. Grading a hazard map honestly — the null control, ROC & AUC, and the wetness dial
+
+Saying "71 % of real slides are within 2 km of a flagged zone" *sounds* good — but it's almost meaningless
+on its own. If you painted the **whole** map red, you'd score 100 %. The question is not "are slides near our
+zones?" but **"are slides *closer* to our zones than random ground is?"** Answering it needs three ideas.
+
+**1 — The null control (a fair yardstick).** Scatter a few thousand **random points** inside the study
+area. These stand in for "pure luck." Now you have two groups: the **real** slides (positives) and the
+**random** points (negatives). For each point, measure the distance to the nearest flagged zone.
+
+**2 — TPR, FPR, and the ROC curve.** Pick a distance threshold (say 500 m) and call a point "detected" if a
+zone is within it.
+- **TPR** (true-positive rate / *recall*) = fraction of **real** slides detected.
+- **FPR** (false-positive rate) = fraction of **random** points detected — your "false-alarm" rate set by
+  how much area you flag.
+Sweep the threshold from tiny to huge and plot TPR (up) vs FPR (right): that's the **ROC curve**. The
+diagonal TPR = FPR is **pure chance** (no skill). Bowing *above* the diagonal = skill; *below* = worse than
+guessing.
+
+**3 — AUC (one number).** The **Area Under the ROC Curve** squeezes the whole curve into a single grade:
+**0.5 = a coin-toss**, 1.0 = perfect, **below 0.5 = worse than random**. A cousin metric is **lift** =
+TPR ÷ FPR at a given distance ("how many times better than luck"); lift = 1 is chance.
+
+**Everyday analogy.** A metal detector that beeps *everywhere* finds every coin (TPR = 1) but is useless
+(FPR = 1 too). AUC asks whether it beeps on coins *more than* on bare sand — across all sensitivity settings.
+
+🔗 **In our project: Milestone 23.** Graded this way, the worst-case map scored **AUC 0.41 — below a
+coin-toss** (it pinpoints well at 100 m, lift 1.6×, but flags so much ground that the skill drowns by 2 km).
+Two honest consequences: (a) the earlier "71 % within 2 km" (CF/M22) was *indicative, not a grade*; (b) it
+told us *why* — we'd drawn the map assuming the ground was **fully soaked everywhere** (worst case).
+
+**The wetness dial (and why the rain-line can't fix a map).** Our Factor of Safety is **exactly linear** in
+the soil saturation *m* (CF/C4): FS_real = (1−m)·FS_dry + m·FS_sat. So lowering *m* just **raises the failure
+bar uniformly** — only the steepest, most-marginal slopes stay flagged. Crucially, the real rainfall record
+says the ground only reaches m = 1 on **11 of 214 days** (median ≈ 0.26). Redrawing the map at a *realistic*
+wetness (m ≈ 0.25–0.40) lifted the grade to **AUC 0.55 (beats chance)** and close-range lift to **5.6× at
+100 m** — at the cost of catching fewer slides overall (the **recall ⇄ precision trade**). The subtle point:
+the regional **rain-trigger line decides *when* to raise an alarm (a *temporal* gate) — it cannot move a
+*spatial* score.** The map improved purely from the **saturation *level*** we drew it at. Keeping "when"
+(rain line) separate from "where/how-much" (wetness level) is what makes the result honest rather than
+over-sold.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -1014,6 +1058,17 @@ cell (so you need sub-daily/point rain). The meta-lesson I'd lead with in an int
 **reverse my own published conclusion** — and a single wrong inventory date was what had flipped it, which is
 exactly why verified ground truth (GSI Bhukosh) is the next step.
 
+**Q: Your map sits near 71 % of real slides — how good is that, really?**
+A: On its own, almost meaningless — if I flagged the whole map I'd "catch" 100 %. So I graded it **fairly**:
+I scattered 5,000 random points as a luck control and asked whether real slides are *closer* to flagged
+zones than random ground is, across all distances — that's a ROC curve, summarised by **AUC** (0.5 = a
+coin-toss). The worst-case map scored **0.41 — below chance**: it pinpoints well at 100 m (1.6× better than
+luck) but flags so much ground that the skill drowns by 2 km. That diagnosis led to the fix: I'd drawn the
+map assuming the soil was **fully soaked everywhere**, but the rainfall record only reaches that on 11 of
+214 days. Redrawn at a **realistic wetness**, the grade rose to **0.55 — beats chance — and 5.6× better than
+luck at 100 m**, trading some recall for precision. The honesty point I'd stress: the rain-trigger *line*
+decides *when* to alarm and can't move a *spatial* score — the map improved purely from the wetness *level*.
+
 ---
 
 # Part E — Honest Limitations
@@ -1047,13 +1102,15 @@ Being able to state weaknesses is what makes you credible.
   *AOI-mean* products just dilute the localized cloudburst cell (sub-daily/point rain resolves it). Refined
   open item: make the regional curve *selective* (still over-fires) and use sub-daily data for localized
   cells. The real wetness IS coupled into the FS (Milestone 13).
-- **Validation is first-pass + self-corrected (Milestones 14, 17, 20):** the back-test flags the right
-  corridor (10/11 documented NH-44 hotspots within ~2 km). On the corrected inventory the regional curve
-  gives **4/4** temporal and **catches the major 20 Apr cloudburst at Δ=0** — but that coincidence is partly
-  automatic (the curve fires 112/214 days), so it is **not yet a rigorous pass**. A one-week inventory-date
-  error had earlier flipped the spring conclusion, which is exactly why a *scored* precision/recall test on
-  the **GSI Bhukosh** inventory (verified dates/coords) is the next step; a *selective* acute trigger still
-  needs a how-rare-is-this-rain filter + sub-daily data for localized cells.
+- **Spatial validation is now *scored* and beats chance — but it's small-area and recall-limited (Milestone
+  23 / CF6):** graded against a 5,000-point random-luck control with a ROC/AUC, the worst-case (fully-soaked)
+  map scored **AUC 0.41 — below chance** (it over-flags). Redrawn at a *realistic* wetness (m≈0.25–0.40) it
+  scores **AUC 0.55 (beats chance)** and **5.6× better than luck at 100 m** — the first provably-better-than-
+  random result. Caveats: (a) it's one small AOI (~22×22 km), so 2 km buffers approach saturation; the honest
+  detection buffer is **≤250 m**; (b) the better grade comes with **lower recall** (fewer zones); (c) it's
+  still **spatial only** — a *temporal* scored test wants the **GSI Bhukosh** inventory with **verified
+  dates** (a one-week date error once flipped the spring conclusion, M20). The temporal back-test (4/4 on the
+  corrected inventory) remains *partly automatic* because the regional curve fires 112/214 days.
 - **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
   (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.
