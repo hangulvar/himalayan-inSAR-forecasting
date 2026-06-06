@@ -605,6 +605,83 @@ Ramban–Doda (Geological Survey of India, 2024-25 field season).
 
 ---
 
+## 16. φ=36 hazard re-run + fully scored back-test (precision/specificity + ROC AUC)  `[REAL / MEASURED]`
+
+Source: `workflows/run_multistack.py --force` (Docker, 2026-06-07) re-computed Phases 3–4 with the
+calibrated friction angle **φ = 36°** from §15; `workflows/backtest_inventory.py` extended with a
+null-point control arm (`--n-null 5000`, `--null-seed 20260606`) + a distance-ROC sweep then run
+against `data/inventory/gsi_inventory_aoi.geojson` (138 GSI field-validated points, §14) on
+`data/alerts/mosaic_asc/alerts_monsoon.json`. Resolves the §15 "exact zone-count change needs a
+re-run" pending item.
+
+### 16a. φ 32° → 36° hazard zone-count delta (monsoon scenario, ASC stacks + union mosaic)
+
+| Quantity | φ=32° (prior, §5/§9 baseline) | φ=36° (calibrated) | Δ |
+|---|---|---|---|
+| frame106 monsoon zones | 222 | **192** | −30 (−13.5 %) |
+| frame101 monsoon zones | 5 | **4** | −1 (−20 %) |
+| frame102 monsoon zones | 206 | **189** | −17 (−8.3 %) |
+| Union HIGH pixels (mosaic) | 5,268 | **4,418** | −850 (−16.1 %) |
+| Union HIGH ≥2-look-confirmed | 291 | **251** | −40 (−13.7 %) |
+| Union monsoon alert zones | 405 | **357** | −48 (−11.9 %) |
+| Union monsoon ≥2-look confirmed | 26 | **26** | 0 (robust core) |
+
+The calibration **de-flags ~12–14 % of marginal zones** (the gentle 22–25° band §15 predicted), while
+the multi-look-confirmed core (26 zones) is unchanged — exactly the "fewer false positives, same hard
+core" behaviour expected from raising φ within the GSI-measured range.
+
+### 16b. Scored spatial back-test on the φ=36° mosaic (null-point control + distance-ROC)
+
+Inventory: 138 GSI field-validated AOI points (§14). Negatives: 5,000 random points drawn uniformly
+inside the AOI polygon (seed 20260606). Decision rule: a point is "detected" if a flagged-zone
+centroid lies within buffer-km. **TPR = real detection rate; FPR = null detection rate.**
+
+| buffer (km) | TPR (real) | FPR (null) | specificity | precision* | lift (TPR/FPR) |
+|---|---|---|---|---|---|
+| **0.10** | **0.029** | **0.018** | **0.982** | **0.617** | **1.61×** |
+| 0.25 | 0.123 | 0.101 | 0.899 | 0.55 | 1.22× |
+| 0.50 | 0.275 | 0.310 | 0.690 | 0.471 | 0.89× |
+| 0.75 | 0.406 | 0.495 | 0.505 | 0.450 | 0.82× |
+| 1.00 | 0.493 | 0.644 | 0.356 | 0.434 | 0.77× |
+| 1.50 | 0.630 | 0.817 | 0.183 | 0.435 | 0.77× |
+| 2.00 (prior §14 buf) | 0.696 | 0.900 | 0.100 | 0.436 | 0.77× |
+| 2.50 | 0.746 | 0.948 | 0.052 | 0.440 | 0.79× |
+| 3.00 | 0.870 | 0.981 | 0.019 | 0.470 | 0.89× |
+| 4.00 | 0.978 | 1.000 | 0.000 | 0.495 | 0.98× |
+| 5.00 | 1.000 | 1.000 | 0.000 | 0.500 | 1.00× |
+
+\*precision under equal class priors = TPR/(TPR+FPR).
+
+**Headline scores:** AUC = **0.409**; at the previously-reported 2 km buffer, TPR=0.696 but FPR=0.900
+(lift **0.77×**, i.e. **worse than chance**); null-point median nearest-zone distance **0.76 km** vs
+real-inventory **1.01 km** (a random AOI point is closer on average than a GSI landslide).
+
+**Honest reading — what this tells us (and what the prior §14 71 % headline missed):**
+1. **The model has real, *localized* spatial skill at tight buffers** — lift **1.61× at 100 m** and
+   **1.22× at 250 m** (specificity 0.98 → 0.90). It is *not* random where the alerts land.
+2. **At ≥0.5 km the FPR climbs faster than TPR** — the AOI is small (~22×22 km) and the φ=36° mosaic
+   still flags 357 zones over a corridor that overlaps most of the field-mapped landslide belt, so
+   coincidence-at-2 km is the *default*, not a discriminator. **The §14 "71 % within 2 km" was
+   indicative — not scored.** Once scored against the null, it is below chance at that buffer.
+3. **AUC < 0.5** is driven by the mid-buffer FPR climb (zone density > inventory density at km-scale).
+   It does **not** invalidate the close-in (≤250 m) skill — but it does mean the *headline*
+   evaluation buffer should be **≤250 m** when claiming detection.
+4. **Implication for §5a/§5c (the mock cascade) and §9 (prior back-test):** keep them as the prior
+   baselines; the new operational headline is "lift **1.61× at 100 m**; AUC **0.409** over
+   0.1–5 km (because we flag a lot of area)". This is the first **scored** back-test on this project.
+
+**Next selectivity levers** (raise AUC + lift at km-scale): (a) restrict the comparison to the
+**≥2-look-confirmed** subset (26 monsoon zones, the robust core); (b) the **V_slope** mosaic
+(`data/alerts/mosaic_asc_vslope/` — more selective, §10/§11); (c) the *selective* regional rainfall
+curve (§12/§12c) to cut down the "everything is saturated" assumption baked into the monsoon scenario.
+
+**Producing scripts (this entry):** `workflows/run_multistack.py --force` (φ=36° hazard) +
+`workflows/backtest_inventory.py --inventory data/inventory/gsi_inventory_aoi.geojson
+--alerts data/alerts/mosaic_asc/alerts_monsoon.json` (scored arm).
+**Artefacts:** `data/inventory/backtest_report.{json,md}`, `backtest_map.png`, `backtest_roc.png`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
