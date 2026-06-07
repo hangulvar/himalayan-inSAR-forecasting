@@ -895,6 +895,47 @@ over-sold.
 
 ---
 
+## CF7. The operational alarm — gating *where* by *when* (and making the trigger selective)
+
+A danger **map** (CF6: *where* — the slopes that beat chance) is only half a warning. The other half is a
+**calendar** (*when* — is today actually dangerous?). CF7 joins them.
+
+**The problem with the raw rain line.** The regional I–D curve (CF2/CF5) is a **lower bound**: below it,
+slides are rare. But "above the line" fires on **112 of 214 days** — half the season. An alarm that rings
+every other day is useless.
+
+**The fix — grade by *how far* above the line.** Don't ask "is it above the line?" (yes/no); ask "**how far
+above?**" via the exceedance ratio **E(t) = (today's rain) ÷ (threshold rain)**. E = 1 is exactly on the
+line; a real cloudburst sits far above (20 Apr 2025: E ≈ 2.9; the 26 Aug monsoon peak: E ≈ 7). So define
+three states:
+- **DORMANT** (E < 1): below the line — the map is not armed.
+- **WATCH** (1 ≤ E < 2): line crossed — the validated footprint is *armed*, keep watch.
+- **ALERT** (E ≥ 2): well above — *raise the alarm* on the footprint.
+
+**Everyday analogy.** A smoke detector that beeps at the faintest whiff of toast is ignored; one that stays
+quiet until there's *real* smoke gets trusted. E is the "how much smoke" dial.
+
+**Crucial honesty — the footprint stays fixed.** On a wet day we do **not** redraw the map bigger (that is
+exactly what over-flagged in CF6). The *where* is always the validated operational map; only the *when*
+state changes. The regional line decides timing; the map decides place.
+
+🔗 **In our project: Milestone 24.** The ALERT gate (E ≥ 2) fires on just **27 days (13% of the season)** —
+**4× less** than the raw 112 — yet still lights up on exactly the right windows: the **20 April cloudburst
+is a Δ=0 ALERT** and the August monsoon peak is covered. All **4** documented disasters fall in an armed
+(WATCH+) window; **3 of 4** reach full ALERT. The two that only reach WATCH (27 Apr, 8 May) had rain too
+*localized* for our coarse weather grid to register a high E — the same gauge/sub-daily limitation CF5
+names, kept on the record. One AOI-average rain value gives one E per day, so the gate is currently
+area-wide on/off; per-zone timing needs sub-daily/point rainfall.
+
+**A companion reality check (Milestone 24).** We also ran our cleanest, "atmosphere-physically-removed"
+radar velocity (the MintPy ERA5 product, CT3) through the same danger map on one track. It agrees with our
+everyday high-pass method on the broad field (correlation ≈ 0.55) but flags only **half** as many creeping
+pixels, and they **barely overlap** (of the premium method's creep pixels, only ~18% are also flagged by
+the everyday one). The lesson, written into our limitations: *which exact pixels "creep" on a **single**
+track is not robust to the processing choice — trust the spots multiple tracks agree on.*
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -1083,11 +1124,14 @@ Being able to state weaknesses is what makes you credible.
   ground is a single-look blind spot (downhill ~perpendicular to the LOS).
 - **80 m pixels:** each pixel averages an 80 m patch — fine for hillside-scale
   creep, too coarse for a single boulder.
-- **Residual atmosphere:** our *custom* engine's simple plane-deramp + high-pass
-  removes the worst, not all, of the atmospheric noise (~30 mm/yr floor). The MintPy
-  path now adds a *physical* ERA5 correction (CT3) that cut its velocity scatter to
-  ~21 mm/yr on frame106 — but that gain is so far proven on one stack, not yet rolled
-  through the hazard/alert products (those still run on the custom velocities).
+- **Residual atmosphere + single-look creep is not pixel-robust (Milestone 24 / §18):** our *custom*
+  engine's plane-deramp + high-pass removes the worst, not all, atmospheric noise (~30 mm/yr floor); the
+  MintPy ERA5 correction (CT3) cut scatter to ~21 mm/yr on frame106. We **rolled that ERA5 velocity through
+  the hazard** on frame106: it agrees on the broad field (r≈0.55) but flags **~half** the creeping pixels,
+  and only ~18 % overlap with the high-pass method's. So *which exact pixels creep on a single track is
+  sensitive to the velocity processing* — trust where **multiple looks agree** (the ≥2-look core, M23). The
+  ERA5 product is the more physical basis but is so far only proven/rolled on one stack (the mosaic still
+  runs on the custom velocities).
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
@@ -1099,9 +1143,12 @@ Being able to state weaknesses is what makes you credible.
   gauge product CHIRPS (Milestone 17) and it was *drier* than ERA5-Land** on the (then-assumed) event dates.
   **Date correction (Milestone 20):** the real major event was the **20 Apr 2025 cloudburst**, which the
   regional curve + sub-daily IMERG *do* flag (E=2.25) — so the spring trigger is **not** ruled out; the daily
-  *AOI-mean* products just dilute the localized cloudburst cell (sub-daily/point rain resolves it). Refined
-  open item: make the regional curve *selective* (still over-fires) and use sub-daily data for localized
-  cells. The real wetness IS coupled into the FS (Milestone 13).
+  *AOI-mean* products just dilute the localized cloudburst cell (sub-daily/point rain resolves it). **The
+  over-firing is now RESOLVED by the E-graded temporal gate (Milestone 24 / CF7):** grading days by how far
+  above the line they sit cuts the alarm from 112 to **27 ALERT days (13% of season, 4× fewer)** while still
+  catching the 20 Apr cloudburst at Δ=0. Remaining: only sub-daily/point rain (not AOI-mean) can raise the
+  E of the *localized* 27 Apr / 8 May cells (they reach WATCH, not ALERT). The real wetness IS coupled into
+  the FS (Milestone 13).
 - **Spatial validation is now *scored* and beats chance — but it's small-area and recall-limited (Milestone
   23 / CF6):** graded against a 5,000-point random-luck control with a ROC/AUC, the worst-case (fully-soaked)
   map scored **AUC 0.41 — below chance** (it over-flags). Redrawn at a *realistic* wetness (m≈0.25–0.40) it

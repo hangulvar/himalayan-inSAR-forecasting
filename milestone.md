@@ -838,6 +838,42 @@ we drew it at. Keeping those two straight is what makes the result trustworthy r
 
 ---
 
+## ✅ Milestone 24 — Teaching the Alarm *When* to Ring (not just *where* to point)  *(Temporal gate + an ERA5 reality check, 2026-06-07)*
+
+**What we set out to do:** Milestone 23 gave us a danger **map** (the *where*) that finally beats a
+coin-toss. But a map isn't a warning — a warning also needs a *when*. We had a rain "trigger line" for the
+NW Himalaya, but on its own it cried wolf: it tripped on **112 of 214 days** (half the season). This step
+joined the two — *where* × *when* — into a single, honest alarm, and then stress-tested our cleanest
+radar against the hazard.
+
+**What we did, plainly:**
+- **Made the alarm a two-part decision.** *Where* = the validated 88-zone map (Milestone 23). *When* =
+  the rain trigger, but **graded by how *far above* the danger line each day sits** (not just "above /
+  below"). A day barely over the line → **WATCH** (footprint armed, keep an eye out); a day *well* over →
+  **ALERT** (raise the alarm).
+- **The result is genuinely usable.** The full-blown ALERT now fires on just **27 days (13% of the
+  season)** instead of 112 — about **4× less crying wolf** — yet it still lights up on exactly the right
+  windows: the deadly **20 April cloudburst is a Δ=0 ALERT**, and the late-August monsoon peak. Of the four
+  recorded disasters, **all four** fall inside an armed (WATCH-or-higher) window, and **three of four** hit
+  a full ALERT. The two that only reach WATCH (27 Apr, 8 May) are exactly the ones whose rain was too
+  localized for our coarse weather data to "see" — an honesty we keep on the record, not paper over.
+- **A reality check on our best radar.** We have a premium, "atmosphere physically scrubbed" velocity for
+  one satellite track. We ran it through the danger map and compared. Reassuring: it agrees with our
+  everyday method on the big picture. Sobering: it flags only **half as many** creeping pixels, and they
+  **barely overlap** with the everyday method's. The lesson we wrote down: *which exact pixels are
+  "creeping" on a single track is not rock-solid — trust the spots that several tracks agree on.*
+
+**Why this matters:** a map that says "these slopes are dangerous" plus a calendar that says "and today is
+a dangerous day" is the shape of a real early-warning system. We now have both — and, just as importantly,
+we've measured and stated where each half is still soft (coarse rain misses local cloudbursts; single-track
+creep isn't pixel-stable).
+
+**Plain-language result:** the alarm now rings **4× less often** (27 vs 112 days) but still catches the
+deadly **20 April cloudburst on the exact day** and all four recorded disasters within an armed window — a
+real *where × when* warning, with its soft spots measured rather than hidden.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

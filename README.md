@@ -298,7 +298,11 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   `python workflows/apply_connectivity_rescues.py` (offline; only clean bridges).
 - **Multi-stack driver (Phases 2–4 + AOI union):** `python workflows/run_multistack.py`
   — inverts all connectable stacks, builds per-look hazard and a **union** hazard/alert
-  product (`data/mosaic/`, `data/alerts/mosaic_asc/`).
+  product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
+  `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
+  standing product** (saturation m=0.40) that is the first to score **above chance** in the
+  back-test (`RESULTS_AND_KPIS.md` §16d/§16e). Add `--use-vslope` for the parallel
+  downslope-projected product (`data/mosaic_vslope/`).
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
   --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
   [`docker/README.md`](docker/README.md) and `SESSION_REVIEW.md` §4.
@@ -315,9 +319,16 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   `python workflows/rainfall_specificity.py --csv <daily.csv>` (sensitivity/selectivity trade-off) and/or
   `python workflows/fetch_gpm_imerg.py` (half-hourly GPM IMERG sub-daily-intensity test; needs Step 6 auth) →
   `python workflows/agentic_orchestrator.py --rainfall-timeline` (couples rain into FS) →
-  `python workflows/backtest_inventory.py --trigger-report <id_threshold_report.json>`
-  (validate vs the documented landslide inventory). `inverse_velocity_ttf.py` screens for
+  `python workflows/backtest_inventory.py --inventory data/inventory/gsi_inventory_aoi.geojson
+  --alerts data/alerts/mosaic_asc/alerts_operational.json` (**scored** validation vs the GSI
+  field-validated inventory: null-point control + distance-ROC/**AUC**, `--min-looks N` for the
+  multi-look core; `RESULTS_AND_KPIS.md` §16b–e). `inverse_velocity_ttf.py` screens for
   accelerating creep. Add `--use-vslope` to the orchestrator/TTF for the downslope basis.
+- **Rainfall-realistic operating point (the saturation that beats chance):**
+  `python workflows/rainfall_selectivity_backtest.py` — sweeps the assumed soil saturation,
+  rebuilds + scores the AOI union mosaic at each, and shows AUC rising 0.41→0.55 as m falls
+  from worst-case 1.0 to the realistic ~0.25–0.40 (`RESULTS_AND_KPIS.md` §16d). The chosen
+  point (m=0.40) is wired in as the `operational` scenario above.
 
 Any command runs in Docker too, e.g. `docker compose run --rm insar python workflows/run_multistack.py`.
 

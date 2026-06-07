@@ -23,10 +23,15 @@ only **11/214 days** (median m≈0.26). Lowering m to a realistic level concentr
 marginal slopes → **AUC rises monotonically 0.407 → 0.550** (m=1.0→0.25), the **first config to beat chance**;
 at **m=0.40** lift **5.57×@100 m, >1× out to 1 km**; spec@2 km 0.10→0.61. **Honest nuance:** the regional ID
 curve is a *temporal* gate (when to issue) and can't move a *spatial* score — the gain comes from the
-saturation *level* (**§16d**). Recommended product: **m≈0.40** localized / **m≈0.25** specificity-first,
-superseding m=1 monsoon as the headline validation product. **Session 11** had reviewed TRAIN + run the
-MintPy tropo-method comparison (ERA5 −31 % scatter, **§13**), ingested the GSI inventory (138 AOI slides,
-**§14**), and calibrated φ 32°→36° from the GSI LSM brief (**§15**). Detail: §2 / §5._
+saturation *level* (**§16d**). Wired m=0.40 in as the standing `operational` scenario (union 88 zones,
+AUC 0.537, **§16e**). **Then built the TWO-FACTOR operational warning — WHERE × WHEN:** `operational_alarm.py`
+(**§17**) gates the operational footprint by the regional curve graded by exceedance E (DORMANT/WATCH/ALERT),
+cutting the raw **112/214-day trigger → 27 ALERT days (4.1× fewer)** while catching the **20 Apr cloudburst at
+Δ=0** (4/4 events in a WATCH+ window) — resolving the §12c over-firing. **And rolled the ERA5-corrected
+velocity through the hazard** (`hazard_era5_compare.py`, frame106, **§18**): self-check passed; ERA5 flags
+~half the creep/HIGH but only ~18 % overlap → single-look creep is processing-sensitive (trust the multi-look
+core). **Session 11** had reviewed TRAIN + run the MintPy tropo-method comparison (ERA5 −31 % scatter,
+**§13**), ingested the GSI inventory (138 AOI slides, **§14**), and calibrated φ 32°→36° (**§15**). Detail: §2 / §5._
 
 ---
 
@@ -77,7 +82,7 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
 - **Forecasting + validation layer:** inverse-velocity TTF (all steady, short series); real ERA5-Land
   rainfall + Caine/regional ID thresholds coupled into the orchestrator (`FS_real=(1−m)·FS_dry+m·FS_sat`);
   GEE CHIRPS + GPM IMERG fetched; the 20-Apr-2025 cloudburst date correction (§12g).
-- **Session 12 — the SCORED validation + the rainfall-realistic operating point (all KPIs §16a–d):**
+- **Session 12 — SCORED validation → rainfall-realistic product → two-factor operational warning (§16a–e, §17, §18):**
   - **§16a φ=36° re-run:** zones −12 to −16 % vs φ=32°; ≥2-look core unchanged (26).
   - **§16b first scored back-test:** null-point control (5,000 random AOI pts, seed 20260606) + distance-ROC
     + AUC, in `backtest_inventory.py`. φ=36° mosaic **AUC=0.409**; lift 1.61×@100 m; below chance ≥0.5 km.
@@ -86,6 +91,14 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
   - **§16d ★ rainfall-realistic saturation:** `rainfall_selectivity_backtest.py` sweep → **AUC 0.407→0.550**
     (m=1.0→0.25), beats chance; **m=0.40** lift 5.57×@100 m, >1× to 1 km. Shared scorer `roc_from_distances`
     extracted from `backtest_inventory.py` (verified behaviour-preserving: reproduces AUC 0.409 exactly).
+  - **§16e operational scenario:** m=0.40 wired as a first-class scenario (orchestrator + multistack); union
+    88 zones, scored **AUC=0.537** (reproduces §16d). The demos now lead with this beats-chance product.
+  - **§17 ★ temporal gate** (`operational_alarm.py`): regional curve graded by exceedance E → DORMANT/WATCH/
+    ALERT over the fixed operational footprint. **112/214-day raw trigger → 27 ALERT days (4.1× fewer)**;
+    20 Apr cloudburst = ALERT Δ=0; 4/4 events caught by WATCH+, 3/4 by ALERT. Two-factor warning = WHERE×WHEN.
+  - **§18 ERA5 velocity through hazard** (`hazard_era5_compare.py`, frame106): self-check passed; ERA5 flags
+    ~half the creep (3,752→1,615) / HIGH zones (192→72), ~18 % overlap → single-look creep is processing-
+    sensitive (trust the multi-look core). Demonstrative single-stack; not in the mosaic.
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
@@ -149,18 +162,29 @@ The core vision is fully built and now **scored above chance**. Remaining work:
 
 ## 5. Recommended next step
 
-The validation thread (φ=36° → scored back-test → selectivity levers → rainfall coupling) is **complete**,
-and the headline result is genuinely strong: **the first provably-better-than-chance spatial forecast on the
-project (AUC 0.55, lift 5.6×@100 m at m≈0.40)**. Two clean, high-leverage follow-ups:
+The validation + operational thread is now **complete end-to-end**: φ=36° → scored back-test → selectivity
+levers → rainfall-realistic operating point (§16) → **two-factor operational warning** (§17) → ERA5-velocity
+hazard reality-check (§18). Headline: **a provably-better-than-chance forecast (AUC 0.55, lift 5.6×@100 m)
+gated by a selective temporal alarm that catches the 20 Apr cloudburst at Δ=0**. All four §5 follow-ups are
+DONE:
 
-1. **Make m≈0.40 the default acute operating point** and wire the **regional `nwhimalaya` curve as the
-   *temporal* gate over it** ("curve decides *when*, alert drawn at rainfall-realistic m"). This turns §16d
-   from an experiment into the standing product. Touches `agentic_orchestrator.py` (a real-rainfall default)
-   + `run_multistack.py` (union over the rainfall-driven scenario) + re-baseline the headline KPIs.
-2. **Roll the ERA5-corrected velocity through the hazard/alert chain** (small, committable; the tropo gain
-   is currently proven but unused downstream).
+1. ✅ **DONE (§16e) — m≈0.40 `operational` standing product** (scenario in orchestrator + multistack; union
+   88 zones, AUC=0.537).
+2. ✅ **DONE (§17) — regional curve as the *temporal gate*** (`workflows/operational_alarm.py`): E-graded
+   DORMANT/WATCH/ALERT over the fixed operational footprint. **Cuts the raw 112/214-day trigger → 27 ALERT
+   days (4.1× fewer)**; 20 Apr cloudburst = ALERT Δ=0; 4/4 events caught by WATCH+, 3/4 by ALERT. Resolves
+   the §12c over-firing.
+3. ✅ **DONE (§18) — ERA5 velocity rolled through the hazard** (`workflows/hazard_era5_compare.py`, frame106):
+   self-check passed; ERA5 flags ~half the creep (3,752→1,615 px) / HIGH zones (192→72), but only ~18 %
+   overlap → **single-look creep is processing-sensitive; trust the multi-look core.** Demonstrative
+   single-stack (`*_hazard_class_era5.tif`); not in the mosaic.
 
-Also open: the **GSI Bhukosh** inventory with **verified dates** for a *temporal* scored test; 12.5 m DEM;
+**New top remaining quick wins:** (a) **per-zone temporal gating** — the gate is AOI-wide (one E/day);
+sub-daily/point rain (IMERG) would let ALERT vary per zone; (b) **GSI Bhukosh verified-date inventory** for
+a *temporal* scored test; (c) **12.5 m DEM**; (d) couple `operational_alarm` ALERT state into the
+dashboards (a "live today?" banner).
+
+Also open: 12.5 m DEM;
 the matric-suction dry/wet-cohesion split; the union 3-D dashboard. For a **new AOI before monsoon**: point
 `config.yaml` at the new polygon + start the S1/HyP3 pull now (velocity needs a time series) — offer stands
 to wire `config.yaml` and dry-run everything that doesn't need the HyP3 order.
@@ -212,29 +236,35 @@ validated inventory — never trust a single sensor or a single physics assumpti
 
 **Session 12 (2026-06-07) — documentation ritual COMPLETE.**
 
-**New files (uncommitted):** `workflows/rainfall_selectivity_backtest.py` (§16d saturation sweep).
-**Modified (committed-track):** `workflows/backtest_inventory.py` (scored arm: null-point control +
-distance-ROC/AUC + `--min-looks`/`--out-prefix` + extracted `roc_from_distances`); `RESULTS_AND_KPIS.md`
-(**§16a–d** + header). **Committed-track docs updated this ritual:** `Research/Foundations - Physics and
-Maths Primer.md` (**CF6** validation science + Part D Q + Part E limitation). **Journals:** `session_journey.md`
-(Session 12, Pushes 1–4) is local-only/untracked; `milestone.md` (**M23** + Where-Headed-Next) **and this file
-are TRACKED** (see the §1 box — the "git-ignored" label on these two is a documented error, corrected here).
+**New files (uncommitted):** `workflows/rainfall_selectivity_backtest.py` (§16d), `workflows/operational_alarm.py`
+(§17 temporal gate), `workflows/hazard_era5_compare.py` (§18 ERA5-velocity hazard).
+**Modified (committed-track):** `workflows/backtest_inventory.py` (scored arm + `roc_from_distances` +
+`np.trapezoid` fallback); `workflows/agentic_orchestrator.py` + `workflows/run_multistack.py` (**`operational`
+m=0.40 scenario**, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17, §18** + header); `README.md` (operational +
+scored-arm + sweep run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6** validation +
+**CF7** operational alarm + Part D Q + Part E updates). **Journals:** `session_journey.md` (Session 12,
+Pushes 1–7) is local-only/untracked; `milestone.md` (**M23**, **M24**) **and this file are TRACKED** (see §1 box).
 
-**Git-ignored data outputs (NOT committable):** `data/hazard/*` + `data/alerts/*` + `data/mosaic*/`
-(re-run at φ=36°, LOS+V_slope); `data/alerts/mosaic_asc/alerts_sat{025..100}.json`; `data/inventory/`
-(`backtest_report.*`, `backtest_los_2look_*`, `backtest_vslope*_*`, `rainfall_selectivity_report.*`,
-`rainfall_selectivity.png`, `backtest_roc.png`, `backtest_map.png`).
+**Git-ignored data outputs (NOT committable):** `data/hazard/*` (incl. `*_hazard_class_era5.tif`,
+`hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, per-stack `dashboard_operational.html`)
++ `data/mosaic*/`; `data/alerts/mosaic_asc/alerts_sat{025..100}.json`; `data/rainfall/operational_alarm_*`;
+`data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
 
-**`error_history_log.md`:** NO new entry — no bugs this session (only a cosmetic `np.trapz` deprecation).
+**`error_history_log.md`:** NO new entry — no bugs this session (only a cosmetic `np.trapz` deprecation, now fixed).
 
-**Git state (user commits manually).** Prepared commit (BLOCKED by the manual-commit boundary, correctly —
-left for the user):
+**Git state (user commits manually).** The §16a–d batch is **already committed** (`c71b09f`, `0230706`,
+`40012e9`). Remaining uncommitted delta = §16e operational scenario + §17 temporal gate + §18 ERA5 hazard +
+housekeeping/docs:
 ```
-git add workflows/backtest_inventory.py workflows/rainfall_selectivity_backtest.py RESULTS_AND_KPIS.md
-git commit -m "Rainfall-realistic saturation crosses chance: AUC 0.41->0.55, lift 5.6x@100m at m=0.40 (§16d)"
+git add workflows/agentic_orchestrator.py workflows/run_multistack.py workflows/backtest_inventory.py \
+        workflows/operational_alarm.py workflows/hazard_era5_compare.py \
+        RESULTS_AND_KPIS.md README.md "Research/Foundations - Physics and Maths Primer.md"
+git commit -m "Operational two-factor warning: m=0.40 scenario + regional-curve temporal gate (§16e,§17) + ERA5 hazard check (§18)"
 ```
+(`SESSION_REVIEW.md` + `milestone.md` are also tracked — include or omit per your call; `session_journey.md`
++ `CLAUDE.md` are untracked.)
 
-**Recommended first action next session (see §5):** make **m≈0.40** the default acute operating point + wire
-the regional `nwhimalaya` curve as the *temporal* gate over it, then re-baseline the headline KPIs; and roll
-the ERA5-corrected velocity through the hazard chain. **Start Docker Desktop first** (anything that plots
-must run in the container).
+**Recommended first action next session (see §5):** **per-zone temporal gating** (sub-daily/point IMERG rain
+so ALERT varies per zone instead of AOI-wide), and/or couple the `operational_alarm` ALERT state into the
+dashboards as a "live today?" banner. Then the **GSI Bhukosh verified-date inventory** for a temporal scored
+test, and the **12.5 m DEM**. **Start Docker Desktop first** (anything that plots must run in the container).

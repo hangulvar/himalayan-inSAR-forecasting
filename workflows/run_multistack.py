@@ -57,7 +57,9 @@ MOSAIC_VSLOPE_DIR = PROJECT_ROOT / "data" / "mosaic_vslope"
 MOSAIC_ALERTS_VSLOPE_DIR = ALERTS_DIR / "mosaic_asc_vslope"
 LOG_DIR = PROJECT_ROOT / "logs"
 
-SCENARIOS = ["dry", "monsoon", "extreme"]
+# Keep in sync with agentic_orchestrator.SCENARIOS. 'operational' (m=0.40, rainfall-
+# realistic) is the standing product that beats chance (§16d); the rest are the mock cascade.
+SCENARIOS = ["dry", "operational", "monsoon", "extreme"]
 HAZARD_HIGH = 2.0
 MERGE_DEG = 0.0015  # ~165 m: zones nearer than this (different looks) are one place
 

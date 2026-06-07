@@ -160,7 +160,8 @@ def roc_from_distances(real_dists, null_dists, buffers, buffer_km):
     fprs = np.array([0.0] + [r["fpr"] for r in roc_rows] + [1.0])
     tprs = np.array([0.0] + [r["tpr"] for r in roc_rows] + [1.0])
     order = np.argsort(fprs)
-    auc = float(np.trapz(tprs[order], fprs[order]))
+    _trap = getattr(np, "trapezoid", np.trapz)  # numpy>=2 renamed trapz -> trapezoid
+    auc = float(_trap(tprs[order], fprs[order]))
     at_buf = next((r for r in roc_rows if abs(r["buffer_km"] - buffer_km) < 1e-9), None)
     if at_buf is None:
         tpr_b = float(np.mean(real_dists <= buffer_km))
