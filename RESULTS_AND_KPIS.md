@@ -879,6 +879,52 @@ Rolling ERA5 through all stacks needs a per-stack MintPy ERA5 run. **Producing s
 
 ---
 
+## 19. Per-zone temporal gating — the alarm now varies by zone vulnerability  `[REAL / MEASURED]`
+
+Source: `workflows/per_zone_gate.py` (Docker, 2026-06-07). Resolves the §17 "AOI-wide on/off" limitation.
+The honest per-zone differentiator is **not** per-zone rainfall (rain is ~uniform at IMERG's ~10 km over a
+~22 km AOI, and growing the footprint on wet days re-introduces the §16b over-flag) — it is each zone's
+**critical saturation** m\* = (1−FS_dry)/(FS_sat−FS_dry) (FS is exactly linear in m), the wetness at which
+*that* zone crosses FS=1, sampled at each operational zone's pixel. Two-level gate: the **regional E(t)**
+decides IF an alarm fires (§17 WHEN); on a WATCH/ALERT day the **active zones** are those whose m\* the
+day's saturation m(t) has reached — **capped at the validated footprint** (never adds zones from outside,
+so no ballooning).
+
+### 19a. Per-zone vulnerability spread (95 per-stack operational zones; union = 88)
+
+| metric | value |
+|---|---|
+| critical saturation m\* | min **0.00** / median **0.18** / max **0.40** (baseline m=0.40) |
+| tier `fails-when-barely-wet` (m\*<0.15) | **44 zones** (operator's top priority) |
+| tier `fails-on-a-wet-day` (0.15–0.30) | 33 zones |
+| tier `fails-only-when-very-wet` (0.30–0.40) | 18 zones |
+
+The most vulnerable zones (m\*=0.00 → unstable even dry) are CRITICAL with fast creep (e.g. frame102 #4:
+FS@0.40=0.77, creep −62 mm/yr) — exactly the slopes to inspect first.
+
+### 19b. The active set "breathes" per day (genuine per-zone behaviour)
+
+| day | saturation m(t) | E | regional | active zones (of 95) |
+|---|---|---|---|---|
+| 20 Apr (cloudburst) | 0.656 | 2.89 | ALERT | **95** (snowmelt season already saturated) |
+| 27 Apr | 0.332 | 1.41 | WATCH | **85** (10 least-vulnerable not yet at failure) |
+| 8 May / typical dry | ≤0.20 | <1 | DORMANT | **0** (regional gate off) |
+| 26 Aug (monsoon peak) | 1.00 | 6.94 | ALERT | **95** |
+
+Across the **112 WATCH+ days the active count ranges 53–95** (median 95); on the 27 ALERT days, 91–95.
+So on the marginal/drier trigger days only the most vulnerable subset (as few as **53**) is active, while
+the wettest days escalate the whole footprint — a real per-zone alarm, ranked by m\*, that an operator can
+act on. The 20 Apr cloudburst correctly activates all 95 (the spring snowmelt had already raised m to 0.66).
+
+**Honest scope:** per-zone differentiation is by intrinsic **vulnerability** (m\*), not local rainfall (the
+WHEN gate stays regional — rain is ~uniform at scale). The active set never exceeds the validated footprint,
+so it cannot re-introduce the §16b over-flag. Acute cloudbursts are caught by the regional E gate; m(t) is
+the *antecedent* saturation, which a daily product builds slowly (here it was already high on 20 Apr from
+snowmelt). **Producing script:** `workflows/per_zone_gate.py`. **Artefacts:**
+`data/alerts/per_zone_vulnerability.{json,csv,md}`, `per_zone_active_timeline.csv`, `per_zone_gate.png`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

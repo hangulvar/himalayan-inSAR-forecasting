@@ -335,6 +335,10 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   112/214-day trigger to 27 ALERT days (4.1×) and catches the 20 Apr cloudburst at Δ=0 (§17). Writes a
   self-contained dashboard `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (`--as-of <date>` for
   the "current state" banner).
+- **Per-zone gating (which zones are live today):** `python workflows/per_zone_gate.py` — each operational
+  zone's critical saturation m\*=(1−FS_dry)/(FS_sat−FS_dry); on a regional WATCH/ALERT day the active set =
+  zones whose m\* the day's saturation has reached (53–95 of 95, ranked by vulnerability, capped at the
+  validated footprint — no ballooning) (§19).
 - **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
   MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
 

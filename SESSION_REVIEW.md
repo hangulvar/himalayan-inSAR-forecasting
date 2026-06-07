@@ -103,6 +103,10 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
     two-factor warning UI — current-state banner (as-of any `--as-of` day; default peak-E) + WHERE/WHEN
     panels + season calendar. The new headline demo. (Note: GSI Bhukosh dropped — the CSV already suffices
     for the *spatial* test; it only lacked per-landslide *dates*, and we have 4 dated events already.)
+  - **§19 per-zone gating** (`per_zone_gate.py`): each operational zone's critical saturation
+    **m\*=(1−FS_dry)/(FS_sat−FS_dry)**; on a regional WATCH/ALERT day the active set = zones with m\* ≤ daily
+    m(t) — **breathes 53–95 of 95**, ranked by vulnerability (44 "fail-when-barely-wet"), capped at the
+    validated footprint (no ballooning). Resolves the §17 AOI-wide limitation. 20 Apr → all 95 active.
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
@@ -170,9 +174,9 @@ The core vision is fully built and now **scored above chance**. Remaining work:
 
 The validation + operational thread is now **complete end-to-end**: φ=36° → scored back-test → selectivity
 levers → rainfall-realistic operating point (§16) → **two-factor operational warning** (§17) → ERA5-velocity
-hazard reality-check (§18). Headline: **a provably-better-than-chance forecast (AUC 0.55, lift 5.6×@100 m)
-gated by a selective temporal alarm that catches the 20 Apr cloudburst at Δ=0**. All four §5 follow-ups are
-DONE:
+hazard reality-check (§18) → **per-zone gating** (§19). Headline: **a provably-better-than-chance forecast
+(AUC 0.55, lift 5.6×@100 m) gated by a selective temporal alarm that catches the 20 Apr cloudburst at Δ=0,
+now resolved per zone**. All follow-ups DONE:
 
 1. ✅ **DONE (§16e) — m≈0.40 `operational` standing product** (scenario in orchestrator + multistack; union
    88 zones, AUC=0.537).
@@ -184,11 +188,15 @@ DONE:
    self-check passed; ERA5 flags ~half the creep (3,752→1,615 px) / HIGH zones (192→72), but only ~18 %
    overlap → **single-look creep is processing-sensitive; trust the multi-look core.** Demonstrative
    single-stack (`*_hazard_class_era5.tif`); not in the mosaic.
+4. ✅ **DONE (operational dashboard)** — `operational_alarm_dashboard.html` (WHERE×WHEN, current-state banner).
+5. ✅ **DONE (§19) — per-zone gating** (`workflows/per_zone_gate.py`): per-zone critical saturation m\*; the
+   active set breathes **53–95 of 95** zones by day, ranked by vulnerability, capped at the validated
+   footprint. Resolves the §17 AOI-wide limitation via intrinsic vulnerability (rain is ~uniform at scale).
 
-**New top remaining quick wins:** (a) **per-zone temporal gating** — the gate is AOI-wide (one E/day);
-sub-daily/point rain (IMERG) would let ALERT vary per zone; (b) **GSI Bhukosh verified-date inventory** for
-a *temporal* scored test; (c) **12.5 m DEM**; (d) couple `operational_alarm` ALERT state into the
-dashboards (a "live today?" banner).
+**New top remaining quick wins:** (a) **wire the per-zone ranking into the dashboard** (the WHERE panel → a
+ranked "live zones today" list, using `per_zone_vulnerability.csv`); (b) **12.5 m DEM** (sharper slope → FS;
+needs an ASF Vertex download); (c) **roll ERA5 velocity through all stacks** (needs per-stack MintPy ERA5).
+**GSI Bhukosh DROPPED** (the CSV suffices for the spatial test; it only lacked per-landslide dates).
 
 Also open: 12.5 m DEM;
 the matric-suction dry/wet-cohesion split; the union 3-D dashboard. For a **new AOI before monsoon**: point
@@ -242,14 +250,22 @@ validated inventory — never trust a single sensor or a single physics assumpti
 
 **Session 12 (2026-06-07) — documentation ritual COMPLETE.**
 
-**New files (uncommitted):** `workflows/rainfall_selectivity_backtest.py` (§16d), `workflows/operational_alarm.py`
-(§17 temporal gate), `workflows/hazard_era5_compare.py` (§18 ERA5-velocity hazard).
+**New files (uncommitted at session close — some may now be committed):** `workflows/rainfall_selectivity_backtest.py`
+(§16d), `workflows/operational_alarm.py` (§17 gate + dashboard), `workflows/hazard_era5_compare.py` (§18),
+`workflows/per_zone_gate.py` (§19 per-zone gating).
 **Modified (committed-track):** `workflows/backtest_inventory.py` (scored arm + `roc_from_distances` +
 `np.trapezoid` fallback); `workflows/agentic_orchestrator.py` + `workflows/run_multistack.py` (**`operational`
-m=0.40 scenario**, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17, §18** + header); `README.md` (operational +
-scored-arm + sweep run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6** validation +
-**CF7** operational alarm + Part D Q + Part E updates). **Journals:** `session_journey.md` (Session 12,
-Pushes 1–7) is local-only/untracked; `milestone.md` (**M23**, **M24**) **and this file are TRACKED** (see §1 box).
+m=0.40 scenario**, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17, §18, §19** + header); `README.md` (operational +
+scored-arm + sweep + per-zone + ERA5 run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6**
+validation + **CF7** operational alarm + Part D Q + Part E updates). **Journals:** `session_journey.md` (Session 12,
+Pushes 1–9) is local-only/untracked; `milestone.md` (**M23**, **M24**) **and this file are TRACKED** (see §1 box).
+
+**Latest uncommitted delta (§19 per-zone gating):**
+```
+git add workflows/per_zone_gate.py RESULTS_AND_KPIS.md README.md
+git commit -m "Per-zone temporal gating: critical-saturation m* ranks the footprint; active set breathes 53-95 zones (§19)"
+```
+(`SESSION_REVIEW.md` is also tracked — include or omit per your call.)
 
 **Git-ignored data outputs (NOT committable):** `data/hazard/*` (incl. `*_hazard_class_era5.tif`,
 `hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, per-stack `dashboard_operational.html`)
