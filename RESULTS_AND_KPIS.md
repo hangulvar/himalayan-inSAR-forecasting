@@ -834,8 +834,10 @@ chance, §16d/e) **×** *WHEN* (temporal, selective 12.6 %-season gate, catches 
 Δ=0). The over-firing flagged as the standing weakness in §12c/CF5/Part E is **resolved by the E-grading**
 without losing the major event. **Honest scope:** AOI-mean rain → one E/day → the gate is AOI-wide on/off;
 sub-daily/point rain would let it vary per zone. **Producing script:** `workflows/operational_alarm.py`
-(`--watch-k`/`--alert-k`). **Artefacts:** `data/rainfall/operational_alarm_report.{json,md}`,
-`operational_alarm_calendar.csv`, `operational_alarm.png`.
+(`--watch-k`/`--alert-k`/`--as-of`). **Artefacts:** `data/rainfall/operational_alarm_report.{json,md}`,
+`operational_alarm_calendar.csv`, `operational_alarm.png`, and a self-contained **two-factor warning
+dashboard** `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (a "current state" banner as-of a
+chosen day — WHERE footprint × WHEN alarm calendar in one view).
 
 ---
 

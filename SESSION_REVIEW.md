@@ -99,6 +99,10 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
   - **§18 ERA5 velocity through hazard** (`hazard_era5_compare.py`, frame106): self-check passed; ERA5 flags
     ~half the creep (3,752→1,615) / HIGH zones (192→72), ~18 % overlap → single-look creep is processing-
     sensitive (trust the multi-look core). Demonstrative single-stack; not in the mosaic.
+  - **Operational dashboard** (`operational_alarm.py` → `operational_alarm_dashboard.html`): self-contained
+    two-factor warning UI — current-state banner (as-of any `--as-of` day; default peak-E) + WHERE/WHEN
+    panels + season calendar. The new headline demo. (Note: GSI Bhukosh dropped — the CSV already suffices
+    for the *spatial* test; it only lacked per-landslide *dates*, and we have 4 dated events already.)
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
@@ -107,8 +111,10 @@ Union LOS: HIGH=**4,418** (≥2-look **251**), monsoon zones=**357** (≥2-look 
 (≥2-look 331), monsoon zones 362. Per-m sweep mosaics in `data/alerts/mosaic_asc/alerts_sat{025..100}.json`.
 Scored artefacts in `data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
 
-**The demos:** `data/alerts/dashboard_3d.html` (3-D) / `dashboard_monsoon.html` (2-D). The validation story
-now lives in `data/inventory/rainfall_selectivity.png` + `backtest_roc.png`.
+**The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is now the headline demo —
+the two-factor warning (WHERE footprint × WHEN alarm calendar + a current-state banner). Also
+`data/alerts/dashboard_3d.html` (3-D), per-stack `dashboard_operational.html`. Validation story:
+`data/inventory/rainfall_selectivity.png` + `backtest_roc.png`; alarm calendar `data/rainfall/operational_alarm.png`.
 
 **The container:** `docker compose build` then e.g.
 `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
@@ -264,7 +270,10 @@ git commit -m "Operational two-factor warning: m=0.40 scenario + regional-curve 
 (`SESSION_REVIEW.md` + `milestone.md` are also tracked — include or omit per your call; `session_journey.md`
 + `CLAUDE.md` are untracked.)
 
-**Recommended first action next session (see §5):** **per-zone temporal gating** (sub-daily/point IMERG rain
-so ALERT varies per zone instead of AOI-wide), and/or couple the `operational_alarm` ALERT state into the
-dashboards as a "live today?" banner. Then the **GSI Bhukosh verified-date inventory** for a temporal scored
-test, and the **12.5 m DEM**. **Start Docker Desktop first** (anything that plots must run in the container).
+**Recommended first action next session (see §5):** the operational dashboard "live today?" banner is now
+DONE. Remaining high-value, fully-doable items: **(a) per-zone temporal gating** (sub-daily/point IMERG rain
+so ALERT varies per zone instead of AOI-wide — the main §17 limitation); **(b) 12.5 m DEM** (sharper slope →
+FS; needs an ASF Vertex download); **(c) roll ERA5 velocity through *all* stacks** (needs a per-stack MintPy
+ERA5 run; DESC dumped). **GSI Bhukosh DROPPED** — the `Research/LandslideInventory` CSV already suffices for
+the spatial test (138 AOI pts, scored §16); it only lacked per-landslide *dates* (92 % year=0) for a *temporal*
+test, and we already have 4 dated events (§17). **Start Docker Desktop first** (anything that plots → container).

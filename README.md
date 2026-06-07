@@ -329,6 +329,14 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   rebuilds + scores the AOI union mosaic at each, and shows AUC rising 0.41→0.55 as m falls
   from worst-case 1.0 to the realistic ~0.25–0.40 (`RESULTS_AND_KPIS.md` §16d). The chosen
   point (m=0.40) is wired in as the `operational` scenario above.
+- **Two-factor operational warning (WHERE × WHEN):**
+  `python workflows/operational_alarm.py --threshold nwhimalaya` — gates the validated operational
+  footprint by the regional rainfall curve graded by exceedance E (DORMANT/WATCH/ALERT). Cuts the raw
+  112/214-day trigger to 27 ALERT days (4.1×) and catches the 20 Apr cloudburst at Δ=0 (§17). Writes a
+  self-contained dashboard `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (`--as-of <date>` for
+  the "current state" banner).
+- **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
+  MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
 
 Any command runs in Docker too, e.g. `docker compose run --rm insar python workflows/run_multistack.py`.
 

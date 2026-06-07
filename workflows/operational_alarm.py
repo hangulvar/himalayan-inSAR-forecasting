@@ -32,8 +32,9 @@ and only the temporal STATE changes — the operationally correct framing.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import matplotlib
@@ -84,6 +85,8 @@ def main() -> int:
     ap.add_argument("--watch-k", type=float, default=1.0, help="E to ARM the footprint (WATCH).")
     ap.add_argument("--alert-k", type=float, default=2.0, help="E to RAISE the alarm (ALERT).")
     ap.add_argument("--window-days", type=int, default=10)
+    ap.add_argument("--as-of", default=None,
+                    help="Dashboard 'current state' date YYYY-MM-DD (default: the season peak-E day).")
     ap.add_argument("--out-suffix", default="")
     args = ap.parse_args()
 
@@ -155,8 +158,16 @@ def main() -> int:
     write_calendar(RAIN_DIR / f"operational_alarm_calendar{sfx}.csv",
                    dates, water, E, win_D, levels, n_zones)
     write_md(RAIN_DIR / f"operational_alarm_report{sfx}.md", report)
-    make_figure(RAIN_DIR / f"operational_alarm{sfx}.png", dates, water, E, levels,
-                events, args.watch_k, args.alert_k, n_zones)
+    fig_path = RAIN_DIR / f"operational_alarm{sfx}.png"
+    make_figure(fig_path, dates, water, E, levels, events, args.watch_k, args.alert_k, n_zones)
+
+    # "Current state" as-of a date: default to the season peak-E day (the strongest alarm).
+    if args.as_of:
+        as_of_i = dates.index(date.fromisoformat(args.as_of))
+    else:
+        as_of_i = int(np.argmax(E))
+    write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
+                    report, dates, E, levels, as_of_i, fig_path, n_crit, n_multi)
 
     print(f"footprint: operational m=0.40 — {n_zones} zones ({n_crit} critical, {n_multi} >=2-look)")
     print(f"temporal gate: {thr['label']} on {rain_source}; watch_k={args.watch_k} alert_k={args.alert_k}")
@@ -173,6 +184,8 @@ def main() -> int:
               f"{e['nearest_watch_or_alert_delta_days']}")
     print(f"  -> {RAIN_DIR / f'operational_alarm_report{sfx}.json'} , .md , "
           f"operational_alarm_calendar{sfx}.csv , operational_alarm{sfx}.png")
+    print(f"  -> dashboard (as-of {dates[as_of_i].isoformat()}, {levels[as_of_i]}): "
+          f"{ALERTS_DIR / 'mosaic_asc' / f'operational_alarm_dashboard{sfx}.html'}")
     return 0
 
 
@@ -225,6 +238,107 @@ def write_md(path: Path, r: dict) -> None:
               "the regional line on reanalysis rain (low E), so they land in WATCH, not ALERT — the honest "
               "sensitivity/selectivity bind documented in §12c (gauge/sub-daily rain would raise their E)."]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
+                    n_crit: int, n_multi: int) -> None:
+    """Self-contained operational warning dashboard: the WHERE (validated footprint) x WHEN
+    (temporal alarm) in one view, with a 'current state' banner as-of a chosen day."""
+    lvl = levels[as_of_i]
+    color = LEVEL_COLOR[lvl]
+    as_of = dates[as_of_i].isoformat()
+    e_now = float(E[as_of_i])
+    n_zones = r["footprint_zones"]
+    live = n_zones if lvl in ("WATCH", "ALERT") else 0
+    blurb = {"ALERT": "Rainfall is well above the regional danger line — raise the alarm on the "
+                      "validated hazard footprint.",
+             "WATCH": "Rainfall has crossed the regional danger line — the hazard footprint is armed; "
+                      "monitor.",
+             "DORMANT": "Rainfall is below the regional danger line — no active slope-failure alarm."}[lvl]
+    png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
+
+    ev_rows = "\n".join(
+        f"<tr><td>{e['name']}</td><td>{e['date']}</td><td>{e['E_on_day']}</td>"
+        f"<td>{'<b style=color:#aa0000>ALERT</b>' if e['alert_within_window'] else ('WATCH+' if e['alarm_within_window'] else '—')}</td></tr>"
+        for e in r["per_event"])
+
+    links = "\n".join(
+        f'<li><a href="../{s}/dashboard_operational.html">{s.replace("ASC_","")} operational map</a></li>'
+        for s in ("ASC_path27_frame106", "ASC_path100_frame102", "ASC_path27_frame101"))
+
+    html = f"""<!doctype html><html><head><meta charset="utf-8">
+<title>Ramban NH-44 — Operational Landslide Alarm</title>
+<style>
+ body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
+ header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
+ header h1{{margin:0;font-size:20px}} header .sub{{opacity:.85;font-size:13px;margin-top:4px}}
+ .banner{{margin:18px 24px;padding:18px 22px;border-radius:8px;color:#fff;background:{color};
+   box-shadow:0 2px 6px rgba(0,0,0,.2)}}
+ .banner .lvl{{font-size:30px;font-weight:800;letter-spacing:1px}}
+ .banner .meta{{font-size:14px;margin-top:6px;opacity:.95}}
+ .wrap{{display:flex;gap:18px;padding:0 24px 18px;flex-wrap:wrap}}
+ .card{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;flex:1 1 340px;min-width:320px}}
+ .card h2{{margin:0 0 8px;font-size:15px}} .big{{font-size:26px;font-weight:700}}
+ table{{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}}
+ th,td{{border:1px solid #e3e3e3;padding:5px 8px;text-align:left}} th{{background:#f0f2f5}}
+ .calendar{{margin:0 24px 18px}} .calendar img{{width:100%;max-width:1100px;border:1px solid #ccc;border-radius:6px;background:#fff}}
+ .pill{{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;color:#fff;margin-right:4px}}
+ footer{{padding:12px 24px;font-size:11px;color:#888}}
+ a{{color:#1a5fb4}}
+</style></head><body>
+<header>
+  <h1>🏔️ Ramban NH-44 — Operational Landslide Alarm</h1>
+  <div class="sub">Two-factor warning · <b>WHERE</b> (validated hazard footprint) × <b>WHEN</b>
+   (regional rainfall gate) · season {r['season']['start']} → {r['season']['end']} ·
+   generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
+</header>
+
+<div class="banner">
+  <div class="lvl">● ALARM: {lvl}</div>
+  <div class="meta">as of <b>{as_of}</b> &nbsp;·&nbsp; rainfall exceedance E = <b>{e_now:.2f}×</b>
+   the regional danger line &nbsp;·&nbsp; <b>{live}</b> hazard zones live. &nbsp; {blurb}</div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h2>WHERE — validated hazard footprint (the map that beats chance)</h2>
+    <div class="big">{n_zones} zones</div>
+    <div style="font-size:13px;color:#444">{n_crit} critical · {n_multi} multi-look-confirmed ·
+      operational saturation m=0.40</div>
+    <p style="font-size:13px">Scored vs the GSI field-validated inventory with a random-luck control:
+      <b>AUC 0.54</b> (beats chance), <b>5.6× better than luck at 100 m</b> (§16d/§16e). This footprint
+      is held FIXED — the rainfall gate only changes the alarm STATE, not the map.</p>
+    <ul style="font-size:13px;margin:4px 0 0 18px">{links}</ul>
+  </div>
+  <div class="card">
+    <h2>WHEN — regional rainfall temporal gate</h2>
+    <div class="big">{r['level_counts']['ALERT']} ALERT days <span style="font-size:14px;color:#666">/ season</span></div>
+    <div style="font-size:13px;color:#444">{r['alert_pct_season']}% of the season — a
+      <b>{r['selectivity_gain_raw_to_alert'].split('(')[-1].rstrip(')')}</b> cut vs the raw regional
+      trigger ({r['raw_regional_trigger_days']} days).</div>
+    <p style="font-size:13px;margin-bottom:4px">
+      <span class="pill" style="background:#e8e8e8;color:#333">DORMANT E&lt;1</span>
+      <span class="pill" style="background:#f0b428">WATCH 1≤E&lt;2</span>
+      <span class="pill" style="background:#dc2828">ALERT E≥2</span></p>
+    <p style="font-size:13px;margin:6px 0 2px"><b>Validation</b> — documented failures vs the gate
+      (caught by ALARM {r['events_caught_by_alarm']}, by ALERT {r['events_caught_by_alert']}):</p>
+    <table><tr><th>event</th><th>date</th><th>E</th><th>gate state</th></tr>
+{ev_rows}</table>
+  </div>
+</div>
+
+<div class="calendar">
+  <h2 style="margin:0 24px 6px 0;font-size:15px">Season alarm calendar &amp; rainfall exceedance</h2>
+  <img src="data:image/png;base64,{png_b64}" alt="season alarm calendar"/>
+</div>
+
+<footer>Operational MVP · the gate is AOI-wide (one rainfall value/day) — sub-daily/point rain would let
+ ALERT vary per zone. 20 Apr 2025 is the verified deadly cloudburst; 27 Apr / 8 May reach only WATCH on
+ reanalysis rain (their cells are sub-grid). Velocity coverage ~14% of AOI (unmeasured ≠ safe); soil φ=36°
+ site-calibrated, cohesion still assumed.</footer>
+</body></html>"""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding="utf-8")
 
 
 def make_figure(path: Path, dates, water, E, levels, events, watch_k, alert_k, n_zones) -> None:
