@@ -66,6 +66,22 @@ def load_operational_footprint(path: Path):
             sum(1 for z in zones if z.get("n_looks", 1) >= 2))
 
 
+def per_zone_live(alerts_dir: Path, as_of: str):
+    """The per-zone ranking (§19) for the as-of day, if per_zone_gate.py has produced it.
+    Returns {n_active, total, zones[: top]} or None (panel is skipped if absent)."""
+    import csv as _csv
+    vf = alerts_dir / "per_zone_vulnerability.csv"
+    tf = alerts_dir / "per_zone_active_timeline.csv"
+    if not (vf.exists() and tf.exists()):
+        return None
+    zones = list(_csv.DictReader(vf.open(encoding="utf-8")))          # already ranked by m* asc
+    n_active = next((int(r["n_active_zones"]) for r in _csv.DictReader(tf.open(encoding="utf-8"))
+                     if r["date"] == as_of), None)
+    if n_active is None:
+        return None
+    return {"n_active": n_active, "total": len(zones), "zones": zones[:max(n_active, 0)][:15]}
+
+
 def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
     out = []
     for e in E:
@@ -166,8 +182,10 @@ def main() -> int:
         as_of_i = dates.index(date.fromisoformat(args.as_of))
     else:
         as_of_i = int(np.argmax(E))
+    # Per-zone ranking (§19) — render the live ranked zone list if per_zone_gate.py has run.
+    per_zone = per_zone_live(ALERTS_DIR, dates[as_of_i].isoformat())
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
-                    report, dates, E, levels, as_of_i, fig_path, n_crit, n_multi)
+                    report, dates, E, levels, as_of_i, fig_path, n_crit, n_multi, per_zone)
 
     print(f"footprint: operational m=0.40 — {n_zones} zones ({n_crit} critical, {n_multi} >=2-look)")
     print(f"temporal gate: {thr['label']} on {rain_source}; watch_k={args.watch_k} alert_k={args.alert_k}")
@@ -241,15 +259,17 @@ def write_md(path: Path, r: dict) -> None:
 
 
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
-                    n_crit: int, n_multi: int) -> None:
+                    n_crit: int, n_multi: int, per_zone=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (validated footprint) x WHEN
-    (temporal alarm) in one view, with a 'current state' banner as-of a chosen day."""
+    (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one view, with a 'current
+    state' banner as-of a chosen day."""
     lvl = levels[as_of_i]
     color = LEVEL_COLOR[lvl]
     as_of = dates[as_of_i].isoformat()
     e_now = float(E[as_of_i])
     n_zones = r["footprint_zones"]
-    live = n_zones if lvl in ("WATCH", "ALERT") else 0
+    # Live-zone count: the per-zone-gated count (§19) if available, else the whole footprint on WATCH+.
+    live = per_zone["n_active"] if per_zone else (n_zones if lvl in ("WATCH", "ALERT") else 0)
     blurb = {"ALERT": "Rainfall is well above the regional danger line — raise the alarm on the "
                       "validated hazard footprint.",
              "WATCH": "Rainfall has crossed the regional danger line — the hazard footprint is armed; "
@@ -265,6 +285,36 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     links = "\n".join(
         f'<li><a href="../{s}/dashboard_operational.html">{s.replace("ASC_","")} operational map</a></li>'
         for s in ("ASC_path27_frame106", "ASC_path100_frame102", "ASC_path27_frame101"))
+
+    per_zone_html = ""
+    if per_zone is not None:
+        if per_zone["zones"]:
+            tier_badge = {"fails-when-barely-wet": "#dc2828", "fails-on-a-wet-day": "#f0b428",
+                          "fails-only-when-very-wet": "#8aa1b1"}
+            zrows = "\n".join(
+                f"<tr><td>{i}</td><td>{float(z['lat']):.4f}, {float(z['lon']):.4f}</td>"
+                f"<td>{z['m_star']}</td><td>{z['fs_0p40']}</td><td>{z['creep_mmyr']}</td>"
+                f"<td>{'<b style=color:#aa0000>CRITICAL</b>' if z['severity']=='CRITICAL' else 'HIGH'}</td>"
+                f"<td><span class='pill' style='background:{tier_badge.get(z['tier'],'#999')}'>{z['tier']}</span></td></tr>"
+                for i, z in enumerate(per_zone["zones"], 1))
+            body = (f"<table><tr><th>#</th><th>location (lat, lon)</th><th>m* (fails at)</th>"
+                    f"<th>FS@0.40</th><th>creep mm/yr</th><th>severity</th><th>vulnerability</th></tr>"
+                    f"{zrows}</table>"
+                    f"<div style='font-size:12px;color:#666;margin-top:6px'>m* = soil saturation at which the "
+                    f"zone crosses failure (lower = fails when barely wet). Showing the {len(per_zone['zones'])} "
+                    f"most vulnerable of {per_zone['n_active']} active; full ranking in "
+                    f"<code>per_zone_vulnerability.csv</code> (§19).</div>")
+        else:
+            body = ("<p style='font-size:13px;color:#666'>No zones live — the regional gate is DORMANT "
+                    "today (rainfall below the danger line), so no zone has been activated.</p>")
+        per_zone_html = f"""
+<div class="wrap">
+  <div class="card" style="flex:1 1 100%">
+    <h2>WHICH ZONES — live as of {as_of} &nbsp;<span style="font-weight:400;color:#666">
+      ({per_zone['n_active']} of {per_zone['total']} operational zones active, ranked by vulnerability)</span></h2>
+    {body}
+  </div>
+</div>"""
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>Ramban NH-44 — Operational Landslide Alarm</title>
@@ -288,8 +338,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </style></head><body>
 <header>
   <h1>🏔️ Ramban NH-44 — Operational Landslide Alarm</h1>
-  <div class="sub">Two-factor warning · <b>WHERE</b> (validated hazard footprint) × <b>WHEN</b>
-   (regional rainfall gate) · season {r['season']['start']} → {r['season']['end']} ·
+  <div class="sub"><b>WHERE</b> (validated hazard footprint) × <b>WHEN</b> (regional rainfall gate)
+   × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
    generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
 </header>
 
@@ -326,16 +376,17 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 {ev_rows}</table>
   </div>
 </div>
+{per_zone_html}
 
 <div class="calendar">
   <h2 style="margin:0 24px 6px 0;font-size:15px">Season alarm calendar &amp; rainfall exceedance</h2>
   <img src="data:image/png;base64,{png_b64}" alt="season alarm calendar"/>
 </div>
 
-<footer>Operational MVP · the gate is AOI-wide (one rainfall value/day) — sub-daily/point rain would let
- ALERT vary per zone. 20 Apr 2025 is the verified deadly cloudburst; 27 Apr / 8 May reach only WATCH on
- reanalysis rain (their cells are sub-grid). Velocity coverage ~14% of AOI (unmeasured ≠ safe); soil φ=36°
- site-calibrated, cohesion still assumed.</footer>
+<footer>Operational MVP · the WHEN gate uses one AOI rainfall value/day; per-zone differentiation is by each
+ zone's critical saturation m* (§19), capped at the validated footprint. 20 Apr 2025 is the verified deadly
+ cloudburst; 27 Apr / 8 May reach only WATCH on reanalysis rain (their cells are sub-grid). Velocity coverage
+ ~14% of AOI (unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion still assumed.</footer>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(html, encoding="utf-8")

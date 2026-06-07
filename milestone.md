@@ -874,6 +874,36 @@ real *where × when* warning, with its soft spots measured rather than hidden.
 
 ---
 
+## ✅ Milestone 25 — *Which* slopes, today — and one screen an operator can act on  *(Per-zone gating + the operator dashboard, 2026-06-07)*
+
+**What we set out to do:** Milestone 24 told us *when* the whole area is dangerous, but treated all the
+flagged slopes alike — on an alarm day, every zone lit up together. A real operator needs the next level
+down: *which* of these slopes should I send a crew to **first, today?**
+
+**What we did, plainly:**
+- **Gave every slope its own "breaking point."** Because our stability sum is a straight line in how wet
+  the ground is, each flagged slope has a **critical wetness** — the soak level at which *that* slope tips
+  past failure. We worked it out for all of them. Some fail the moment the ground is barely damp (the most
+  dangerous — **44 of them**); others only let go when it's very wet.
+- **Made the alarm pick out the slopes in play *today*.** On a given day, the active list is just the
+  slopes whose breaking point the day's wetness has reached — **53 on the drier alarm days, up to all 95 on
+  the wettest** — always ranked worst-first, and never spilling beyond the slopes we already validated (so
+  it can't drift back into crying wolf). On the 20 April cloudburst day, with the ground already soaked from
+  snowmelt, **all 95 were in play** — correctly.
+- **Put it all on one screen.** The dashboard now shows, together: a **headline banner** (is today calm,
+  watch, or alarm, and how many slopes are live), **WHERE** (the validated danger map), **WHEN** (the season
+  alarm calendar), and **WHICH SLOPES** (today's ranked priority list with each slope's location, breaking
+  point, and movement speed). You can dial it to any date.
+
+**Why this matters:** this is the difference between "the region is dangerous today" and "**these twelve
+slopes, in this order, are the ones to inspect today.**" That's the form a disaster-management officer can
+actually use — and it falls straight out of physics and data we already had, no new satellite passes needed.
+
+**Plain-language result:** the warning now names **which specific slopes** are in play each day — a worst-
+first list that breathes from ~50 to 95 as the ground wets and dries — all on one operator-ready screen.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
@@ -885,15 +915,15 @@ thresholds replacing the mock weather (12)**, **real rain driving a time-resolve
 and a first **reality-check back-test against documented landslides (14)**. What remains is mostly
 *deepening trust* and *going live*:
 
-- **Validation is now *scored* and beats chance (M23).** We graded the map against a random-luck control
-  (AUC 0.41 worst-case → **0.55 at a realistic wetness**, 5.6× better than luck at 100 m). *Remaining:* make
-  the realistic-wetness setting (m≈0.40) the **default** danger map; a *temporal* scored test still wants the
-  **GSI Bhukosh** inventory with **verified dates** (*needs your manual portal download*).
-- **Spring-trigger cause — now understood as "primed slope + a cloudburst" (M17–20).** After checking rain
-  three ways and the slope conditioning, a **date correction (M20)** showed the deadly **20 April 2025
-  cloudburst** WAS rain-triggered and **our system catches it** — overturning an earlier "rain didn't do it"
-  reading that rested on a wrong date. *Remaining leads:* making the trigger line more **selective** (it
-  decides *when*, not *where*), and the **road/tunnel construction** angle.
+- **Validation + the operational warning are now COMPLETE (M23–25).** The danger map is scored and
+  beats chance (AUC 0.41→**0.55** at a realistic wetness, M23); the realistic-wetness map is the **default**
+  product (M24); the rainfall trigger is now a **selective temporal gate** (27 alarm days, not 112, M24);
+  and the alarm is **per-slope, ranked, on one operator screen** (M25). *Only remaining validation lead:* a
+  *temporal* scored test with verified per-landslide **dates** — but the GSI inventory we have is undated,
+  and that portal has moved, so this is parked (we already validate against 4 dated events).
+- **Spring-trigger cause — "primed slope + a cloudburst" (M17–20), now operationally caught (M24).** The
+  deadly **20 April 2025 cloudburst** is a Δ=0 alarm; the *road/tunnel construction* angle is still an open
+  investigative lead.
 - **Better descending data for a true 3-D motion split.** Today's two descending tracks
   were rejected as too noisy (Milestone 10); the up/down-vs-sideways reconstruction waits
   on a longer unbroken series or point-like (persistent-scatterer) reflectors.

@@ -923,6 +923,12 @@ the *antecedent* saturation, which a daily product builds slowly (here it was al
 snowmelt). **Producing script:** `workflows/per_zone_gate.py`. **Artefacts:**
 `data/alerts/per_zone_vulnerability.{json,csv,md}`, `per_zone_active_timeline.csv`, `per_zone_gate.png`.
 
+**Dashboard integration:** `operational_alarm.py` now reads these and renders a **"WHICH ZONES — live as of
+<date>"** ranked panel in `operational_alarm_dashboard.html` (the banner's live-zone count also uses the
+per-zone-gated number), so the demo is **WHERE × WHEN × WHICH ZONES** — e.g. 26 Aug shows 95/95 active,
+27 Apr 85/95, ranked by m\* (most vulnerable CRITICAL/fast-creep first). Gracefully omitted if
+`per_zone_gate.py` has not run.
+
 ---
 
 ## How to maintain this ledger

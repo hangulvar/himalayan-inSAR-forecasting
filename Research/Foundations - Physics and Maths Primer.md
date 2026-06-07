@@ -924,8 +924,9 @@ state changes. The regional line decides timing; the map decides place.
 is a Δ=0 ALERT** and the August monsoon peak is covered. All **4** documented disasters fall in an armed
 (WATCH+) window; **3 of 4** reach full ALERT. The two that only reach WATCH (27 Apr, 8 May) had rain too
 *localized* for our coarse weather grid to register a high E — the same gauge/sub-daily limitation CF5
-names, kept on the record. One AOI-average rain value gives one E per day, so the gate is currently
-area-wide on/off; per-zone timing needs sub-daily/point rainfall.
+names, kept on the record. One AOI-average rain value gives one E per day, so the *timing* gate is
+area-wide; but the alarm is now differentiated **per slope** by each zone's own breaking point (CF8) —
+so on an alarm day you still get a worst-first list of *which* slopes are in play, not just "the area."
 
 **A companion reality check (Milestone 24).** We also ran our cleanest, "atmosphere-physically-removed"
 radar velocity (the MintPy ERA5 product, CT3) through the same danger map on one track. It agrees with our
@@ -933,6 +934,38 @@ everyday high-pass method on the broad field (correlation ≈ 0.55) but flags on
 pixels, and they **barely overlap** (of the premium method's creep pixels, only ~18% are also flagged by
 the everyday one). The lesson, written into our limitations: *which exact pixels "creep" on a **single**
 track is not robust to the processing choice — trust the spots multiple tracks agree on.*
+
+---
+
+## CF8. Critical saturation m* — giving every slope its own breaking point (per-zone gating)
+
+CF7's alarm is *area-wide*: one rainfall number per day flips the whole footprint together. But the slopes
+aren't identical — some are perched right at the edge, others have more margin. The honest way to tell them
+apart is **not** per-zone rainfall (rain is nearly uniform at the weather grid's ~10 km over our ~22 km
+area), but each slope's own **breaking point**.
+
+**The idea (and why it's just algebra).** The Factor of Safety is a **straight line** in soil saturation
+m (C4): FS(m) = FS_dry + m·(FS_sat − FS_dry). Failure is FS = 1. Solve that line for m and you get the
+**critical saturation**:
+$$ m^* = \frac{1 - FS_{dry}}{FS_{sat} - FS_{dry}} $$
+— the wetness at which *this specific slope* tips into failure. Low m* = fails when barely damp (most
+dangerous); m* near our operating 0.40 = only fails when very wet.
+
+**Everyday analogy.** Every slope is a glass filled to a different level. m* is how much more water each can
+take before it overflows. Today's rain raises everyone's water by the same amount — but the glasses already
+near the brim spill first. So you watch those.
+
+**How it gates per zone.** Two levels: the regional rain gate (CF7) decides *whether* any alarm fires
+today; then the **active slopes** are exactly those whose m* the day's saturation has reached (m* ≤ m
+today). The active set is always a subset of the validated footprint — it never adds new ground, so it
+can't drift back into the over-flagging of CF6.
+
+🔗 **In our project: Milestone 25.** Across the 95 operational zones, m* ranges 0.00 → 0.40: **44 fail when
+barely wet**, 33 on a wet day, 18 only when very wet. The active list **breathes from ~53 on the drier
+alarm days to all 95 on the wettest**, always ranked worst-first, and feeds the dashboard's "which slopes,
+today" panel. On the 20 April cloudburst, the spring snowmelt had already raised the ground to m ≈ 0.66, so
+**all 95 were active** — correctly. This turns "the area is dangerous today" into "**these specific slopes,
+in this order**," from physics and data we already had — no new satellite passes.
 
 ---
 

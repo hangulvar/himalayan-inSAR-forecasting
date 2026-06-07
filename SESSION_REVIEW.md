@@ -115,8 +115,9 @@ Union LOS: HIGH=**4,418** (≥2-look **251**), monsoon zones=**357** (≥2-look 
 (≥2-look 331), monsoon zones 362. Per-m sweep mosaics in `data/alerts/mosaic_asc/alerts_sat{025..100}.json`.
 Scored artefacts in `data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
 
-**The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is now the headline demo —
-the two-factor warning (WHERE footprint × WHEN alarm calendar + a current-state banner). Also
+**The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is the headline demo — now
+**WHERE × WHEN × WHICH ZONES**: current-state banner + WHERE footprint + WHEN alarm calendar + a **per-zone
+ranked "live zones today" panel** (§19, breathes 95/95 on 26 Aug, 85/95 on 27 Apr; `--as-of <date>`). Also
 `data/alerts/dashboard_3d.html` (3-D), per-stack `dashboard_operational.html`. Validation story:
 `data/inventory/rainfall_selectivity.png` + `backtest_roc.png`; alarm calendar `data/rainfall/operational_alarm.png`.
 
@@ -193,10 +194,15 @@ now resolved per zone**. All follow-ups DONE:
    active set breathes **53–95 of 95** zones by day, ranked by vulnerability, capped at the validated
    footprint. Resolves the §17 AOI-wide limitation via intrinsic vulnerability (rain is ~uniform at scale).
 
-**New top remaining quick wins:** (a) **wire the per-zone ranking into the dashboard** (the WHERE panel → a
-ranked "live zones today" list, using `per_zone_vulnerability.csv`); (b) **12.5 m DEM** (sharper slope → FS;
-needs an ASF Vertex download); (c) **roll ERA5 velocity through all stacks** (needs per-stack MintPy ERA5).
-**GSI Bhukosh DROPPED** (the CSV suffices for the spatial test; it only lacked per-landslide dates).
+6. ✅ **DONE — per-zone ranking wired into the dashboard** (`operational_alarm.py` reads `per_zone_*`,
+   renders the "WHICH ZONES — live as of <date>" ranked panel; banner live-count is per-zone-gated).
+   Dashboard is now WHERE × WHEN × WHICH ZONES.
+
+**New top remaining quick wins:** (a) **12.5 m DEM** (sharper slope → FS; needs an ASF Vertex download);
+(b) **roll ERA5 velocity through all stacks** (needs per-stack MintPy ERA5); (c) **matric-suction dry/wet
+cohesion split** (Area 7 #4) — the last big soil assumption. **GSI Bhukosh DROPPED** (the CSV suffices for
+the spatial test; it only lacked per-landslide dates). For a **new AOI before monsoon**: point `config.yaml`
++ start the S1/HyP3 pull now (velocity needs a time series).
 
 Also open: 12.5 m DEM;
 the matric-suction dry/wet-cohesion split; the union 3-D dashboard. For a **new AOI before monsoon**: point
@@ -250,29 +256,31 @@ validated inventory — never trust a single sensor or a single physics assumpti
 
 **Session 12 (2026-06-07) — documentation ritual COMPLETE.**
 
-**New files (uncommitted at session close — some may now be committed):** `workflows/rainfall_selectivity_backtest.py`
-(§16d), `workflows/operational_alarm.py` (§17 gate + dashboard), `workflows/hazard_era5_compare.py` (§18),
-`workflows/per_zone_gate.py` (§19 per-zone gating).
-**Modified (committed-track):** `workflows/backtest_inventory.py` (scored arm + `roc_from_distances` +
-`np.trapezoid` fallback); `workflows/agentic_orchestrator.py` + `workflows/run_multistack.py` (**`operational`
-m=0.40 scenario**, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17, §18, §19** + header); `README.md` (operational +
-scored-arm + sweep + per-zone + ERA5 run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6**
-validation + **CF7** operational alarm + Part D Q + Part E updates). **Journals:** `session_journey.md` (Session 12,
-Pushes 1–9) is local-only/untracked; `milestone.md` (**M23**, **M24**) **and this file are TRACKED** (see §1 box).
+**Session-12 new files (mostly committed):** `workflows/rainfall_selectivity_backtest.py` (§16d),
+`workflows/operational_alarm.py` (§17 gate + dashboard + per-zone panel), `workflows/hazard_era5_compare.py`
+(§18), `workflows/per_zone_gate.py` (§19). **Modified (committed-track):** `workflows/backtest_inventory.py`
+(scored arm + `roc_from_distances` + `np.trapezoid`); `workflows/agentic_orchestrator.py` +
+`workflows/run_multistack.py` (`operational` m=0.40 scenario, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17–§19**);
+`README.md` (all new run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6/CF7/CF8** + Part D
+Q + Part E). **Journals:** `session_journey.md` (Session 12, **Pushes 1–10**) is local-only/untracked;
+`milestone.md` (**M23, M24, M25**) **and this file are TRACKED** (see §1 box).
 
-**Latest uncommitted delta (§19 per-zone gating):**
+**Already committed this session:** `c71b09f` (§16d), `10d3a21` (§16e/§17/§18), `9c66aec` (dashboard),
+`6759c14` (§19 per-zone). **Latest uncommitted delta (dashboard per-zone integration + docs ritual):**
 ```
-git add workflows/per_zone_gate.py RESULTS_AND_KPIS.md README.md
-git commit -m "Per-zone temporal gating: critical-saturation m* ranks the footprint; active set breathes 53-95 zones (§19)"
+git add workflows/operational_alarm.py RESULTS_AND_KPIS.md "Research/Foundations - Physics and Maths Primer.md"
+git commit -m "Dashboard per-zone ranked panel (WHERE x WHEN x WHICH ZONES) + primer CF8 critical-saturation"
 ```
-(`SESSION_REVIEW.md` is also tracked — include or omit per your call.)
+(`SESSION_REVIEW.md` + `milestone.md` are also tracked — the M25/§7 journal updates; include or omit per your call.)
 
 **Git-ignored data outputs (NOT committable):** `data/hazard/*` (incl. `*_hazard_class_era5.tif`,
-`hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, per-stack `dashboard_operational.html`)
-+ `data/mosaic*/`; `data/alerts/mosaic_asc/alerts_sat{025..100}.json`; `data/rainfall/operational_alarm_*`;
-`data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
+`hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, `operational_alarm_dashboard.html`,
+`per_zone_*`, per-stack `dashboard_operational.html`) + `data/mosaic*/`; `data/alerts/mosaic_asc/alerts_sat*.json`;
+`data/rainfall/operational_alarm_*`; `data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
 
-**`error_history_log.md`:** NO new entry — no bugs this session (only a cosmetic `np.trapz` deprecation, now fixed).
+**`error_history_log.md`:** NO new entry — no code bugs this session (only a cosmetic `np.trapz` deprecation,
+now fixed; and one self-inflicted false-alarm in a verification check — "WHICH ZONES" appears in both the
+dashboard header and the panel, so a naive substring `find()` matched the wrong one — not a product bug).
 
 **Git state (user commits manually).** The §16a–d batch is **already committed** (`c71b09f`, `0230706`,
 `40012e9`). Remaining uncommitted delta = §16e operational scenario + §17 temporal gate + §18 ERA5 hazard +
