@@ -105,8 +105,11 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
     for the *spatial* test; it only lacked per-landslide *dates*, and we have 4 dated events already.)
   - **§19 per-zone gating** (`per_zone_gate.py`): each operational zone's critical saturation
     **m\*=(1−FS_dry)/(FS_sat−FS_dry)**; on a regional WATCH/ALERT day the active set = zones with m\* ≤ daily
-    m(t) — **breathes 53–95 of 95**, ranked by vulnerability (44 "fail-when-barely-wet"), capped at the
-    validated footprint (no ballooning). Resolves the §17 AOI-wide limitation. 20 Apr → all 95 active.
+    m(t), ranked by vulnerability, capped at the validated footprint. Resolves the §17 AOI-wide limitation.
+  - **§20 ★ matric-suction dry/wet cohesion split** (`geomechanical_engine.py`): c_dry=18.5 (suction) /
+    c_wet=5 kPa → FS_dry 1.58→**2.15** (FS_sat unchanged). FS stays linear in m. **Operating point re-tuned
+    m=0.40→0.55**, footprint 88→20 zones, and **AUC 0.537→0.614 (0.615 scored) — the project's best**; per-zone
+    m\* now 0.378–0.547. **This supersedes the m=0.40 numbers in §16d–§19.** 20 Apr cloudburst still all-active.
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
@@ -197,16 +200,17 @@ now resolved per zone**. All follow-ups DONE:
 6. ✅ **DONE — per-zone ranking wired into the dashboard** (`operational_alarm.py` reads `per_zone_*`,
    renders the "WHICH ZONES — live as of <date>" ranked panel; banner live-count is per-zone-gated).
    Dashboard is now WHERE × WHEN × WHICH ZONES.
+7. ✅ **DONE (§20) — matric-suction dry/wet cohesion split** (Area 7 #4, the last big soil assumption):
+   c_dry=18.5 / c_wet=5 kPa; FS_dry 1.58→2.15 (FS_sat unchanged); operating point re-tuned **m=0.40→0.55**,
+   **AUC 0.537→0.615 — the project's best**. Supersedes the m=0.40 numbers in §16d–§19.
 
-**New top remaining quick wins:** (a) **12.5 m DEM** (sharper slope → FS; needs an ASF Vertex download);
-(b) **roll ERA5 velocity through all stacks** (needs per-stack MintPy ERA5); (c) **matric-suction dry/wet
-cohesion split** (Area 7 #4) — the last big soil assumption. **GSI Bhukosh DROPPED** (the CSV suffices for
-the spatial test; it only lacked per-landslide dates). For a **new AOI before monsoon**: point `config.yaml`
-+ start the S1/HyP3 pull now (velocity needs a time series).
-
-Also open: 12.5 m DEM;
-the matric-suction dry/wet-cohesion split; the union 3-D dashboard. For a **new AOI before monsoon**: point
-`config.yaml` at the new polygon + start the S1/HyP3 pull now (velocity needs a time series) — offer stands
+**New top remaining quick wins (all need external data/compute — NOT self-contained):** (a) **12.5 m DEM**
+(sharper slope → FS; ASF Vertex download); (b) **roll ERA5 velocity through all stacks** (per-stack MintPy
+ERA5 runs); (c) **nonlinear (van Genuchten) suction curve** — §20 is a first-order *linear* split; (d) lab
+confirmation of c_dry/c_wet (the "18.5 kg/cm²" unit). **GSI Bhukosh DROPPED** (the CSV suffices for the
+spatial test; it only lacked per-landslide dates). **The self-contained operational thread (§16–§20) is now
+COMPLETE.** For a **new AOI before monsoon**: point `config.yaml` at the new polygon + start the S1/HyP3 pull
+now (velocity needs a time series) — offer stands
 to wire `config.yaml` and dry-run everything that doesn't need the HyP3 order.
 
 **Exception to MVP-first (always):** fix correctness/data-integrity bugs immediately; defer quality-only
@@ -266,12 +270,14 @@ Q + Part E). **Journals:** `session_journey.md` (Session 12, **Pushes 1–10**) 
 `milestone.md` (**M23, M24, M25**) **and this file are TRACKED** (see §1 box).
 
 **Already committed this session:** `c71b09f` (§16d), `10d3a21` (§16e/§17/§18), `9c66aec` (dashboard),
-`6759c14` (§19 per-zone). **Latest uncommitted delta (dashboard per-zone integration + docs ritual):**
+`6759c14` (§19 per-zone). **Latest uncommitted delta — the dashboard-integration commit + the §20
+matric-suction split (re-baselined the operating point to m=0.55):**
 ```
-git add workflows/operational_alarm.py RESULTS_AND_KPIS.md "Research/Foundations - Physics and Maths Primer.md"
-git commit -m "Dashboard per-zone ranked panel (WHERE x WHEN x WHICH ZONES) + primer CF8 critical-saturation"
+git add workflows/operational_alarm.py workflows/geomechanical_engine.py workflows/agentic_orchestrator.py \
+        workflows/per_zone_gate.py RESULTS_AND_KPIS.md README.md "Research/Foundations - Physics and Maths Primer.md"
+git commit -m "Matric-suction dry/wet cohesion split (FS_dry 1.58->2.15) re-tunes op point m=0.40->0.55, AUC 0.61 best (§20); + per-zone dashboard panel"
 ```
-(`SESSION_REVIEW.md` + `milestone.md` are also tracked — the M25/§7 journal updates; include or omit per your call.)
+(`SESSION_REVIEW.md` + `milestone.md` are also tracked — the M25/M26 journal updates; include or omit per your call.)
 
 **Git-ignored data outputs (NOT committable):** `data/hazard/*` (incl. `*_hazard_class_era5.tif`,
 `hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, `operational_alarm_dashboard.html`,

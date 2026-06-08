@@ -192,14 +192,28 @@ def main() -> int:
     # J&K (GSI 2024-25 field season; brief in Research/LandslideInventory/). That study
     # measured a friction angle of phi = 36.4-39.1 deg on site overburden (silty colluvium/
     # scree/RBM, 0.5-20 m thick, >75% fines, moisture-sensitive) -> we adopt phi=36 deg
-    # (conservative end), replacing the generic literature 32 deg. Cohesion is kept LOW
-    # (5 kPa) because the same study reports good DRY strength but "significant reduction
-    # when wet" -> the hazard end-member is SATURATED (m=1), so the wet-reduced cohesion is
-    # the relevant value; the higher dry cohesion + a proper dry/wet (matric-suction) split
-    # is the deferred refinement (Area 7 #4). gamma=19 and z=3 m sit within the measured
-    # ranges. Site-specific lab calibration of cohesion remains a standing limitation.
-    ap.add_argument("--cohesion-kpa", type=float, default=5.0,
-                    help="effective cohesion kPa (wet-reduced; GSI LSM dry value is higher)")
+    # (conservative end), replacing the generic literature 32 deg. gamma=19 and z=3 m sit
+    # within the measured ranges.
+    #
+    # MATRIC-SUCTION DRY/WET COHESION SPLIT (2026-06-08, Area 7 #4 — was deferred, now done):
+    # the same study reports good DRY strength but "significant reduction when wet" + "rapid
+    # strength loss during saturation" (low-plasticity fines). Unsaturated soil carries an
+    # APPARENT cohesion from matric suction that VANISHES as it saturates (extended Mohr-
+    # Coulomb / Fredlund). So we split cohesion into a DRY end-member (c' + suction) and a
+    # WET one (c' alone): the engine builds FS_dry with c_dry and FS_saturated with c_wet.
+    # Because cohesion interpolates linearly in m, FS stays EXACTLY linear in m, so the
+    # downstream FS_real=(1-m)*FS_dry+m*FS_saturated coupling (orchestrator, per-zone m*) is
+    # unchanged. c_dry = GSI dry-cohesion magnitude (brief: "mean 18.5 kg/cm2"; taken
+    # literally that is ~1814 kPa = rock-like and implausible for this silty colluvium, so we
+    # INTERPRET the magnitude as ~18.5 kPa — physically credible for suction-enhanced dry
+    # fines; FLAG for confirmation vs the source PDF). c_wet = 5 kPa (the prior conservative
+    # wet value; FS_saturated is therefore UNCHANGED from the pre-split model). A nonlinear
+    # soil-water-retention (van Genuchten) suction curve is the next refinement.
+    ap.add_argument("--cohesion-dry-kpa", type=float, default=18.5,
+                    help="dry/unsaturated cohesion kPa = c' + matric-suction apparent cohesion "
+                         "(GSI LSM dry, magnitude-interpreted; used for FS_dry)")
+    ap.add_argument("--cohesion-wet-kpa", type=float, default=5.0,
+                    help="saturated effective cohesion kPa (suction gone; used for FS_saturated)")
     ap.add_argument("--phi", type=float, default=36.0,
                     help="friction angle deg (GSI LSM Ramban/Doda: 36.4-39.1; default = conservative 36)")
     ap.add_argument("--gamma", type=float, default=19.0, help="soil unit weight kN/m³")
@@ -218,7 +232,8 @@ def main() -> int:
 
     stack = args.stack
     logger.info(f"=== Geomechanical engine for {stack} ===")
-    logger.info(f"Soil: c'={args.cohesion_kpa} kPa, phi={args.phi}°, "
+    logger.info(f"Soil: c_dry={args.cohesion_dry_kpa} kPa (w/ matric suction), "
+                f"c_wet={args.cohesion_wet_kpa} kPa (saturated), phi={args.phi}°, "
                 f"gamma={args.gamma} kN/m³, z={args.soil_depth_m} m")
 
     vel_hp = VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif"
@@ -240,9 +255,10 @@ def main() -> int:
 
     twi = compute_twi(dem, slope, pixel_m)
 
-    fs_dry = factor_of_safety(slope, args.cohesion_kpa, args.phi, args.gamma,
+    # Matric-suction split: dry uses suction-enhanced cohesion, saturated uses c' (suction gone).
+    fs_dry = factor_of_safety(slope, args.cohesion_dry_kpa, args.phi, args.gamma,
                               args.soil_depth_m, m=0.0)
-    fs_sat = factor_of_safety(slope, args.cohesion_kpa, args.phi, args.gamma,
+    fs_sat = factor_of_safety(slope, args.cohesion_wet_kpa, args.phi, args.gamma,
                               args.soil_depth_m, m=1.0)
     for name, fs in (("dry", fs_dry), ("saturated", fs_sat)):
         v = fs[np.isfinite(fs)]

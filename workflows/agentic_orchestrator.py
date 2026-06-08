@@ -77,16 +77,18 @@ logger = logging.getLogger("orchestrator")
 
 # Rainfall scenarios → assumed saturation → which Phase-3 FS raster to use.
 # dry/monsoon/extreme are the MOCK what-if cascade (preserved baseline). 'operational' is
-# the RAINFALL-REALISTIC standing product (RESULTS_AND_KPIS.md §16d): the regional rainfall
+# the RAINFALL-REALISTIC standing product (RESULTS_AND_KPIS.md §16d/§20): the regional rainfall
 # model only reaches m=1 on 11/214 days, so worst-case monsoon (m=1) over-flags (AUC 0.41,
-# below chance). Drawing at a realistic wet-day saturation m=0.40 concentrates the alert on
-# the steepest marginal slopes and is the first product to BEAT CHANCE (AUC 0.535, lift
-# 5.6x@100 m). m=0.40 ~ a moderately-wet day (~20 mm/72 h median in the 2025 record).
+# below chance). Drawing at a realistic wet-day saturation concentrates the alert on the
+# steepest marginal slopes and BEATS CHANCE. The operating point is m=0.55 (~32 mm/72 h, a
+# moderately-wet day) under the MATRIC-SUCTION FS physics (§20): AUC 0.614 (the project best),
+# lift ~9x@100 m. (Pre-suction it was m=0.40/AUC 0.535; suction credits dry strength, so the
+# realistic operating saturation moved up and discrimination improved.)
 SCENARIOS = {
-    "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0, "fs_layer": "FS_dry"},
-    "operational": {"rainfall_mm_72h": 20,  "saturation": 0.4, "fs_layer": "FS_real"},
-    "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0, "fs_layer": "FS_saturated"},
-    "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0, "fs_layer": "FS_saturated"},
+    "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
+    "operational": {"rainfall_mm_72h": 32,  "saturation": 0.55, "fs_layer": "FS_real"},
+    "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
+    "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }
 
 # Thresholds (consistent with Phase 3 / the project's Phase-4 rule).

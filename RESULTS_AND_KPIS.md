@@ -927,7 +927,70 @@ snowmelt). **Producing script:** `workflows/per_zone_gate.py`. **Artefacts:**
 <date>"** ranked panel in `operational_alarm_dashboard.html` (the banner's live-zone count also uses the
 per-zone-gated number), so the demo is **WHERE × WHEN × WHICH ZONES** — e.g. 26 Aug shows 95/95 active,
 27 Apr 85/95, ranked by m\* (most vulnerable CRITICAL/fast-creep first). Gracefully omitted if
-`per_zone_gate.py` has not run.
+`per_zone_gate.py` has not run. *(↪ numbers superseded by §20: the operating point moved to m=0.55.)*
+
+---
+
+## 20. ★ Matric-suction dry/wet cohesion split — better physics, and the project's best score  `[REAL params / ANALYTIC]`
+
+Source: `workflows/geomechanical_engine.py` (matric-suction split) + re-run pipeline + re-scored
+(Docker, 2026-06-08). Completes Area 7 #4 (was deferred at §15). Unsaturated soil carries an **apparent
+cohesion from matric suction** (negative pore pressure) that **vanishes as it saturates** (extended
+Mohr-Coulomb / Fredlund). The prior model used one cohesion (5 kPa) for both end-members; this splits it:
+
+- **c_dry = 18.5 kPa** (effective cohesion + suction) for **FS_dry**; **c_wet = 5 kPa** (suction gone) for
+  **FS_saturated**. Source: the GSI LSM brief measured the *dry* cohesion "mean 18.5 kg/cm²" + "good dry
+  strength … significant reduction when wet / rapid strength loss during saturation." ⚠️ **Unit caveat:**
+  18.5 kgf/cm² ≈ 1814 kPa is rock-like and implausible for this silty colluvium, so we **interpret the
+  magnitude as ~18.5 kPa** (credible for suction-enhanced dry fines) — flag for confirmation vs the source PDF.
+- **FS stays exactly linear in m** (cohesion interpolates linearly), so `FS_real=(1−m)·FS_dry+m·FS_sat` and
+  all downstream coupling (orchestrator, per-zone m\*) are unchanged — **verified algebraically + numerically**.
+
+### 20a. Effect on the Factor of Safety
+
+| layer | pre-split (c=5 flat) | matric-suction (c_dry=18.5 / c_wet=5) | change |
+|---|---|---|---|
+| FS_dry median (%<1) | 1.58 (4.2 %) | **2.15 (0.0 %)** | dry slopes much stronger (suction) |
+| FS_saturated median (%<1) | 0.87 (63.8 %) | **0.87 (63.8 %)** | **unchanged** (c_wet=5 = old) |
+| critical slope for FS_sat=1 | 24.6° | 24.6° | unchanged (worst-case identical) |
+
+The worst-case **monsoon product is identical** (357 zones) — the split only changes *intermediate*
+saturations, where suction now (correctly) protects slopes that the flat-cohesion model over-flagged.
+
+### 20b. The operating point shifts up — and discrimination IMPROVES (re-tuned §16d sweep)
+
+Crediting dry suction-strength means the old m=0.40 operating point is now "too dry to mobilize failure"
+(footprint collapsed 88→1 zone). Re-running the saturation sweep under the new physics:
+
+| m | union zones | AUC | spec@2 km | lift@2 km | peak lift |
+|---|---|---|---|---|---|
+| 0.40 | 1 | 0.578 | 0.99 | 3.6× | 12.1× @1 km (1 zone) |
+| **0.55** | **20** | **0.614** | **0.77** | **1.46×** | 9.1× @0.1 km |
+| 0.70 | 94 | 0.526 | 0.35 | 0.94× | 5.2× @0.1 km |
+| 1.00 (monsoon) | 357 | 0.407 | 0.10 | 0.77× | 1.6× @0.1 km |
+
+**New operating point: m=0.55, AUC 0.614** (scored on the rebuilt union: **AUC 0.615**, TPR 0.33 / FPR 0.23
+/ spec 0.77 / **lift 1.46× even @2 km** — beats chance at *every* buffer, unlike the old m=0.40 which was
+0.96× @2 km). This is **the project's best score** — the more-realistic physics *discriminates better*
+(pre-suction best was AUC 0.55 at m=0.25, §16d). The `operational` scenario is now **m=0.55 (~32 mm/72 h)**.
+
+### 20c. Per-zone consequence
+
+The 21 operational zones now have m\* ∈ **0.378–0.547** (median 0.484) — *no zone fails when barely wet*
+(suction prevents it), correctly; tiers re-fit to 6 `moderately-wet` / 13 `wet` / 2 `very-wet`. The per-day
+active set is sparser (median 1 of 21 on WATCH+ days, up to 21 on the wettest): the **20 Apr cloudburst
+(m=0.656 from snowmelt) activates all 21**, while 27 Apr (m=0.332) activates 0 — the antecedent ground
+wasn't wet enough to mobilize a slope even as regional rain reached WATCH (conservative, honest).
+
+**Net:** the last big soil assumption (flat cohesion) is replaced with site-grounded matric-suction physics;
+FS_sat (worst case) is untouched, and the *realistic* operating product moved to m=0.55 and **improved to
+AUC 0.614 — the best on the project**. The temporal gate (§17: 27 ALERT days, 20 Apr Δ=0, 4/4 WATCH+) is
+unchanged (it keys on rainfall E, not the footprint). **Remaining:** a nonlinear soil-water-retention (van
+Genuchten) suction curve (this is a first-order *linear* split); lab confirmation of c_dry/c_wet + the
+"18.5 kg/cm²" unit. **Producing scripts:** `geomechanical_engine.py` (`--cohesion-dry-kpa`/`--cohesion-wet-kpa`)
++ `run_multistack.py` + `rainfall_selectivity_backtest.py` + `backtest_inventory.py`. **Supersedes the m=0.40
+operating point in §16d/§16e/§17/§19** (those entries are the pre-suction baseline; their footprint/per-zone
+numbers move to m=0.55 here).
 
 ---
 

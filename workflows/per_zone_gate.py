@@ -45,12 +45,14 @@ RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
 ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
 
-# Operational saturation baseline (the footprint is built at m=0.40, §16e) and the
-# §17 temporal-gate thresholds (must match operational_alarm.py defaults).
-M_OPERATIONAL = 0.40
+# Operational saturation baseline (the footprint is built at m=0.55 under the matric-suction
+# FS physics, §20; was m=0.40 pre-suction) and the §17 temporal-gate thresholds.
+M_OPERATIONAL = 0.55
 WATCH_K, ALERT_K = 1.0, 2.0
-# m* tiers (critical saturation): lower = fails when barely wet = more dangerous.
-TIERS = [(0.15, "fails-when-barely-wet"), (0.30, "fails-on-a-wet-day"), (1.01, "fails-only-when-very-wet")]
+# m* tiers (critical saturation): lower = fails at less wetness = more dangerous. Cuts sit
+# below / around / above the operating saturation (matric-suction physics lifts m* into ~0.38-0.55).
+TIERS = [(0.45, "fails-by-a-moderately-wet-day"), (0.52, "fails-on-a-wet-day"),
+         (1.01, "fails-only-when-very-wet")]
 
 
 def tier_of(mstar: float) -> str:

@@ -5,8 +5,8 @@ operational hazard footprint. The two-factor operational warning (RESULTS_AND_KP
     WHEN  — the regional NW-Himalaya I-D curve says today's rainfall crossed the danger line,
             graded by the peak exceedance E(t) = max_D [ cum_D(t) / threshold_cum(D) ]
             (reused from rainfall_specificity.py — the SAME signal, single source of truth).
-    WHERE — the spatial footprint is the VALIDATED operational m=0.40 union product
-            (alerts_operational.json, §16e) — the 88-zone map that BEATS CHANCE (AUC 0.54).
+    WHERE — the spatial footprint is the VALIDATED operational m=0.55 union product
+            (alerts_operational.json, §16e/§20) — the validated map that BEATS CHANCE (AUC 0.61).
 
 Why a gate and not the raw trigger: the regional curve is sensitive — it fires E>=1 on ~112/214
 days (§12c), too often to be operational. An I-D curve is a LOWER BOUND; how far ABOVE matters.
@@ -96,7 +96,7 @@ def main() -> int:
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default="nwhimalaya",
                     help="Temporal I-D curve (default: nwhimalaya — the regional gate).")
     ap.add_argument("--footprint", default=str(ALERTS_DIR / "mosaic_asc" / "alerts_operational.json"),
-                    help="The validated operational m=0.40 union product (§16e).")
+                    help="The validated operational m=0.55 union product (§16e).")
     ap.add_argument("--inventory", default=str(INVENTORY))
     ap.add_argument("--watch-k", type=float, default=1.0, help="E to ARM the footprint (WATCH).")
     ap.add_argument("--alert-k", type=float, default=2.0, help="E to RAISE the alarm (ALERT).")
@@ -187,7 +187,7 @@ def main() -> int:
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, n_crit, n_multi, per_zone)
 
-    print(f"footprint: operational m=0.40 — {n_zones} zones ({n_crit} critical, {n_multi} >=2-look)")
+    print(f"footprint: operational m=0.55 — {n_zones} zones ({n_crit} critical, {n_multi} >=2-look)")
     print(f"temporal gate: {thr['label']} on {rain_source}; watch_k={args.watch_k} alert_k={args.alert_k}")
     print(f"  raw regional trigger (E>=1): {n_raw}/{len(dates)} days ({report['raw_pct_season']}%)")
     print(f"  GATED: WATCH+={n_watch_plus} ({report['watch_or_alert_pct_season']}%)  "
@@ -218,7 +218,7 @@ def write_calendar(path: Path, dates, water, E, win_D, levels, n_zones) -> None:
 def write_md(path: Path, r: dict) -> None:
     lines = [
         f"# Operational alarm — regional curve (WHEN) x validated footprint (WHERE)", "",
-        f"**Footprint (WHERE):** the operational m=0.40 union product — **{r['footprint_zones']} zones** "
+        f"**Footprint (WHERE):** the operational m=0.55 union product — **{r['footprint_zones']} zones** "
         f"({r['footprint_critical']} critical, {r['footprint_multilook']} >=2-look), the map that beats "
         f"chance (§16d/§16e).",
         f"**Temporal gate (WHEN):** {r['threshold']} on {r['rain_source']}, graded by the peak I-D "
@@ -354,9 +354,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     <h2>WHERE — validated hazard footprint (the map that beats chance)</h2>
     <div class="big">{n_zones} zones</div>
     <div style="font-size:13px;color:#444">{n_crit} critical · {n_multi} multi-look-confirmed ·
-      operational saturation m=0.40</div>
+      operational saturation m=0.55</div>
     <p style="font-size:13px">Scored vs the GSI field-validated inventory with a random-luck control:
-      <b>AUC 0.54</b> (beats chance), <b>5.6× better than luck at 100 m</b> (§16d/§16e). This footprint
+      <b>AUC 0.61</b> (beats chance), <b>~9× better than luck at 100 m</b> (§16d/§20). This footprint
       is held FIXED — the rainfall gate only changes the alarm STATE, not the map.</p>
     <ul style="font-size:13px;margin:4px 0 0 18px">{links}</ul>
   </div>

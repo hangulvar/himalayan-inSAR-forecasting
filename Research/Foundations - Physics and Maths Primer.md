@@ -453,11 +453,21 @@ stable slope unstable, captured in one term.
 **Analogy:** a dry sandcastle holds; pour water in and it slumps. Same sand,
 same slope — water removed the grip.
 
-🔗 **In our project:** **Milestone 3** computes FS for two cases — **dry (m=0)**
-and **monsoon-soaked (m=1)**. Result: dry, ~13% of slopes are unstable; soaked,
-~73% are. That flip *is* the seasonal hazard story. The friction angle φ'=36° is now
-the **GSI site-measured** value (Milestone 22); cohesion c' and depth z remain
-assumptions — a partly-closed honest limitation.
+**The sandcastle has a second half — matric suction (Milestone 26).** A *damp* sandcastle holds far
+better than a *dry* one: a little moisture creates surface-tension "bridges" between grains — an **apparent
+cohesion** — that you lose both when it dries out *and* when it floods. So a slope's stickiness c isn't one
+number: it's **high when damp (c' + suction)** and **low when saturated (c' alone, suction gone)**. We split
+it — FS_dry uses the high (GSI-measured dry) cohesion, FS_sat uses the low one — and because c slides
+linearly from the dry to the wet value as m rises, **FS stays a straight line in m**, so the whole
+`FS_real = (1−m)·FS_dry + m·FS_sat` machinery is untouched.
+
+🔗 **In our project:** **Milestone 3** computes FS for **dry (m=0)** and **monsoon-soaked (m=1)**; the
+friction angle φ'=36° is the **GSI site-measured** value (Milestone 22). **Milestone 26** added the
+matric-suction split (c_dry≈18.5, c_wet=5 kPa): dry slopes are now correctly much stronger (almost none
+unstable when dry), the soaked worst case is unchanged, and — because suction protects the in-between days
+— the realistic operating wetness rose (~40%→~55% soaked) and the validated score *improved* to its best
+(AUC 0.61). Remaining assumption: the suction-vs-wetness curve is taken as linear (a nonlinear retention
+curve is the next refinement); depth z and the exact cohesion units await lab confirmation.
 
 ## C5. Fusing physics with measurement — the hazard map
 
@@ -1196,12 +1206,14 @@ Being able to state weaknesses is what makes you credible.
   *steady* creep — no zone is yet accelerating, so no failure dates are projected.
   "Steady" ≠ "safe"; the screen is deliberately conservative and will return dates once
   the series lengthens or a real acceleration begins.
-- **Soil strength — now partly site-calibrated (Milestone 22):** the friction angle is
-  **φ=36°**, the value **measured by GSI** on these very slopes (their NH-244 Ramban/Doda
-  field study, 36.4–39.1°), replacing the old textbook 32°. Cohesion is still a (low,
-  wet-reduced) assumption and a proper lab-measured + dry/wet (matric-suction) split is
-  outstanding — so FS remains a *relative* screening layer, but the biggest soil
-  assumption (friction) is now grounded in measurement.
+- **Soil strength — now largely site-grounded (Milestones 22, 26):** the friction angle is
+  **φ=36°** (GSI-measured on these slopes, 36.4–39.1°, vs the old textbook 32°), and cohesion is now a
+  **dry/wet matric-suction split** (c_dry≈18.5 / c_wet=5 kPa, M26 / C4) instead of one flat assumed value —
+  so the dry-state strength is the GSI-measured number and the saturated state correctly loses the suction
+  "glue." *Remaining:* the suction-vs-wetness curve is taken as **linear** (a nonlinear van-Genuchten
+  retention curve is the refinement), the failure depth z is still assumed, and the GSI dry-cohesion **unit**
+  ("18.5 kg/cm²" — physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening
+  layer, but the two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
 - **Coarse slope:** the 80 m DEM under-estimates true steepness, biasing FS
   toward "stable"; a 12.5 m DEM is the planned fix.
 - **Noisy hazard pixels:** the first hazard map flags too much — trustworthy

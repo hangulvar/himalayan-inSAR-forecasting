@@ -904,6 +904,40 @@ first list that breathes from ~50 to 95 as the ground wets and dries — all on 
 
 ---
 
+## ✅ Milestone 26 — The "dry soil is stronger" fix — better physics, and our best score yet  *(Matric-suction dry/wet strength split, 2026-06-08)*
+
+**What we set out to do:** our stability sum had used **one** soil-stickiness number whether the ground was
+bone-dry or soaked. But everyone who's built a sandcastle knows **damp sand holds together and dry or
+flooded sand doesn't** — soil gains real, temporary "glue" from being slightly moist (a suction effect),
+and loses it as it saturates. The official field report measured exactly this ("good dry strength… rapid
+loss when wet"). This milestone finally builds that into the physics.
+
+**What we did, plainly:**
+- **Gave dry soil its real strength, and wet soil its real weakness.** We now use a **high** stickiness for
+  dry ground (the measured dry value, with the moisture "glue") and a **low** one for saturated ground (the
+  glue gone). The maths still behaves nicely — the danger smoothly slides from the dry number to the wet
+  number as the ground wets — so nothing downstream had to be rebuilt.
+- **The honest consequence: our old "danger setting" was too jumpy.** Because dry slopes are genuinely
+  stronger than we'd been assuming, the wetness level we draw the daily map at had to move **up** (from
+  ~40%-soaked to ~55%-soaked) to pick out the truly marginal slopes. The worst-case (fully-soaked) map is
+  **unchanged** — the fix only affects the in-between days, exactly where it should.
+- **And it actually scored *better*.** Re-graded against the random-luck control at the new setting, the map
+  reaches **0.61 — the best mark the project has ever gotten** (up from 0.55). More realistic physics turned
+  out to be *more* discriminating, not less. The deadly 20 April cloudburst is still caught (the snowmelt had
+  already soaked the ground that day, so every flagged slope was in play).
+
+**Why this matters:** this was the last big "we're just guessing" knob in the soil model. Replacing it with
+measured, physically-honest behaviour both **removed an assumption** *and* **improved the score** — the rare
+case where doing the rigorous thing also makes the result look better. One caveat we wrote down: the dry
+strength number in the report is in odd units, so we used the physically-sensible reading and flagged it for
+a lab check.
+
+**Plain-language result:** teaching the model that **damp soil is stronger than dry-or-soaked soil** (real,
+measured behaviour) replaced the last big soil guess — and *raised* the danger map's grade to **0.61, the
+project's best**, with the worst-case map untouched.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
