@@ -1173,8 +1173,11 @@ Being able to state weaknesses is what makes you credible.
   the hazard** on frame106: it agrees on the broad field (r≈0.55) but flags **~half** the creeping pixels,
   and only ~18 % overlap with the high-pass method's. So *which exact pixels creep on a single track is
   sensitive to the velocity processing* — trust where **multiple looks agree** (the ≥2-look core, M23). The
-  ERA5 product is the more physical basis but is so far only proven/rolled on one stack (the mosaic still
-  runs on the custom velocities).
+  ERA5 product is the more physical basis but is so far **validated on only one of three tracks (§22):**
+  re-running it on the other two ASC stacks gave unusable velocities — one had a coherent-but-wrong −56 mm/yr
+  scene-wide bias (std 57, 25 % of pixels beyond ±100 mm/yr), the other was too low-coherence — so the
+  atmosphere fix does **not** generalize for free; each track needs its own stable reference + cross-check
+  before it can be trusted. The mosaic still runs on the custom velocities.
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
@@ -1214,8 +1217,11 @@ Being able to state weaknesses is what makes you credible.
   retention curve is the refinement), the failure depth z is still assumed, and the GSI dry-cohesion **unit**
   ("18.5 kg/cm²" — physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening
   layer, but the two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
-- **Coarse slope:** the 80 m DEM under-estimates true steepness, biasing FS
-  toward "stable"; a 12.5 m DEM is the planned fix.
+- **Slope sharpness — now upgraded (Milestone 27 / §21):** the hazard grid is 80 m (set by the
+  InSAR velocity), but slope is now computed on the **12.5 m ALOS DEM** at native resolution and
+  *averaged* onto each 80 m cell (mean-of-slopes > slope-of-mean), fixing the old under-estimate
+  (slope median 28→31°, max 56→66°). FS is correspondingly sharper. The *velocity* is still 80 m, so
+  the DEM sharpens the terrain/FS, not the InSAR resolution.
 - **Noisy hazard pixels:** the first hazard map flags too much — trustworthy
   mainly where HIGH pixels cluster, not as isolated single-pixel specks (a
   cluster-size filter and lower velocity noise will clean this up).

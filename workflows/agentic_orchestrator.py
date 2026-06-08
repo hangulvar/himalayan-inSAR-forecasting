@@ -80,13 +80,13 @@ logger = logging.getLogger("orchestrator")
 # the RAINFALL-REALISTIC standing product (RESULTS_AND_KPIS.md §16d/§20): the regional rainfall
 # model only reaches m=1 on 11/214 days, so worst-case monsoon (m=1) over-flags (AUC 0.41,
 # below chance). Drawing at a realistic wet-day saturation concentrates the alert on the
-# steepest marginal slopes and BEATS CHANCE. The operating point is m=0.55 (~32 mm/72 h, a
-# moderately-wet day) under the MATRIC-SUCTION FS physics (§20): AUC 0.614 (the project best),
-# lift ~9x@100 m. (Pre-suction it was m=0.40/AUC 0.535; suction credits dry strength, so the
-# realistic operating saturation moved up and discrimination improved.)
+# steepest marginal slopes and BEATS CHANCE. The operating point is m=0.50 (~29 mm/72 h, a
+# moderately-wet day) under MATRIC-SUCTION FS physics (§20) + the 12.5 m ALOS DEM (§21): AUC 0.64
+# (the project best). History: m=0.40/0.535 (flat cohesion) -> m=0.55/0.614 (matric suction) ->
+# m=0.50/0.64 (+12.5 m DEM). Each physics upgrade shifted the operating saturation + improved AUC.
 SCENARIOS = {
     "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
-    "operational": {"rainfall_mm_72h": 32,  "saturation": 0.55, "fs_layer": "FS_real"},
+    "operational": {"rainfall_mm_72h": 29,  "saturation": 0.50, "fs_layer": "FS_real"},
     "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
     "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }

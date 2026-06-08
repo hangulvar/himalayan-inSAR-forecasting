@@ -5,7 +5,7 @@ dashboard, **overwritten at the end of each working session** to always reflect
 the *current* state — not a historical log. (For history, see
 `session_journey.md`.)
 
-_Last updated: 2026-06-07 (Session 12, branch `mvp-expansion`). **Current state:** the full MVP
+_Last updated: 2026-06-07/08 (Session 12, branch `mvp-expansion`). **Current state:** the full MVP
 (radar → audited data → SBAS velocity → physics hazard → explainable rainfall-driven warning, plus a
 3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 12 (newest) — the validation
 became *scored* and *crossed chance*:** (1) **φ=36° hazard re-run** (`run_multistack.py --force`, Docker):
@@ -30,8 +30,12 @@ cutting the raw **112/214-day trigger → 27 ALERT days (4.1× fewer)** while ca
 Δ=0** (4/4 events in a WATCH+ window) — resolving the §12c over-firing. **And rolled the ERA5-corrected
 velocity through the hazard** (`hazard_era5_compare.py`, frame106, **§18**): self-check passed; ERA5 flags
 ~half the creep/HIGH but only ~18 % overlap → single-look creep is processing-sensitive (trust the multi-look
-core). **Session 11** had reviewed TRAIN + run the MintPy tropo-method comparison (ERA5 −31 % scatter,
-**§13**), ingested the GSI inventory (138 AOI slides, **§14**), and calibrated φ 32°→36° (**§15**). Detail: §2 / §5._
+core). **Then (§19–§22):** per-zone gating + a one-screen operator dashboard (§19), and three physics/data
+upgrades that EACH removed an assumption AND raised the score — matric-suction cohesion (§20) + the user's
+**12.5 m ALOS DEM** (§21) → **CURRENT operating point m=0.50, AUC 0.64 (project best)**, op footprint 12
+zones (sparse/high-confidence); ERA5-through-all-stacks was honestly **QC-stopped** (§22 — 2 of 3 stacks fail,
+no union built). **Session 11** had reviewed TRAIN + the MintPy tropo comparison (**§13**), ingested the GSI
+inventory (**§14**), and calibrated φ 32°→36° (**§15**). Detail: §2 / §5._
 
 ---
 
@@ -40,9 +44,9 @@ core). **Session 11** had reviewed TRAIN + run the MintPy tropo-method compariso
 | # | Document | Why read it | How much |
 |---|---|---|---|
 | 1 | **SESSION_REVIEW.md** (this file) | Current state, open questions, next step | All — it's short |
-| 2 | **`RESULTS_AND_KPIS.md`** | **Committed** ledger of every headline KPI/finding (mock + real), with provenance | Skim; read **§16/§16a–d** (newest) |
+| 2 | **`RESULTS_AND_KPIS.md`** | **Committed** ledger of every headline KPI/finding (mock + real), with provenance | Skim; read **§16–§22** (newest) |
 | 3 | `README.md` | Project overview, repo layout, full-pipeline run guide, known env issues | Skim |
-| 4 | `milestone.md` | Plain-language story of progress (Milestones 1–23) | Top to current |
+| 4 | `milestone.md` | Plain-language story of progress (Milestones 1–27) | Top to current |
 | 5 | `session_journey.md` | Detailed decisions & reasoning; **read the top (newest) entry** | Newest 1–2 entries |
 | 6 | `error_history_log.md` | Every bug + root cause + fix — **check before debugging anything** | Scan headings |
 | 7 | `docker/README.md` | How to build/run the pipeline in the Linux container | As needed |
@@ -107,9 +111,17 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
     **m\*=(1−FS_dry)/(FS_sat−FS_dry)**; on a regional WATCH/ALERT day the active set = zones with m\* ≤ daily
     m(t), ranked by vulnerability, capped at the validated footprint. Resolves the §17 AOI-wide limitation.
   - **§20 ★ matric-suction dry/wet cohesion split** (`geomechanical_engine.py`): c_dry=18.5 (suction) /
-    c_wet=5 kPa → FS_dry 1.58→**2.15** (FS_sat unchanged). FS stays linear in m. **Operating point re-tuned
-    m=0.40→0.55**, footprint 88→20 zones, and **AUC 0.537→0.614 (0.615 scored) — the project's best**; per-zone
-    m\* now 0.378–0.547. **This supersedes the m=0.40 numbers in §16d–§19.** 20 Apr cloudburst still all-active.
+    c_wet=5 kPa → FS_dry 1.58→2.15 (FS_sat unchanged). FS stays linear in m. Operating point m=0.40→0.55,
+    AUC 0.537→0.614. *(superseded by §21.)*
+  - **§21 ★ 12.5 m ALOS DEM** (`geomechanical_engine.slope_on_grid`): user-fetched ALOS tile; slope computed
+    at native 12.5 m then **averaged** to 80 m (sharper: median 28→31°, max 56→66°; FS_sat 0.87→0.78). Sweep
+    re-tuned **operating point m=0.55→0.50, AUC 0.614→0.641 — the project's best** (third upgrade running
+    φ=36/0.40/0.535 → suction/0.55/0.614 → +DEM/0.50/0.641). Op footprint now **12 zones** (sparse/low-recall);
+    per-zone m\* 0.272–0.499. **CURRENT operating point = m=0.50.** Dashboards/per-zone regenerated.
+  - **§22 ERA5 on frame102+frame101 — honest QC stop:** ran prep+ERA5 SBAS on both; frame106's success does
+    NOT generalize — **frame102** median −56/std 57/25 % >|100| (reference bias), **frame101** 14 % coh
+    (under-determined). Both rejected (quality-first, like DESC). **No multi-stack ERA5 union built**; mosaic
+    stays on custom velocities. (`bash -lc`→`bash -c` PATH gotcha logged in error_history.)
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
@@ -156,7 +168,8 @@ The core vision is fully built and now **scored above chance**. Remaining work:
    **New-AOI replication readiness (asked this session):** infra replicability HIGH (config-driven,
    Dockerized, multi-stack); scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1
    acquisitions for a velocity baseline, (b) site soil calibration (φ=36° is Ramban-specific), (c) a local
-   inventory for validation. For *this* monsoon: start the S1 stack now; adopt the §16d m≈0.40 product.
+   inventory for validation. For *this* monsoon: start the S1 stack now; adopt the **m=0.50** operational
+   product (§21, AUC 0.64) gated by the regional curve (§17).
 1. **Accuracy backlog:** roll the ERA5-corrected velocity through the hazard/alert chain (proven on
    frame106, not yet rolled through); 12.5 m ALOS DEM; soil cohesion + **matric-suction dry/wet split**;
    uncertainty quantification (velocity error bars → FS/alerts).
@@ -200,17 +213,20 @@ now resolved per zone**. All follow-ups DONE:
 6. ✅ **DONE — per-zone ranking wired into the dashboard** (`operational_alarm.py` reads `per_zone_*`,
    renders the "WHICH ZONES — live as of <date>" ranked panel; banner live-count is per-zone-gated).
    Dashboard is now WHERE × WHEN × WHICH ZONES.
-7. ✅ **DONE (§20) — matric-suction dry/wet cohesion split** (Area 7 #4, the last big soil assumption):
-   c_dry=18.5 / c_wet=5 kPa; FS_dry 1.58→2.15 (FS_sat unchanged); operating point re-tuned **m=0.40→0.55**,
-   **AUC 0.537→0.615 — the project's best**. Supersedes the m=0.40 numbers in §16d–§19.
+7. ✅ **DONE (§20) — matric-suction dry/wet cohesion split** (Area 7 #4): c_dry=18.5 / c_wet=5 kPa.
+   *(operating point superseded by §21.)*
+8. ✅ **DONE (§21) — 12.5 m ALOS DEM** (user-fetched): native-slope-then-average; **operating point now m=0.50,
+   AUC 0.641 — the project's best**. **This is the CURRENT operating point.**
+9. ⚠️ **ATTEMPTED + QC-STOPPED (§22) — ERA5 through all stacks:** frame102 (reference bias) + frame101
+   (low-coh) failed QC; **no ERA5 union built**, mosaic stays on custom velocities. frame106 §18 stands.
 
-**New top remaining quick wins (all need external data/compute — NOT self-contained):** (a) **12.5 m DEM**
-(sharper slope → FS; ASF Vertex download); (b) **roll ERA5 velocity through all stacks** (per-stack MintPy
-ERA5 runs); (c) **nonlinear (van Genuchten) suction curve** — §20 is a first-order *linear* split; (d) lab
-confirmation of c_dry/c_wet (the "18.5 kg/cm²" unit). **GSI Bhukosh DROPPED** (the CSV suffices for the
-spatial test; it only lacked per-landslide dates). **The self-contained operational thread (§16–§20) is now
-COMPLETE.** For a **new AOI before monsoon**: point `config.yaml` at the new polygon + start the S1/HyP3 pull
-now (velocity needs a time series) — offer stands
+**New top remaining (all need external data/compute or per-stack tuning):** (a) **nonlinear van-Genuchten
+suction curve** (§20 is first-order linear); (b) **lab confirmation of c_dry/c_wet** + the "18.5 kg/cm²" unit;
+(c) **per-stack ERA5 reference-pixel + unwrapping QC** to rescue frame102/101 (§22 fix path); (d) **recall**
+— the m=0.50 product is only 12 zones; a recall-vs-AUC operating-point study (or a second, more-inclusive
+"watch" product at higher m) could complement it. **GSI Bhukosh DROPPED** (CSV suffices spatially; only
+lacked dates). **The self-contained operational thread (§16–§22) is COMPLETE.** For a **new AOI before
+monsoon**: point `config.yaml` + start the S1/HyP3 pull now (velocity needs a time series) — offer stands
 to wire `config.yaml` and dry-run everything that doesn't need the HyP3 order.
 
 **Exception to MVP-first (always):** fix correctness/data-integrity bugs immediately; defer quality-only
@@ -244,12 +260,13 @@ manual (not live) rainfall; a static-vs-worst-case hazard map; recall-limited va
   SoilGrids strength, DEM upgrades, WorldCover/NDVI veg masks, Sentinel-2/Landsat optical change, NASA GLC.
 - **Area 6 — Operationalize:** live rainfall ingestion, hybrid LLM, hosted + union 3-D dashboard.
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
-  #4 matric-suction/Bishop FS refinement (pending).
+  #4 matric-suction FS split (**done §20**; nonlinear van-Genuchten curve remains).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
   decorrelation, our worst enemy); operational window from Jul 2026 (§4.6).
 
-**Suggested priority:** (1) make m≈0.40 the default + regional curve as temporal gate; (2) roll ERA5
-velocity through; (3) live rainfall; (4) NISAR ingestion as it matures; (5) uncertainty + susceptibility.
+**Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19, done); (2) ✅ physics/data
+upgrades φ=36/suction/12.5 m DEM (§20–§21, done — AUC 0.64); (3) recall study + nonlinear suction + per-stack
+ERA5 QC; (4) live rainfall; (5) NISAR ingestion as it matures; (6) uncertainty + susceptibility.
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall, soil moisture, and a
 validated inventory — never trust a single sensor or a single physics assumption.
@@ -258,39 +275,37 @@ validated inventory — never trust a single sensor or a single physics assumpti
 
 ## 7. End-of-session checklist
 
-**Session 12 (2026-06-07) — documentation ritual COMPLETE.**
+**Session 12 (2026-06-07/08) — documentation ritual COMPLETE.**
 
-**Session-12 new files (mostly committed):** `workflows/rainfall_selectivity_backtest.py` (§16d),
-`workflows/operational_alarm.py` (§17 gate + dashboard + per-zone panel), `workflows/hazard_era5_compare.py`
-(§18), `workflows/per_zone_gate.py` (§19). **Modified (committed-track):** `workflows/backtest_inventory.py`
-(scored arm + `roc_from_distances` + `np.trapezoid`); `workflows/agentic_orchestrator.py` +
-`workflows/run_multistack.py` (`operational` m=0.40 scenario, §16e); `RESULTS_AND_KPIS.md` (**§16a–e, §17–§19**);
-`README.md` (all new run-notes); `Research/Foundations - Physics and Maths Primer.md` (**CF6/CF7/CF8** + Part D
-Q + Part E). **Journals:** `session_journey.md` (Session 12, **Pushes 1–10**) is local-only/untracked;
-`milestone.md` (**M23, M24, M25**) **and this file are TRACKED** (see §1 box).
+**Session-12 new files:** `rainfall_selectivity_backtest.py` (§16d), `operational_alarm.py` (§17 gate +
+dashboard + per-zone panel), `hazard_era5_compare.py` (§18/§22), `per_zone_gate.py` (§19). **Modified (committed-track):**
+`backtest_inventory.py` (scored arm); `agentic_orchestrator.py` + `run_multistack.py` (`operational` scenario);
+**`geomechanical_engine.py`** (matric-suction split §20 + 12.5 m DEM `slope_on_grid` §21); `RESULTS_AND_KPIS.md`
+(**§16a–e, §17–§22**); `README.md`; `Research/Foundations - Physics and Maths Primer.md` (**CF6/CF7/CF8** +
+C4 matric-suction + Part D/E); **`error_history_log.md`** (the `bash -lc` PATH gotcha). **Journals:**
+`session_journey.md` (Session 12, **Pushes 1–12**) is local-only/untracked; `milestone.md` (**M23–M27**)
+**and this file are TRACKED** (see §1 box). **Data (git-ignored):** `data/dem_alos_12m/` (user ALOS DEM),
+`data/mintpy/{frame102,frame101}/mintpy_out/velocity_mintpy_era5.tif`, regenerated `data/hazard|alerts|mosaic*`.
 
-**Already committed this session:** `c71b09f` (§16d), `10d3a21` (§16e/§17/§18), `9c66aec` (dashboard),
-`6759c14` (§19 per-zone). **Latest uncommitted delta — the dashboard-integration commit + the §20
-matric-suction split (re-baselined the operating point to m=0.55):**
+**Already committed this session (latest `83fa0bb` = §20).** **Latest uncommitted delta — §21 (12.5 m DEM,
+op point→m=0.50, AUC 0.64 best) + §22 (ERA5 QC stop):**
 ```
-git add workflows/operational_alarm.py workflows/geomechanical_engine.py workflows/agentic_orchestrator.py \
-        workflows/per_zone_gate.py RESULTS_AND_KPIS.md README.md "Research/Foundations - Physics and Maths Primer.md"
-git commit -m "Matric-suction dry/wet cohesion split (FS_dry 1.58->2.15) re-tunes op point m=0.40->0.55, AUC 0.61 best (§20); + per-zone dashboard panel"
+git add workflows/geomechanical_engine.py workflows/agentic_orchestrator.py workflows/per_zone_gate.py \
+        workflows/operational_alarm.py RESULTS_AND_KPIS.md README.md \
+        "Research/Foundations - Physics and Maths Primer.md" error_history_log.md
+git commit -m "12.5m ALOS DEM: native-slope->80m avg sharpens FS, op point m=0.55->0.50, AUC 0.64 best (§21); ERA5 all-stacks QC stop (§22)"
 ```
-(`SESSION_REVIEW.md` + `milestone.md` are also tracked — the M25/M26 journal updates; include or omit per your call.)
+(`SESSION_REVIEW.md` + `milestone.md` also tracked — M27 + journal; include or omit per your call.)
 
-**Git-ignored data outputs (NOT committable):** `data/hazard/*` (incl. `*_hazard_class_era5.tif`,
-`hazard_era5_compare.*`) + `data/alerts/*` (incl. `alerts_operational.json`, `operational_alarm_dashboard.html`,
-`per_zone_*`, per-stack `dashboard_operational.html`) + `data/mosaic*/`; `data/alerts/mosaic_asc/alerts_sat*.json`;
-`data/rainfall/operational_alarm_*`; `data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
+**`error_history_log.md`:** ONE new entry — the **`bash -lc`→`bash -c` PATH gotcha** (MintPy CLI tools
+vanish under a login shell in the micromamba image). No product bugs.
 
-**`error_history_log.md`:** NO new entry — no code bugs this session (only a cosmetic `np.trapz` deprecation,
-now fixed; and one self-inflicted false-alarm in a verification check — "WHICH ZONES" appears in both the
-dashboard header and the panel, so a naive substring `find()` matched the wrong one — not a product bug).
+**Git-ignored data outputs (NOT committable):** `data/dem_alos_12m/` (user ALOS DEM);
+`data/mintpy/{ASC_path100_frame102,ASC_path27_frame101}/mintpy_out/` (ERA5 velocities + hyp3 clips);
+regenerated `data/hazard/*`, `data/alerts/*` (incl. `operational_alarm_dashboard.html`, `per_zone_*`),
+`data/mosaic*/`; `data/inventory/backtest_*`.
 
-**Git state (user commits manually).** The §16a–d batch is **already committed** (`c71b09f`, `0230706`,
-`40012e9`). Remaining uncommitted delta = §16e operational scenario + §17 temporal gate + §18 ERA5 hazard +
-housekeeping/docs:
+**(historical, prior delta — now committed in `83fa0bb`):**
 ```
 git add workflows/agentic_orchestrator.py workflows/run_multistack.py workflows/backtest_inventory.py \
         workflows/operational_alarm.py workflows/hazard_era5_compare.py \

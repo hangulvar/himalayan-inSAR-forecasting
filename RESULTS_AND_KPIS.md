@@ -990,7 +990,91 @@ Genuchten) suction curve (this is a first-order *linear* split); lab confirmatio
 "18.5 kg/cm²" unit. **Producing scripts:** `geomechanical_engine.py` (`--cohesion-dry-kpa`/`--cohesion-wet-kpa`)
 + `run_multistack.py` + `rainfall_selectivity_backtest.py` + `backtest_inventory.py`. **Supersedes the m=0.40
 operating point in §16d/§16e/§17/§19** (those entries are the pre-suction baseline; their footprint/per-zone
-numbers move to m=0.55 here).
+numbers move to m=0.55 here). *(↪ m=0.55 itself superseded by §21: the 12.5 m DEM moved it to m=0.50.)*
+
+---
+
+## 21. ★ 12.5 m ALOS DEM — sharper slope, and a new best score  `[REAL data / MEASURED]`
+
+Source: `workflows/geomechanical_engine.py` (`slope_on_grid`) + re-run + re-tune + re-score (Docker,
+2026-06-08). User downloaded the **ALOS PALSAR 12.5 m DEM** (one tile, EPSG:32643, covers the AOI) to
+`data/dem_alos_12m/`. The hazard grid stays 80 m (velocity-limited), but slope is now computed at **native
+12.5 m then AVERAGE-aggregated** onto each 80 m cell (`find_dem_for_stack` prefers ALOS, HyP3 30 m
+fallback). **Mean-of-slopes > slope-of-mean**, so this fixes the 80 m DEM's known steepness under-estimate
+(the standing limitation). Both FS_dry **and** FS_sat shift (slope drives both — unlike §20 where only
+FS_dry moved).
+
+### 21a. Effect on slope + FS (vs the HyP3 ~30 m DEM)
+
+| quantity | HyP3 ~30 m DEM | ALOS 12.5 m DEM | change |
+|---|---|---|---|
+| slope median / p95 / max | 28.0 / 40.9 / 56.5° | **31.0 / 44.6 / 66.1°** | sharper, steeper tail |
+| FS_dry median | 2.15 | **1.95** | (still ~0 % unstable dry) |
+| FS_saturated median (%<1) | 0.87 (63.8 %) | **0.78 (74.3 %)** | more steep slopes flag when wet |
+| monsoon union zones | 357 | **393** | +10 % (sharper terrain) |
+| mosaic HIGH px (≥2-look) | 4,418 (251) | **5,176 (289)** | +17 % |
+
+### 21b. Re-tuned operating point — the project's best score
+
+Re-running the saturation sweep under the sharper terrain (the FS curve shifted, so the optimum moved):
+
+| m | union zones | AUC | spec@2 km | lift@2 km |
+|---|---|---|---|---|
+| 0.40 | 1 | 0.537 | 0.97 | 2.6× |
+| **0.50** | **12** | **0.641** | **0.86** | **1.81×** |
+| 0.55 | 30 | 0.522 | 0.73 | 1.21× |
+| 0.70 | 132 | 0.504 | 0.29 | 0.89× |
+| 1.00 (monsoon) | 393 | 0.432 | 0.11 | 0.79× |
+
+**New operating point: m=0.50, AUC 0.641** (scored on the rebuilt union; 12 zones, spec 0.86, precision
+0.645, lift 1.81× @2 km — beats chance at every buffer). **The project's best**, edging the matric-suction
+m=0.55 (0.614). Each physics upgrade has both removed an assumption *and* improved the score:
+**φ=36 → flat-cohesion m=0.40 / AUC 0.535 → matric-suction m=0.55 / 0.614 → +12.5 m DEM m=0.50 / 0.641.**
+Per-zone (§19): the 12 operational zones now have m\* ∈ 0.272–0.499 (median 0.421), tiers 8 `moderately-wet`
+/ 4 `wet`. The temporal gate (§17) is unchanged (keys on rainfall E, not the footprint).
+
+**Honest notes:** (a) the operating product is now quite sparse (**12 zones — low recall**, the precision↔recall
+trade taken to the AUC-max; the ≥2-look core is tiny, so trust is concentrated); (b) the velocity is still
+80 m, so the hazard grid is velocity-limited — the DEM sharpens *slope/FS*, not the InSAR resolution; (c) one
+ALOS tile covers the AOI, so all 3 ASC stacks share the slope. **Producing scripts:** `geomechanical_engine.py`
+(native-slope-then-average) + `run_multistack.py` + sweep + back-test. **Supersedes the m=0.55 operating
+point in §20** (and the m=0.40 in §16d–§19). The dashboards/per-zone are regenerated at m=0.50.
+
+---
+
+## 22. ERA5 tropo correction on the remaining ASC stacks — does NOT generalize for free  `[REAL / MEASURED]`
+
+Source: `prep_mintpy.py` + `prep_hyp3` + `run_mintpy_era5.sh` + `hazard_era5_compare.py` (Docker,
+2026-06-08). Ran the MintPy ERA5-tropo SBAS on the two ASC stacks beyond frame106 (§18), to roll the
+physically-corrected velocity through all stacks. **Honest result: only frame106 (validated, §3/§18) is
+trustworthy; frame102 and frame101 fail the quality bar as-run** — the frame106 success does not transfer
+without per-stack reference + cross-validation (the same quality-first lesson as the DESC dumping, §4).
+
+| stack | ERA5 vel median | std (mm/yr) | %>\|100\| | temporal coh ≥0.7 | verdict |
+|---|---|---|---|---|---|
+| frame106 (§18) | 0.0 | 21–41 | 2.8 % | 8 % | ✅ validated (r=0.55 vs custom) |
+| **frame102** | **−56.5** | **57.6** | **25 %** | 83 % | ❌ systematic bias (coherent but implausible) |
+| **frame101** | 0.0 | 18.3 | 0.7 % | **14 %** | ❌ low-coherence (under-determined) |
+
+- **frame102** has *high* temporal coherence (0.85) yet a **−56 mm/yr scene-wide bias + std 57 + 25 % of
+  pixels >|100| mm/yr** — a coherent-but-wrong velocity (reference-pixel / network-unwrapping bias, not
+  decorrelation). Even after removing the offset, std 57 is far above the ASC plausibility bar (21–30,
+  ~0 % implausible) → **rejected**. Through the hazard it (spuriously) flags 28,623 creep px / 965 HIGH
+  zones vs custom 4,338 / 212.
+- **frame101** looks flat (median 0, std 18) but only **14 % of pixels reach coh ≥0.7** → the velocity is
+  under-determined/unreliable; its apparent "3,743 creep px" is a full-grid coverage artifact (custom
+  inverts only 3,655 px). **Rejected** pending a usable reference.
+- `hazard_era5_compare.py` self-check passed on both (re-fused custom hazard == on-disk), so the
+  *comparison machinery* is sound — the failure is the **ERA5 velocities themselves**.
+
+**Decision: NO multi-stack ERA5 union mosaic** (it would fuse one good + two bad velocities). frame106's
+§18 result stands as the validated single-stack demonstration; the mosaic continues to run on the custom
+velocities. **What it would take:** per-stack MintPy reference-pixel selection on a stable (bedrock) point
++ network unwrapping-error QC + cross-validation against the custom velocity — a per-stack tuning loop, not
+a blanket apply. **Producing scripts:** `workflows/prep_mintpy.py`, `run_mintpy_era5.sh`,
+`hazard_era5_compare.py --stack <S> --mintpy-dir <…>`. **Artefacts:** `data/mintpy/{ASC_path100_frame102,
+ASC_path27_frame101}/mintpy_out/velocity_mintpy_era5.tif` (+ the per-stack `hazard_era5_compare_report.*`,
+overwritten — frame102/101 are demonstrative, not adopted).
 
 ---
 

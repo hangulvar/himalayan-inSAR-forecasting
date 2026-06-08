@@ -45,9 +45,9 @@ RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
 ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
 
-# Operational saturation baseline (the footprint is built at m=0.55 under the matric-suction
-# FS physics, §20; was m=0.40 pre-suction) and the §17 temporal-gate thresholds.
-M_OPERATIONAL = 0.55
+# Operational saturation baseline (m=0.50 under matric-suction §20 + the 12.5 m ALOS DEM §21;
+# history m=0.40 flat -> 0.55 suction -> 0.50 +DEM) and the §17 temporal-gate thresholds.
+M_OPERATIONAL = 0.50
 WATCH_K, ALERT_K = 1.0, 2.0
 # m* tiers (critical saturation): lower = fails at less wetness = more dangerous. Cuts sit
 # below / around / above the operating saturation (matric-suction physics lifts m* into ~0.38-0.55).

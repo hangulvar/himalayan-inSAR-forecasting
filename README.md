@@ -300,8 +300,9 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   — inverts all connectable stacks, builds per-look hazard and a **union** hazard/alert
   product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
   `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
-  standing product** (saturation **m=0.55** under the matric-suction FS physics, §20) that scores
-  **AUC 0.61 — the project's best** in the back-test (`RESULTS_AND_KPIS.md` §16d/§20). Add `--use-vslope`
+  standing product** (saturation **m=0.50** under the matric-suction FS physics §20 + the 12.5 m ALOS DEM
+  §21) that scores **AUC 0.64 — the project's best** in the back-test (`RESULTS_AND_KPIS.md` §16d/§20/§21).
+  Add `--use-vslope`
   for the parallel downslope-projected product (`data/mosaic_vslope/`).
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
   --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
@@ -328,7 +329,7 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   `python workflows/rainfall_selectivity_backtest.py` — sweeps the assumed soil saturation,
   rebuilds + scores the AOI union mosaic at each, and shows AUC rising 0.41→0.55 as m falls
   from worst-case 1.0 to the realistic ~0.25–0.40 (`RESULTS_AND_KPIS.md` §16d). The chosen
-  point (m=0.55 under the matric-suction physics, §20) is wired in as the `operational` scenario above.
+  point (m=0.50 under the matric-suction physics §20 + 12.5 m DEM §21) is wired in as `operational` above.
 - **Two-factor operational warning (WHERE × WHEN):**
   `python workflows/operational_alarm.py --threshold nwhimalaya` — gates the validated operational
   footprint by the regional rainfall curve graded by exceedance E (DORMANT/WATCH/ALERT). Cuts the raw

@@ -63,6 +63,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
+ALOS_DEM_DIR = PROJECT_ROOT / "data" / "dem_alos_12m"   # 12.5 m ALOS PALSAR DEM (optional upgrade)
 VEL_DIR = PROJECT_ROOT / "data" / "velocity"
 OUT_DIR = PROJECT_ROOT / "data" / "hazard"
 LOG_DIR = PROJECT_ROOT / "logs"
@@ -81,8 +82,14 @@ logger = logging.getLogger("geomech")
 
 
 # ------------------------------------------------------------------------------
-def find_dem_for_stack(stack: str) -> Path:
-    """Return the _dem.tif of the first KEEP product of a stack."""
+def find_dem_for_stack(stack: str) -> tuple[Path, bool]:
+    """Return (dem_path, is_fine). Prefer the 12.5 m ALOS PALSAR DEM (a single AOI tile,
+    shared by all stacks) if present, falling back to the ~30 m HyP3 DEM of the stack's
+    first KEEP product. `is_fine` flags the ALOS DEM so slope is computed at native 12.5 m
+    then averaged onto the 80 m grid (sharper steepness — see slope_on_grid)."""
+    alos = sorted(ALOS_DEM_DIR.glob("*.dem.tif")) + sorted(ALOS_DEM_DIR.glob("*_DEM.tif"))
+    if alos:
+        return alos[0], True
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     keep = sorted(r["product"] for r in rows
                   if r["stack"] == stack and r["decision"] == "KEEP")
@@ -91,7 +98,7 @@ def find_dem_for_stack(stack: str) -> Path:
     dem = PROCESSED_DIR / keep[0] / f"{keep[0]}_dem.tif"
     if not dem.exists():
         raise SystemExit(f"DEM not found: {dem}")
-    return dem
+    return dem, False
 
 
 def load_master_grid(vel_path: Path):
@@ -125,6 +132,42 @@ def compute_slope(dem: np.ndarray, pixel_m: float) -> np.ndarray:
     slope = np.arctan(np.sqrt(dz_dx**2 + dz_dy**2))
     slope[np.isnan(dem)] = np.nan
     return slope.astype(np.float32)
+
+
+def slope_on_grid(dem_path: Path, is_fine: bool, dst_transform, dst_crs, w, h,
+                  dst_res: float, dem_80: np.ndarray) -> np.ndarray:
+    """Slope (radians) on the 80 m master grid. For the ~30 m HyP3 DEM, compute slope on
+    the already-reprojected 80 m DEM (current behaviour). For the 12.5 m ALOS DEM, compute
+    slope at NATIVE 12.5 m then AVERAGE-aggregate onto each 80 m cell — mean-of-slopes is
+    sharper than slope-of-mean (the 80 m DEM's known steepness under-estimate; §21)."""
+    if not is_fine:
+        return compute_slope(dem_80, dst_res)
+    from rasterio.windows import from_bounds
+    from rasterio.warp import transform_bounds
+    left, top = dst_transform.c, dst_transform.f
+    right, bottom = left + w * dst_res, top - h * dst_res
+    with rasterio.open(dem_path) as src:
+        b = transform_bounds(dst_crs, src.crs, left, bottom, right, top)
+        buf = 4 * abs(src.transform.a)                      # gradient halo
+        win = from_bounds(b[0] - buf, b[1] - buf, b[2] + buf, b[3] + buf,
+                          src.transform).round_offsets().round_lengths()
+        dem_fine = src.read(1, window=win, boundless=True, fill_value=np.nan).astype(np.float32)
+        win_transform = src.window_transform(win)
+        fine_res, fine_crs, nodata = abs(src.transform.a), src.crs, src.nodata
+    if nodata is not None:
+        dem_fine[dem_fine == nodata] = np.nan
+    dem_fine[(dem_fine < -100) | (dem_fine > 9000)] = np.nan
+    slope_fine = compute_slope(dem_fine, fine_res)          # radians, native 12.5 m
+    SENT = -9999.0                                          # NaN-safe nodata for averaging
+    src_arr = np.where(np.isfinite(slope_fine), slope_fine, SENT).astype(np.float32)
+    slope_80 = np.full((h, w), np.nan, dtype=np.float32)
+    reproject(source=src_arr, destination=slope_80,
+              src_transform=win_transform, src_crs=fine_crs,
+              dst_transform=dst_transform, dst_crs=dst_crs,
+              resampling=Resampling.average, src_nodata=SENT, dst_nodata=np.nan)
+    logger.info(f"Slope from ALOS 12.5 m DEM: native window {dem_fine.shape} -> "
+                f"averaged onto {h}x{w} @ {dst_res:.0f} m grid.")
+    return slope_80
 
 
 def compute_twi(dem: np.ndarray, slope_rad: np.ndarray, pixel_m: float) -> np.ndarray:
@@ -244,10 +287,12 @@ def main() -> int:
     pixel_m = abs(transform.a)
     logger.info(f"Master grid: {w}x{h} @ {pixel_m} m, {crs}")
 
-    dem = reproject_dem(find_dem_for_stack(stack), transform, crs, w, h)
-    logger.info(f"DEM reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
+    dem_path, dem_is_fine = find_dem_for_stack(stack)
+    dem = reproject_dem(dem_path, transform, crs, w, h)
+    logger.info(f"DEM ({'ALOS 12.5 m' if dem_is_fine else 'HyP3 ~30 m'}: {dem_path.name}) "
+                f"reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
 
-    slope = compute_slope(dem, pixel_m)
+    slope = slope_on_grid(dem_path, dem_is_fine, transform, crs, w, h, pixel_m, dem)
     slope_deg = np.degrees(slope)
     sd = slope_deg[np.isfinite(slope_deg)]
     logger.info(f"Slope (deg): median={np.median(sd):.1f} p95={np.percentile(sd,95):.1f} "

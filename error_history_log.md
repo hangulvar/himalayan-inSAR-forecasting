@@ -23,6 +23,25 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-06-08] MintPy CLI tools "command not found" under `bash -lc` in the micromamba image
+
+* **Symptom:**
+  Chaining the ERA5 run for new stacks, the step
+  `docker compose run --rm mintpy bash -lc 'prep_hyp3.py …/*_clip.tif'` failed with
+  `bash: line 1: prep_hyp3.py: command not found` — even though `run_mintpy_era5.sh` (run via
+  `docker compose run --rm mintpy bash /app/workflows/…`) calls `smallbaselineApp.py`/`save_gdal.py`
+  with no path and works fine.
+* **Root cause:**
+  The `insar-mintpy` image is micromamba-based; its entrypoint **activates** the conda env (puts
+  `/opt/conda/bin` on `PATH`) and then execs the command. A **login** shell (`bash -l`) re-sources
+  `/etc/profile` + profile.d, which **resets `PATH`** and drops the activated env — so the MintPy
+  console scripts vanish. A non-login shell inherits the entrypoint-activated `PATH`.
+* **Fix:** use **`bash -c`** (not `bash -lc`) for one-off MintPy commands:
+  `docker compose run --rm mintpy bash -c 'prep_hyp3.py /app/data/mintpy/<S>/hyp3/*_clip.tif'`.
+  Verified `which prep_hyp3.py` → `/opt/conda/bin/prep_hyp3.py` under `bash -c`. (The proven
+  `bash <script.sh>` form already worked because it is also non-login.) Keep `MSYS_NO_PATHCONV=1`
+  on Git Bash so `/app/...` isn't mangled.
+
 ### [2026-06-02] Validation error of judgement — a wrong inventory DATE inverted a scientific conclusion
 
 * **Symptom:**

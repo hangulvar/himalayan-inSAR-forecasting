@@ -938,6 +938,32 @@ project's best**, with the worst-case map untouched.
 
 ---
 
+## ✅ Milestone 27 — Sharper eyes on the terrain (a 6× finer elevation map)  *(12.5 m ALOS DEM, 2026-06-08)*
+
+**What we set out to do:** every steepness number — the single biggest driver of landslide danger — came
+from a **coarse 80 m elevation map**, which smooths hills and **under-reads how steep slopes really are**.
+A finer elevation map was the long-standing fix. You downloaded the **12.5 m** one (≈6× finer per side).
+
+**What we did, plainly:**
+- **Measured steepness on the fine map, then summarised onto our working grid.** We can't make the radar
+  itself finer (it genuinely sees the ground in 80 m patches), but we *can* read the slope at the full 12.5 m
+  detail and then take each 80 m cell's **average true steepness** — which is sharper and more honest than
+  measuring steepness on the blurred 80 m map. Typical slope rose from 28° to **31°**, and the steepest from
+  56° to **66°** — real terrain the coarse map had been hiding.
+- **Re-graded, and got a new best.** Sharper slopes mean a few more genuinely-steep places get flagged, so
+  the "danger setting" nudged again (to ~50%-soaked), and the map's grade ticked up once more to **0.64 — the
+  project's best yet** (from 0.61). Three honest upgrades in a row, each removing a shortcut *and* improving
+  the score.
+
+**Why this matters:** steepness is the #1 ingredient in the physics, and we'd been feeding it a blurred
+picture. Now the slope numbers come from genuinely fine terrain. One honest caveat: the danger list is now
+**short and focused** (about a dozen top slopes) — high-confidence but deliberately not exhaustive.
+
+**Plain-language result:** swapping the blurry 80 m terrain for a **6× finer 12.5 m** one un-hid the real
+steepness (typical 28→31°, steepest 56→66°) and pushed the danger map's grade to **0.64 — a new best**.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
