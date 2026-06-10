@@ -347,6 +347,12 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   zone's critical saturation m\*=(1−FS_dry)/(FS_sat−FS_dry); on a regional WATCH/ALERT day the active set =
   zones whose m\* the day's saturation has reached (53–95 of 95, ranked by vulnerability, capped at the
   validated footprint — no ballooning) (§19).
+- **Per-zone detection confidence (uncertainty quantification, §24):** `python workflows/velocity_uncertainty.py
+  [--footprint operational|watch]` — propagates each stack's velocity noise floor (σ_v 14–24 mm/yr) into a
+  per-zone confidence p=Φ((−15−v)/σ_v) that the creep is real (not noise), with multi-look corroboration
+  P=1−Π(1−p). Writes confidence-filtered `alerts_<scenario>_conf{,70,90}.json` (scoreable by
+  `backtest_inventory.py`). Honest finding: this measurement confidence is orthogonal to inventory AUC — a
+  triage axis, not a spatial ranker.
 - **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
   MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
 

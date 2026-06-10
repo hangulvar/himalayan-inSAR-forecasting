@@ -476,7 +476,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 <footer>Operational MVP · the WHEN gate uses one AOI rainfall value/day; per-zone differentiation is by each
  zone's critical saturation m* (§19), capped at the validated footprint. 20 Apr 2025 is the verified deadly
  cloudburst; 27 Apr / 8 May reach only WATCH on reanalysis rain (their cells are sub-grid). Velocity coverage
- ~14% of AOI (unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion still assumed.</footer>
+ ~14% of AOI (unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a matric-suction dry/wet split (§20, lab-unconfirmed).</footer>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(html, encoding="utf-8")

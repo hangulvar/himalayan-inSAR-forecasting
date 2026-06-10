@@ -1009,6 +1009,37 @@ map; act on the precise ALERT core when the rainfall gate escalates.
 
 ---
 
+## CF10. Detection confidence — turning the noise floor into a probability (and why "confident" ≠ "right place")
+
+Every measurement has noise. Our velocity has a ~15–25 mm/yr atmospheric **noise floor** (§2), and the creep
+test is a hard line at −15 mm/yr. A slope at −18 barely clears the line; one at −45 clears it by miles.
+Treating both as equally "creeping" hides that difference — so we put a probability on it.
+
+**The idea (it's just a z-score).** If the true speed is the measured speed ± noise σ, the chance the slope
+is *really* past the −15 line is
+$$ p = \Phi\!\left(\frac{-15 - v}{\sigma}\right) $$
+where Φ is the bell-curve CDF. Far past the line → p near 1; barely past → p near 0.5.
+
+**Two witnesses beat one.** If two independent satellite passes each give p, the chance *both* are fooled by
+noise is (1−p)², so the combined confidence is **P = 1 − Π(1 − p)**. Two "0.7" looks → 0.91. This is the
+formal version of "trust the slopes that more than one geometry confirms" (CF6 / the ≥2-look core).
+
+**Everyday analogy.** One smoke detector beeping might be a fly; two detectors in different rooms beeping is
+almost certainly real. Independent confirmations multiply your certainty.
+
+**The honest catch — confident ≠ correct location.** We checked whether keeping only high-confidence slopes
+better matches the *known* landslide map. It doesn't. "Confident the slope is *moving*" and "this is a *known
+landslide* spot" are different axes — a slope can be unmistakably creeping yet not on a mapped slide. So the
+confidence is for **triage** (ignore likely-noise), riding *alongside* the location-accuracy grade (CF6) and
+the rainfall-timing alarm (CF7) — never replacing them.
+
+🔗 **In our project: Milestone 29.** Per-track noise floors 14–24 mm/yr; every alert now carries a detection
+confidence (operational median 0.77, monitoring-tier median 0.85), with multi-look corroboration lifting some
+to ~1.0. Filtering by it doesn't change the inventory grade (AUC 0.50 → 0.51 → 0.48) — confirming it is a
+distinct, complementary trust axis, not a spatial ranker.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -1207,7 +1238,12 @@ Being able to state weaknesses is what makes you credible.
   re-running it on the other two ASC stacks gave unusable velocities — one had a coherent-but-wrong −56 mm/yr
   scene-wide bias (std 57, 25 % of pixels beyond ±100 mm/yr), the other was too low-coherence — so the
   atmosphere fix does **not** generalize for free; each track needs its own stable reference + cross-check
-  before it can be trusted. The mosaic still runs on the custom velocities.
+  before it can be trusted. The mosaic still runs on the custom velocities. **We now quantify this floor
+  per zone (Milestone 29 / §24 / CF10):** each alert carries a detection confidence p = Φ((−15 − v)/σ_v) that
+  its creep truly exceeds the per-track noise (σ_v 14–24 mm/yr), with multi-look corroboration combining to
+  P = 1 − Π(1 − p) — so marginal creep is explicitly down-weighted. Honest caveat: this *measurement*
+  confidence is **orthogonal** to inventory-proximity (filtering by it doesn't move the spatial AUC), so it is
+  a triage axis (ignore likely-noise), not a spatial ranker.
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor

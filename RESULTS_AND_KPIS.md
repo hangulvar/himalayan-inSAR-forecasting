@@ -1132,6 +1132,60 @@ stays the headline product; WATCH adds the recall option requested in §4/§5(d)
 
 ---
 
+## 24. Uncertainty quantification — per-zone DETECTION CONFIDENCE from the velocity noise floor  `[REAL / MEASURED]`
+
+Source: `velocity_uncertainty.py` + `backtest_inventory.py` (Docker, 2026-06-10). The project's #1
+limitation is the atmosphere-dominated velocity noise floor (§2): a zone creeping at −18 mm/yr is far less
+certain to be REAL than one at −45, yet both pass the same v < −15 creep test. This turns the noise floor
+into a per-zone probability.
+
+**Method.** Per stack, σ_v = the robust noise floor (1.4826·MAD of the high-passed velocity, resistant to
+the creeping minority): **path100_frame102 = 15.9, path27_frame101 = 13.7, path27_frame106 = 24.3 mm/yr**
+(below the round "~30" because MAD discounts the real-creep tail). Then:
+- per-look:  **p = Φ((−15 − v_zone) / σ_v)**  — P(true mean creep < −15)
+- multi-look: **P = 1 − Π_looks (1 − p)**  — independent corroboration
+
+The zone MEAN keeps ~the pixel σ_v (the post-high-pass atmospheric residual stays correlated across a
+sub-km zone → no √N averaging), a conservative floor.
+
+**Result — every alert now carries a confidence.**
+
+| footprint | union zones | conf median | HIGH (≥0.9) | MOD (0.7–0.9) | note |
+|---|---|---|---|---|---|
+| operational (m=0.50) | 12 | 0.77 | 2 | 5 | 0 multi-look; single-look ceiling ~0.97 |
+| watch (m=0.70) | 132 | 0.85 | 52 | 53 | 10 multi-look; corroboration → P up to 1.0 |
+
+Multi-look corroboration is now *quantified*: e.g. a WATCH zone seen at p = [0.72, 0.996] by two looks
+combines to **P = 0.999** — the formal version of the project's "≥2-look core is the trustworthy subset"
+(§16c/§23).
+
+**Validation — confidence is ORTHOGONAL to spatial inventory skill (the honest finding).** Scoring the
+WATCH footprint filtered by confidence does NOT lift the inventory AUC:
+
+| filter | zones | AUC | recall@2 km |
+|---|---|---|---|
+| all | 132 | 0.504 | 0.63 |
+| P ≥ 0.7 | 105 | 0.509 | 0.61 |
+| P ≥ 0.9 | 52 | 0.475 | 0.39 |
+
+So **detection confidence (is the creep REAL vs atmospheric noise?) is a measurement-reliability axis,
+distinct from landslide-proximity (the AUC)** — a zone can be a rock-solid fast creep yet not near a mapped
+slide. Notably the geometric **≥2-look** filter (10 zones, AUC **0.591**, §23) beats the signal-strength
+**P≥0.9** filter (52 zones, AUC 0.475) for inventory match — *corroboration > magnitude* for prediction.
+Confidence is therefore for **triage** (don't dispatch a crew to a noise artifact), not spatial ranking — a
+third independent trust axis beside the spatial AUC (§16) and the temporal gate (§17).
+
+**Completes the uncertainty picture (both axes).** FS/physics uncertainty is already the critical-saturation
+margin **m\*** (§19 — "the wetness at which this zone fails"); §24 adds the **velocity/measurement**
+uncertainty. Each zone now carries uncertainty on both the physics (m\*) and the measurement (P).
+
+**Producing scripts:** `velocity_uncertainty.py [--footprint operational|watch]` + `backtest_inventory.py
+--alerts …_conf{,70,90}.json`. **Artefacts:** `data/alerts/mosaic_asc/velocity_confidence_<scenario>.{json,
+csv,md,png}`; the scoreable `alerts_<scenario>_conf{,70,90}.json`; `data/inventory/bt_watch_conf*`. Additive
+— no change to the validated ALERT/WATCH products.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

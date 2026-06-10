@@ -995,6 +995,37 @@ still beats chance (grade 0.59).
 
 ---
 
+## ✅ Milestone 29 — "How sure are we this slope is *really* moving?"  *(Uncertainty from the velocity noise floor, 2026-06-10)*
+
+**What we set out to do:** the satellite's speed reading isn't perfect — it has a built-in "fuzziness" of
+roughly 15–25 mm/yr from the atmosphere getting in the way. So a slope we clock at −18 mm/yr might just be
+noise, while one at −45 is almost certainly really creeping. Until now every flagged slope was treated as
+equally certain. We wanted to put a **confidence number** on each one.
+
+**What we did, plainly:**
+- **Measured the fuzziness per radar track.** For each satellite track we measured how much the speed map
+  jitters where the ground is steady — that's the noise level (≈14–24 mm/yr here).
+- **Turned each slope's speed into a probability.** A slope moving far faster than the noise gets a high
+  confidence ("this is real"); one barely past the cut-off gets a low one. A slope seen by **two** different
+  satellite passes that *both* call it moving gets a big boost — two independent witnesses (two "70% sure"
+  looks combine to "91% sure"). This finally puts a number on our long-standing rule of trusting slopes
+  confirmed by more than one pass.
+- **Asked an honest question: does "more confident" mean "more likely a real landslide site"?** We tested it
+  against the landslide record — and the honest answer is **no, not really.** Keeping only the
+  highest-confidence slopes didn't improve the match to known slides.
+
+**Why this matters (and the honest twist):** "confident the slope is *moving*" and "this is a known
+*landslide* spot" turn out to be **two different questions.** A slope can be unmistakably creeping yet not sit
+on a mapped slide — and vice versa. So the new confidence number is for **triage** — don't send a crew to
+chase what might be atmospheric noise — and it sits *alongside* (not instead of) our location-accuracy grade
+and our rainfall-timing alarm. It's another independent way to avoid trusting any single signal.
+
+**Plain-language result:** every flagged slope now carries a **"how sure are we it's really moving"** score
+(0–1), with a real boost when two satellite passes agree — and we showed honestly that this measurement
+confidence is a *separate* thing from being near a known landslide.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

@@ -15,7 +15,14 @@ exactly). This is the recall safety-net the §4/§5(d) backlog asked for: **ALER
 wider**; the two compose with the §17 temporal gate (going to worst-case m=1.0 / 393 zones barely lifts
 recall 0.63→0.70 for 3× the noise, so WATCH stops at 0.70). **Both tiers are now surfaced in the operational
 dashboard's WHERE panel**, with all scored numbers *read from the back-test reports* (no hard-coding — it
-self-updates). Also verified at session start that the prior
+self-updates). **Then — uncertainty quantification (§24):** `velocity_uncertainty.py` turns each stack's
+velocity noise floor (σ_v **14–24 mm/yr**, robust MAD) into a per-zone **detection confidence**
+p=Φ((−15−v)/σ_v), with multi-look corroboration P=1−Π(1−p) — every alert now carries "how sure is the creep
+real, not noise" (operational median 0.77, watch median 0.85). **Honest finding:** this *measurement*
+confidence is **orthogonal** to inventory AUC (filtering WATCH by it moves 0.504→0.509→0.475, not up) — a
+**triage** axis beside the spatial AUC (§16) and temporal gate (§17), not a spatial ranker; geometric ≥2-look
+(AUC 0.59) still beats signal-strength confidence (0.48) for inventory match. Plus a one-line dashboard footer
+fix (cohesion "still assumed" → matric-suction split §20). Also verified at session start that the prior
 "minor/housekeeping" backlog (np.trapz→trapezoid, README run-notes, cohesion-unit confirmation, recall
 study) was **already DONE**. **Session 12 — the validation
 became *scored* and *crossed chance*:** (1) **φ=36° hazard re-run** (`run_multistack.py --force`, Docker):
@@ -310,16 +317,20 @@ surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zon
 AUC 0.641 — reproduces §21b. Dashboard verified: both WHERE tiers render (ALERT 12 / AUC 0.641 / 9×@250 m;
 WATCH 132 / recall 0.63 ≈2.5× ALERT / core AUC 0.591), graceful single-tier fallback when WATCH absent.
 
-**Commits.** ✅ **Batch 1 already committed (`39c723c`):** the `watch` scenario + sentinel fix +
-`§23`/`M28`/`CF9` docs (`agentic_orchestrator.py`, `run_multistack.py`, `RESULTS_AND_KPIS.md`, `README.md`,
-`milestone.md`, the primer, `SESSION_REVIEW.md`). **Batch 2 — uncommitted follow-up (the two-tier dashboard):**
+**Commits.** ✅ **Batch 1 committed (`39c723c`):** `watch` scenario + sentinel fix + §23/M28/CF9 docs.
+**Batch 2 — uncommitted (two-tier dashboard + uncertainty quantification §24):**
 ```
-git add workflows/operational_alarm.py RESULTS_AND_KPIS.md README.md SESSION_REVIEW.md
-git commit -m "Two-tier operational dashboard: surface WATCH beside ALERT in the WHERE panel, scored numbers read from the back-test reports (§23)"
+git add workflows/operational_alarm.py workflows/velocity_uncertainty.py RESULTS_AND_KPIS.md \
+        README.md milestone.md "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
+git commit -m "Two-tier dashboard + per-zone detection confidence from the velocity noise floor (§23 dashboard, §24 uncertainty)"
 ```
-(`session_journey.md` + `CLAUDE.md` are untracked/local-only. ✅ **Dashboard wiring DONE this session:** the
-WATCH tier is now surfaced as a second WHERE tier in `operational_alarm_dashboard.html`, with all scored
-numbers read from the reports — the old hard-coded "~7×@250 m" is now the correct 9× from the report.)
+Covers: (a) the WHERE-panel **two-tier dashboard** (scored metrics read from the back-test reports; the old
+hard-coded "~7×@250 m" is now the correct 9×) + the footer fix (cohesion "still assumed" → matric-suction
+split §20); (b) **`velocity_uncertainty.py`** — per-zone detection confidence p=Φ((−15−v)/σ_v), multi-look
+P=1−Π(1−p), with the honest finding that confidence is **orthogonal** to inventory AUC (a triage axis). Split
+with `git add -p` if you prefer dashboard vs uncertainty as separate commits (doc edits are intermingled).
+`session_journey.md`/`CLAUDE.md` untracked. **Data (git-ignored):** `velocity_confidence_<scenario>.{json,csv,
+md,png}`, `alerts_<scenario>_conf{,70,90}.json`, `bt_watch_conf*`, regenerated `operational_alarm_dashboard.html`.
 
 ---
 
