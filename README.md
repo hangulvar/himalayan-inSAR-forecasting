@@ -335,7 +335,8 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   both. Score the WATCH map with `python workflows/backtest_inventory.py
   --alerts data/alerts/mosaic_asc/alerts_watch.json --inventory data/inventory/gsi_inventory_aoi.geojson
   [--min-looks 2]` (132 zones, recall 0.63, AUC 0.50; ≥2-look core AUC 0.59 beats chance — vs ALERT's
-  12 zones / recall 0.25 / AUC 0.64). ALERT = act now; WATCH = monitor wider.
+  12 zones / recall 0.25 / AUC 0.64). ALERT = act now; WATCH = monitor wider. Both tiers are shown side by
+  side in the operational dashboard's WHERE panel (scored numbers read live from the back-test reports).
 - **Two-factor operational warning (WHERE × WHEN):**
   `python workflows/operational_alarm.py --threshold nwhimalaya` — gates the validated operational
   footprint by the regional rainfall curve graded by exceedance E (DORMANT/WATCH/ALERT). Cuts the raw

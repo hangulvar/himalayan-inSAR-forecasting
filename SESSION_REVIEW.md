@@ -13,7 +13,9 @@ AUC 0.50**; ≥2-look core **AUC 0.59 beats chance**) beside the precise **ALERT
 recall 0.25, AUC 0.64) — materialized + scored vs the GSI inventory (reproduces the §21b m=0.70 sweep row
 exactly). This is the recall safety-net the §4/§5(d) backlog asked for: **ALERT = act now, WATCH = monitor
 wider**; the two compose with the §17 temporal gate (going to worst-case m=1.0 / 393 zones barely lifts
-recall 0.63→0.70 for 3× the noise, so WATCH stops at 0.70). Also verified at session start that the prior
+recall 0.63→0.70 for 3× the noise, so WATCH stops at 0.70). **Both tiers are now surfaced in the operational
+dashboard's WHERE panel**, with all scored numbers *read from the back-test reports* (no hard-coding — it
+self-updates). Also verified at session start that the prior
 "minor/housekeeping" backlog (np.trapz→trapezoid, README run-notes, cohesion-unit confirmation, recall
 study) was **already DONE**. **Session 12 — the validation
 became *scored* and *crossed chance*:** (1) **φ=36° hazard re-run** (`run_multistack.py --force`, Docker):
@@ -140,8 +142,9 @@ HIGH=**5,176** (≥2-look **289**). Union alert zones by scenario: dry **0**, **
 refreshed this session — still at the §16c φ=36° pre-DEM values.)
 
 **The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is the headline demo — now
-**WHERE × WHEN × WHICH ZONES**: current-state banner + WHERE footprint + WHEN alarm calendar + a **per-zone
-ranked "live zones today" panel** (§19, breathes 95/95 on 26 Aug, 85/95 on 27 Apr; `--as-of <date>`). Also
+**WHERE × WHEN × WHICH ZONES** with a **two-tier WHERE** (ALERT 12-zone act-now map + WATCH 132-zone
+monitoring map, §23): current-state banner + both WHERE tiers + WHEN alarm calendar + a **per-zone ranked
+"live zones today" panel** (§19, ALERT-focused; `--as-of <date>`). Also
 `data/alerts/dashboard_3d.html` (3-D), per-stack `dashboard_operational.html`. Validation story:
 `data/inventory/rainfall_selectivity.png` + `backtest_roc.png`; alarm calendar `data/rainfall/operational_alarm.png`.
 
@@ -294,24 +297,29 @@ validated inventory — never trust a single sensor or a single physics assumpti
 
 **Session-13 changes (committed-track):** `agentic_orchestrator.py` (new `watch` scenario, m=0.70),
 `run_multistack.py` (`watch` in SCENARIOS + scenario-complete Phase-4/V_slope staleness sentinel so a new
-scenario regenerates without `--force`), `RESULTS_AND_KPIS.md` (**§23**), `README.md` (two-tier bullet),
-`milestone.md` (**M28**), `Research/Foundations - Physics and Maths Primer.md` (**CF9** precision/recall +
-Part E recall-limitation update), and this file. **Data (git-ignored):**
+scenario regenerates without `--force`), **`operational_alarm.py`** (two-tier WHERE panel ALERT+WATCH; scored
+metrics now *read* from the back-test reports + `m` from `SCENARIOS` instead of hard-coded — self-updating;
+optional `--watch-footprint`, backward-compatible), `RESULTS_AND_KPIS.md` (**§23**), `README.md` (two-tier
+bullet), `milestone.md` (**M28**), `Research/Foundations - Physics and Maths Primer.md` (**CF9**
+precision/recall + Part E recall-limitation update), and this file. **Data (git-ignored):**
 `data/alerts/mosaic_asc/alerts_watch.json` + `alert_report_watch.md`, per-stack `alerts_watch.json` +
-`dashboard_watch.html`, `data/inventory/backtest_watch{,_2look}_*`. **No product bugs** (the sentinel fix was
-a latent idempotency gap surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zones /
-AUC 0.504 / recall 0.63; ≥2-look core 10 zones / AUC 0.591 / lift 1.71× (beats chance); `operational`
-unchanged at 12 zones / AUC 0.641 — reproduces §21b.
+`dashboard_watch.html`, `data/inventory/backtest_watch{,_2look}_*`, regenerated two-tier
+`operational_alarm_dashboard.html`. **No product bugs** (the sentinel fix was a latent idempotency gap
+surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zones / AUC 0.504 / recall 0.63;
+≥2-look core 10 zones / AUC 0.591 / lift 1.71× (beats chance); `operational` unchanged at 12 zones /
+AUC 0.641 — reproduces §21b. Dashboard verified: both WHERE tiers render (ALERT 12 / AUC 0.641 / 9×@250 m;
+WATCH 132 / recall 0.63 ≈2.5× ALERT / core AUC 0.591), graceful single-tier fallback when WATCH absent.
 
-**Recommended commit (user commits manually):**
+**Commits.** ✅ **Batch 1 already committed (`39c723c`):** the `watch` scenario + sentinel fix +
+`§23`/`M28`/`CF9` docs (`agentic_orchestrator.py`, `run_multistack.py`, `RESULTS_AND_KPIS.md`, `README.md`,
+`milestone.md`, the primer, `SESSION_REVIEW.md`). **Batch 2 — uncommitted follow-up (the two-tier dashboard):**
 ```
-git add workflows/agentic_orchestrator.py workflows/run_multistack.py RESULTS_AND_KPIS.md README.md \
-        milestone.md "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
-git commit -m "Two-tier WATCH product: m=0.70 recall complement (132 zones, recall 0.63, core AUC 0.59 beats chance) beside m=0.50 ALERT (§23)"
+git add workflows/operational_alarm.py RESULTS_AND_KPIS.md README.md SESSION_REVIEW.md
+git commit -m "Two-tier operational dashboard: surface WATCH beside ALERT in the WHERE panel, scored numbers read from the back-test reports (§23)"
 ```
-(`session_journey.md` + `CLAUDE.md` are untracked/local-only. **Not yet wired:** the WATCH tier is a scored
-named product + briefing; surfacing it as a second tier in `operational_alarm_dashboard.html` is the natural
-follow-up — the dashboard text currently hard-codes m=0.50/12 zones/AUC 0.64, so it needs parameterising.)
+(`session_journey.md` + `CLAUDE.md` are untracked/local-only. ✅ **Dashboard wiring DONE this session:** the
+WATCH tier is now surfaced as a second WHERE tier in `operational_alarm_dashboard.html`, with all scored
+numbers read from the reports — the old hard-coded "~7×@250 m" is now the correct 9× from the report.)
 
 ---
 

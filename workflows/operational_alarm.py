@@ -50,20 +50,60 @@ from rainfall_specificity import (  # noqa: E402
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
-INVENTORY = PROJECT_ROOT / "data" / "inventory" / "ramban_documented_landslides.geojson"
+INV_DIR = PROJECT_ROOT / "data" / "inventory"
+INVENTORY = INV_DIR / "ramban_documented_landslides.geojson"
 
 LEVELS = ["DORMANT", "WATCH", "ALERT"]
 LEVEL_COLOR = {"DORMANT": "#e8e8e8", "WATCH": "#f0b428", "ALERT": "#dc2828"}
 
 
-def load_operational_footprint(path: Path):
-    """The validated operational union zones (§16e). Returns (n_zones, n_critical, n_multilook)."""
+def _lift_at(roc: list, km: float):
+    """Lift (vs the null control) at a specific buffer width, or None."""
+    for row in roc:
+        if abs(row.get("buffer_km", -1) - km) < 1e-9:
+            return row.get("lift")
+    return None
+
+
+def load_tier(path: Path, required: bool = False):
+    """A hazard-tier card: zone counts from the union footprint JSON + scored metrics
+    (AUC, recall@2 km, lift@250 m, and the >=2-look core AUC) auto-loaded from the matching
+    back-test reports `data/inventory/backtest_<scenario>{,_2look}_report.json` if present.
+    `m` (assumed saturation) comes from agentic_orchestrator.SCENARIOS — single source of
+    truth, never hard-coded. Returns None if the footprint is absent (unless `required`)."""
     if not path.exists():
-        raise SystemExit(f"Missing operational footprint {path} — run run_multistack.py first.")
-    zones = json.loads(path.read_text(encoding="utf-8")).get("zones", [])
-    return (len(zones),
-            sum(1 for z in zones if z.get("severity") == "CRITICAL"),
-            sum(1 for z in zones if z.get("n_looks", 1) >= 2))
+        if required:
+            raise SystemExit(f"Missing footprint {path} — run run_multistack.py first.")
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    zones = payload.get("zones", [])
+    scenario = payload.get("scenario", path.stem.replace("alerts_", ""))
+    try:
+        from agentic_orchestrator import SCENARIOS
+        m = SCENARIOS.get(scenario, {}).get("saturation")
+    except Exception:
+        m = None
+    tier = {
+        "scenario": scenario, "m": m,
+        "n_zones": len(zones),
+        "n_crit": sum(1 for z in zones if z.get("severity") == "CRITICAL"),
+        "n_multi": sum(1 for z in zones if z.get("n_looks", 1) >= 2),
+        "auc": None, "recall": None, "spec": None, "lift250": None,
+        "core_zones": None, "core_auc": None, "core_lift": None,
+    }
+    rpt = INV_DIR / f"backtest_{scenario}_report.json"
+    if rpt.exists():
+        sc = json.loads(rpt.read_text(encoding="utf-8")).get("scored", {})
+        ab = sc.get("at_buffer_km", {})
+        tier.update(auc=sc.get("auc"), recall=ab.get("tpr"), spec=ab.get("specificity"),
+                    lift250=_lift_at(sc.get("roc", []), 0.25))
+    core = INV_DIR / f"backtest_{scenario}_2look_report.json"
+    if core.exists():
+        c = json.loads(core.read_text(encoding="utf-8"))
+        cs = c.get("scored", {})
+        tier.update(core_zones=c.get("n_flagged_zones"), core_auc=cs.get("auc"),
+                    core_lift=cs.get("at_buffer_km", {}).get("lift"))
+    return tier
 
 
 def per_zone_live(alerts_dir: Path, as_of: str):
@@ -96,7 +136,10 @@ def main() -> int:
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default="nwhimalaya",
                     help="Temporal I-D curve (default: nwhimalaya — the regional gate).")
     ap.add_argument("--footprint", default=str(ALERTS_DIR / "mosaic_asc" / "alerts_operational.json"),
-                    help="The validated operational m=0.50 union product (§16e).")
+                    help="The validated operational m=0.50 ALERT union product (§16e/§21).")
+    ap.add_argument("--watch-footprint", default=str(ALERTS_DIR / "mosaic_asc" / "alerts_watch.json"),
+                    help="The higher-recall m=0.70 WATCH union product (§23); shown as a 2nd tier "
+                         "if present (pass a missing path to hide it).")
     ap.add_argument("--inventory", default=str(INVENTORY))
     ap.add_argument("--watch-k", type=float, default=1.0, help="E to ARM the footprint (WATCH).")
     ap.add_argument("--alert-k", type=float, default=2.0, help="E to RAISE the alarm (ALERT).")
@@ -119,7 +162,9 @@ def main() -> int:
     api = antecedent_index(water)
     levels = alarm_level(E, args.watch_k, args.alert_k)
 
-    n_zones, n_crit, n_multi = load_operational_footprint(Path(args.footprint))
+    alert_tier = load_tier(Path(args.footprint), required=True)
+    watch_tier = load_tier(Path(args.watch_footprint))   # 2nd tier (§23); None if absent
+    n_zones, n_crit, n_multi = alert_tier["n_zones"], alert_tier["n_crit"], alert_tier["n_multi"]
 
     # Selectivity: raw regional trigger (E>=1) vs the gated WATCH/ALERT sets.
     n_raw = int((E >= 1.0).sum())
@@ -185,9 +230,14 @@ def main() -> int:
     # Per-zone ranking (§19) — render the live ranked zone list if per_zone_gate.py has run.
     per_zone = per_zone_live(ALERTS_DIR, dates[as_of_i].isoformat())
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
-                    report, dates, E, levels, as_of_i, fig_path, n_crit, n_multi, per_zone)
+                    report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone)
 
-    print(f"footprint: operational m=0.50 — {n_zones} zones ({n_crit} critical, {n_multi} >=2-look)")
+    print(f"WHERE — ALERT ({alert_tier['scenario']} m={alert_tier['m']}): {n_zones} zones "
+          f"({n_crit} critical, {n_multi} >=2-look, AUC {_auc_txt(alert_tier['auc'])})")
+    if watch_tier:
+        print(f"WHERE — WATCH ({watch_tier['scenario']} m={watch_tier['m']}): {watch_tier['n_zones']} zones "
+              f"(recall {watch_tier['recall']}@2km, AUC {_auc_txt(watch_tier['auc'])}; "
+              f">=2-look core AUC {_auc_txt(watch_tier['core_auc'])})")
     print(f"temporal gate: {thr['label']} on {rain_source}; watch_k={args.watch_k} alert_k={args.alert_k}")
     print(f"  raw regional trigger (E>=1): {n_raw}/{len(dates)} days ({report['raw_pct_season']}%)")
     print(f"  GATED: WATCH+={n_watch_plus} ({report['watch_or_alert_pct_season']}%)  "
@@ -258,11 +308,60 @@ def write_md(path: Path, r: dict) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _auc_txt(v) -> str:
+    return f"{v:.3f}".rstrip("0").rstrip(".") if isinstance(v, (int, float)) else "n/a"
+
+
+def _stack_links(scenario: str) -> str:
+    """Per-stack map links for a tier's scenario (operational -> dashboard_operational.html, etc.)."""
+    return "\n".join(
+        f'<li><a href="../{s}/dashboard_{scenario}.html">{s.replace("ASC_", "")}</a></li>'
+        for s in ("ASC_path27_frame106", "ASC_path100_frame102", "ASC_path27_frame101"))
+
+
+def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
+    """One WHERE tier card — ALERT (precise / act-now) or WATCH (wider / higher-recall, §23).
+    Zone counts + scored metrics (AUC, recall, lift, >=2-look core) come from load_tier (read
+    from the back-test reports), never hard-coded."""
+    m = tier.get("m")
+    m_txt = f"saturation m={m:.2f}" if isinstance(m, (int, float)) else "saturation n/a"
+    rec = tier.get("recall")
+    rec_txt = f"{rec:.2f}" if isinstance(rec, (int, float)) else "n/a"
+    auc_txt = _auc_txt(tier.get("auc"))
+    if role == "ALERT":
+        title = "WHERE — ALERT footprint (act now · the map that beats chance)"
+        lift250 = tier.get("lift250")
+        lift_txt = (f", <b>{lift250:.0f}× better than luck @250 m</b>"
+                    if isinstance(lift250, (int, float)) else "")
+        scored = (f"Scored vs the GSI field-validated inventory (random-luck control): "
+                  f"<b>AUC {auc_txt}</b> (beats chance), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
+                  f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
+    else:
+        title = "WHERE — WATCH footprint (monitor wider · higher recall)"
+        ratio = (f" (≈{rec / compare_recall:.1f}× the ALERT recall)"
+                 if isinstance(rec, (int, float)) and compare_recall else "")
+        cz, ca, cl = tier.get("core_zones"), tier.get("core_auc"), tier.get("core_lift")
+        core = ""
+        if isinstance(ca, (int, float)):
+            cl_txt = f", lift {cl:.2f}×@2 km" if isinstance(cl, (int, float)) else ""
+            core = (f" Its <b>≥2-look core</b> ({cz} zones) still beats chance: "
+                    f"<b>AUC {_auc_txt(ca)}</b>{cl_txt}.")
+        scored = (f"Recall <b>{rec_txt}</b>@2 km{ratio}, at lower precision "
+                  f"(AUC {auc_txt}, ≈chance overall).{core} Monitor these; act on the ALERT core.")
+    return f"""  <div class="card">
+    <h2>{title}</h2>
+    <div class="big">{tier['n_zones']} zones</div>
+    <div style="font-size:13px;color:#444">{tier['n_crit']} critical · {tier['n_multi']} multi-look-confirmed · {m_txt}</div>
+    <p style="font-size:13px">{scored}</p>
+    <ul style="font-size:13px;margin:4px 0 0 18px">{_stack_links(tier['scenario'])}</ul>
+  </div>"""
+
+
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
-                    n_crit: int, n_multi: int, per_zone=None) -> None:
-    """Self-contained operational warning dashboard: the WHERE (validated footprint) x WHEN
-    (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one view, with a 'current
-    state' banner as-of a chosen day."""
+                    alert_tier: dict, watch_tier=None, per_zone=None) -> None:
+    """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
+    ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
+    view, with a 'current state' banner as-of a chosen day."""
     lvl = levels[as_of_i]
     color = LEVEL_COLOR[lvl]
     as_of = dates[as_of_i].isoformat()
@@ -282,9 +381,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
         f"<td>{'<b style=color:#aa0000>ALERT</b>' if e['alert_within_window'] else ('WATCH+' if e['alarm_within_window'] else '—')}</td></tr>"
         for e in r["per_event"])
 
-    links = "\n".join(
-        f'<li><a href="../{s}/dashboard_operational.html">{s.replace("ASC_","")} operational map</a></li>'
-        for s in ("ASC_path27_frame106", "ASC_path100_frame102", "ASC_path27_frame101"))
+    where_cards = _tier_card(alert_tier, "ALERT")
+    if watch_tier:
+        where_cards += "\n" + _tier_card(watch_tier, "WATCH", compare_recall=alert_tier.get("recall"))
 
     per_zone_html = ""
     if per_zone is not None:
@@ -338,8 +437,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </style></head><body>
 <header>
   <h1>🏔️ Ramban NH-44 — Operational Landslide Alarm</h1>
-  <div class="sub"><b>WHERE</b> (validated hazard footprint) × <b>WHEN</b> (regional rainfall gate)
-   × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
+  <div class="sub"><b>WHERE</b> (two-tier hazard footprint: ALERT + WATCH) × <b>WHEN</b> (regional rainfall
+   gate) × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
    generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
 </header>
 
@@ -350,16 +449,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </div>
 
 <div class="wrap">
-  <div class="card">
-    <h2>WHERE — validated hazard footprint (the map that beats chance)</h2>
-    <div class="big">{n_zones} zones</div>
-    <div style="font-size:13px;color:#444">{n_crit} critical · {n_multi} multi-look-confirmed ·
-      operational saturation m=0.50</div>
-    <p style="font-size:13px">Scored vs the GSI field-validated inventory with a random-luck control:
-      <b>AUC 0.64</b> (beats chance), <b>~7× better than luck at 250 m</b> (§16d/§20). This footprint
-      is held FIXED — the rainfall gate only changes the alarm STATE, not the map.</p>
-    <ul style="font-size:13px;margin:4px 0 0 18px">{links}</ul>
-  </div>
+{where_cards}
   <div class="card">
     <h2>WHEN — regional rainfall temporal gate</h2>
     <div class="big">{r['level_counts']['ALERT']} ALERT days <span style="font-size:14px;color:#666">/ season</span></div>

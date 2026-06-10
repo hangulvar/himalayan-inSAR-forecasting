@@ -1114,13 +1114,21 @@ All scored on the GSI inventory (138 AOI pts) vs a null-point control (n=5000, s
 5. **Reproducibility.** The named `alerts_watch.json` reproduces the §21b m=0.70 sweep row exactly (132
    zones; full AUC 0.504; core AUC 0.591 vs the sweep's 0.589 — rounding). `operational` is unchanged at
    12 zones / AUC 0.641.
+6. **Surfaced in the operational dashboard.** `operational_alarm.py` now renders **both** tiers in the WHERE
+   panel (ALERT + WATCH cards), and — instead of hard-coding the scored numbers — **reads them from the
+   back-test report JSONs** (`backtest_<scenario>{,_2look}_report.json`) with `m` taken from
+   `agentic_orchestrator.SCENARIOS`, so the dashboard self-updates when the physics/operating point changes.
+   The WATCH tier is optional (`--watch-footprint`; hidden if absent — backward-compatible single-tier view).
+   The WHEN gate + per-zone "which zones today" panel stay ALERT-focused (the validated act-now core).
 
 **Producing scripts:** `agentic_orchestrator.py` (`watch` scenario, m=0.70) + `run_multistack.py`
 (scenario-complete Phase-4 staleness sentinel, so a new scenario regenerates without `--force`) +
-`backtest_inventory.py --alerts data/alerts/mosaic_asc/alerts_watch.json [--min-looks 2]`. **Artefacts:**
+`backtest_inventory.py --alerts data/alerts/mosaic_asc/alerts_watch.json [--min-looks 2]` +
+`operational_alarm.py` (two-tier dashboard, reads scored metrics from the reports). **Artefacts:**
 `data/alerts/mosaic_asc/alerts_watch.json` + `alert_report_watch.md`; per-stack `alerts_watch.json` +
-`dashboard_watch.html`; `data/inventory/backtest_watch{,_2look}_report.*`. **Complements §21** (does NOT
-supersede): ALERT stays the headline product; WATCH adds the recall option requested in §4/§5(d).
+`dashboard_watch.html`; `data/inventory/backtest_watch{,_2look}_report.*`; the two-tier
+`data/alerts/mosaic_asc/operational_alarm_dashboard.html`. **Complements §21** (does NOT supersede): ALERT
+stays the headline product; WATCH adds the recall option requested in §4/§5(d).
 
 ---
 
