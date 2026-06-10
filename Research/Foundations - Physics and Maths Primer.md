@@ -979,6 +979,36 @@ in this order**," from physics and data we already had — no new satellite pass
 
 ---
 
+## CF9. Two warning tiers — precision vs recall (the short ALERT list and the wide WATCH list)
+
+Every detector faces one unavoidable trade. Cast a **narrow** net and almost everything you flag is real
+(**high precision**) — but you **miss** the quiet cases (**low recall**). Cast a **wide** net and you catch
+nearly everything (**high recall**) — but most of what you flag is noise (**low precision**). You cannot
+maximise both at once; you *choose* where to sit on the curve.
+
+**The two measures (from CF6).**
+- **Precision** = of the slopes we flagged, how many were really near a slide. *"When we point, are we right?"*
+- **Recall (TPR)** = of the real slides, how many we flagged. *"Of the ones that failed, how many did we catch?"*
+
+**Everyday analogy.** A smoke alarm tuned to scream only at a real blaze (precise) may stay silent on a slow
+smoulder; one tuned to chirp at burnt toast (high recall) catches every fire but cries wolf. Sensible
+buildings use **both** — a quiet detector that means "act now," and a sensitive one that means "go check."
+
+**How we get two tiers from one model.** The only dial we turn is the assumed **wetness** m (CF6/C4).
+- **ALERT** = a *moderately* wet day (m = 0.50): the Factor-of-Safety line tips only the slopes already on the
+  edge → a **short, precise** list (12 slopes, grade 0.64).
+- **WATCH** = a *sustained-soaked* day (m = 0.70): the same line now tips more marginal slopes → a **wide,
+  high-recall** list (132 slopes). As a whole it's near coin-toss, but its **two-pass-confirmed** core still
+  beats chance — a trustworthy ring inside the wide net.
+
+🔗 **In our project: Milestone 28.** Raising the wetness dial from 0.50 to 0.70 widens the footprint 12 → 132
+slopes and lifts recall ~**0.25 → 0.63** (≈2.5× more real slides caught), at the cost of discrimination (grade
+0.64 → 0.50). Going to the fully-soaked worst case (m = 1.0, 393 slopes) barely raises recall (0.63 → 0.70)
+for triple the noise — so WATCH stops at 0.70. The two tiers compose with CF7's *when*: monitor the wide WATCH
+map; act on the precise ALERT core when the rainfall gate escalates.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -1200,7 +1230,9 @@ Being able to state weaknesses is what makes you credible.
   map scored **AUC 0.41 — below chance** (it over-flags). Redrawn at a *realistic* wetness (m≈0.25–0.40) it
   scores **AUC 0.55 (beats chance)** and **5.6× better than luck at 100 m** — the first provably-better-than-
   random result. Caveats: (a) it's one small AOI (~22×22 km), so 2 km buffers approach saturation; the honest
-  detection buffer is **≤250 m**; (b) the better grade comes with **lower recall** (fewer zones); (c) it's
+  detection buffer is **≤250 m**; (b) the high-grade ALERT map comes with **lower recall** (12 zones, recall
+~0.25) — now complemented by a wider **WATCH tier** (m=0.70, 132 zones, recall ~0.63) whose two-pass-confirmed
+core still beats chance (Milestone 28 / CF9); (c) it's
   still **spatial only** — a *temporal* scored test wants the **GSI Bhukosh** inventory with **verified
   dates** (a one-week date error once flipped the spring conclusion, M20). The temporal back-test (4/4 on the
   corrected inventory) remains *partly automatic* because the regional curve fires 112/214 days.

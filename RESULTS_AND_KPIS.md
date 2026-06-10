@@ -1078,6 +1078,52 @@ overwritten — frame102/101 are demonstrative, not adopted).
 
 ---
 
+## 23. Two-tier operational product — a higher-recall WATCH map beside the precision ALERT  `[REAL / MEASURED]`
+
+Source: `agentic_orchestrator.py` (new `watch` scenario, m=0.70) + `run_multistack.py` +
+`backtest_inventory.py` (Docker, 2026-06-10). The §21 operating point (m=0.50, **AUC 0.641**) is the
+AUC-MAXIMUM, but it flags only **12 zones — low recall** (TPR@2 km **0.254**; the acknowledged #1
+weakness, §21 honest-note a): a high-precision "act-now" map that misses slopes which only mobilise on a
+wetter antecedent. So we add a **second, more-inclusive tier** at a wetter saturation (**m=0.70** ~
+sustained-monsoon antecedent), drawn from the SAME physics — a recall safety-net to monitor, distinct
+from the act-now core. The validated m=0.50 ALERT product and its temporal gate (§17) are **untouched**;
+WATCH is a complement, not a replacement.
+
+All scored on the GSI inventory (138 AOI pts) vs a null-point control (n=5000, seed 20260606), buffer 2 km:
+
+| tier | scenario | m | union zones | AUC | TPR@2 km (recall) | spec@2 km | precision | lift@2 km | posture |
+|---|---|---|---|---|---|---|---|---|---|
+| **ALERT** | operational | 0.50 | **12** | **0.641** | 0.254 | 0.86 | 0.645 | 1.81× | act now — precise core |
+| **WATCH** | watch | 0.70 | **132** | 0.504 | **0.63** | 0.29 | 0.471 | 0.89× | monitor wider — recall net |
+| WATCH ≥2-look core | watch | 0.70 | 10 | **0.591** | 0.319 | 0.81 | 0.631 | **1.71×** | corroborated subset (trust) |
+| _(monsoon worst-case)_ | monsoon | 1.00 | 393 | 0.432 | 0.70 | 0.11 | — | 0.79× | over-flags (below chance) |
+
+1. **The precision↔recall frontier, now two named products.** ALERT maximises discrimination/precision
+   (AUC 0.64, precision 0.65, lift 1.81×) at low recall (TPR 0.25, 12 zones). WATCH ~**2.5× the recall**
+   (TPR 0.25 → 0.63, 12 → 132 zones) by trading discrimination (AUC ~chance 0.50, lift 0.89×). Neither
+   dominates — this is the §21b sweep crystallised into ALERT + WATCH.
+2. **m=0.70 is the efficient WATCH point.** Going on to the monsoon worst-case (m=1.0) adds only marginal
+   recall (0.63 → 0.70) for 3× the zones (132 → 393) and a precision collapse — so WATCH stops at m=0.70,
+   not 1.0.
+3. **The WATCH net carries a trustworthy core.** Its ≥2-look corroborated subset (10 zones seen by two
+   look geometries) still **BEATS CHANCE** — AUC 0.591, specificity 0.81, lift **1.71× @2 km**. So even
+   the broad tier has a high-confidence inner ring.
+4. **Naming (orthogonal axes).** The spatial WATCH tier (a wider WHERE) is independent of the temporal
+   DORMANT/WATCH/ALERT states (§17, the WHEN). Operationally they compose: consult the broad WATCH map for
+   monitoring; act on the ALERT core when the temporal gate escalates.
+5. **Reproducibility.** The named `alerts_watch.json` reproduces the §21b m=0.70 sweep row exactly (132
+   zones; full AUC 0.504; core AUC 0.591 vs the sweep's 0.589 — rounding). `operational` is unchanged at
+   12 zones / AUC 0.641.
+
+**Producing scripts:** `agentic_orchestrator.py` (`watch` scenario, m=0.70) + `run_multistack.py`
+(scenario-complete Phase-4 staleness sentinel, so a new scenario regenerates without `--force`) +
+`backtest_inventory.py --alerts data/alerts/mosaic_asc/alerts_watch.json [--min-looks 2]`. **Artefacts:**
+`data/alerts/mosaic_asc/alerts_watch.json` + `alert_report_watch.md`; per-stack `alerts_watch.json` +
+`dashboard_watch.html`; `data/inventory/backtest_watch{,_2look}_report.*`. **Complements §21** (does NOT
+supersede): ALERT stays the headline product; WATCH adds the recall option requested in §4/§5(d).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

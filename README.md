@@ -330,6 +330,12 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   rebuilds + scores the AOI union mosaic at each, and shows AUC rising 0.41→0.55 as m falls
   from worst-case 1.0 to the realistic ~0.25–0.40 (`RESULTS_AND_KPIS.md` §16d). The chosen
   point (m=0.50 under the matric-suction physics §20 + 12.5 m DEM §21) is wired in as `operational` above.
+- **Two-tier hazard product (recall complement, §23):** the `watch` scenario (m=0.70) builds a broader,
+  higher-recall monitoring footprint beside the precise `operational` ALERT map — `run_multistack.py` emits
+  both. Score the WATCH map with `python workflows/backtest_inventory.py
+  --alerts data/alerts/mosaic_asc/alerts_watch.json --inventory data/inventory/gsi_inventory_aoi.geojson
+  [--min-looks 2]` (132 zones, recall 0.63, AUC 0.50; ≥2-look core AUC 0.59 beats chance — vs ALERT's
+  12 zones / recall 0.25 / AUC 0.64). ALERT = act now; WATCH = monitor wider.
 - **Two-factor operational warning (WHERE × WHEN):**
   `python workflows/operational_alarm.py --threshold nwhimalaya` — gates the validated operational
   footprint by the regional rainfall curve graded by exceedance E (DORMANT/WATCH/ALERT). Cuts the raw

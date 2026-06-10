@@ -84,9 +84,15 @@ logger = logging.getLogger("orchestrator")
 # moderately-wet day) under MATRIC-SUCTION FS physics (§20) + the 12.5 m ALOS DEM (§21): AUC 0.64
 # (the project best). History: m=0.40/0.535 (flat cohesion) -> m=0.55/0.614 (matric suction) ->
 # m=0.50/0.64 (+12.5 m DEM). Each physics upgrade shifted the operating saturation + improved AUC.
+# 'watch' is the higher-RECALL complement to 'operational' (§23): the m=0.50 ALERT map is sparse
+# (12 zones, AUC-max but low recall), so 'watch' draws a wetter antecedent (m=0.70 ~ sustained
+# monsoon) → a broader ~132-zone monitoring footprint. Two-tier hazard product: WATCH = monitor
+# wider (more recall, lower precision), ALERT = act on the precise core. (Distinct from the
+# operational_alarm.py TEMPORAL DORMANT/WATCH/ALERT states, which decide WHEN to consult a map.)
 SCENARIOS = {
     "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
     "operational": {"rainfall_mm_72h": 29,  "saturation": 0.50, "fs_layer": "FS_real"},
+    "watch":       {"rainfall_mm_72h": 50,  "saturation": 0.70, "fs_layer": "FS_real"},
     "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
     "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }

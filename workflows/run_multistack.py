@@ -57,9 +57,10 @@ MOSAIC_VSLOPE_DIR = PROJECT_ROOT / "data" / "mosaic_vslope"
 MOSAIC_ALERTS_VSLOPE_DIR = ALERTS_DIR / "mosaic_asc_vslope"
 LOG_DIR = PROJECT_ROOT / "logs"
 
-# Keep in sync with agentic_orchestrator.SCENARIOS. 'operational' (m=0.40, rainfall-
-# realistic) is the standing product that beats chance (§16d); the rest are the mock cascade.
-SCENARIOS = ["dry", "operational", "monsoon", "extreme"]
+# Keep in sync with agentic_orchestrator.SCENARIOS. 'operational' (m=0.50, rainfall-realistic)
+# is the standing ALERT product that beats chance (§16d/§21); 'watch' (m=0.70) is its higher-recall
+# monitoring complement (§23); the rest are the mock cascade.
+SCENARIOS = ["dry", "operational", "watch", "monsoon", "extreme"]
 HAZARD_HIGH = 2.0
 MERGE_DEG = 0.0015  # ~165 m: zones nearer than this (different looks) are one place
 
@@ -113,7 +114,9 @@ def connected_stacks() -> list[str]:
 def run_phases_per_stack(stack: str, force: bool) -> None:
     vel = VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif"
     haz = HAZ_DIR / f"{stack}_hazard_class.tif"
-    alerts_monsoon = ALERTS_DIR / stack / "alerts_monsoon.json"
+    # Phase 4 is stale if ANY scenario JSON is missing or older than the hazard raster — so adding
+    # a new scenario (e.g. 'watch', §23) regenerates the alerts without a full --force recompute.
+    alert_jsons = [ALERTS_DIR / stack / f"alerts_{sc}.json" for sc in SCENARIOS]
 
     if force or _stale(vel, QUARANTINE_CSV):
         logger.info("[%s] Phase 2 — SBAS inversion", stack)
@@ -127,7 +130,7 @@ def run_phases_per_stack(stack: str, force: bool) -> None:
     else:
         logger.info("[%s] Phase 3 — up to date, skipping", stack)
 
-    if force or _stale(alerts_monsoon, haz):
+    if force or any(_stale(j, haz) for j in alert_jsons):
         logger.info("[%s] Phase 4 — per-stack alerts", stack)
         _run("agentic_orchestrator.py", "--stack", stack,
              "--out-dir", str(ALERTS_DIR / stack))
@@ -142,7 +145,7 @@ def run_vslope_per_stack(stack: str, force: bool) -> None:
     vel = VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif"
     vslope = VEL_DIR / f"{stack}_v_slope.tif"
     haz_v = HAZ_DIR / f"{stack}_hazard_class_vslope.tif"
-    alerts_v = ALERTS_DIR / f"{stack}_vslope" / "alerts_monsoon.json"
+    alert_v_jsons = [ALERTS_DIR / f"{stack}_vslope" / f"alerts_{sc}.json" for sc in SCENARIOS]
 
     if force or _stale(vslope, vel):
         logger.info("[%s] V_slope — slope-parallel velocity projection", stack)
@@ -156,7 +159,7 @@ def run_vslope_per_stack(stack: str, force: bool) -> None:
     else:
         logger.info("[%s] V_slope hazard — up to date, skipping", stack)
 
-    if force or _stale(alerts_v, vslope):
+    if force or any(_stale(j, vslope) for j in alert_v_jsons):
         logger.info("[%s] V_slope — per-stack alerts", stack)
         _run("agentic_orchestrator.py", "--stack", stack, "--use-vslope",
              "--out-dir", str(ALERTS_DIR / f"{stack}_vslope"))

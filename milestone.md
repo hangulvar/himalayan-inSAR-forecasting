@@ -964,6 +964,37 @@ steepness (typical 28→31°, steepest 56→66°) and pushed the danger map's gr
 
 ---
 
+## ✅ Milestone 28 — A second, wider "watch list" next to the short "act-now" list  *(Two-tier WATCH product, 2026-06-10)*
+
+**What we set out to do:** our best map (Milestone 27) is deliberately **short — about a dozen top slopes**.
+That's great for "where do I send a crew *today*," but a short list also **misses** slopes that only let go
+after the ground gets *really* soaked. The honest gap was **recall** — how many of the real slides we'd catch.
+We wanted a companion list that casts a wider net, without watering down the trustworthy short list.
+
+**What we did, plainly:**
+- **Added a "wetter day" setting.** The act-now map assumes a *moderately* wet slope. The new **WATCH** map
+  assumes a *sustained-monsoon-soaked* slope — so more marginal hillsides cross into "could fail." That widens
+  the list from **12 places to 132**.
+- **Graded both honestly against the real landslide record.** The wide WATCH list catches **about 2.5× more**
+  of the documented slides (roughly 1-in-4 → nearly 2-in-3) — exactly the recall safety-net we wanted. The
+  trade is that, taken as a whole, it's no better than a coin-toss at telling danger from luck (that's the
+  price of casting a wide net). **But** the slopes inside it that **two different satellite passes both flag**
+  stay genuinely better than chance — a trustworthy inner ring inside the wide net.
+- **Kept the two jobs separate.** Short **ALERT** list = act now (precise). Wide **WATCH** list = keep an eye
+  on more places (thorough). We *didn't* touch the validated act-now map or its rainfall timing — WATCH sits
+  beside it as an option, not a replacement. We also checked that going *even* wetter (the worst-case monsoon
+  map, 393 places) barely catches more slides for triple the noise — so the "sustained-monsoon" setting is the
+  sweet spot.
+
+**Why this matters:** a real warning system needs both a *focused* list (don't cry wolf) and a *thorough* one
+(don't miss the quiet ones). Now we have both, each graded honestly, and the operator can choose the posture.
+
+**Plain-language result:** a new **WATCH** list of **132 slopes** sits beside the focused **12-slope ALERT**
+list — catching **~2.5× more** real slides (recall ~0.25 → ~0.63), with a two-pass-confirmed inner ring that
+still beats chance (grade 0.59).
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

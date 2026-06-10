@@ -5,9 +5,17 @@ dashboard, **overwritten at the end of each working session** to always reflect
 the *current* state — not a historical log. (For history, see
 `session_journey.md`.)
 
-_Last updated: 2026-06-07/08 (Session 12, branch `mvp-expansion`). **Current state:** the full MVP
+_Last updated: 2026-06-10 (Session 13, branch `mvp-expansion`). **Current state:** the full MVP
 (radar → audited data → SBAS velocity → physics hazard → explainable rainfall-driven warning, plus a
-3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 12 (newest) — the validation
+3-D UI) is COMPLETE, Dockerized, point-anywhere, and multi-stack. **Session 13 (newest) — TWO-TIER hazard
+product (§23):** added a higher-recall **WATCH** map (`watch` scenario, m=0.70, **132 zones, recall 0.63,
+AUC 0.50**; ≥2-look core **AUC 0.59 beats chance**) beside the precise **ALERT** map (m=0.50, 12 zones,
+recall 0.25, AUC 0.64) — materialized + scored vs the GSI inventory (reproduces the §21b m=0.70 sweep row
+exactly). This is the recall safety-net the §4/§5(d) backlog asked for: **ALERT = act now, WATCH = monitor
+wider**; the two compose with the §17 temporal gate (going to worst-case m=1.0 / 393 zones barely lifts
+recall 0.63→0.70 for 3× the noise, so WATCH stops at 0.70). Also verified at session start that the prior
+"minor/housekeeping" backlog (np.trapz→trapezoid, README run-notes, cohesion-unit confirmation, recall
+study) was **already DONE**. **Session 12 — the validation
 became *scored* and *crossed chance*:** (1) **φ=36° hazard re-run** (`run_multistack.py --force`, Docker):
 the GSI-calibrated friction angle de-flags ~12–16 % of marginal zones — frame106 222→**192**, union HIGH
 px 5,268→**4,418**, union monsoon zones 405→**357**, while the **≥2-look core stays 26** (fewer false
@@ -44,7 +52,7 @@ inventory (**§14**), and calibrated φ 32°→36° (**§15**). Detail: §2 / §
 | # | Document | Why read it | How much |
 |---|---|---|---|
 | 1 | **SESSION_REVIEW.md** (this file) | Current state, open questions, next step | All — it's short |
-| 2 | **`RESULTS_AND_KPIS.md`** | **Committed** ledger of every headline KPI/finding (mock + real), with provenance | Skim; read **§16–§22** (newest) |
+| 2 | **`RESULTS_AND_KPIS.md`** | **Committed** ledger of every headline KPI/finding (mock + real), with provenance | Skim; read **§16–§23** (newest) |
 | 3 | `README.md` | Project overview, repo layout, full-pipeline run guide, known env issues | Skim |
 | 4 | `milestone.md` | Plain-language story of progress (Milestones 1–27) | Top to current |
 | 5 | `session_journey.md` | Detailed decisions & reasoning; **read the top (newest) entry** | Newest 1–2 entries |
@@ -125,10 +133,11 @@ reproducible Linux Docker container, and the spatial validation is now **scored 
 
 **Active branch: `mvp-expansion`** — all post-MVP work happens here, not `master`.
 
-**Data state after Session 12:** all 3 ASC stacks re-run at φ=36° (LOS **and** V_slope mosaics refreshed).
-Union LOS: HIGH=**4,418** (≥2-look **251**), monsoon zones=**357** (≥2-look **26**). V_slope (φ=36°): HIGH=4,568
-(≥2-look 331), monsoon zones 362. Per-m sweep mosaics in `data/alerts/mosaic_asc/alerts_sat{025..100}.json`.
-Scored artefacts in `data/inventory/` (`backtest_*`, `rainfall_selectivity_*`).
+**Data state after Session 13:** all 3 ASC stacks at φ=36° + matric-suction + 12.5 m DEM. Union LOS hazard:
+HIGH=**5,176** (≥2-look **289**). Union alert zones by scenario: dry **0**, **operational/ALERT 12**,
+**watch/WATCH 132** (≥2-look 10), monsoon/extreme **393**. Scored artefacts in `data/inventory/`
+(`backtest_operational*`, **`backtest_watch*`**, `rainfall_selectivity_*`). (V_slope mosaics were **not**
+refreshed this session — still at the §16c φ=36° pre-DEM values.)
 
 **The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is the headline demo — now
 **WHERE × WHEN × WHICH ZONES**: current-state banner + WHERE footprint + WHEN alarm calendar + a **per-zone
@@ -155,7 +164,8 @@ ranked "live zones today" panel** (§19, breathes 95/95 on 26 Aug, 85/95 on 27 A
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
 - HyP3 credits: ~6,170 (≈ enough for one more AOI's full Phase-1 pull). Disk: ~73 GB used in `data/`.
-- Minor: a cosmetic `np.trapz`→`trapezoid` numpy-2.x DeprecationWarning in the scored arm — not breaking.
+- (Resolved) the `np.trapz`→`trapezoid` numpy-2.x rename is already handled in `backtest_inventory.py`
+  (`getattr(np, "trapezoid", np.trapz)`), so no DeprecationWarning is emitted; the rainfall sweep reuses it.
 
 ---
 
@@ -221,10 +231,14 @@ now resolved per zone**. All follow-ups DONE:
    (low-coh) failed QC; **no ERA5 union built**, mosaic stays on custom velocities. frame106 §18 stands.
 
 **New top remaining (all need external data/compute or per-stack tuning):** (a) **nonlinear van-Genuchten
-suction curve** (§20 is first-order linear); (b) **lab confirmation of c_dry/c_wet** + the "18.5 kg/cm²" unit;
-(c) **per-stack ERA5 reference-pixel + unwrapping QC** to rescue frame102/101 (§22 fix path); (d) **recall**
-— the m=0.50 product is only 12 zones; a recall-vs-AUC operating-point study (or a second, more-inclusive
-"watch" product at higher m) could complement it. **GSI Bhukosh DROPPED** (CSV suffices spatially; only
+suction curve** (§20 is first-order linear); (b) **lab confirmation of c_dry/c_wet** — the "18.5 kg/cm²"
+unit is now *source-verified* (Batote–Doda susceptibility map: "cohesion mean 18.5 kg/cm²"; taken literally
+≈1814 kPa = rock-like, so the 18.5 kPa suction interpretation in `geomechanical_engine.py` stands — still
+wants lab confirmation, not just the secondary summary); (c) **per-stack ERA5 reference-pixel + unwrapping
+QC** to rescue frame102/101 (§22 fix path); (d) ✅ **DONE (§23) — recall** addressed by the **two-tier WATCH
+product** (m=0.70, 132 zones, recall 0.63; ≥2-look core AUC 0.59 beats chance) beside the m=0.50 ALERT map;
+the recall-vs-AUC frontier is the §21b sweep, now crystallised into two named scored products. **GSI Bhukosh
+DROPPED** (CSV suffices spatially; only
 lacked dates). **The self-contained operational thread (§16–§22) is COMPLETE.** For a **new AOI before
 monsoon**: point `config.yaml` + start the S1/HyP3 pull now (velocity needs a time series) — offer stands
 to wire `config.yaml` and dry-run everything that doesn't need the HyP3 order.
@@ -265,8 +279,9 @@ manual (not live) rainfall; a static-vs-worst-case hazard map; recall-limited va
   decorrelation, our worst enemy); operational window from Jul 2026 (§4.6).
 
 **Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19, done); (2) ✅ physics/data
-upgrades φ=36/suction/12.5 m DEM (§20–§21, done — AUC 0.64); (3) recall study + nonlinear suction + per-stack
-ERA5 QC; (4) live rainfall; (5) NISAR ingestion as it matures; (6) uncertainty + susceptibility.
+upgrades φ=36/suction/12.5 m DEM (§20–§21, done — AUC 0.64); (3) ✅ recall (two-tier WATCH, §23, done) +
+nonlinear suction + per-stack ERA5 QC; (4) live rainfall; (5) NISAR ingestion as it matures; (6) uncertainty
++ susceptibility.
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall, soil moisture, and a
 validated inventory — never trust a single sensor or a single physics assumption.
@@ -274,6 +289,31 @@ validated inventory — never trust a single sensor or a single physics assumpti
 ---
 
 ## 7. End-of-session checklist
+
+**Session 13 (2026-06-10) — two-tier WATCH product (§23). Documentation ritual COMPLETE.**
+
+**Session-13 changes (committed-track):** `agentic_orchestrator.py` (new `watch` scenario, m=0.70),
+`run_multistack.py` (`watch` in SCENARIOS + scenario-complete Phase-4/V_slope staleness sentinel so a new
+scenario regenerates without `--force`), `RESULTS_AND_KPIS.md` (**§23**), `README.md` (two-tier bullet),
+`milestone.md` (**M28**), `Research/Foundations - Physics and Maths Primer.md` (**CF9** precision/recall +
+Part E recall-limitation update), and this file. **Data (git-ignored):**
+`data/alerts/mosaic_asc/alerts_watch.json` + `alert_report_watch.md`, per-stack `alerts_watch.json` +
+`dashboard_watch.html`, `data/inventory/backtest_watch{,_2look}_*`. **No product bugs** (the sentinel fix was
+a latent idempotency gap surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zones /
+AUC 0.504 / recall 0.63; ≥2-look core 10 zones / AUC 0.591 / lift 1.71× (beats chance); `operational`
+unchanged at 12 zones / AUC 0.641 — reproduces §21b.
+
+**Recommended commit (user commits manually):**
+```
+git add workflows/agentic_orchestrator.py workflows/run_multistack.py RESULTS_AND_KPIS.md README.md \
+        milestone.md "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
+git commit -m "Two-tier WATCH product: m=0.70 recall complement (132 zones, recall 0.63, core AUC 0.59 beats chance) beside m=0.50 ALERT (§23)"
+```
+(`session_journey.md` + `CLAUDE.md` are untracked/local-only. **Not yet wired:** the WATCH tier is a scored
+named product + briefing; surfacing it as a second tier in `operational_alarm_dashboard.html` is the natural
+follow-up — the dashboard text currently hard-codes m=0.50/12 zones/AUC 0.64, so it needs parameterising.)
+
+---
 
 **Session 12 (2026-06-07/08) — documentation ritual COMPLETE.**
 
