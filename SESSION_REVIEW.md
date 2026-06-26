@@ -155,9 +155,10 @@ refreshed this session — still at the §16c φ=36° pre-DEM values.)
 
 **The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is the headline demo — now
 **WHERE × WHEN × WHICH ZONES** with a **two-tier WHERE** (ALERT 12-zone act-now map + WATCH 132-zone
-monitoring map, §23): current-state banner + both WHERE tiers + WHEN alarm calendar + a **per-zone ranked
-"live zones today" triage panel** (§19, ALERT-focused; now with a **colour-coded detection-confidence column**
-§24 — moving × how-sure × how-vulnerable; `--as-of <date>`). Also
+monitoring map, §23 — the **WATCH card carries a "read first — top 5 by triage priority" shortlist**, §25):
+current-state banner + both WHERE tiers + WHEN alarm calendar + a **per-zone ranked "live zones today" triage
+panel** (§19, ALERT-focused; now with a **colour-coded detection-confidence column** §24 — moving × how-sure ×
+how-vulnerable; `--as-of <date>`). Also
 `data/alerts/dashboard_3d.html` (3-D), per-stack `dashboard_operational.html`. Validation story:
 `data/inventory/rainfall_selectivity.png` + `backtest_roc.png`; alarm calendar `data/rainfall/operational_alarm.png`.
 
@@ -323,24 +324,20 @@ surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zon
 AUC 0.641 — reproduces §21b. Dashboard verified: both WHERE tiers render (ALERT 12 / AUC 0.641 / 9×@250 m;
 WATCH 132 / recall 0.63 ≈2.5× ALERT / core AUC 0.591), graceful single-tier fallback when WATCH absent.
 
-**Commits.** ✅ **Batch 1 (`39c723c`):** `watch` scenario + sentinel + §23/M28/CF9. ✅ **Batch 2 (`1314682`
-+ `a4b5db6`):** two-tier dashboard + footer fix + uncertainty quantification §24 (`velocity_uncertainty.py`,
-M29/CF10). **Batch 3 — uncommitted (operator triage: §24 confidence column + §25 ranked WATCH triage):**
+**Commits.** ✅ **B1 (`39c723c`):** `watch` scenario + sentinel + §23/M28/CF9. ✅ **B2 (`1314682`+`a4b5db6`):**
+two-tier dashboard + footer fix + uncertainty quantification §24 (`velocity_uncertainty.py`, M29/CF10).
+✅ **B3 (`d7535f6`):** §24 detection-confidence column in the per-zone panel + §25 ranked (not gated) WATCH
+triage (`per_zone_gate.py`, `watch_triage.py`, M30/CF8). **Batch 4 — uncommitted (WATCH triage top-N in the
+dashboard):**
 ```
-git add workflows/per_zone_gate.py workflows/operational_alarm.py workflows/watch_triage.py \
-        RESULTS_AND_KPIS.md README.md milestone.md \
-        "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
-git commit -m "Operator triage: §24 detection-confidence column in the per-zone panel + §25 ranked (not gated) WATCH triage"
+git add workflows/operational_alarm.py RESULTS_AND_KPIS.md SESSION_REVIEW.md
+git commit -m "Surface the §25 WATCH triage top-5 'read first' shortlist inside the dashboard's WATCH tier card"
 ```
-Covers: (a) **confidence column** — `per_zone_gate.py` computes the §24 confidence inline (importing
-`stack_noise`/`confidence` from `velocity_uncertainty.py`); `operational_alarm.py` renders it colour-coded
-(green ≥0.9 / amber ≥0.7 / grey) in the "WHICH ZONES — live today" panel → each live zone reads **moving ×
-how-sure × how-vulnerable**. (b) **§25 WATCH triage** — new `watch_triage.py` **RANKS** the 132-zone WATCH
-net worst-first by `priority=(1−m*)×P` (fragility §19 × confidence §24), **keeping every zone** (rank-not-gate,
-the design call — gating would shrink the recall net + use §19's gate outside its validated map); top priority
-0.703, the 96 marginal zones sink but stay listed (M30/CF8). Split with `git add -p` for two commits (docs
-intermingled). `session_journey.md`/`CLAUDE.md` untracked. **Data (git-ignored):** `per_zone_vulnerability.{csv,
-md,json}` (+ conf col), `per_zone_triage_watch.{csv,md,json,png}`, regenerated `operational_alarm_dashboard.html`.
+`operational_alarm.py` reads `per_zone_triage_watch.json` (new `load_watch_triage()`) and renders a compact
+ranked "Read first — top 5 by triage priority" list **inside the WATCH tier card** (location · priority ·
+fragility m\* · confidence P · a "2-look" badge when corroborated), guarded so the card still renders if the
+triage file is absent. `session_journey.md`/`CLAUDE.md` untracked. **Data (git-ignored):** regenerated
+`operational_alarm_dashboard.html`.
 
 ---
 

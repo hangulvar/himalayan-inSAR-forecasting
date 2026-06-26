@@ -122,6 +122,15 @@ def per_zone_live(alerts_dir: Path, as_of: str):
     return {"n_active": n_active, "total": len(zones), "zones": zones[:max(n_active, 0)][:15]}
 
 
+def load_watch_triage(scenario: str, n: int = 5):
+    """Top-N ranked zones from watch_triage.py (§25, priority=(1−m*)×P), or None if absent."""
+    f = ALERTS_DIR / "mosaic_asc" / f"per_zone_triage_{scenario}.json"
+    if not f.exists():
+        return None
+    top = json.loads(f.read_text(encoding="utf-8")).get("top", [])[:n]
+    return top or None
+
+
 def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
     out = []
     for e in E:
@@ -164,6 +173,8 @@ def main() -> int:
 
     alert_tier = load_tier(Path(args.footprint), required=True)
     watch_tier = load_tier(Path(args.watch_footprint))   # 2nd tier (§23); None if absent
+    if watch_tier:                                        # ranked "read first" top-N (§25), if present
+        watch_tier["triage_top"] = load_watch_triage(watch_tier["scenario"], 5)
     n_zones, n_crit, n_multi = alert_tier["n_zones"], alert_tier["n_crit"], alert_tier["n_multi"]
 
     # Selectivity: raw regional trigger (E>=1) vs the gated WATCH/ALERT sets.
@@ -338,6 +349,7 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     rec = tier.get("recall")
     rec_txt = f"{rec:.2f}" if isinstance(rec, (int, float)) else "n/a"
     auc_txt = _auc_txt(tier.get("auc"))
+    triage = ""
     if role == "ALERT":
         title = "WHERE — ALERT footprint (act now · the map that beats chance)"
         lift250 = tier.get("lift250")
@@ -358,12 +370,25 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
                     f"<b>AUC {_auc_txt(ca)}</b>{cl_txt}.")
         scored = (f"Recall <b>{rec_txt}</b>@2 km{ratio}, at lower precision "
                   f"(AUC {auc_txt}, ≈chance overall).{core} Monitor these; act on the ALERT core.")
+        top = tier.get("triage_top")
+        if top:
+            items = "\n".join(
+                f"<li>{float(z['lat']):.3f}, {float(z['lon']):.3f} — <b>{z['priority']}</b> "
+                f"<span style='color:#888'>(fragile m*{z['m_star']} · P{z['detection_confidence']}"
+                f"{' · 2-look' if z.get('n_looks', 1) >= 2 else ''})</span></li>"
+                for z in top)
+            triage = (f"<div style='margin-top:8px;font-size:12px'><b>Read first — top {len(top)} by "
+                      f"triage priority (§25, ranked not gated):</b>"
+                      f"<ol style='margin:4px 0 0 18px;padding:0'>{items}</ol>"
+                      f"<div style='color:#888;margin-top:3px'>priority = (1−m*)×P = fragility × "
+                      f"detection confidence; full ranking in <code>per_zone_triage_watch.csv</code>.</div></div>")
     return f"""  <div class="card">
     <h2>{title}</h2>
     <div class="big">{tier['n_zones']} zones</div>
     <div style="font-size:13px;color:#444">{tier['n_crit']} critical · {tier['n_multi']} multi-look-confirmed · {m_txt}</div>
     <p style="font-size:13px">{scored}</p>
     <ul style="font-size:13px;margin:4px 0 0 18px">{_stack_links(tier['scenario'])}</ul>
+    {triage}
   </div>"""
 
 

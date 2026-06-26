@@ -1219,11 +1219,18 @@ narrowing it per-day (§19) refines a trustworthy set. WATCH (132 zones, ~chance
 net whose value is "don't miss anything" — filtering it re-introduces the miss risk it exists to avoid, and
 uses the §19 gate outside its validated footprint. Ranking preserves the net and makes the long list usable.
 
-**Producing script:** `watch_triage.py [--footprint watch|monsoon]` (imports `critical_saturation`/`tier_of`
+**Surfaced in the dashboard.** `operational_alarm.py` now reads `per_zone_triage_watch.json` and renders a
+compact **"Read first — top 5 by triage priority"** list *inside the WATCH tier card* (each row: location ·
+priority · fragility m\* · confidence P · a 2-look badge when corroborated), so the operator gets the
+"start here" shortlist right beside the 132-zone WATCH summary. Graceful: the card renders without the list
+if the triage file is absent.
+
+**Producing scripts:** `watch_triage.py [--footprint watch|monsoon]` (imports `critical_saturation`/`tier_of`
 from `per_zone_gate.py` §19 + `stack_noise`/`confidence` from `velocity_uncertainty.py` §24 — single sources of
-truth; merges per-stack → union with combined P, then sorts). **Artefacts:**
-`data/alerts/mosaic_asc/per_zone_triage_watch.{json,csv,md,png}` (the .png is the triage space — fragility ×
-confidence, top-right = act first). Additive — does not change the ALERT/WATCH products or the §19 gate.
+truth; merges per-stack → union with combined P, then sorts) + `operational_alarm.py` (the WATCH-card top-N).
+**Artefacts:** `data/alerts/mosaic_asc/per_zone_triage_watch.{json,csv,md,png}` (the .png is the triage space —
+fragility × confidence, top-right = act first); the top-5 in `operational_alarm_dashboard.html`. Additive —
+does not change the ALERT/WATCH products or the §19 gate.
 
 ---
 
