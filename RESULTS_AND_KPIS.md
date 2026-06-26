@@ -1179,10 +1179,51 @@ third independent trust axis beside the spatial AUC (§16) and the temporal gate
 margin **m\*** (§19 — "the wetness at which this zone fails"); §24 adds the **velocity/measurement**
 uncertainty. Each zone now carries uncertainty on both the physics (m\*) and the measurement (P).
 
+**Surfaced in the operator triage table.** `per_zone_gate.py` now computes the per-zone confidence inline
+(importing `stack_noise`/`confidence` from `velocity_uncertainty.py` — single source of truth) and adds a
+`detection_confidence` column to `per_zone_vulnerability.csv`; the dashboard's "WHICH ZONES — live today"
+panel renders it as a colour-coded **confidence** column. The operator now reads each live zone as
+**moving (creep) × how-sure (confidence, §24) × how-vulnerable (m\*, §19)** in one row.
+
 **Producing scripts:** `velocity_uncertainty.py [--footprint operational|watch]` + `backtest_inventory.py
---alerts …_conf{,70,90}.json`. **Artefacts:** `data/alerts/mosaic_asc/velocity_confidence_<scenario>.{json,
-csv,md,png}`; the scoreable `alerts_<scenario>_conf{,70,90}.json`; `data/inventory/bt_watch_conf*`. Additive
-— no change to the validated ALERT/WATCH products.
+--alerts …_conf{,70,90}.json`; `per_zone_gate.py` + `operational_alarm.py` (the confidence column).
+**Artefacts:** `data/alerts/mosaic_asc/velocity_confidence_<scenario>.{json,csv,md,png}`; the scoreable
+`alerts_<scenario>_conf{,70,90}.json`; `data/inventory/bt_watch_conf*`; the `detection_confidence` column in
+`per_zone_vulnerability.csv` + the dashboard panel. Additive — no change to the validated ALERT/WATCH products.
+
+---
+
+## 25. WATCH triage — RANK the recall tier, don't gate it  `[REAL / MEASURED]`
+
+Source: `watch_triage.py` (Docker, 2026-06-10). The per-zone gate (§19) narrows the *validated*
+operational footprint by daily wetness; applying it to the WATCH tier (§23, 132 zones) was rejected **by
+design** — gating would shrink the breadth that is WATCH's whole purpose (recall), and the gate's "can't
+balloon, capped at the validated map" safety property does NOT transfer to the deliberately-permissive WATCH
+map (AUC ~0.50, not beats-chance). A high-recall list should be **sorted, not filtered**. So we keep all 132
+zones and RANK them, worst-first, by a triage priority that fuses the two per-zone trust axes:
+
+> **priority = (1 − m\*) × P**  — fragility (§19) × detection confidence (§24), both in [0, 1]
+
+A zone ranks high only if it is BOTH fragile (low m\*) AND confidently moving (high P) — the right "AND" for
+triage; a fragile-but-likely-noise zone or a confident-but-sturdy one ranks lower. Multi-look corroboration
+lifts P (§24), so two-look places rise.
+
+**Result (all 132 WATCH zones kept).** priority **max 0.703 / median 0.341 / min 0.151**; vulnerability tiers
+**12** `moderately-wet` / **24** `wet` / **96** `only-when-very-wet` (the marginal tail sinks to the bottom but
+stays in the list). Top zone: m\*=0.294 (fragile) × P=0.996 (fast −80 mm/yr creep) = priority 0.703; #3 is
+2-look-corroborated (P=0.945). The operator reads the top of the list first instead of staring at 132 equal
+dots.
+
+**Why rank not gate (the design call).** ALERT (12 zones, validated, beats chance) is a list you *trust*, so
+narrowing it per-day (§19) refines a trustworthy set. WATCH (132 zones, ~chance overall) is a deliberately-wide
+net whose value is "don't miss anything" — filtering it re-introduces the miss risk it exists to avoid, and
+uses the §19 gate outside its validated footprint. Ranking preserves the net and makes the long list usable.
+
+**Producing script:** `watch_triage.py [--footprint watch|monsoon]` (imports `critical_saturation`/`tier_of`
+from `per_zone_gate.py` §19 + `stack_noise`/`confidence` from `velocity_uncertainty.py` §24 — single sources of
+truth; merges per-stack → union with combined P, then sorts). **Artefacts:**
+`data/alerts/mosaic_asc/per_zone_triage_watch.{json,csv,md,png}` (the .png is the triage space — fragility ×
+confidence, top-right = act first). Additive — does not change the ALERT/WATCH products or the §19 gate.
 
 ---
 

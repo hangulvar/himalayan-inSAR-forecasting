@@ -312,6 +312,16 @@ def _auc_txt(v) -> str:
     return f"{v:.3f}".rstrip("0").rstrip(".") if isinstance(v, (int, float)) else "n/a"
 
 
+def _conf_cell(v) -> str:
+    """A color-coded detection-confidence (§24) table cell: green ≥0.9, amber ≥0.7, grey below."""
+    try:
+        p = float(v)
+    except (TypeError, ValueError):
+        return "<td>—</td>"
+    color = "#1a8a4a" if p >= 0.9 else "#b8860b" if p >= 0.7 else "#999"
+    return f"<td><b style='color:{color}'>{p:.2f}</b></td>"
+
+
 def _stack_links(scenario: str) -> str:
     """Per-stack map links for a tier's scenario (operational -> dashboard_operational.html, etc.)."""
     return "\n".join(
@@ -393,14 +403,17 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
             zrows = "\n".join(
                 f"<tr><td>{i}</td><td>{float(z['lat']):.4f}, {float(z['lon']):.4f}</td>"
                 f"<td>{z['m_star']}</td><td>{z['fs_0p40']}</td><td>{z['creep_mmyr']}</td>"
+                f"{_conf_cell(z.get('detection_confidence'))}"
                 f"<td>{'<b style=color:#aa0000>CRITICAL</b>' if z['severity']=='CRITICAL' else 'HIGH'}</td>"
                 f"<td><span class='pill' style='background:{tier_badge.get(z['tier'],'#999')}'>{z['tier']}</span></td></tr>"
                 for i, z in enumerate(per_zone["zones"], 1))
             body = (f"<table><tr><th>#</th><th>location (lat, lon)</th><th>m* (fails at)</th>"
-                    f"<th>FS@0.40</th><th>creep mm/yr</th><th>severity</th><th>vulnerability</th></tr>"
+                    f"<th>FS@0.40</th><th>creep mm/yr</th><th>confidence</th><th>severity</th>"
+                    f"<th>vulnerability</th></tr>"
                     f"{zrows}</table>"
                     f"<div style='font-size:12px;color:#666;margin-top:6px'>m* = soil saturation at which the "
-                    f"zone crosses failure (lower = fails when barely wet). Showing the {len(per_zone['zones'])} "
+                    f"zone crosses failure (lower = fails when barely wet); <b>confidence</b> = P the creep is "
+                    f"real vs the velocity noise floor (§24). Showing the {len(per_zone['zones'])} "
                     f"most vulnerable of {per_zone['n_active']} active; full ranking in "
                     f"<code>per_zone_vulnerability.csv</code> (§19).</div>")
         else:

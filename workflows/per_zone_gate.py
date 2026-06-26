@@ -39,6 +39,7 @@ import rasterio  # noqa: E402
 
 from rainfall_id_threshold import THRESHOLDS  # noqa: E402
 from rainfall_specificity import peak_exceedance  # noqa: E402
+from velocity_uncertainty import stack_noise, confidence  # noqa: E402  (§24 detection confidence)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
@@ -100,6 +101,7 @@ def collect_zones(stacks: list[str]) -> list[dict]:
             fs_dry = d.read(1)
         with rasterio.open(fsat) as d:
             fs_sat = d.read(1)
+        sigma_s = stack_noise(s)            # §24 per-stack velocity noise floor (mm/yr)
         for a in json.loads(af.read_text(encoding="utf-8")).get("alerts", []):
             r, c = a["pixel_rowcol"]
             if not (0 <= r < fs_dry.shape[0] and 0 <= c < fs_dry.shape[1]):
@@ -108,12 +110,15 @@ def collect_zones(stacks: list[str]) -> list[dict]:
             if mstar is None:
                 continue
             lon, lat = a["centroid_lonlat"]
+            creep = a.get("mean_velocity_mmyr")
+            conf = (round(confidence(float(creep), sigma_s), 3)
+                    if sigma_s and creep is not None else None)
             zones.append({
                 "stack": s, "id": a["id"], "lon": round(lon, 5), "lat": round(lat, 5),
                 "severity": a["severity"], "fs_dry": round(float(fs_dry[r, c]), 3),
                 "fs_sat": round(float(fs_sat[r, c]), 3), "fs_0p40": a.get("mean_fs"),
                 "m_star": round(mstar, 3), "tier": tier_of(mstar),
-                "creep_mmyr": a.get("mean_velocity_mmyr"), "n_pixels": a.get("n_pixels"),
+                "creep_mmyr": creep, "detection_confidence": conf, "n_pixels": a.get("n_pixels"),
             })
     zones.sort(key=lambda z: z["m_star"])         # most vulnerable (lowest m*) first
     return zones
@@ -197,7 +202,7 @@ def main() -> int:
 
 def write_zone_table(path: Path, zones: list[dict]) -> None:
     cols = ["stack", "id", "lon", "lat", "severity", "fs_dry", "fs_sat", "fs_0p40",
-            "m_star", "tier", "creep_mmyr", "n_pixels"]
+            "m_star", "tier", "creep_mmyr", "detection_confidence", "n_pixels"]
     with path.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -227,12 +232,13 @@ def write_md(path: Path, r: dict, zones: list[dict]) -> None:
         f"**{r['as_of_regional_level']}**): **{r['as_of_n_active']} zones ACTIVE**; season peak "
         f"**{r['peak_active_zones']}** active.", "",
         "## Top-10 most vulnerable zones (lowest m* = fail when barely wet)", "",
-        "| rank | stack | zone | m* | FS@0.40 | creep mm/yr | severity | tier |",
-        "|---|---|---|---|---|---|---|---|",
+        "| rank | stack | zone | m* | FS@0.40 | creep mm/yr | conf (§24) | severity | tier |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for i, z in enumerate(zones[:10], 1):
         lines.append(f"| {i} | {z['stack'].replace('ASC_','')} | {z['id']} | {z['m_star']} | "
-                     f"{z['fs_0p40']} | {z['creep_mmyr']} | {z['severity']} | {z['tier']} |")
+                     f"{z['fs_0p40']} | {z['creep_mmyr']} | {z.get('detection_confidence', '—')} | "
+                     f"{z['severity']} | {z['tier']} |")
     lines += ["",
               "_Honest scope: per-zone differentiation is by intrinsic VULNERABILITY (m*), not per-zone "
               "rainfall — rain is ~uniform at ~10 km over the ~22 km AOI, so the WHEN gate stays regional. "

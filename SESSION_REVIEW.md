@@ -22,7 +22,12 @@ real, not noise" (operational median 0.77, watch median 0.85). **Honest finding:
 confidence is **orthogonal** to inventory AUC (filtering WATCH by it moves 0.504→0.509→0.475, not up) — a
 **triage** axis beside the spatial AUC (§16) and temporal gate (§17), not a spatial ranker; geometric ≥2-look
 (AUC 0.59) still beats signal-strength confidence (0.48) for inventory match. Plus a one-line dashboard footer
-fix (cohesion "still assumed" → matric-suction split §20). Also verified at session start that the prior
+fix (cohesion "still assumed" → matric-suction split §20). **Made it operator-usable:** the §24 confidence is
+now a colour-coded column in the dashboard's per-zone "which zones today" panel (moving × how-sure ×
+how-vulnerable), and the broad WATCH net is ranked into a triage list (**§25**, `watch_triage.py`) by **ranking
+not gating** — keep all 132 zones, sort worst-first by priority=(1−m\*)×P (fragility × confidence); gating would
+shrink the recall net + apply §19's gate outside its validated map, so a high-recall list is **sorted, not
+filtered** (M30/CF8). Also verified at session start that the prior
 "minor/housekeeping" backlog (np.trapz→trapezoid, README run-notes, cohesion-unit confirmation, recall
 study) was **already DONE**. **Session 12 — the validation
 became *scored* and *crossed chance*:** (1) **φ=36° hazard re-run** (`run_multistack.py --force`, Docker):
@@ -151,7 +156,8 @@ refreshed this session — still at the §16c φ=36° pre-DEM values.)
 **The demos:** ⭐ **`data/alerts/mosaic_asc/operational_alarm_dashboard.html`** is the headline demo — now
 **WHERE × WHEN × WHICH ZONES** with a **two-tier WHERE** (ALERT 12-zone act-now map + WATCH 132-zone
 monitoring map, §23): current-state banner + both WHERE tiers + WHEN alarm calendar + a **per-zone ranked
-"live zones today" panel** (§19, ALERT-focused; `--as-of <date>`). Also
+"live zones today" triage panel** (§19, ALERT-focused; now with a **colour-coded detection-confidence column**
+§24 — moving × how-sure × how-vulnerable; `--as-of <date>`). Also
 `data/alerts/dashboard_3d.html` (3-D), per-stack `dashboard_operational.html`. Validation story:
 `data/inventory/rainfall_selectivity.png` + `backtest_roc.png`; alarm calendar `data/rainfall/operational_alarm.png`.
 
@@ -317,20 +323,24 @@ surfaced by adding a scenario, not a defect). **Verified scores:** WATCH 132 zon
 AUC 0.641 — reproduces §21b. Dashboard verified: both WHERE tiers render (ALERT 12 / AUC 0.641 / 9×@250 m;
 WATCH 132 / recall 0.63 ≈2.5× ALERT / core AUC 0.591), graceful single-tier fallback when WATCH absent.
 
-**Commits.** ✅ **Batch 1 committed (`39c723c`):** `watch` scenario + sentinel fix + §23/M28/CF9 docs.
-**Batch 2 — uncommitted (two-tier dashboard + uncertainty quantification §24):**
+**Commits.** ✅ **Batch 1 (`39c723c`):** `watch` scenario + sentinel + §23/M28/CF9. ✅ **Batch 2 (`1314682`
++ `a4b5db6`):** two-tier dashboard + footer fix + uncertainty quantification §24 (`velocity_uncertainty.py`,
+M29/CF10). **Batch 3 — uncommitted (operator triage: §24 confidence column + §25 ranked WATCH triage):**
 ```
-git add workflows/operational_alarm.py workflows/velocity_uncertainty.py RESULTS_AND_KPIS.md \
-        README.md milestone.md "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
-git commit -m "Two-tier dashboard + per-zone detection confidence from the velocity noise floor (§23 dashboard, §24 uncertainty)"
+git add workflows/per_zone_gate.py workflows/operational_alarm.py workflows/watch_triage.py \
+        RESULTS_AND_KPIS.md README.md milestone.md \
+        "Research/Foundations - Physics and Maths Primer.md" SESSION_REVIEW.md
+git commit -m "Operator triage: §24 detection-confidence column in the per-zone panel + §25 ranked (not gated) WATCH triage"
 ```
-Covers: (a) the WHERE-panel **two-tier dashboard** (scored metrics read from the back-test reports; the old
-hard-coded "~7×@250 m" is now the correct 9×) + the footer fix (cohesion "still assumed" → matric-suction
-split §20); (b) **`velocity_uncertainty.py`** — per-zone detection confidence p=Φ((−15−v)/σ_v), multi-look
-P=1−Π(1−p), with the honest finding that confidence is **orthogonal** to inventory AUC (a triage axis). Split
-with `git add -p` if you prefer dashboard vs uncertainty as separate commits (doc edits are intermingled).
-`session_journey.md`/`CLAUDE.md` untracked. **Data (git-ignored):** `velocity_confidence_<scenario>.{json,csv,
-md,png}`, `alerts_<scenario>_conf{,70,90}.json`, `bt_watch_conf*`, regenerated `operational_alarm_dashboard.html`.
+Covers: (a) **confidence column** — `per_zone_gate.py` computes the §24 confidence inline (importing
+`stack_noise`/`confidence` from `velocity_uncertainty.py`); `operational_alarm.py` renders it colour-coded
+(green ≥0.9 / amber ≥0.7 / grey) in the "WHICH ZONES — live today" panel → each live zone reads **moving ×
+how-sure × how-vulnerable**. (b) **§25 WATCH triage** — new `watch_triage.py` **RANKS** the 132-zone WATCH
+net worst-first by `priority=(1−m*)×P` (fragility §19 × confidence §24), **keeping every zone** (rank-not-gate,
+the design call — gating would shrink the recall net + use §19's gate outside its validated map); top priority
+0.703, the 96 marginal zones sink but stay listed (M30/CF8). Split with `git add -p` for two commits (docs
+intermingled). `session_journey.md`/`CLAUDE.md` untracked. **Data (git-ignored):** `per_zone_vulnerability.{csv,
+md,json}` (+ conf col), `per_zone_triage_watch.{csv,md,json,png}`, regenerated `operational_alarm_dashboard.html`.
 
 ---
 

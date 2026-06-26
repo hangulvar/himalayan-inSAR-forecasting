@@ -1026,6 +1026,34 @@ confidence is a *separate* thing from being near a known landslide.
 
 ---
 
+## ✅ Milestone 30 — A *sorted* watch list, not a *filtered* one  *(WATCH triage ranking, 2026-06-10)*
+
+**What we set out to do:** our wide "watch" list (132 slopes — the thorough net that tries not to miss
+anything) was just an unsorted pile. Staring at 132 equal dots isn't useful. We wanted the scariest ones at
+the top — without throwing any away.
+
+**The temptation we avoided:** we already had a tool that *narrows* the short "act-now" list down to the
+slopes that matter today. The obvious move was to point it at the watch list too. But that would shrink the
+very thing that makes the watch list valuable — its *width* (the whole point is to not miss anything). It's
+like casting a wide fishing net and then throwing fish back to make it tidier. So we deliberately chose to
+**sort, not filter.**
+
+**What we did, plainly:** we gave every slope on the watch list a single **priority score** that multiplies
+two things we'd already measured — **how fragile it is** (how little rain it takes to fail) × **how sure we
+are it's really moving** (the confidence score from the last milestone). A slope shoots to the top only if
+it's *both* fragile *and* convincingly moving — exactly what you'd want to look at first. Slopes seen by two
+satellite passes get a boost, so corroborated ones rise. **Nothing is dropped** — all 132 stay; they're just
+ordered worst-first.
+
+**Why this matters:** a "keep an eye on everything" list is only useful if a human can actually start
+somewhere. Now the top of the list is the handful of slopes that are both fragile and confidently moving,
+while the 96 "only fails in a downpour" slopes settle to the bottom — still listed, just not shouting.
+
+**Plain-language result:** the 132-slope watch list is now **sorted worst-first** by a "fragile × really-
+moving" priority — the operator reads the top few instead of all 132 — with every slope kept.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

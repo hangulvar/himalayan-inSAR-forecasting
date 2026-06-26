@@ -353,6 +353,12 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   P=1−Π(1−p). Writes confidence-filtered `alerts_<scenario>_conf{,70,90}.json` (scoreable by
   `backtest_inventory.py`). Honest finding: this measurement confidence is orthogonal to inventory AUC — a
   triage axis, not a spatial ranker.
+- **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
+  footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
+  `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate
+  (which would shrink its breadth and apply it outside the validated map). Writes a ranked
+  `data/alerts/mosaic_asc/per_zone_triage_watch.{csv,md,png}`; a zone tops the list only if it is both
+  fragile and confidently moving (multi-look zones get a confidence boost).
 - **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
   MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
 

@@ -977,6 +977,14 @@ today" panel. On the 20 April cloudburst, the spring snowmelt had already raised
 **all 95 were active** — correctly. This turns "the area is dangerous today" into "**these specific slopes,
 in this order**," from physics and data we already had — no new satellite passes.
 
+**Gate vs rank — when NOT to gate (Milestone 30).** This gating *narrows* a list down, which is right for the
+short, trusted ALERT map (CF9). But the wide WATCH map (CF9) exists to *not miss anything* — narrowing it
+would shrink the very breadth that is its purpose (like casting a wide net then throwing fish back), and would
+use the gate outside the validated footprint where its "can't balloon" safety no longer holds. So for a
+high-recall list you **rank, don't gate**: keep every zone and sort it worst-first by a triage priority
+**(1 − m\*) × P** = fragility (this section) × detection confidence (CF10). A zone tops the list only if it is
+*both* fragile *and* convincingly moving — and nothing is dropped, so the safety net is preserved.
+
 ---
 
 ## CF9. Two warning tiers — precision vs recall (the short ALERT list and the wide WATCH list)
