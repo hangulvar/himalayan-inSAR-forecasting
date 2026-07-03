@@ -235,6 +235,8 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
     for job in jobs:
         if not (job.name and job.name.startswith(name_prefix)):
             continue
+        if job.status_code == "FAILED":
+            continue   # don't count failed pairs as done — a re-run resubmits them
         matched += 1
         granules = job.job_parameters.get("granules") if job.job_parameters else None
         if granules and len(granules) >= 2:
