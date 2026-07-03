@@ -36,8 +36,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
+from config import load_config  # noqa: E402
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
+SLUG = load_config().aoi_slug   # per-AOI filename prefix ('ramban', 'vaishnodevi', ...)
 
 # Power-law intensity-duration landslide thresholds: I[mm/h] = A * D[h]^(-B).
 # All in the frequentist convention (I in mm/h, D in hours) -> directly comparable.
@@ -126,7 +129,7 @@ def antecedent_index(water: np.ndarray, k: float = 0.9, n: int = 14) -> np.ndarr
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--csv", default=str(RAIN_DIR / "ramban_era5land_daily.csv"))
+    ap.add_argument("--csv", default=str(RAIN_DIR / f"{SLUG}_era5land_daily.csv"))
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default=DEFAULT_THRESHOLD,
                     help="I-D curve: 'caine1980' (global, conservative; default) or "
                          "'nwhimalaya' (regional, ~5x more sensitive). See THRESHOLDS.")
@@ -191,7 +194,7 @@ def main() -> int:
     (RAIN_DIR / f"id_threshold_report{sfx}.json").write_text(json.dumps(report, indent=2),
                                                              encoding="utf-8")
     write_md(RAIN_DIR / f"id_threshold_report{sfx}.md", report, per_dur)
-    write_wetness(RAIN_DIR / f"ramban_wetness_daily{sfx}.csv",
+    write_wetness(RAIN_DIR / f"{SLUG}_wetness_daily{sfx}.csv",
                   dates, rain, snowmelt, water, api, sat, freeze_thaw)
     make_figure(RAIN_DIR / f"id_threshold{sfx}.png", dates, rain, snowmelt,
                 trigger, freeze_thaw, per_dur, a, b, thr["label"])
@@ -213,7 +216,7 @@ def main() -> int:
           + (f"  e.g. {report['freeze_thaw_days'][0]}..{report['freeze_thaw_days'][-1]}"
              if ft_idx.size else ""))
     print(f"  -> {RAIN_DIR / f'id_threshold_report{sfx}.json'} , .md , "
-          f"id_threshold{sfx}.png , ramban_wetness_daily{sfx}.csv")
+          f"id_threshold{sfx}.png , {SLUG}_wetness_daily{sfx}.csv")
     return 0
 
 

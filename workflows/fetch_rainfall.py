@@ -34,9 +34,13 @@ import json
 import numpy as np
 from osgeo import gdal
 
+from config import load_config
+
 gdal.UseExceptions()
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-AOI = PROJECT_ROOT / "ramban_aoi.geojson"
+_CFG = load_config()
+AOI = _CFG.aoi_path            # config-driven (Infra 0b): point config.yaml elsewhere
+SLUG = _CFG.aoi_slug           # prefixes per-AOI outputs ('ramban', 'vaishnodevi', ...)
 OUT_DIR = PROJECT_ROOT / "data" / "rainfall"
 
 TEMP_HOURS = ["00:00", "06:00", "12:00", "18:00"]   # bracket the diurnal min/max
@@ -147,8 +151,8 @@ def main() -> int:
         accum_days, temp_days = accum_days[:3], temp_days[:3]
 
     suffix = "_test" if args.test else ""
-    accum_grib = OUT_DIR / f"ramban_era5land_water{suffix}.grib"
-    temp_grib = OUT_DIR / f"ramban_era5land_temp{suffix}.grib"
+    accum_grib = OUT_DIR / f"{SLUG}_era5land_water{suffix}.grib"
+    temp_grib = OUT_DIR / f"{SLUG}_era5land_temp{suffix}.grib"
     retrieve(["total_precipitation", "snowmelt"], accum_days, ["00:00"], area, accum_grib)
     retrieve(["2m_temperature"], temp_days, TEMP_HOURS, area, temp_grib)
 
@@ -197,7 +201,7 @@ def main() -> int:
         lo = tmin.get(d, float("nan"))
         hi = tmax.get(d, float("nan"))
         lines.append(f"{d.isoformat()},{r:.3f},{s:.3f},{lo:.2f},{hi:.2f}")
-    csv = OUT_DIR / "ramban_era5land_daily.csv"
+    csv = OUT_DIR / f"{SLUG}_era5land_daily.csv"
     csv.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     rain_tot = float(np.nansum(list(rain.values())))

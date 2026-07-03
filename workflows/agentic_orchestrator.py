@@ -59,6 +59,8 @@ import rasterio
 from pyproj import Transformer
 from scipy import ndimage
 
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 VEL_DIR = PROJECT_ROOT / "data" / "velocity"
 HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
@@ -114,7 +116,7 @@ CRITICAL_FS = 0.7
 # ------------------------------------------------------------------------------
 def load_wetness():
     """Ordered (dates, rain_mm{}, wetness_0_1{}) from the rainfall pipeline outputs."""
-    path = RAIN_DIR / "ramban_wetness_daily.csv"
+    path = RAIN_DIR / f"{load_config().aoi_slug}_wetness_daily.csv"
     if not path.exists():
         sys.exit(f"Missing {path} — run fetch_rainfall.py + rainfall_id_threshold.py first.")
     rows = list(csv.DictReader(path.open(encoding="utf-8")))

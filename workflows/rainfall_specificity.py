@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from rainfall_id_threshold import (  # shared helpers — single source of truth
-    THRESHOLDS, DEFAULT_THRESHOLD, DURATIONS_D,
+    THRESHOLDS, DEFAULT_THRESHOLD, DURATIONS_D, SLUG,
     load_daily, rolling_sum, antecedent_index, threshold_cumulative,
 )
 
@@ -103,7 +103,7 @@ def score(alert_mask, dates, events):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--csv", default=str(RAIN_DIR / "ramban_era5land_daily.csv"))
+    ap.add_argument("--csv", default=str(RAIN_DIR / f"{SLUG}_era5land_daily.csv"))
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default="nwhimalaya",
                     help="Base I-D curve to make selective (default: nwhimalaya — the over-sensitive one).")
     ap.add_argument("--inventory", default=str(INVENTORY))

@@ -48,6 +48,14 @@ class Config:
     rescue_gate: RescueGateConfig
     exclude_from_rescue: tuple[str, ...]
 
+    @property
+    def aoi_slug(self) -> str:
+        """Short site slug from the AOI filename ('ramban_aoi.geojson' -> 'ramban').
+        Used to prefix per-AOI output filenames (rainfall CSVs etc.), so pointing
+        config.yaml at another AOI cannot clobber a previous site's artifacts."""
+        stem = self.aoi_path.stem
+        return stem[:-4] if stem.endswith("_aoi") else stem
+
 
 def _to_utc(value) -> datetime:
     """Normalize a YAML date/datetime to a tz-aware UTC datetime.

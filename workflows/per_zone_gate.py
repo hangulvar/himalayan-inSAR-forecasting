@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
-from rainfall_id_threshold import THRESHOLDS  # noqa: E402
+from rainfall_id_threshold import THRESHOLDS, SLUG  # noqa: E402
 from rainfall_specificity import peak_exceedance  # noqa: E402
 from velocity_uncertainty import stack_noise, confidence  # noqa: E402  (§24 detection confidence)
 
@@ -131,7 +131,7 @@ def regional_levels(E: np.ndarray) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--csv", default=str(RAIN_DIR / "ramban_wetness_daily.csv"))
+    ap.add_argument("--csv", default=str(RAIN_DIR / f"{SLUG}_wetness_daily.csv"))
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default="nwhimalaya")
     ap.add_argument("--stacks", nargs="*", default=None)
     ap.add_argument("--as-of", default=None, help="Date YYYY-MM-DD for the active-zone snapshot "

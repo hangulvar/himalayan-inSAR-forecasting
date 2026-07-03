@@ -42,7 +42,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-from rainfall_id_threshold import THRESHOLDS, antecedent_index, load_daily  # noqa: E402
+from rainfall_id_threshold import THRESHOLDS, SLUG, antecedent_index, load_daily  # noqa: E402
 from rainfall_specificity import (  # noqa: E402
     peak_exceedance, documented_events, nearest_alert_delta,
 )
@@ -141,7 +141,7 @@ def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--csv", default=str(RAIN_DIR / "ramban_era5land_daily.csv"))
+    ap.add_argument("--csv", default=str(RAIN_DIR / f"{SLUG}_era5land_daily.csv"))
     ap.add_argument("--threshold", choices=sorted(THRESHOLDS), default="nwhimalaya",
                     help="Temporal I-D curve (default: nwhimalaya — the regional gate).")
     ap.add_argument("--footprint", default=str(ALERTS_DIR / "mosaic_asc" / "alerts_operational.json"),
