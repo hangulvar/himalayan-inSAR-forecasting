@@ -3,7 +3,7 @@
 download_hyp3_products.py
 
 Companion to submit_hyp3_jobs.py. Watches the HyP3 job queue for jobs that
-match the Ramban_NH44 name prefix, downloads completed products into
+match the configured job-name prefix (config.yaml), downloads completed products into
 data/raw_zips, and extracts the GeoTIFFs needed for QA + geomechanics
 (coherence, unwrapped displacement, DEM, look vectors) into
 data/processed_tiffs/<job_name>/.
@@ -35,6 +35,9 @@ from dotenv import load_dotenv
 import hyp3_sdk as sdk
 from hyp3_sdk.exceptions import HyP3Error
 
+from config import load_config
+from stacks import update_manifest_from_jobs
+
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
@@ -42,8 +45,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = PROJECT_ROOT / "logs"
 RAW_DIR = PROJECT_ROOT / "data" / "raw_zips"
 TIFF_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
-
-DEFAULT_NAME_PREFIX = "Ramban_NH44"
 
 # Watch loop: poll the HyP3 API every N seconds. ASF docs recommend >= 60s
 # to avoid hammering the service; jobs typically finish in 30-90 min.
@@ -274,9 +275,14 @@ def extract_tiffs(zip_paths: list[Path]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to config.yaml (default: project-root config.yaml).",
+    )
+    parser.add_argument(
         "--name",
-        default=DEFAULT_NAME_PREFIX,
-        help=f"Job name prefix to filter on (default: {DEFAULT_NAME_PREFIX!r}).",
+        default=None,
+        help="Job name prefix to filter on (default: the config job_name_prefix).",
     )
     parser.add_argument(
         "--watch",
@@ -295,6 +301,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    cfg = load_config(args.config)
+    name_filter = args.name or cfg.job_name_prefix
+
     hyp3 = authenticate()
 
     try:
@@ -303,7 +312,7 @@ def main() -> int:
     except Exception as e:
         logger.warning(f"Could not check credits: {e}")
 
-    jobs = fetch_jobs(hyp3, args.name)
+    jobs = fetch_jobs(hyp3, name_filter)
     if len(jobs) == 0:
         logger.info("No matching jobs found. Have you submitted with submit_hyp3_jobs.py --submit?")
         return 0
@@ -312,6 +321,11 @@ def main() -> int:
         jobs = watch_until_done(hyp3, jobs)
     else:
         report_status(jobs)
+
+    # Record the metadata-derived stack manifest (product -> stack) from job
+    # names, so downstream QA steps need no Ramban-specific time-of-day map.
+    written = update_manifest_from_jobs(jobs, cfg.job_name_prefix)
+    logger.info(f"Stack manifest: recorded {written} product(s) from job metadata.")
 
     new_zips: list[Path] = []
     if args.download:

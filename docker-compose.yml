@@ -1,0 +1,51 @@
+# Run the Himalayan InSAR pipeline in a reproducible Linux container.
+#
+# The image (built from ./docker) carries ONLY the conda environment. The whole
+# project — code, the ~73 GB data/ dir, logs/, and ramban_aoi.geojson — is
+# bind-mounted at /app, so nothing large is baked into the image and edits made
+# on the host are picked up immediately. See docker/README.md for usage.
+
+services:
+  insar:
+    build:
+      context: ./docker          # tiny build context — just the Dockerfile + env spec
+    image: insar-himalaya:latest
+    working_dir: /app
+    environment:
+      # The read-only EE-credentials mount below makes Docker create /home/mambauser/.config
+      # owned by root, so matplotlib can't write its default cache there. Point it at a
+      # writable dir so every matplotlib script stays quiet (and faster).
+      - MPLCONFIGDIR=/tmp/matplotlib
+    volumes:
+      # The whole project: code, data/, logs/, ramban_aoi.geojson.
+      # PROJECT_ROOT in every script resolves to /app, so data/ lands at /app/data.
+      - .:/app
+      # Phase-1 ASF credentials (read-only). Phases 2-4 do NOT need this.
+      # To run Phase 1: set NETRC_PATH to your host ~/.netrc and uncomment:
+      # - ${NETRC_PATH}:/home/mambauser/.netrc:ro
+      # Google Earth Engine OAuth credentials (read-only) for fetch_chirps.py.
+      # Set EE_CREDENTIALS in .env to your host ~/.config/earthengine/credentials
+      # (written by `earthengine authenticate`); falls back to a harmless placeholder
+      # so every OTHER insar script runs without any GEE setup. NEVER commit the real file.
+      - ${EE_CREDENTIALS:-./docker/ee_credentials.placeholder}:/home/mambauser/.config/earthengine/credentials:ro
+    stdin_open: true             # keep STDIN open for an interactive shell
+    tty: true
+
+  # MintPy — field-standard SBAS migration (heavier deps; separate image).
+  # Build: docker compose build mintpy
+  # Run:   docker compose run --rm mintpy smallbaselineApp.py --help
+  mintpy:
+    build:
+      context: ./docker
+      dockerfile: mintpy.Dockerfile
+    image: insar-mintpy:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+      # CDS/ERA5 credentials (read-only) for pyaps3 tropospheric correction.
+      # Tracked via CDSAPI_RC in .env (git-ignored) so it mounts automatically;
+      # falls back to the placeholder template so non-ERA5 MintPy steps still run
+      # without real creds. NEVER commit the real ~/.cdsapirc.
+      - ${CDSAPI_RC:-./.cdsapirc.template}:/home/mambauser/.cdsapirc:ro
+    stdin_open: true
+    tty: true

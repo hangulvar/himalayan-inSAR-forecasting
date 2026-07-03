@@ -1,0 +1,21 @@
+# Copernicus Climate Data Store (CDS) API credentials — TEMPLATE.
+#
+# Needed only for MintPy's ERA5 tropospheric correction (deferred — see
+# SESSION_REVIEW.md §4). Copy this to your home directory and fill in your token:
+#   Windows : %USERPROFILE%\.cdsapirc   (C:\Users\<you>\.cdsapirc)
+#   Linux   : ~/.cdsapirc
+# For the containerised MintPy run, mount the host file read-only into the image
+# (e.g. /home/<user>/.cdsapirc), the same pattern as ~/.netrc.
+#
+# Get the exact 2 lines (NEW-CDS format = a single Personal Access Token, NOT the
+# legacy UID:KEY) while logged in, from:
+#   https://cds.climate.copernicus.eu/how-to-api
+#   -> "Set up the CDS API personal access token" box
+#
+# Then also accept the Terms of Use for "ERA5 hourly data on pressure levels"
+# (and any other datasets MintPy requests) on the CDS website.
+#
+# NEVER commit the real file — .cdsapirc is git-ignored.
+
+url: https://cds.climate.copernicus.eu/api
+key: <your-personal-access-token>

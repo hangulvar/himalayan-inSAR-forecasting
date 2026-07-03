@@ -1,6 +1,6 @@
-Created: 2026-05-24 · Last reviewed: 2026-05-29
-Status: LIVING DOCUMENT — **full end-to-end MVP COMPLETE** (Phases 1–4, pathfinder stack `ASC_path27_frame106`). Body synced to reality 2026-05-29. Future revisions track production hardening (MintPy, all 5 stacks, finer DEM, live weather).
-Tags: #insar #hazard #ramban #roadmap #mvp-complete
+Created: 2026-05-24 · Last reviewed: 2026-06-02
+Status: LIVING DOCUMENT — **MVP COMPLETE + substantially hardened** (Docker, MintPy+ERA5, 3-stack union, forecasting layer). Body's MVP sections synced 2026-05-29; **see the "Update — 2026-06-02" block below** for the post-MVP expansion (Sessions 8–10) and the current direction. Future revisions track validation (GSI inventory), finer DEM, uncertainty, and going live.
+Tags: #insar #hazard #ramban #roadmap #mvp-complete #post-mvp-hardening
 ___
 # **InSAR Hazard Forecasting — Project Context & Roadmap**
 
@@ -50,6 +50,62 @@ The first hardening task is the **MintPy migration** (in a separate env, cross-
 validated against the custom inverter on `frame106`), then widen to all 5 stacks
 and adopt the 12.5 m DEM. See the consolidated **Post-MVP Roadmap** at the end of
 this document, and `SESSION_REVIEW.md` for the live next-step recommendation.
+
+---
+
+## 🧭 Update — 2026-06-02 (Sessions 8–10): where the project is now, and where it's headed
+
+*(The MVP snapshot above is preserved as the 2026-05-29 baseline. This block is the current
+synthesis; the durable per-result numbers live in the committed `RESULTS_AND_KPIS.md`.)*
+
+**What's been hardened since the MVP (all done):**
+- **Infrastructure:** Dockerized on Linux (eliminated the Windows native-DLL bug class); AOI-parameterized
+  (`config.yaml`); automated, quality-gated connectivity rescue.
+- **Scale:** all **3 ascending stacks** inverted → a **union hazard/alert mosaic**. The **2 descending
+  stacks were evaluated via MintPy and honestly *rejected*** as too noisy (quality-first) → ASC/DESC 3-D
+  decomposition deferred until better descending data.
+- **Field-standard cross-check:** **MintPy + ERA5 tropospheric correction** corroborates the custom SBAS
+  engine on frame106 (agreement r ≈ 0.55–0.59 after ERA5; MintPy scatter 39 → 21 mm/yr).
+- **Forecasting layer:** **inverse-velocity time-to-failure** (Fukuzono) screening; **slope-parallel
+  velocity (V_slope)** projection (single-look blind spot 24–42 %; improves cross-geometry agreement).
+
+**The rainfall-trigger investigation — a complete, honest scientific arc (the headline of Sessions 9–10):**
+The back-test exposed that the model's rainfall trigger missed the documented **27 Apr / 8 May 2025**
+NH-44 failures. We chased this to ground:
+1. Added **snowmelt + freeze-thaw + April window** → *honest negative* (snowmelt too small to trigger).
+2. Built a **verified regional Himalayan I–D curve** (replacing the over-conservative global Caine) — it
+   flipped the back-test 0/2 → 2/2 but fired 112/214 days (sensitive, not selective).
+3. Swapped to **gauge rainfall (CHIRPS via GEE)** → *refuted*: CHIRPS is **drier** than ERA5-Land on the
+   event days, not wetter.
+4. Tested **half-hourly GPM IMERG** for a sub-daily convective burst → none on 27 Apr / 8 May.
+5. **Interim conclusion (later corrected):** "three products agree — no acute spring rain." A
+   per-elevation freeze-thaw + chronic-saturation analysis showed the slopes were **slowly *primed***.
+6. ⭐ **DATE CORRECTION (the validation win, §12g):** sourcing GSI revealed the *real* major April event was
+   the **20 April 2025 cloudburst** (3 deaths; NH-44 washed out at 5 sites; **40 mm/3 hr, ~100 mm/1 hr**) —
+   *not* the news-derived 27 Apr our inventory used. The 20 Apr event **WAS acute-rainfall-triggered, and
+   the model detects it**: the regional curve flags it at **Δ=0** and sub-daily IMERG resolves the burst
+   (**E=2.25**). So the "rainfall ruled out" reading was an **artifact of a one-week date error**. Refined,
+   honest picture: **primed slopes + a 20 Apr cloudburst trigger → the failure, and the model captures
+   both.** (Standing caveat: daily *AOI-mean* products dilute the localized cell, so sub-daily/point rain is
+   what resolves it; the smaller 8 May event stays marginal/priming-dominated.) **Lesson: inventory-date
+   accuracy is critical** — which is precisely why the GSI verified-date inventory is the next push.
+
+**Where it's headed next (the direction):**
+- **Validation is the #1 gate** (it always was — see "Path to Publication" below). The 20 Apr correction
+  shows *why*: the next move is the **GSI Bhukosh inventory** (~302 field-mapped Ramban landslides) for
+  *verified dates/coords*, a **scored precision/recall** back-test, plus the **NHAI tunnel/road-
+  construction** factor at the documented sites.
+- **Then the standing accuracy backlog** (unchanged, still the path to a defensible tool): **12.5 m ALOS
+  DEM**, **full spatiotemporal APS / lower the ~30 mm/yr floor**, **uncertainty quantification**,
+  **calibrated soil parameters**, roll the ERA5-corrected velocity through the hazard chain, and the
+  remaining physics borrows (K_sn, matric-suction FS).
+- **Then going live / polish:** real-time rainfall ingestion (the verified regional curve is the right
+  tool for acute triggers — it caught the 20 Apr cloudburst; pair with sub-daily IMERG since AOI-mean daily
+  products dilute localized cells), a hybrid-LLM narration layer, and a hosted union 3-D dashboard.
+
+**The throughline:** this has matured from "build the MVP" to "**stress-test what it claims, and rule
+things out honestly.**" Ruling rainfall out as the spring cause — with three independent datasets — is
+exactly the validation-minded discipline that turns a demo into a credible scientific tool.
 
 ---
 
@@ -342,6 +398,248 @@ to invent.** Remaining work is *infrastructure*, *deepening trust*, and *deploym
 
 **C. Deployment / polish:**
 10. Optional **hosted Streamlit** version of the 3-D dashboard (separate env).
+
+---
+
+## 🚀 Expansion Roadmap — Areas of Exploration Toward a Robust Forecasting Tool
+
+*(Added 2026-05-31; status refreshed 2026-06-02. Extends the Post-MVP Roadmap above with the broader
+strategic menu. **Status now:** infra 0a Docker ✅, 0b AOI/multi-stack ✅, **MintPy migration ✅ (all
+steps — image + frame106 inversion + ERA5 correction + DESC evaluation/rejection)**, forecasting layer ✅
+(TTF, V_slope, the full rainfall investigation). Areas 1–3 + Area 7 #1–2 are largely DONE — see the
+"Update — 2026-06-02" block and the refreshed priority list at the foot of this section. The current
+next push is **inventory validation (Area 4 — GSI Bhukosh)**. This is the durable copy mirrored from
+`SESSION_REVIEW.md` §6.)*
+
+The current system is a demonstrable **MVP** of the full vision (radar → audited
+data → velocity → physics hazard → explainable rainfall-driven warning). Each **AREA**
+below is self-contained and can be picked up independently; together they take it
+from MVP to a **defensible forecasting tool**.
+
+**Where the MVP is weakest today (what these areas fix):** ~30 mm/yr velocity noise
+floor; single-look (no true 3-D motion); assumed/uniform soil strength + dry/sat
+end-members + TWI-proxy downstream flag; *mock* rainfall; a *static* hazard map (no
+failure-timing); and no validation against real events.
+
+### Area 1 — Noise reduction (measurement accuracy; the ~30 mm/yr floor)
+- **MintPy ERA5 tropospheric correction** — ✅ **DONE + benchmarked.** Physically subtracts atmospheric
+  delay; the biggest single lever. A **TRAIN-style method comparison** (Bekaert et al. 2015; run Python-
+  native via MintPy, no MATLAB — see `RESULTS_AND_KPIS.md` §13) confirmed it: on frame106, **ERA5 cut
+  velocity scatter −31 % (30.5→21.0 mm/yr)**, while the cheap *empirical height-correlation* method (Doin
+  2009 — TRAIN's power-law analog) barely moved scatter (the floor here is **turbulence-dominated, not
+  stratified**). So a weather model is required. **GACOS** (Yu et al. 2018; free web service, `method=gacos`
+  in MintPy — no MATLAB) is the natural no-cost cross-check/alternative *(needs a manual GACOS download —
+  not yet done)*. Note re TRAIN itself: it's MATLAB + its weather-model half overlaps our ERA5, so we
+  borrowed its *idea* (compare methods) rather than the toolbox.
+- **DEM-error correction + coherence-weighted inversion** (MintPy native).
+- **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
+- **DEM-error correction + coherence-weighted inversion** (MintPy native).
+- **Phase-linking / distributed-scatterer methods** (MintPy phase-linking,
+  SqueeSAR-style) — recover coherence in *partially* vegetated Himalayan slopes (the
+  biggest local win against vegetation decorrelation).
+- **NISAR (NASA–ISRO SAR, launched Jul 2025) — the most promising future DATA upgrade.**
+  Dual-band **L + S**; the headline win is the **L-band penetrating vegetation** → it recovers
+  coherence exactly where our C-band Sentinel-1 decorrelates (our worst enemy — the vegetation gaps
+  behind the ~14% coverage and the ~30 mm/yr floor), plus finer resolution, 12-day repeat, free +
+  open. *(Correction to a common impression: the real lever is L-band coherence, not merely "higher
+  resolution.")* **Not yet in our pipeline** — it is Sentinel-1/HyP3-tuned, NISAR L2 InSAR products +
+  the processing ecosystem are still maturing post-commissioning, and a NISAR-only series is short
+  for now. Action: track ASF NISAR availability; treat as **complementary** to Sentinel-1 (not a
+  replacement); adapt ingestion (wavelength scaling, product format) once a usable Ramban L-band
+  stack exists.
+- **Enforce the <150 m perpendicular-baseline rule** (outstanding from Phase 1).
+- *Payoff:* trust slower/smaller motions; fewer false creep flags.
+
+### Area 2 — Signal strengthening (interpretation power)
+- **All 5 stacks → ASC/DESC decomposition into vertical + east-west motion** — removes
+  line-of-sight ambiguity; measure *real* slope movement, not a projection.
+- **Persistent-scatterer (PS) points** on rock outcrops + NH-44 infrastructure —
+  mm-precision anchors where distributed scattering fails.
+- **Longer time series + seasonal-vs-steady-creep decomposition** — separate
+  reversible seasonal swelling from progressive creep (avoid seasonal false alarms).
+
+### Area 3 — From hazard MAP to FORECAST (the biggest conceptual upgrade)
+- ★ **Inverse-velocity time-to-failure (Fukuzono/Voight)** — accelerating creep →
+  1/velocity falls linearly toward zero → **predict failure timing**. Uses the
+  per-pixel time-series we ALREADY produce. **Highest value for the least new data.**
+- **Rainfall intensity–duration (ID) thresholds** — field-standard landslide trigger;
+  couple measured creep with exceeded rainfall thresholds.
+- **Calibrated, spatially-varying soil strength** (lithology/soil maps) + **distributed
+  saturation** from real rainfall + soil moisture (replace dry/sat end-members + TWI proxy).
+- **Real flow-routing / debris-runout modelling** for the LLOF flag (replace the TWI stand-in).
+- *Payoff:* time-resolved, physically-grounded forecasts instead of a static map.
+
+### Area 4 — Validation & uncertainty (credibility)
+- **Back-test flagged zones against a landslide inventory** — documented Ramban
+  failures; NASA Global Landslide Catalog; GSI Bhukosh (India). This converts "rough
+  hazard map" → "validated forecast." *(First pass DONE 2026-06-01 — `backtest_inventory.py`
+  vs a small curated inventory: spatially plausible, but the rainfall trigger MISSED the
+  Apr–May 2025 events; see `RESULTS_AND_KPIS.md` §9.)*
+  - **GSI field-validated inventory — ✅ INGESTED (2026-06-03; §14).** The user supplied GSI PDFs;
+    `ingest_gsi_inventory.py` (pdfplumber) extracted **138 field-mapped slides in the AOI** (Ramban 83)
+    from the GSI all-India inventory table → `data/inventory/gsi_inventory_aoi.{csv,geojson}`. Spatial
+    back-test: **71 % within 2 km** of a flagged zone (median 0.84 km) — authoritative ground truth,
+    replacing the 11 news points. *Remaining:* the **precision/specificity** arm (null-control ROC) for a
+    *fully scored* test. (Generalizes: for any new AOI, pull that region's GSI inventory — now on **NGDR
+    geodataindia.gov.in** + Bhukosh; NASA GLC is too sparse for a single corridor.)
+- **Uncertainty quantification** — per-pixel velocity error bars propagated into FS/alerts.
+- **Susceptibility model** (logistic regression / random forest on conditioning factors)
+  trained + validated on the inventory → independent corroboration of the physics.
+
+### Area 5 — Multi-sensor corroboration via GEE & free services (robustness)
+- ⚠️ **GEE cannot do InSAR** (no SLC phase / interferometry) — InSAR stays on
+  ASF/HyP3/MintPy; GEE adds everything *around* it.
+- **Rainfall (live trigger + ID thresholds):** CHIRPS (daily), GPM IMERG (~30-min),
+  ERA5-Land — all in GEE. Replaces the mock scenarios.
+- **Soil moisture / saturation:** SMAP (~9 km), ASCAT.
+- **Soil / lithology for spatial strength:** SoilGrids (250 m) → varying cohesion/φ.
+- **DEM upgrade:** Copernicus GLO-30 / NASADEM / AW3D30 (30 m, GEE) for slope/TWI/HAND;
+  true 12.5 m ALOS RTC from ASF.
+- **Vegetation / where InSAR is trustworthy:** ESA WorldCover (10 m), Dynamic World,
+  Sentinel-2 NDVI time series.
+- **Optical change / independent validation:** Sentinel-2, Landsat, Planet NICFI
+  (free, tropics) → detect fresh scarps/scars; corroborate InSAR-flagged zones.
+- **Inventory + large-area susceptibility:** NASA Global Landslide Catalog + GEE imagery
+  → susceptibility over the whole NH-44 corridor, then focus InSAR where high.
+- **Other free services:** GACOS (tropo correction), COMET-LiCSAR (free pre-made
+  Sentinel-1 interferograms — independent cross-check), OpenTopography (LiDAR/high-res
+  DEM), GSI Bhukosh (Indian geology + landslide data).
+
+### Area 6 — Operationalize / deploy / smarter
+- **Real-time rainfall ingestion** (CHIRPS/GPM) → continuously-updating live alerts.
+- **Hybrid LLM agent** ("rules decide, LLM narrates" — low-risk first step).
+- **Hosted dashboard** (Streamlit) + a **combined union 3-D dashboard** over the
+  multi-track mosaic (today's 3-D view is the single frame106 patch).
+
+### Area 7 — Physics-guided refinements (from a PGML / MT-InSAR literature review, 2026-06-01)
+A Physics-Guided ML (PINN) + MT-InSAR methodology was reviewed. **Verdict: borrow the feature
+engineering + physics, SKIP the ML stack.** This project is *already* physics-guided (deterministic
+infinite-slope FS fused with InSAR observation), which solves the very problem the PINN targets
+(physical realism under sparse data) *without* a neural net. A PINN / CNN-LSTM-SAM / GCN would demand
+a training corpus, soil-hydraulic parameters, and a long, dense time series we do NOT have (~14
+epochs, ~3.5 months, single-look, ~30 mm/yr floor) — forcing it would manufacture the over-confident,
+physically-implausible output the literature itself warns about. **Adopt these four, in priority:**
+
+1. ★★★ **Snowmelt + freeze-thaw + the full rainfall investigation** — ✅ **DONE (Session 9–10), with a
+   conclusion that was itself corrected.** Snowmelt (59 mm) is too small to trigger; per-elevation
+   freeze-thaw + chronic saturation show the slopes were *primed*. The rainfall products initially looked
+   like "no acute spring trigger" — **but that was against the wrong inventory dates.** The DATE CORRECTION
+   (§12g / "Update — 2026-06-02" block) found the real major event was the **20 Apr 2025 cloudburst**, which
+   **was** acute-rainfall-triggered and **the model detects** (regional curve Δ=0; IMERG E=2.25). So the
+   honest result: **primed slopes + a cloudburst trigger** — the model captures both; the smaller 8 May
+   event is priming-dominated; and the daily AOI-mean products dilute the localized cell (sub-daily/point
+   rain resolves it). (Original hypothesis "snowmelt fixes the Apr–May miss" is disproved; the *interim*
+   "rainfall ruled out" is also corrected — kept for honesty.) [Area 3/4]
+2. ★★★ **Slope-parallel velocity projection (V_slope)** — ✅ **DONE (Session 9).** Projects LOS onto the
+   downslope direction (DEM slope + aspect); quantified the single-look **blind spot (24–42 %)** and
+   improved cross-geometry corroboration (≥2-look HIGH +37 %). Wired opt-in (`--use-vslope`); LOS stays
+   the default. The single-look approximation of the (DESC-deferred) ASC/DESC decomposition. [Area 2]
+3. ★★ **Normalized Channel Steepness Index (K_sn)** — a tectonics-aware conditioning factor
+   (Himalayan channel over-steepening from uplift; a documented strong predictor in regional landslide
+   models). Compute from the 12.5 m DEM (channel network + slope–area) and add to the hazard
+   conditioning (today: slope + TWI proxy only). Pairs with the FS-hardening bundle. [extends Area 3]
+4. ★★ **Matric-suction / Bishop effective-stress FS refinement** — replace the linear
+   `FS_real = (1−m)·FS_dry + m·FS_saturated` with a *physical* suction→effective-stress link (rainfall
+   reduces matric suction = apparent cohesion → FS drops). Deterministic, using literature Van Genuchten
+   parameters (site-measured soil remains a standing limitation). Part of the FS-hardening bundle. [extends Area 3]
+
+**Explicitly SKIP for now** (revisit only with a real inventory + a much longer/denser series): the full
+**PINN + hybrid physics loss** (L_data+L_phys+L_bc), **CNN-LSTM-SAM**, **GCN**, and the "**digital twin
+pre-trained on numerical simulations**" (we have no simulation corpus). We already hold lightweight
+analogs — the antecedent-precipitation index (≈ LSTM rainfall memory), inverse-velocity TTF (≈ temporal
+acceleration), multi-look corroboration + clustering (≈ GCN spatial coupling). If we ever go ML, start
+with a **simple RF / logistic susceptibility on the GSI inventory** (Area 4), not a PINN.
+
+### Suggested priority (highest leverage first) — *updated 2026-06-02*
+1. ✅ **Finish MintPy + ERA5** (Area 1) — also unlocked SVD/DESC for Area 2. *(DONE.)*
+2. ✅ **Inverse-velocity time-to-failure** (Area 3) — hazard → forecast from existing data. *(DONE.)*
+3. ✅ **Live rainfall + ID thresholds** (Areas 3/5) — ERA5-Land + **verified regional curve** + **CHIRPS**
+   + **half-hourly GPM IMERG** (all via GEE). *(DONE — and after a date correction (§12g) the key finding
+   is that the major **20 Apr 2025 cloudburst** WAS acute-rainfall-triggered and the model detects it;
+   the daily AOI-mean products dilute the localized cell, so sub-daily/point rain is what resolves it.)*
+4. ✅ **Snowmelt/freeze-thaw + V_slope** (Area 7 #1–2) + **per-elevation freeze-thaw / chronic saturation**.
+   *(DONE — see #3; primed slopes + the 20 Apr cloudburst trigger, the model captures both — §12g.)*
+5. ★ **NEXT — Inventory validation (the #1 publication gate): GSI Bhukosh** (~302 field-mapped Ramban
+   landslides) for *verified dates/coords* + a **scored precision/recall** back-test (Area 4); check the
+   **NHAI-construction** factor at the documented sites. *(This is the current next push.)*
+6. **Then the accuracy backlog:** 12.5 m ALOS DEM; full APS (lower the ~30 mm/yr floor); uncertainty
+   quantification; calibrated soil; K_sn + matric-suction FS (Area 7 #3–4); roll ERA5-corrected velocity
+   through the hazard chain.
+7. **Then live/polish:** real-time *monsoon* rainfall ingestion (where the verified regional curve IS the
+   right trigger), hybrid-LLM narration, hosted union 3-D dashboard.
+
+**Robustness in one line:** corroborate InSAR creep with optical change, real rainfall,
+soil moisture, and a validated landslide inventory — never trust a single sensor or a
+single physics assumption — **and never trust a single inventory date:** a one-week error (27 Apr vs the
+real 20 Apr cloudburst) had inverted the spring conclusion until the date was corrected (§12g).*
+
+---
+
+## 📄 Path to Publication
+
+*(Added 2026-05-31. An honest assessment of publishability + the route to being
+taken seriously by the scientific community. Companion to the Expansion Roadmap above.)*
+
+**Current status (be honest about which bar you're aiming at):** a strong,
+reproducible **engineering MVP** with a replicable, AOI-portable architecture — **NOT
+yet a validated scientific result**. The architecture of the vision is captured; the
+data quality (atmosphere), physics calibration, and — above all — *validation* are not.
+
+**What peer reviewers in InSAR / geohazards will check (the bar):**
+1. **Validation against independent ground truth** — the #1 gate. A hazard map with no
+   check against reality (landslide inventory, GNSS, field reports, optical change, or
+   a documented failure event) reads as an unvalidated demo.
+2. **Atmospheric correction applied** (ERA5 / GACOS) — the ~30 mm/yr floor *without*
+   APS is a near-automatic reviewer flag. ✅ **DONE** (MintPy + ERA5; r +0.28 → +0.55 on frame106) —
+   though not yet rolled through the hazard products (those still run on the custom velocities).
+3. **Uncertainty / error quantification** — velocity precision, detection limit,
+   propagated into the hazard. *(Still open.)*
+4. **Comparison to an established method** — MintPy-vs-custom cross-validation. ✅ **DONE** (r ≈ 0.55–0.59).
+5. **Justified / sensitivity-tested physics** — the soil parameters can't be arbitrary. ⏳ **PARTLY**
+   (§15): the friction angle is now **GSI site-measured (φ=36°)**, not textbook; cohesion lab calibration +
+   matric-suction split outstanding.
+6. **Honest scope** — overclaiming gets rejected; precise modest claims earn respect.
+   *Today we clear #2 + #4 + the honesty bar; **#1** now has authoritative ground truth (GSI inventory, §14 —
+   71 % within 2 km) though the precision/specificity arm is pending; **#5** partly (φ measured, §15). NOT
+   yet: full scored #1, uncertainty #3, lab-calibrated cohesion #5.*
+
+**Publication ladder (match the claim to the evidence):**
+- **NOW (most realistic):** a **software / reproducibility paper** — **JOSS** (reviews
+  the *software*: works, documented, tested, reproducible) or a technical note. Docker
+  + open data + open code + tests are a strong fit.
+- **AFTER validation + ERA5 + a 2nd AOI:** an applied journal — **Remote Sensing
+  (MDPI)**, **Natural Hazards**, **GMD** (model description), or **Landslides**
+  (top-tier, hardest).
+- **AVOID** claiming "operational forecasting" — the evidence won't support it.
+
+**How to ensure it's taken seriously (highest leverage first):**
+1. **Add validation** (even modest: back-test flagged zones vs documented Ramban/NH-44
+   failures; corroborate creep vs Sentinel-2 optical change via GEE; compare to the
+   NASA Global Landslide Catalog). The single biggest credibility lever.
+2. **Finish MintPy + ERA5** and report the cross-validation — removes the two biggest
+   reviewer flags at once.
+3. **Quantify uncertainty.**
+4. **Sensitivity-test the soil parameters.**
+5. **Reproducibility as a headline** — public GitHub, a tagged release + **Zenodo DOI**,
+   the Docker image, "reproduce in N commands." Aligns with open-science values.
+6. **Get a domain co-author / mentor** (InSAR or geohazards researcher — e.g. an IIT,
+   WIHG Dehradun, NRSC/ISRO, a university group). Highest-leverage move for a beginner;
+   bring them the reproducible repo as your calling card.
+7. **Ground in the literature** — Berardino et al. (SBAS, 2002), Ferretti (PS), Yunjun
+   et al. (MintPy, 2019), Guzzetti et al. (rainfall ID thresholds), Fukuzono / Voight
+   (inverse-velocity time-to-failure), the Joshimath InSAR studies.
+8. **Preprint first** (EGUsphere / ESS Open Archive) for community feedback.
+
+**Recommended two-step strategy:** (1) a near-term **JOSS / methods + reproducibility**
+paper on the open, containerized, AOI-portable pipeline (achievable with what exists +
+tests/docs polish + a 2nd-AOI run); then (2) after MintPy+ERA5 + validation, an applied
+**case-study** paper. Keep the honest *"reproducible screening tool, not an operational
+forecast"* framing. **Start seeking a co-author now.**
+
+**On being a beginner:** the community judges the *work*, not credentials — beginners
+publish when the work meets the bar. The honest-limitations discipline already in
+`milestone.md` and the Foundations primer is exactly the scientific maturity reviewers
+respect; keep it.
 
 ---
 

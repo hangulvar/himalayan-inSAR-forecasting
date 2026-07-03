@@ -37,7 +37,7 @@ import argparse
 import logging
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -50,24 +50,17 @@ import asf_search as asf
 import hyp3_sdk as sdk
 from hyp3_sdk.exceptions import HyP3Error
 
+from config import load_config
+
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-AOI_PATH = PROJECT_ROOT / "ramban_aoi.geojson"
 LOG_DIR = PROJECT_ROOT / "logs"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
 
-# Monsoon window — captures the physical changes driven by 2025 heavy rainfall.
-SEARCH_START = datetime(2025, 5, 1, tzinfo=timezone.utc)
-SEARCH_END = datetime(2025, 10, 31, tzinfo=timezone.utc)
-
-# Sentinel-1 nominal revisit is 12 days. Allow up to 24 to tolerate a single
-# missed acquisition before decorrelation makes the pair useless in vegetation.
-MAX_TEMPORAL_BASELINE_DAYS = 24
-
-# HyP3 job-name prefix — also used for de-duplication lookups.
-JOB_NAME_PREFIX = "Ramban_NH44"
+# AOI path, search window, job-name prefix and baseline rules come from
+# config.yaml (see workflows/config.py). Pass --config to target another AOI.
 
 # Retry policy for transient API errors / rate limiting.
 MAX_RETRIES = 5
@@ -300,6 +293,11 @@ def submit_with_retry(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to config.yaml (default: project-root config.yaml).",
+    )
+    parser.add_argument(
         "--submit",
         action="store_true",
         help="Actually submit jobs (default: dry-run preview only).",
@@ -313,28 +311,39 @@ def main() -> int:
     parser.add_argument(
         "--max-baseline-days",
         type=int,
-        default=MAX_TEMPORAL_BASELINE_DAYS,
-        help=f"Max temporal baseline for a pair (default: {MAX_TEMPORAL_BASELINE_DAYS}).",
+        default=None,
+        help="Max temporal baseline for a pair (default: config baseline.max_temporal_baseline_days).",
     )
     parser.add_argument(
         "--sbas-neighbors",
         type=int,
-        default=1,
+        default=None,
         help=(
-            "Number of forward neighbors each scene is paired with. "
-            "1 = consecutive chain (default). 3 = SBAS N=3 (each scene pairs "
-            "with the next 3 within --max-baseline-days). When >1, you almost "
-            "always want to bump --max-baseline-days; e.g. for N=3 with the "
+            "Number of forward neighbors each scene is paired with "
+            "(default: config baseline.sbas_neighbors). "
+            "1 = consecutive chain. 3 = SBAS N=3 (each scene pairs with the "
+            "next 3 within --max-baseline-days). When >1, you almost always "
+            "want to bump --max-baseline-days; e.g. for N=3 with the "
             "Sentinel-1 12-day cadence, use --max-baseline-days 40."
         ),
     )
     args = parser.parse_args()
 
+    cfg = load_config(args.config)
+    max_baseline_days = (
+        args.max_baseline_days if args.max_baseline_days is not None
+        else cfg.baseline.max_temporal_baseline_days
+    )
+    n_neighbors = (
+        args.sbas_neighbors if args.sbas_neighbors is not None
+        else cfg.baseline.sbas_neighbors
+    )
+
     # --- 1. AOI ----------------------------------------------------------------
-    aoi = load_aoi_geometry(AOI_PATH)
+    aoi = load_aoi_geometry(cfg.aoi_path)
 
     # --- 2. Catalog query ------------------------------------------------------
-    scenes = search_sentinel1_slc(aoi, SEARCH_START, SEARCH_END)
+    scenes = search_sentinel1_slc(aoi, cfg.search_start, cfg.search_end)
     if not scenes:
         logger.error("No Sentinel-1 scenes found in the search window.")
         return 1
@@ -349,13 +358,13 @@ def main() -> int:
 
     # --- 4. Build SBAS-style pairs per bucket ---------------------------------
     logger.info(
-        f"Pair construction: n_neighbors={args.sbas_neighbors}, "
-        f"max_baseline_days={args.max_baseline_days}"
+        f"Pair construction: n_neighbors={n_neighbors}, "
+        f"max_baseline_days={max_baseline_days}"
     )
     all_pairs: list[tuple[str, asf.ASFProduct, asf.ASFProduct]] = []
     for bucket_key, items in buckets.items():
         pairs = build_sbas_pairs(
-            items, args.max_baseline_days, n_neighbors=args.sbas_neighbors
+            items, max_baseline_days, n_neighbors=n_neighbors
         )
         logger.info(f"  {bucket_key}: {len(pairs)} pair(s) within baseline")
         for ref, sec in pairs:
@@ -400,7 +409,7 @@ def main() -> int:
             )
         except Exception as e:
             logger.warning(f"Could not check credits: {e}")
-        existing = fetch_existing_pair_signatures(hyp3, JOB_NAME_PREFIX)
+        existing = fetch_existing_pair_signatures(hyp3, cfg.job_name_prefix)
 
     # --- 6. Submit (or dry-run) ------------------------------------------------
     submitted = 0
@@ -417,7 +426,7 @@ def main() -> int:
             skipped_dupes += 1
             continue
 
-        job_name = f"{JOB_NAME_PREFIX}_{bucket_key}"
+        job_name = f"{cfg.job_name_prefix}_{bucket_key}"
 
         if not args.submit:
             logger.info(f"[DRY-RUN]      {bucket_key}  {ref_name} -> {sec_name}")

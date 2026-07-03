@@ -30,6 +30,7 @@ inversion on this graph, or do we need SVD pseudoinverse / pair rescue?*
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import logging
@@ -39,11 +40,17 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from config import load_config
+from stacks import label_from_job_name
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-QUARANTINE_CSV = PROJECT_ROOT / "data" / "qa_masks" / "_quarantine_list.csv"
+QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
+QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
+# Auto-selected minimum-set bridging pairs consumed by apply_connectivity_rescues.py.
+RESCUE_RECOMMENDATIONS = QA_DIR / "_rescue_recommendations.json"
 # Note the leading underscore — keeps the directory from being treated as a
 # masked-product folder by tests/test_plumbing.py and other walkers.
-OUT_DIR = PROJECT_ROOT / "data" / "qa_masks" / "_network_graphs"
+OUT_DIR = QA_DIR / "_network_graphs"
 REPORT_MD = OUT_DIR / "_connectivity_report.md"
 INDEX_HTML = OUT_DIR / "index.html"
 BPERP_CACHE = OUT_DIR / "_bperp_cache.json"
@@ -53,26 +60,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger("sbas_network_graph")
-
-
-# ------------------------------------------------------------------------------
-# Stack identification (mirrors _consolidate_quarantine.py)
-# ------------------------------------------------------------------------------
-def stack_key(product_name: str) -> str:
-    """Map a HyP3 product folder name to its (direction, path, frame) stack."""
-    m = re.search(r"S1AA_\d{8}T(\d{6})_", product_name)
-    if not m:
-        return "unknown"
-    hms = m.group(1)
-    if hms.startswith("1304"):
-        return "ASC_path100_frame102"
-    if hms.startswith("1256"):
-        s = int(hms[4:6])
-        return "ASC_path27_frame101" if s < 50 else "ASC_path27_frame106"
-    if hms.startswith("0059"):
-        s = int(hms[4:6])
-        return "DESC_path34_frame479" if s < 25 else "DESC_path34_frame484"
-    return "unknown"
 
 
 def parse_pair_dates(product_name: str) -> tuple[datetime, datetime] | None:
@@ -140,20 +127,19 @@ def fetch_bperp_per_stack(stack_acq_names: dict[str, list[str]]) -> dict[str, di
     return result
 
 
-def fetch_granule_names_per_stack() -> dict[str, list[str]]:
+def fetch_granule_names_per_stack(job_name_prefix: str) -> dict[str, list[str]]:
     """Pull SLC granule names from HyP3 job_parameters['granules']."""
     import hyp3_sdk as sdk
 
     hyp3 = sdk.HyP3()
-    jobs = [j for j in hyp3.find_jobs() if j.name and j.name.startswith("Ramban_NH44")]
+    jobs = [j for j in hyp3.find_jobs() if j.name and j.name.startswith(job_name_prefix)]
     logger.info(f"Pulled {len(jobs)} HyP3 jobs to extract granule names.")
 
     stack_to_granules: dict[str, set[str]] = defaultdict(set)
     for job in jobs:
         if not job.files:
             continue
-        product_name = job.files[0]["filename"].replace(".zip", "")
-        stack = stack_key(product_name)
+        stack = label_from_job_name(job.name, job_name_prefix)
         if stack == "unknown":
             continue
         granules = job.job_parameters.get("granules", []) if job.job_parameters else []
@@ -450,6 +436,171 @@ def build_and_plot(
 
 
 # ------------------------------------------------------------------------------
+# Automated rescue recommendation
+# ------------------------------------------------------------------------------
+def _safe_float(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _gate_failure(it: dict, max_r2: float, min_coh: float, min_surv: float) -> str | None:
+    """Return None if the candidate clears every PRESENT quality metric, else a
+    short string naming the first failing metric. Missing metrics are not failed
+    (gate on available data) so a clean pair is never rejected for merely lacking
+    a statistic — missing metrics are flagged on the selected entry instead."""
+    if it["atmos_r2"] is not None and it["atmos_r2"] > max_r2:
+        return f"atmos_r2={it['atmos_r2']:.3f}>{max_r2}"
+    if it["coh"] is not None and it["coh"] < min_coh:
+        return f"coherence={it['coh']:.3f}<{min_coh}"
+    if it["surv"] is not None and it["surv"] < min_surv:
+        return f"surviving_pct={it['surv']:.1f}<{min_surv}"
+    return None
+
+
+def recommend_rescues(
+    rows: list[dict],
+    max_atmos_r2: float = 0.45,
+    min_coherence: float = 0.6,
+    min_surviving_pct: float = 15.0,
+    exclude_stacks: tuple[str, ...] = (),
+) -> dict:
+    """Auto-select the minimum set of CONCERN pairs that bridge each stack's
+    KEEP-only islands — but only pairs that clear a quality GATE.
+
+    A bridge is an unredundant single point of failure (its noise is not averaged
+    out by SBAS redundancy), so a candidate is eligible only if it clears the
+    gate: atmospheric ``R2 <= max_atmos_r2``, ``coherence >= min_coherence``,
+    ``surviving_pct >= min_surviving_pct`` (each enforced only when present). Per
+    stack we build islands from non-rescued KEEP edges, walk bridging candidates
+    in DESCENDING coverage (highest surviving_pct first, R2 as a tiebreak), and
+    select one only when it (a) merges two still-separate components AND (b) clears
+    the gate. Coverage-first selection matters because a bridge gates network-wide
+    solvability — once a candidate is below the R2 noise ceiling, the one that
+    recovers the MOST usable ground is the better bridge (e.g. a shorter-baseline,
+    higher-coherence pair beats a marginally-cleaner long-baseline one). A gap
+    whose only bridges fail the gate is LEFT BROKEN — the stack stays disconnected
+    (SVD / period-split downstream) rather than ingesting a noisy bridge.
+
+    Determinism / idempotency: a previously-rescued pair (decision==KEEP with
+    "RESCUED_FOR_CONNECTIVITY" in its reasons) is reverted to a CANDIDATE, so
+    running on a pre- or post-rescue CSV yields the same result. Stacks in
+    ``exclude_stacks`` are skipped (a manual override on top of the gate).
+
+    Returns a payload dict: ``{gate, rescues: [...], stacks: {label: {...}}}``.
+    """
+    by_stack: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        dates = parse_pair_dates(r["product"])
+        if dates is None:
+            continue
+        rescued = "RESCUED_FOR_CONNECTIVITY" in (r.get("reasons") or "")
+        decision = r["decision"]
+        if decision == "CONCERN" or (decision == "KEEP" and rescued):
+            role = "candidate"
+        elif decision == "KEEP":
+            role = "base_keep"
+        else:
+            role = "ignore"
+        by_stack[r["stack"]].append({
+            "product": r["product"],
+            "role": role,
+            "ref_date": dates[0],
+            "sec_date": dates[1],
+            "atmos_r2": _safe_float(r.get("atmos_r_squared")),
+            "coh": _safe_float(r.get("mean_coh_survivors")),
+            "surv": _safe_float(r.get("surviving_pct")),
+        })
+
+    rescues: list[dict] = []
+    diagnostics: dict[str, dict] = {}
+    for stack in sorted(by_stack):
+        items = by_stack[stack]
+        nodes: set[datetime] = set()
+        for it in items:
+            nodes.add(it["ref_date"])
+            nodes.add(it["sec_date"])
+        uf = UnionFind(sorted(nodes))
+        for it in items:
+            if it["role"] == "base_keep":
+                uf.union(it["ref_date"], it["sec_date"])
+        keep_islands = len(uf.components())
+
+        if stack in exclude_stacks:
+            diagnostics[stack] = {
+                "keep_islands": keep_islands,
+                "islands_after_rescue": keep_islands,
+                "status": "excluded",
+                "selected": [],
+                "rejected_bridges": [],
+            }
+            continue
+
+        # Highest coverage first (a bridge gates network-wide solvability), then
+        # lowest R2, then date — among gate-passing candidates. The gate already
+        # guarantees atmospheric purity, so we maximise recoverable ground. A
+        # missing surviving_pct sorts last (treated as -1).
+        candidates = sorted(
+            (it for it in items if it["role"] == "candidate"),
+            key=lambda it: (
+                -(it["surv"] if it["surv"] is not None else -1.0),
+                it["atmos_r2"] if it["atmos_r2"] is not None else 1.0,
+                it["ref_date"], it["sec_date"],
+            ),
+        )
+        selected: list[str] = []
+        rejected: list[dict] = []
+        for it in candidates:
+            if uf.find(it["ref_date"]) == uf.find(it["sec_date"]):
+                continue  # not (or no longer) a bridge — internal / redundant
+            failure = _gate_failure(it, max_atmos_r2, min_coherence, min_surviving_pct)
+            if failure:
+                rejected.append({
+                    "product": it["product"],
+                    "atmos_r2": it["atmos_r2"],
+                    "coherence": it["coh"],
+                    "surviving_pct": it["surv"],
+                    "reason": failure,
+                })
+                continue
+            uf.union(it["ref_date"], it["sec_date"])
+            missing = [m for m, v in (("coherence", it["coh"]), ("surviving_pct", it["surv"])) if v is None]
+            rescues.append({
+                "product": it["product"],
+                "stack": stack,
+                "bridges": (
+                    f"{it['ref_date'].strftime('%Y-%m-%d')} <-> "
+                    f"{it['sec_date'].strftime('%Y-%m-%d')} (merges two KEEP-only islands)"
+                ),
+                "atmos_r2": it["atmos_r2"],
+                "coherence": it["coh"],
+                "surviving_pct": it["surv"],
+                "flags": [f"missing_metrics:{'+'.join(missing)}"] if missing else [],
+            })
+            selected.append(it["product"])
+
+        islands_after = len(uf.components())
+        diagnostics[stack] = {
+            "keep_islands": keep_islands,
+            "islands_after_rescue": islands_after,
+            "status": "connected" if islands_after == 1 else "disconnected",
+            "selected": selected,
+            "rejected_bridges": rejected,
+        }
+
+    return {
+        "gate": {
+            "max_atmos_r2": max_atmos_r2,
+            "min_coherence": min_coherence,
+            "min_surviving_pct": min_surviving_pct,
+        },
+        "rescues": rescues,
+        "stacks": diagnostics,
+    }
+
+
+# ------------------------------------------------------------------------------
 # Reports
 # ------------------------------------------------------------------------------
 def write_index_html(results: list[dict]) -> None:
@@ -546,10 +697,49 @@ def write_report(results: list[dict]) -> None:
 # Driver
 # ------------------------------------------------------------------------------
 def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="SBAS network connectivity check + automated rescue recommendations."
+    )
+    ap.add_argument("--config", default=None,
+                    help="Path to config.yaml (default: project-root config.yaml).")
+    ap.add_argument("--recommend-only", action="store_true",
+                    help="Only compute and write the rescue recommendations "
+                         "(offline; skips the ASF baseline lookup and SVG plots).")
+    args = ap.parse_args()
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    cfg = load_config(args.config)
 
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     logger.info(f"Loaded {len(rows)} products from {QUARANTINE_CSV.name}")
+
+    # Rescue recommendations are computed offline (no ASF) and written first, so
+    # they are available even if the ASF-dependent baseline plots below cannot run.
+    payload = recommend_rescues(
+        rows,
+        max_atmos_r2=cfg.rescue_gate.max_atmos_r2,
+        min_coherence=cfg.rescue_gate.min_coherence,
+        min_surviving_pct=cfg.rescue_gate.min_surviving_pct,
+        exclude_stacks=cfg.exclude_from_rescue,
+    )
+    RESCUE_RECOMMENDATIONS.write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
+    logger.info(
+        f"Wrote {len(payload['rescues'])} rescue recommendation(s) -> "
+        f"{RESCUE_RECOMMENDATIONS.name} (gate: R2<={cfg.rescue_gate.max_atmos_r2}, "
+        f"coh>={cfg.rescue_gate.min_coherence}, surv>={cfg.rescue_gate.min_surviving_pct}%)"
+    )
+    for label, d in payload["stacks"].items():
+        note = ""
+        if d["status"] == "disconnected" and d["rejected_bridges"]:
+            note = f"; {len(d['rejected_bridges'])} bridge(s) gated out as too noisy"
+        logger.info(
+            f"  {label}: islands {d['keep_islands']}->{d['islands_after_rescue']} "
+            f"[{d['status']}], {len(d['selected'])} rescued{note}"
+        )
+    if args.recommend_only:
+        return 0
 
     by_stack: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
@@ -564,7 +754,7 @@ def main() -> int:
             "sec_date": dates[1],
         })
 
-    stack_granules = fetch_granule_names_per_stack()
+    stack_granules = fetch_granule_names_per_stack(cfg.job_name_prefix)
     bperp_per_stack = fetch_bperp_per_stack(stack_granules)
 
     stack_date_to_bperp: dict[str, dict[datetime, float]] = {}

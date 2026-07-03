@@ -453,11 +453,21 @@ stable slope unstable, captured in one term.
 **Analogy:** a dry sandcastle holds; pour water in and it slumps. Same sand,
 same slope — water removed the grip.
 
-🔗 **In our project:** **Milestone 3** computes FS for two cases — **dry (m=0)**
-and **monsoon-soaked (m=1)**. Result: dry, ~13% of slopes are unstable; soaked,
-~73% are. That flip *is* the seasonal hazard story. The soil numbers (c', φ', z)
-are textbook assumptions for Himalayan soil, not site measurements — an honest
-limitation.
+**The sandcastle has a second half — matric suction (Milestone 26).** A *damp* sandcastle holds far
+better than a *dry* one: a little moisture creates surface-tension "bridges" between grains — an **apparent
+cohesion** — that you lose both when it dries out *and* when it floods. So a slope's stickiness c isn't one
+number: it's **high when damp (c' + suction)** and **low when saturated (c' alone, suction gone)**. We split
+it — FS_dry uses the high (GSI-measured dry) cohesion, FS_sat uses the low one — and because c slides
+linearly from the dry to the wet value as m rises, **FS stays a straight line in m**, so the whole
+`FS_real = (1−m)·FS_dry + m·FS_sat` machinery is untouched.
+
+🔗 **In our project:** **Milestone 3** computes FS for **dry (m=0)** and **monsoon-soaked (m=1)**; the
+friction angle φ'=36° is the **GSI site-measured** value (Milestone 22). **Milestone 26** added the
+matric-suction split (c_dry≈18.5, c_wet=5 kPa): dry slopes are now correctly much stronger (almost none
+unstable when dry), the soaked worst case is unchanged, and — because suction protects the in-between days
+— the realistic operating wetness rose (~40%→~55% soaked) and the validated score *improved* to its best
+(AUC 0.61). Remaining assumption: the suction-vs-wetness curve is taken as linear (a nonlinear retention
+curve is the next refinement); depth z and the exact cohesion units await lab confirmation.
 
 ## C5. Fusing physics with measurement — the hazard map
 
@@ -540,6 +550,504 @@ for rivers — a proper version needs real river/flow-routing data.
 
 ---
 
+# Part C-ter — Scaling & Hardening (Milestones 6–8)
+
+## CT1. Connectivity rescue & the "load-bearing bridge"
+
+The SBAS maths (B3–B4) needs the acquisition dates to form **one connected
+network**. If the clean (KEEP) links leave the dates split into separate "islands,"
+the system is rank-deficient and the inversion is silently wrong. To join two islands
+you must promote ("rescue") a borderline (CONCERN) interferogram to act as a **bridge**.
+
+**The key insight:** a bridge is an **unredundant single point of failure**. Inside a
+dense island, a noisy link is averaged out by its neighbours (B3's redundancy); a
+bridge is the *only* path between two islands, so its noise flows **undamped** into
+every measurement that crosses it. A rescue must therefore clear a *stricter* quality
+bar than an ordinary link — not a looser one.
+
+**Everyday analogy:** one rickety plank bridging two solid islands. On the island you
+can step around a weak board; on the single bridge, one bad board dumps you in the
+river — so you inspect that plank far more carefully.
+
+**How we do it (the gate):** a candidate bridge is allowed only if it's clean enough —
+atmospheric R² ≤ 0.45 (A8/B6) **and** coherence ≥ 0.6 (A7). If a gap's only candidates
+fail, we **refuse to bridge it** and handle that stretch differently (SVD /
+period-split) rather than injecting noise. Among clean-enough candidates we pick the
+one with the **most coverage**, because the bridge also caps how much *ground* the
+whole network can solve.
+
+🔗 **In our project: Milestone 7.** `sbas_network_graph.py` auto-selects rescues and
+emits a "rejected bridges + reasons" audit; `apply_connectivity_rescues.py` applies
+them. Real catch: ranking by *cleanest alone* once picked a longer-baseline bridge
+that halved usable pixels — so we switched to **coverage-first** among gate-passers.
+
+## CT2. Many looks, one map (why you can't just average)
+
+Each satellite track views the slope from a different angle, so each measures a
+different **projection** of the true 3-D motion onto its own line-of-sight (A6). Two
+tracks reporting different LOS speeds for the same slope aren't contradicting each
+other — they see the same motion from different directions. So you must **not** blur
+their velocities into one number.
+
+**Everyday analogy:** two people photograph the same walker from different corners.
+You can't average "how fast they cross *my* photo" — the angles differ. But if *both*
+photos show danger, you're doubly sure.
+
+**What we do — union at the decision level:** compute danger *per track*, then combine
+by logical **OR** — a slope is flagged if **any** track sees it unstable + creeping;
+spots flagged by **two or more** tracks are the most trustworthy. (The "proper"
+alternative — combining ascending + descending LOS into true vertical + east-west
+motion — is a later step needing the descending tracks.)
+
+🔗 **In our project: Milestone 7.** `run_multistack.py` builds the area-wide hazard as
+a union across 3 ascending tracks; 26 monsoon zones are confirmed by ≥2 looks.
+
+## CT3. MintPy & the ERA5 atmosphere filter
+
+Our home-built engine leaves a ~30 mm/yr "fuzziness" floor, dominated by the
+atmosphere (A8). **MintPy** is the peer-reviewed, field-standard SBAS package; its big
+advantage is a *physical* atmosphere correction: it downloads **ERA5** (a global
+weather reanalysis — temperature/pressure/humidity on a grid for any past hour),
+computes the extra signal delay the air added on each radar pass, and **subtracts it**
+— instead of our statistical "discard suspicious images" approach.
+
+**Everyday analogy:** our method spots and throws away photos shot through heat-haze;
+MintPy instead *models* the haze from that day's weather record and removes it, keeping
+the photo.
+
+🔗 **In our project: Milestones 8–9.** We built MintPy its own container, verified the
+ERA5 download credentials, and ran MintPy on frame106 with the correction first OFF
+(Milestone 8) then **ON** (Milestone 9). Switching ERA5 on **nearly doubled** the
+agreement with our independent custom engine (Pearson r **+0.28 → +0.55** on the same
+pixels) and **cut MintPy's velocity scatter from ~39 to ~21 mm/yr** — direct evidence
+that the atmosphere, not real ground motion, dominated the earlier disagreement. Two
+independent SBAS implementations now corroborate each other at r≈0.55–0.59.
+
+**Two flavours of atmosphere (Milestone 21 — the method comparison).** The air delay has
+two parts: a **stratified** part that tracks *elevation* (thicker air column lower down —
+think haze that's denser in the valley), and a **turbulent** part (random weather swirls).
+There are two ways to remove it: a **weather-model** correction (ERA5) that models the *real
+3-D air* that day, or a cheap **empirical "height-correlation"** correction (Doin 2009 — the
+same idea as the TRAIN toolbox's *power-law* method) that just fits delay-vs-elevation from
+the radar data, no weather needed. We compared all three (none / ERA5 / height-correlation)
+on the *same* pixels: **ERA5 cut the scatter 31 %** (30.5 → 21 mm/yr); the empirical method
+*improved agreement* between the two engines but **barely moved the scatter** — because it
+only removes the *stratified* part, leaving the *turbulent* haze that actually dominates our
+floor. Lesson: here you **need the weather model**; the cheap topo-only trick isn't enough.
+(This is the kind of "we compared correction methods" check reviewers look for — Bekaert et
+al. 2015.)
+
+---
+
+## CT4. Disconnected networks, SVD, and the courage to discard a stack
+
+Recall B4: turning interferograms into a timeline needs the acquisition dates to form one
+connected chain. Sometimes too many pairs are thrown out (vegetation, weather) and the chain
+breaks into **islands** of dates separated by gaps the maths can't cross. Two things then go
+wrong — and both sank our descending tracks (Milestone 10):
+
+**1. Rank-deficiency (the gap problem).** If the dates split into islands, you cannot know
+the *relative* motion between islands — no interferogram bridges them. MintPy still returns
+an answer using the **SVD** (singular value decomposition), a linear-algebra tool that gives
+the **minimum-norm** solution: the smallest, simplest motion consistent with the data. That's
+a reasonable *guess* across the gap, but it's a regularization assumption, not a measurement —
+so the velocity "can be biased" (MintPy says exactly that).
+
+**2. Short-baseline noise amplification.** Velocity is a *slope* = displacement ÷ time. Shrink
+the time window — e.g. analyse one short island on its own (a **period-split**) — and the same
+measurement noise is divided by a smaller time, so the velocity *error grows*. A ~3-month
+window is roughly twice as noisy as a ~6-month one, from the arithmetic alone.
+
+**Everyday analogy:** estimating a car's speed from two photos. Over an hour, a 1-metre
+position error barely dents the speed; over five seconds, that same error makes the speed look
+wildly wrong. Short baseline → noisy speed.
+
+**Quality coherence ≠ trustworthy velocity.** A pixel can have high *temporal coherence* (its
+timeline fits the interferograms well *within* each island) yet a meaningless velocity (the
+slope across SVD-bridged or short windows). Good fit ≠ good slope — a subtle trap.
+
+🔗 **In our project: Milestone 10.** Both descending stacks were dumped. One had no coherent
+anchor anywhere (~1% usable). The other gave physically-impossible velocities — std **57 mm/yr**
+on the full (SVD-bridged) network, *worse* at **137 mm/yr** when period-split — versus
+**21–30 mm/yr** for the ascending stacks. A real signal can't be 2–5× noisier just from the
+opposite look direction, so it's noise; we refused to fold it into a good result. Discarding
+bad data is a feature, not a failure.
+
+---
+
+# Part C-quater — From a Hazard Map to a Forecast (Milestone 11)
+
+## CF1. Inverse-velocity time-to-failure (Fukuzono/Voight)
+
+So far the hazard map says *where* a slope is dangerous. The inverse-velocity method takes the
+next step — estimating *when* it might fail — from the per-pixel movement timeline we already
+produce (B5), with no new data.
+
+**The idea.** A slope heading for collapse enters "tertiary creep": it speeds up in a
+characteristic way. Fukuzono (1985) noticed that the **inverse** of velocity, 1/v, plotted against
+time falls in a roughly **straight line that reaches zero at the moment of failure**. So you fit a
+line to the recent 1/v points and read off where it crosses zero — the projected failure time t_f.
+
+**Gentle formula.** If velocity grows like v ∝ 1/(t_f − t), then 1/v ∝ (t_f − t) — a straight line
+hitting zero at t = t_f. Fit 1/v = a + b·t; the crossing is **t_f = −a/b**, and the lead time is
+t_f − today.
+
+**Everyday analogy.** A kettle's whistle rising in pitch — extrapolate the trend and you can guess
+when it'll peak. Inverse velocity does this for a slope. But it only works once the slope is
+*genuinely accelerating*: a slope creeping at a *steady* pace has a flat 1/v line that never
+reaches zero, so it (correctly) predicts no failure.
+
+**The catch (and the discipline).** 1/v blows up when v is near zero, so the method is very
+noise-sensitive — left ungated it will happily fit a "failure" to random wobble. The safeguard is
+*gates*: only trust a prediction when the slope is **consistently** moving the failure direction
+and the 1/v line is **significantly** decreasing. We learned this the hard way (Part E / error log).
+
+🔗 **In our project: Milestone 11.** We screen every alert zone this way. Honestly, with only
+~3.5 months of data at our ~30 mm/yr noise floor, **no zone shows significant acceleration** — all
+are steady creep. The machinery is built and noise-hardened, and will project a failure date
+automatically once the data shows acceleration (a longer series, or a real event onset).
+
+## CF2. Rainfall intensity–duration (ID) thresholds — the trigger
+
+CF1 reads the slope's *motion*; CF2 reads the thing that sets it off — *rainfall*. The
+field-standard landslide TRIGGER is an intensity–duration threshold. The insight: a burst matters
+more than the total — 100 mm in 6 hours is far more dangerous than 100 mm over a week, because the
+ground can't drain fast enough.
+
+**The idea.** Plot mean rainfall intensity I (mm/h) against duration D (h). Decades of landslide
+records define a line I = a·D^(−b) — high for short bursts, lower for long soaks — above which
+slopes have historically failed. We use the classic global Caine (1980) curve, I = 14.82·D^(−0.39),
+as a conservative baseline.
+
+**Gentle formula.** For a window of duration D, the cumulative rain that just reaches the threshold
+is C = I·D = 14.82·D^0.61 (D in hours). Exceed C over any duration and the trigger fires.
+
+**Everyday analogy.** A sink with a slow drain: a gentle trickle is fine, but open the tap and it
+overflows. Soil has a drainage rate; rain above that rate, for long enough, saturates and fails it.
+
+🔗 **In our project: Milestones 12–13.** We pulled real ERA5-Land daily rainfall for Ramban across
+May–Oct 2025 (1,233 mm) and screened it against Caine — exactly one day crossed the line, **26 Aug
+2025, ~134 mm/day**, the season's true trigger (vs the made-up "120 mm/72h monsoon"). We then
+**coupled** it into the Factor of Safety: the infinite-slope FS is *exactly linear in saturation m*
+(C4), so for any day's measured wetness we blend the two end-member maps,
+**FS_real = (1−m)·FS_dry + m·FS_saturated**, with no recompute. Walking that across the season gives
+a **time-resolved hazard** — alert zones rise through the monsoon, peak at 222 on 26 Aug, then decay
+as the soil dries. So now: *where* (C5) + *is it moving* (CF1) + *did the trigger fire & how wet is
+it now* (CF2) → one warning that **tracks real weather over time**.
+
+---
+
+## CF3. Snowmelt & freeze-thaw — the other water (and what a negative result teaches)
+
+Rain isn't the only water that loads a Himalayan slope. In spring, **melting snow** soaks the ground,
+and repeated **freeze–thaw** (water freezes in cracks, expands, prises rock apart, then thaws and
+lubricates) mechanically weakens it. The back-test (Milestone 14) caught our rain-only trigger missing
+the **April–May 2025** failures — exactly the snowmelt/freeze-thaw season — so we added both.
+
+**The idea.** Treat the water reaching the slope as **water = rain + snowmelt**, and screen *that*
+against the rainfall trigger curve (CF2); separately flag days whose temperature swings across 0 °C
+(Tmin < 0 < Tmax) as freeze–thaw.
+
+**Everyday analogy.** A fridge defrosting: the puddle isn't from new spills, it's yesterday's ice
+turning to water. Snowmelt is the mountain's slow defrost feeding the slope days after the snow fell.
+
+**Gentle formula.** water_d = rain_d + snowmelt_d; freeze_thaw_d = (Tmin_d < 0 °C) AND (Tmax_d > 0 °C).
+
+🔗 **In our project: Milestone 16 — and an honest negative result.** Real ERA5-Land gave **59 mm of
+snowmelt** for the season (vs 1,350 mm rain), mostly early April. That's far below the heavy-burst
+trigger line, so it added **no new trigger day**, and the freeze-thaw flag was **0** because the
+*area-average* temperature never crossed freezing (the warm valley floor hides the cold high slopes —
+proper freeze-thaw needs temperature *by elevation*). The lesson is the value: this **rules snowmelt
+out** as the reason we missed April–May and points at the true culprit — the global rainfall record
+**under-counts intense mountain cloudbursts** (it logged ~9 mm on a documented mudslide day). So the
+next fix is pinpointed: a **rain-gauge product (CHIRPS/GPM) + a regional trigger curve**. (Ruling a
+cause *out* is real progress.)
+
+🔗 **Update — Milestone 19: freeze-thaw, resolved by elevation.** The "0 freeze-thaw days" above was an
+artifact of the *area-average*. Temperature falls ~**6.5 °C per km** of height (the **lapse rate**), so we
+estimated the temperature at each elevation band from the DEM and counted again: freeze-thaw **switches on
+around ~2,500 m** and strengthens upward, while the road/failure sites in the **warm valley (~1,540 m) still
+see zero**. So freeze-thaw works the **higher source slopes above the road**, not the road itself. And the
+ground was **moderately wet** on both 2025 event days (≈33 % / 20 % of the season's peak wetness) from
+snowmelt + earlier rain — even with no rain that day. Net picture: the spring slopes were **slowly primed**
+(damp + freeze-thaw aloft) — a *mechanistic* story, honestly tagged as first-order (constant lapse rate,
+reference height = DEM mean), that explains *vulnerability*. (Subsequent date correction, CF5/Milestone 20:
+the major 20 Apr event then *was* tipped over by a cloudburst — so the full picture is **primed slope +
+acute trigger**, not priming alone.)
+
+## CF4. Slope-parallel velocity (V_slope) — reading the motion downhill
+
+Our radar measures only the motion *along its line of sight* (A6) — a slanted direction. A landslide
+moves *downhill*. So the radar under-reads creep, and on some slopes is nearly blind to it. With one
+look direction we can't fully separate up/down from sideways (that needs ascending + descending, CT2,
+still deferred), but we **can** project the LOS speed onto the steepest-descent direction, assuming
+the motion is downslope.
+
+**The idea.** Build two unit vectors at each pixel: the LOS direction **l** (from the radar geometry,
+HyP3's `lv_theta`/`lv_phi`) and the downslope direction **d** (from the DEM's slope + aspect). Their
+dot product **C = d·l** is the **sensitivity**: how much of a downhill motion the radar actually sees.
+
+**Gentle formula.** V_slope = V_LOS / (d·l). Because |d·l| ≤ 1, this *amplifies* the measured speed
+(recovering the part the radar missed). Where |d·l| is tiny (downhill ⟂ LOS), the slope is a **blind
+spot** and we mask it.
+
+**Everyday analogy.** Watching a car drive away at an angle through a narrow doorway: you only see part
+of its speed. If you know the road's direction, you can work out its true speed — unless it crosses
+your view exactly sideways, when you can't judge it at all.
+
+🔗 **In our project: Milestone 15.** Across the 3 ascending tracks, **24–42 %** of measured ground turns
+out to be a single-look **blind spot** (downhill nearly perpendicular to the LOS) — we now map exactly
+where we're flying blind. For the rest, projecting to downslope **magnifies creep ×1.4–1.6**, sharpening
+both the creep map and the failure-timing method (CF1). It's the cheap, single-track stand-in for the
+full vertical+east-west decomposition awaiting better descending data.
+
+---
+
+## CF5. Regional vs global trigger lines, and gauge vs reanalysis rain
+
+The rainfall trigger (CF2) has **two** dials, and getting either wrong mistimes the warning.
+
+**Dial 1 — the threshold line.** The intensity–duration curve I = a·D^(−b) is *fitted to a region's own
+history*. The classic **Caine (1980)** curve is a **global** average — deliberately conservative — so for
+a specific, very wet, very steep place it sits far too high. For the NW Himalaya the published curve is
+I = 2.9993·D^(−0.4152): about **19 mm of rain in a day** trips it, versus Caine's **~100 mm/day**. A
+locally-confirmed line (a separate NH-44 study finds slides at ~14 mm/day) is **~5× more sensitive**.
+
+**Dial 2 — the rain measurement itself.** A *reanalysis* like ERA5-Land is a physics model on a coarse
+grid; it **smooths away** the intense, localized cloudbursts that mountains squeeze out of the air
+(*orographic* rain). A **gauge-blended** product like **CHIRPS** mixes satellite estimates with real
+ground rain-gauge readings, so it recovers more of those bursts.
+
+**Everyday analogy.** Dial 1 is the *speed limit* — a national default vs the one actually posted for
+this hairpin bend. Dial 2 is your *speedometer's accuracy* — a rough estimate vs a calibrated reading. To
+catch real speeding you need both the right limit **and** a trustworthy gauge.
+
+**The catch (a real lesson).** Lowering the line catches more real events — but lower it too far and it
+flags *everything*. Our regional line caught both missed spring events (0/2 → 2/2) but then fired on
+**112 of 214 days**: **sensitive, not selective**. The fix is a "how rare is this rain?" filter
+(percentile / return-period) and an *antecedent* (how-wet-already) criterion on top of the line.
+
+🔗 **In our project: Milestone 17.** We made the threshold a documented, citeable switch (`caine1980`
+vs `nwhimalaya`) and built the CHIRPS gauge-rain pipe (Google Earth Engine) ready to run. The regional
+line alone flipped the spring back-test to 2/2 on unchanged data — confirming the missed events were
+substantially a *too-cautious-line* problem — while honestly exposing the over-triggering still to fix.
+We then built the selectivity filter (`rainfall_specificity.py`) and it gave a *decisive* answer: scoring
+each day by how far above the line it sits (E = rain ÷ threshold), the 26 Aug cloudburst is E≈7, but
+27 Apr is only E≈1.4 and **8 May is E≈0.67 — *below* the line**. So on the reanalysis rain, *no* strictness
+setting is both quiet and catches both events — pointing the finger at Dial 2, the rain *measurement*.
+
+**So we tested Dial 2 — and got an instructive negative.** We finished the Earth Engine sign-in and pulled
+**CHIRPS** (gauge-blended) for the AOI. It turned out **drier** than ERA5-Land here (998 vs 1,350 mm), and
+on the event days it recorded *less* rain, not more (27 Apr **0.0 mm**, 8 May **4.2 mm**; event E even
+lower, 0.70 / 0.57). So **two independent ~5–9 km products agree there was little grid-scale acute rain on
+the documented spring dates** — the gauge hypothesis is *refuted*, not confirmed. The lesson for Dial 2:
+swapping one ~5 km product for another doesn't help if the triggering rain is *sub-grid* (a local cell
+smaller than the pixel) or if the spring failures simply weren't acute-rainfall-driven (snowmelt-soaked
+ground, construction, fuzzy dates). The honest redirection: finer/faster rain (GPM IMERG, 0.1°/30-min) or a
+chronic-saturation framing — not another daily gauge product. (Milestone 17.)
+
+**So we tested the sub-daily angle too — and then a date check overturned the answer (the honest part).**
+GPM IMERG measures rain every 30 minutes, so it sees short convective bursts a *daily* total averages away.
+On the dates our inventory listed (27 Apr dry, 8 May only grazing the line), IMERG showed no cloudburst — so
+we *first* concluded rainfall was ruled out. **But sourcing a better inventory revealed the real major event
+was the 20 April 2025 cloudburst** (3 deaths, NH-44 destroyed at 5 sites, ~100 mm/1 hr) — a date our
+news-derived list had *wrong*. Re-screened, **20 Apr is a clear crossing (E=2.25)** and the regional curve
+flags it at Δ=0 — so the deadly spring event **WAS rainfall-triggered, and the model catches it.** What
+survives from the "negative" is only the *measurement* lesson: the daily **AOI-mean** products dilute a
+localized cell, so you need **sub-daily / point** rain (IMERG) to see it. The refined picture: **primed
+slopes + a cloudburst trigger**, model captures both. The deeper lesson: triangulating across datasets is
+good, but **a single wrong inventory date can invert your conclusion** — verify the ground truth.
+(Milestones 18–20.)
+
+---
+
+## CF6. Grading a hazard map honestly — the null control, ROC & AUC, and the wetness dial
+
+Saying "71 % of real slides are within 2 km of a flagged zone" *sounds* good — but it's almost meaningless
+on its own. If you painted the **whole** map red, you'd score 100 %. The question is not "are slides near our
+zones?" but **"are slides *closer* to our zones than random ground is?"** Answering it needs three ideas.
+
+**1 — The null control (a fair yardstick).** Scatter a few thousand **random points** inside the study
+area. These stand in for "pure luck." Now you have two groups: the **real** slides (positives) and the
+**random** points (negatives). For each point, measure the distance to the nearest flagged zone.
+
+**2 — TPR, FPR, and the ROC curve.** Pick a distance threshold (say 500 m) and call a point "detected" if a
+zone is within it.
+- **TPR** (true-positive rate / *recall*) = fraction of **real** slides detected.
+- **FPR** (false-positive rate) = fraction of **random** points detected — your "false-alarm" rate set by
+  how much area you flag.
+Sweep the threshold from tiny to huge and plot TPR (up) vs FPR (right): that's the **ROC curve**. The
+diagonal TPR = FPR is **pure chance** (no skill). Bowing *above* the diagonal = skill; *below* = worse than
+guessing.
+
+**3 — AUC (one number).** The **Area Under the ROC Curve** squeezes the whole curve into a single grade:
+**0.5 = a coin-toss**, 1.0 = perfect, **below 0.5 = worse than random**. A cousin metric is **lift** =
+TPR ÷ FPR at a given distance ("how many times better than luck"); lift = 1 is chance.
+
+**Everyday analogy.** A metal detector that beeps *everywhere* finds every coin (TPR = 1) but is useless
+(FPR = 1 too). AUC asks whether it beeps on coins *more than* on bare sand — across all sensitivity settings.
+
+🔗 **In our project: Milestone 23.** Graded this way, the worst-case map scored **AUC 0.41 — below a
+coin-toss** (it pinpoints well at 100 m, lift 1.6×, but flags so much ground that the skill drowns by 2 km).
+Two honest consequences: (a) the earlier "71 % within 2 km" (CF/M22) was *indicative, not a grade*; (b) it
+told us *why* — we'd drawn the map assuming the ground was **fully soaked everywhere** (worst case).
+
+**The wetness dial (and why the rain-line can't fix a map).** Our Factor of Safety is **exactly linear** in
+the soil saturation *m* (CF/C4): FS_real = (1−m)·FS_dry + m·FS_sat. So lowering *m* just **raises the failure
+bar uniformly** — only the steepest, most-marginal slopes stay flagged. Crucially, the real rainfall record
+says the ground only reaches m = 1 on **11 of 214 days** (median ≈ 0.26). Redrawing the map at a *realistic*
+wetness (m ≈ 0.25–0.40) lifted the grade to **AUC 0.55 (beats chance)** and close-range lift to **5.6× at
+100 m** — at the cost of catching fewer slides overall (the **recall ⇄ precision trade**). The subtle point:
+the regional **rain-trigger line decides *when* to raise an alarm (a *temporal* gate) — it cannot move a
+*spatial* score.** The map improved purely from the **saturation *level*** we drew it at. Keeping "when"
+(rain line) separate from "where/how-much" (wetness level) is what makes the result honest rather than
+over-sold.
+
+---
+
+## CF7. The operational alarm — gating *where* by *when* (and making the trigger selective)
+
+A danger **map** (CF6: *where* — the slopes that beat chance) is only half a warning. The other half is a
+**calendar** (*when* — is today actually dangerous?). CF7 joins them.
+
+**The problem with the raw rain line.** The regional I–D curve (CF2/CF5) is a **lower bound**: below it,
+slides are rare. But "above the line" fires on **112 of 214 days** — half the season. An alarm that rings
+every other day is useless.
+
+**The fix — grade by *how far* above the line.** Don't ask "is it above the line?" (yes/no); ask "**how far
+above?**" via the exceedance ratio **E(t) = (today's rain) ÷ (threshold rain)**. E = 1 is exactly on the
+line; a real cloudburst sits far above (20 Apr 2025: E ≈ 2.9; the 26 Aug monsoon peak: E ≈ 7). So define
+three states:
+- **DORMANT** (E < 1): below the line — the map is not armed.
+- **WATCH** (1 ≤ E < 2): line crossed — the validated footprint is *armed*, keep watch.
+- **ALERT** (E ≥ 2): well above — *raise the alarm* on the footprint.
+
+**Everyday analogy.** A smoke detector that beeps at the faintest whiff of toast is ignored; one that stays
+quiet until there's *real* smoke gets trusted. E is the "how much smoke" dial.
+
+**Crucial honesty — the footprint stays fixed.** On a wet day we do **not** redraw the map bigger (that is
+exactly what over-flagged in CF6). The *where* is always the validated operational map; only the *when*
+state changes. The regional line decides timing; the map decides place.
+
+🔗 **In our project: Milestone 24.** The ALERT gate (E ≥ 2) fires on just **27 days (13% of the season)** —
+**4× less** than the raw 112 — yet still lights up on exactly the right windows: the **20 April cloudburst
+is a Δ=0 ALERT** and the August monsoon peak is covered. All **4** documented disasters fall in an armed
+(WATCH+) window; **3 of 4** reach full ALERT. The two that only reach WATCH (27 Apr, 8 May) had rain too
+*localized* for our coarse weather grid to register a high E — the same gauge/sub-daily limitation CF5
+names, kept on the record. One AOI-average rain value gives one E per day, so the *timing* gate is
+area-wide; but the alarm is now differentiated **per slope** by each zone's own breaking point (CF8) —
+so on an alarm day you still get a worst-first list of *which* slopes are in play, not just "the area."
+
+**A companion reality check (Milestone 24).** We also ran our cleanest, "atmosphere-physically-removed"
+radar velocity (the MintPy ERA5 product, CT3) through the same danger map on one track. It agrees with our
+everyday high-pass method on the broad field (correlation ≈ 0.55) but flags only **half** as many creeping
+pixels, and they **barely overlap** (of the premium method's creep pixels, only ~18% are also flagged by
+the everyday one). The lesson, written into our limitations: *which exact pixels "creep" on a **single**
+track is not robust to the processing choice — trust the spots multiple tracks agree on.*
+
+---
+
+## CF8. Critical saturation m* — giving every slope its own breaking point (per-zone gating)
+
+CF7's alarm is *area-wide*: one rainfall number per day flips the whole footprint together. But the slopes
+aren't identical — some are perched right at the edge, others have more margin. The honest way to tell them
+apart is **not** per-zone rainfall (rain is nearly uniform at the weather grid's ~10 km over our ~22 km
+area), but each slope's own **breaking point**.
+
+**The idea (and why it's just algebra).** The Factor of Safety is a **straight line** in soil saturation
+m (C4): FS(m) = FS_dry + m·(FS_sat − FS_dry). Failure is FS = 1. Solve that line for m and you get the
+**critical saturation**:
+$$ m^* = \frac{1 - FS_{dry}}{FS_{sat} - FS_{dry}} $$
+— the wetness at which *this specific slope* tips into failure. Low m* = fails when barely damp (most
+dangerous); m* near our operating 0.40 = only fails when very wet.
+
+**Everyday analogy.** Every slope is a glass filled to a different level. m* is how much more water each can
+take before it overflows. Today's rain raises everyone's water by the same amount — but the glasses already
+near the brim spill first. So you watch those.
+
+**How it gates per zone.** Two levels: the regional rain gate (CF7) decides *whether* any alarm fires
+today; then the **active slopes** are exactly those whose m* the day's saturation has reached (m* ≤ m
+today). The active set is always a subset of the validated footprint — it never adds new ground, so it
+can't drift back into the over-flagging of CF6.
+
+🔗 **In our project: Milestone 25.** Across the 95 operational zones, m* ranges 0.00 → 0.40: **44 fail when
+barely wet**, 33 on a wet day, 18 only when very wet. The active list **breathes from ~53 on the drier
+alarm days to all 95 on the wettest**, always ranked worst-first, and feeds the dashboard's "which slopes,
+today" panel. On the 20 April cloudburst, the spring snowmelt had already raised the ground to m ≈ 0.66, so
+**all 95 were active** — correctly. This turns "the area is dangerous today" into "**these specific slopes,
+in this order**," from physics and data we already had — no new satellite passes.
+
+**Gate vs rank — when NOT to gate (Milestone 30).** This gating *narrows* a list down, which is right for the
+short, trusted ALERT map (CF9). But the wide WATCH map (CF9) exists to *not miss anything* — narrowing it
+would shrink the very breadth that is its purpose (like casting a wide net then throwing fish back), and would
+use the gate outside the validated footprint where its "can't balloon" safety no longer holds. So for a
+high-recall list you **rank, don't gate**: keep every zone and sort it worst-first by a triage priority
+**(1 − m\*) × P** = fragility (this section) × detection confidence (CF10). A zone tops the list only if it is
+*both* fragile *and* convincingly moving — and nothing is dropped, so the safety net is preserved.
+
+---
+
+## CF9. Two warning tiers — precision vs recall (the short ALERT list and the wide WATCH list)
+
+Every detector faces one unavoidable trade. Cast a **narrow** net and almost everything you flag is real
+(**high precision**) — but you **miss** the quiet cases (**low recall**). Cast a **wide** net and you catch
+nearly everything (**high recall**) — but most of what you flag is noise (**low precision**). You cannot
+maximise both at once; you *choose* where to sit on the curve.
+
+**The two measures (from CF6).**
+- **Precision** = of the slopes we flagged, how many were really near a slide. *"When we point, are we right?"*
+- **Recall (TPR)** = of the real slides, how many we flagged. *"Of the ones that failed, how many did we catch?"*
+
+**Everyday analogy.** A smoke alarm tuned to scream only at a real blaze (precise) may stay silent on a slow
+smoulder; one tuned to chirp at burnt toast (high recall) catches every fire but cries wolf. Sensible
+buildings use **both** — a quiet detector that means "act now," and a sensitive one that means "go check."
+
+**How we get two tiers from one model.** The only dial we turn is the assumed **wetness** m (CF6/C4).
+- **ALERT** = a *moderately* wet day (m = 0.50): the Factor-of-Safety line tips only the slopes already on the
+  edge → a **short, precise** list (12 slopes, grade 0.64).
+- **WATCH** = a *sustained-soaked* day (m = 0.70): the same line now tips more marginal slopes → a **wide,
+  high-recall** list (132 slopes). As a whole it's near coin-toss, but its **two-pass-confirmed** core still
+  beats chance — a trustworthy ring inside the wide net.
+
+🔗 **In our project: Milestone 28.** Raising the wetness dial from 0.50 to 0.70 widens the footprint 12 → 132
+slopes and lifts recall ~**0.25 → 0.63** (≈2.5× more real slides caught), at the cost of discrimination (grade
+0.64 → 0.50). Going to the fully-soaked worst case (m = 1.0, 393 slopes) barely raises recall (0.63 → 0.70)
+for triple the noise — so WATCH stops at 0.70. The two tiers compose with CF7's *when*: monitor the wide WATCH
+map; act on the precise ALERT core when the rainfall gate escalates.
+
+---
+
+## CF10. Detection confidence — turning the noise floor into a probability (and why "confident" ≠ "right place")
+
+Every measurement has noise. Our velocity has a ~15–25 mm/yr atmospheric **noise floor** (§2), and the creep
+test is a hard line at −15 mm/yr. A slope at −18 barely clears the line; one at −45 clears it by miles.
+Treating both as equally "creeping" hides that difference — so we put a probability on it.
+
+**The idea (it's just a z-score).** If the true speed is the measured speed ± noise σ, the chance the slope
+is *really* past the −15 line is
+$$ p = \Phi\!\left(\frac{-15 - v}{\sigma}\right) $$
+where Φ is the bell-curve CDF. Far past the line → p near 1; barely past → p near 0.5.
+
+**Two witnesses beat one.** If two independent satellite passes each give p, the chance *both* are fooled by
+noise is (1−p)², so the combined confidence is **P = 1 − Π(1 − p)**. Two "0.7" looks → 0.91. This is the
+formal version of "trust the slopes that more than one geometry confirms" (CF6 / the ≥2-look core).
+
+**Everyday analogy.** One smoke detector beeping might be a fly; two detectors in different rooms beeping is
+almost certainly real. Independent confirmations multiply your certainty.
+
+**The honest catch — confident ≠ correct location.** We checked whether keeping only high-confidence slopes
+better matches the *known* landslide map. It doesn't. "Confident the slope is *moving*" and "this is a *known
+landslide* spot" are different axes — a slope can be unmistakably creeping yet not on a mapped slide. So the
+confidence is for **triage** (ignore likely-noise), riding *alongside* the location-accuracy grade (CF6) and
+the rainfall-timing alarm (CF7) — never replacing them.
+
+🔗 **In our project: Milestone 29.** Per-track noise floors 14–24 mm/yr; every alert now carries a detection
+confidence (operational median 0.77, monitoring-tier median 0.85), with multi-look corroboration lifting some
+to ~1.0. Filtering by it doesn't change the inventory grade (AUC 0.50 → 0.51 → 0.48) — confirming it is a
+distinct, complementary trust axis, not a spatial ranker.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -610,10 +1118,35 @@ assumed soil strength and a coarse terrain model, so we read it qualitatively
 (monsoon = widespread elevated risk) and trust the *combined* hazard pixels
 (physics AND measured motion) far more than FS alone.
 
+**Q: Have you validated this against real landslides?**
+A: We ran the first back-test against documented Ramban failures. Spatially it's promising — 8 of 9
+known NH-44 black-spots (Panthyal, Khooni Nallah, Digdol…) fall within ~2 km of a flagged zone. But
+the back-test caught a real problem: our rainfall trigger picked late August, while the documented
+2025 failures were April–May. It exposed that our window starts too late (1 May) and that the
+reanalysis rainfall we used under-counts mountain cloudbursts — so the fix is an April start + a
+gauge product. A validation that finds its own gaps is doing its job; the rigorous *scored* test
+awaits the official GSI Bhukosh inventory (~302 mapped Ramban slides).
+
+**Q: You found your trigger missed the real spring landslides — did you fix it?**
+A: Partly, and the *way* it failed is the interesting part. Two suspects: the *threshold
+line* and the *rain measurement*. Fixing the line — swapping the conservative **global**
+Caine curve (≈100 mm/day) for the **published NW-Himalaya** one (≈19 mm/day; a separate
+NH-44 study confirms ~14 mm/day triggers slides here) — flipped the spring back-test 0/2 →
+2/2 on the same rainfall. But that line fires on 112 of 214 days (sensitive, not selective),
+so "2/2" is partly automatic. Then I tested the measurement: I pulled the **gauge product
+CHIRPS** — and it came back *drier* than our reanalysis on the exact event days (0 mm on
+27 Apr, 4 mm on 8 May). So **two independent ~5 km products agree there was barely any
+heavy rain at grid scale when those slopes failed** — which means the spring events probably
+weren't a "missed rainstorm" at all, but a sub-grid local cell, snowmelt-soaked ground, or
+construction. I'd rather report that clean negative than pretend a gauge swap fixed it; it
+redirects me to finer/faster rain (30-min IMERG) or a saturation model.
+
 **Q: Aren't your soil strength numbers just guesses?**
-A: Yes — they're literature values for Himalayan soil, not site measurements.
-That's why the FS map is a *relative* screening tool, not an absolute prediction,
-and why we lean on the measured-motion half of the hazard rule.
+A: Less so now. The friction angle is **36°** — the value **GSI actually measured**
+on these slopes (their NH-244 Ramban/Doda field study reported 36.4–39.1°), so the
+biggest soil parameter is grounded in real data, not a textbook. Cohesion is still a
+conservative (wet-reduced) assumption pending lab values, so FS stays a *relative*
+screening tool — and we still lean on the measured-motion half of the hazard rule.
 
 **Q: You call it "agentic" — is there a real AI deciding things?**
 A: Not yet. The "agents" are three deterministic, rule-based modules (sensors +
@@ -633,29 +1166,138 @@ A: In this demo it's *what-if* scenarios — dry, monsoon, extreme — that set 
 saturated the slopes are. That already shows the system reacting (dry → few
 alerts, monsoon → many). Wiring in live rainfall forecasts is the next step.
 
+**Q: What do you do when a data source doesn't meet your quality bar?**
+A: Discard it — explicitly and on the record. Both our descending satellite tracks failed:
+one had no coherent reference pixel anywhere (~1% usable), the other produced
+physically-impossible velocities (2–5× noisier than the ascending tracks) that a textbook
+period-split only worsened. We dumped both rather than dilute a good result, and documented
+exactly why. Knowing when to throw data away is part of the method, not an exception to it.
+
+**Q: How do you know *when* rain is dangerous, not just that it's the monsoon?**
+A: Intensity–duration thresholds — the field standard. It's not the total that matters but the
+rate: a known curve (we use Caine 1980) says how much rain over how short a time has historically
+triggered failures. We screened the real 2025 rainfall for Ramban and it flagged one specific day,
+**26 August (~134 mm)**, as the season's trigger — far more actionable than "the monsoon is wet."
+Caveat: our modelled rainfall under-counts mountain cloudbursts, so a gauge product would likely
+flag *more* trigger days.
+
+**Q: Can your system predict *when* a slope will fail, not just where?**
+A: The machinery is in place — the inverse-velocity (Fukuzono) method: as a slope accelerates,
+1/velocity falls linearly to zero at the failure time, using the time series we already produce
+(CF1). Honestly, none of our zones are accelerating right now — they're creeping *steadily* over a
+short, noisy window — so it correctly returns "no imminent failure," not a fabricated date. It will
+project dates as the record lengthens or a real acceleration begins. And we gate it hard: inverse
+velocity will otherwise fit "failures" to noise — we caught exactly that in our own first run and
+fixed it (Part E).
+
+**Q: You only have one look direction — how do you get *downhill* motion, and where are you blind?**
+A: We project the line-of-sight speed onto the steepest-descent direction from the DEM (V_slope = V_LOS
+÷ d·l, CF4). The dot product d·l is the sensitivity: it tells us that **24–42 %** of our measured ground
+has its downhill direction nearly perpendicular to the radar, so it's a single-look **blind spot** — we
+map exactly where. For the rest, projecting recovers the part the radar missed (×1.4–1.6). It's honest
+about the one-track limit and is the cheap stand-in for the full ascending+descending decomposition.
+
+**Q: You added snowmelt to fix the spring miss — did it work?**
+A: It became the project's best lesson in scientific honesty. Snowmelt (~59 mm) was too small to trigger,
+which pointed at the rainfall *record*, so I tested a regional trigger curve, then gauge rain (**CHIRPS**),
+then half-hourly **GPM IMERG**. On the dates my inventory listed (27 Apr / 8 May) all three showed little
+rain, so I *first* concluded rainfall was ruled out and the slopes were merely "primed." **Then, sourcing a
+better landslide inventory, I found my dates were wrong** — the real deadly event was the **20 April 2025
+cloudburst** (3 deaths, NH-44 destroyed, ~100 mm/1 hr). Re-checked, **20 Apr is a clear rainfall trigger**
+(IMERG E=2.25; the regional curve flags it at Δ=0) — so the major spring failure **was** rainfall-driven and
+the model catches it. The refined, honest answer: **primed slopes + a cloudburst trigger**, model captures
+both; the smaller 8 May event stays marginal; and the daily *AOI-mean* products under-read the localized
+cell (so you need sub-daily/point rain). The meta-lesson I'd lead with in an interview: I let the evidence
+**reverse my own published conclusion** — and a single wrong inventory date was what had flipped it, which is
+exactly why verified ground truth (GSI Bhukosh) is the next step.
+
+**Q: Your map sits near 71 % of real slides — how good is that, really?**
+A: On its own, almost meaningless — if I flagged the whole map I'd "catch" 100 %. So I graded it **fairly**:
+I scattered 5,000 random points as a luck control and asked whether real slides are *closer* to flagged
+zones than random ground is, across all distances — that's a ROC curve, summarised by **AUC** (0.5 = a
+coin-toss). The worst-case map scored **0.41 — below chance**: it pinpoints well at 100 m (1.6× better than
+luck) but flags so much ground that the skill drowns by 2 km. That diagnosis led to the fix: I'd drawn the
+map assuming the soil was **fully soaked everywhere**, but the rainfall record only reaches that on 11 of
+214 days. Redrawn at a **realistic wetness**, the grade rose to **0.55 — beats chance — and 5.6× better than
+luck at 100 m**, trading some recall for precision. The honesty point I'd stress: the rain-trigger *line*
+decides *when* to alarm and can't move a *spatial* score — the map improved purely from the wetness *level*.
+
 ---
 
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
 
-- **LOS only (for now):** we measure slanted motion, not pure vertical/horizontal,
-  until ascending + descending are combined.
+- **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
+  vertical/horizontal. Combining ascending + descending would fix this — but both our
+  descending tracks were evaluated and **rejected as too noisy** (Milestone 10 / CT4), so
+  the vertical/east-west decomposition waits on better descending data. We now *quantify* this
+  limit with the slope-parallel projection (V_slope, CF4 / Milestone 15): **24–42 %** of measured
+  ground is a single-look blind spot (downhill ~perpendicular to the LOS).
 - **80 m pixels:** each pixel averages an 80 m patch — fine for hillside-scale
   creep, too coarse for a single boulder.
-- **Residual atmosphere:** our simple plane-deramp + high-pass removes the worst,
-  not all, of the atmospheric noise (~30 mm/yr floor).
+- **Residual atmosphere + single-look creep is not pixel-robust (Milestone 24 / §18):** our *custom*
+  engine's plane-deramp + high-pass removes the worst, not all, atmospheric noise (~30 mm/yr floor); the
+  MintPy ERA5 correction (CT3) cut scatter to ~21 mm/yr on frame106. We **rolled that ERA5 velocity through
+  the hazard** on frame106: it agrees on the broad field (r≈0.55) but flags **~half** the creeping pixels,
+  and only ~18 % overlap with the high-pass method's. So *which exact pixels creep on a single track is
+  sensitive to the velocity processing* — trust where **multiple looks agree** (the ≥2-look core, M23). The
+  ERA5 product is the more physical basis but is so far **validated on only one of three tracks (§22):**
+  re-running it on the other two ASC stacks gave unusable velocities — one had a coherent-but-wrong −56 mm/yr
+  scene-wide bias (std 57, 25 % of pixels beyond ±100 mm/yr), the other was too low-coherence — so the
+  atmosphere fix does **not** generalize for free; each track needs its own stable reference + cross-check
+  before it can be trusted. The mosaic still runs on the custom velocities. **We now quantify this floor
+  per zone (Milestone 29 / §24 / CF10):** each alert carries a detection confidence p = Φ((−15 − v)/σ_v) that
+  its creep truly exceeds the per-track noise (σ_v 14–24 mm/yr), with multi-look corroboration combining to
+  P = 1 − Π(1 − p) — so marginal creep is explicitly down-weighted. Honest caveat: this *measurement*
+  confidence is **orthogonal** to inventory-proximity (filtering by it doesn't move the spatial AUC), so it is
+  a triage axis (ignore likely-noise), not a spatial ranker.
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
 - **Single stack so far:** the test result is one satellite track; full corridor
   coverage and cross-checking is still ahead.
-- **Measurement ≠ prediction:** we currently quantify motion; turning that into a
-  validated hazard forecast is the upcoming work.
-- **Assumed soil strength:** the Factor-of-Safety uses textbook cohesion/friction
-  values for Himalayan soil, not site measurements — so FS is a *relative*
-  screening layer, not an absolute prediction.
-- **Coarse slope:** the 80 m DEM under-estimates true steepness, biasing FS
-  toward "stable"; a 12.5 m DEM is the planned fix.
+- **Rainfall trigger — threshold fixed; the spring *source* mystery is now narrowed (CF5):** on the
+  threshold dial we **switched the conservative global Caine curve for the published NW-Himalaya regional
+  curve** — which flipped the spring back-test 0/2 → 2/2 — but it fires on **112/214 days** (sensitive, not
+  selective), so a return-period/antecedent filter is still needed. On the measurement dial we **ran the
+  gauge product CHIRPS (Milestone 17) and it was *drier* than ERA5-Land** on the (then-assumed) event dates.
+  **Date correction (Milestone 20):** the real major event was the **20 Apr 2025 cloudburst**, which the
+  regional curve + sub-daily IMERG *do* flag (E=2.25) — so the spring trigger is **not** ruled out; the daily
+  *AOI-mean* products just dilute the localized cloudburst cell (sub-daily/point rain resolves it). **The
+  over-firing is now RESOLVED by the E-graded temporal gate (Milestone 24 / CF7):** grading days by how far
+  above the line they sit cuts the alarm from 112 to **27 ALERT days (13% of season, 4× fewer)** while still
+  catching the 20 Apr cloudburst at Δ=0. Remaining: only sub-daily/point rain (not AOI-mean) can raise the
+  E of the *localized* 27 Apr / 8 May cells (they reach WATCH, not ALERT). The real wetness IS coupled into
+  the FS (Milestone 13).
+- **Spatial validation is now *scored* and beats chance — but it's small-area and recall-limited (Milestone
+  23 / CF6):** graded against a 5,000-point random-luck control with a ROC/AUC, the worst-case (fully-soaked)
+  map scored **AUC 0.41 — below chance** (it over-flags). Redrawn at a *realistic* wetness (m≈0.25–0.40) it
+  scores **AUC 0.55 (beats chance)** and **5.6× better than luck at 100 m** — the first provably-better-than-
+  random result. Caveats: (a) it's one small AOI (~22×22 km), so 2 km buffers approach saturation; the honest
+  detection buffer is **≤250 m**; (b) the high-grade ALERT map comes with **lower recall** (12 zones, recall
+~0.25) — now complemented by a wider **WATCH tier** (m=0.70, 132 zones, recall ~0.63) whose two-pass-confirmed
+core still beats chance (Milestone 28 / CF9); (c) it's
+  still **spatial only** — a *temporal* scored test wants the **GSI Bhukosh** inventory with **verified
+  dates** (a one-week date error once flipped the spring conclusion, M20). The temporal back-test (4/4 on the
+  corrected inventory) remains *partly automatic* because the regional curve fires 112/214 days.
+- **Forecasting needs a longer record:** the inverse-velocity time-to-failure screen
+  (CF1) is built and noise-hardened, but ~3.5 months at our noise floor shows only
+  *steady* creep — no zone is yet accelerating, so no failure dates are projected.
+  "Steady" ≠ "safe"; the screen is deliberately conservative and will return dates once
+  the series lengthens or a real acceleration begins.
+- **Soil strength — now largely site-grounded (Milestones 22, 26):** the friction angle is
+  **φ=36°** (GSI-measured on these slopes, 36.4–39.1°, vs the old textbook 32°), and cohesion is now a
+  **dry/wet matric-suction split** (c_dry≈18.5 / c_wet=5 kPa, M26 / C4) instead of one flat assumed value —
+  so the dry-state strength is the GSI-measured number and the saturated state correctly loses the suction
+  "glue." *Remaining:* the suction-vs-wetness curve is taken as **linear** (a nonlinear van-Genuchten
+  retention curve is the refinement), the failure depth z is still assumed, and the GSI dry-cohesion **unit**
+  ("18.5 kg/cm²" — physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening
+  layer, but the two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
+- **Slope sharpness — now upgraded (Milestone 27 / §21):** the hazard grid is 80 m (set by the
+  InSAR velocity), but slope is now computed on the **12.5 m ALOS DEM** at native resolution and
+  *averaged* onto each 80 m cell (mean-of-slopes > slope-of-mean), fixing the old under-estimate
+  (slope median 28→31°, max 56→66°). FS is correspondingly sharper. The *velocity* is still 80 m, so
+  the DEM sharpens the terrain/FS, not the InSAR resolution.
 - **Noisy hazard pixels:** the first hazard map flags too much — trustworthy
   mainly where HIGH pixels cluster, not as isolated single-pixel specks (a
   cluster-size filter and lower velocity noise will clean this up).

@@ -47,6 +47,7 @@ if sys.platform == "win32":
 
 import argparse
 import base64
+import csv
 import io
 import json
 import logging
@@ -62,6 +63,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 VEL_DIR = PROJECT_ROOT / "data" / "velocity"
 HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
 OUT_DIR = PROJECT_ROOT / "data" / "alerts"
+RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 LOG_DIR.mkdir(exist_ok=True)
@@ -74,10 +76,25 @@ logging.basicConfig(
 logger = logging.getLogger("orchestrator")
 
 # Rainfall scenarios → assumed saturation → which Phase-3 FS raster to use.
+# dry/monsoon/extreme are the MOCK what-if cascade (preserved baseline). 'operational' is
+# the RAINFALL-REALISTIC standing product (RESULTS_AND_KPIS.md §16d/§20): the regional rainfall
+# model only reaches m=1 on 11/214 days, so worst-case monsoon (m=1) over-flags (AUC 0.41,
+# below chance). Drawing at a realistic wet-day saturation concentrates the alert on the
+# steepest marginal slopes and BEATS CHANCE. The operating point is m=0.50 (~29 mm/72 h, a
+# moderately-wet day) under MATRIC-SUCTION FS physics (§20) + the 12.5 m ALOS DEM (§21): AUC 0.64
+# (the project best). History: m=0.40/0.535 (flat cohesion) -> m=0.55/0.614 (matric suction) ->
+# m=0.50/0.64 (+12.5 m DEM). Each physics upgrade shifted the operating saturation + improved AUC.
+# 'watch' is the higher-RECALL complement to 'operational' (§23): the m=0.50 ALERT map is sparse
+# (12 zones, AUC-max but low recall), so 'watch' draws a wetter antecedent (m=0.70 ~ sustained
+# monsoon) → a broader ~132-zone monitoring footprint. Two-tier hazard product: WATCH = monitor
+# wider (more recall, lower precision), ALERT = act on the precise core. (Distinct from the
+# operational_alarm.py TEMPORAL DORMANT/WATCH/ALERT states, which decide WHEN to consult a map.)
 SCENARIOS = {
-    "dry":     {"rainfall_mm_72h": 0,   "saturation": 0.0, "fs_layer": "FS_dry"},
-    "monsoon": {"rainfall_mm_72h": 120, "saturation": 1.0, "fs_layer": "FS_saturated"},
-    "extreme": {"rainfall_mm_72h": 250, "saturation": 1.0, "fs_layer": "FS_saturated"},
+    "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
+    "operational": {"rainfall_mm_72h": 29,  "saturation": 0.50, "fs_layer": "FS_real"},
+    "watch":       {"rainfall_mm_72h": 50,  "saturation": 0.70, "fs_layer": "FS_real"},
+    "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
+    "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }
 
 # Thresholds (consistent with Phase 3 / the project's Phase-4 rule).
@@ -89,25 +106,69 @@ CRITICAL_FS = 0.7
 
 
 # ------------------------------------------------------------------------------
+# Real-rainfall coupling — replaces the mock saturation with the MEASURED daily
+# wetness (from fetch_rainfall.py + rainfall_id_threshold.py). FS is exactly linear
+# in saturation m (infinite-slope model, constant unit weight), so for any real m we
+# interpolate FS_real = (1-m)*FS_dry + m*FS_saturated from the two end-member rasters
+# instead of re-running the geomechanical engine.
+# ------------------------------------------------------------------------------
+def load_wetness():
+    """Ordered (dates, rain_mm{}, wetness_0_1{}) from the rainfall pipeline outputs."""
+    path = RAIN_DIR / "ramban_wetness_daily.csv"
+    if not path.exists():
+        sys.exit(f"Missing {path} — run fetch_rainfall.py + rainfall_id_threshold.py first.")
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    dates = [r["date"] for r in rows]
+    return (dates,
+            {r["date"]: float(r["rain_mm"]) for r in rows},
+            {r["date"]: float(r["wetness_0_1"]) for r in rows})
+
+
+def trigger_days() -> set:
+    p = RAIN_DIR / "id_threshold_report.json"
+    return set(json.loads(p.read_text(encoding="utf-8"))["trigger_days"]) if p.exists() else set()
+
+
+def real_rainfall_cfg(date_str: str) -> dict:
+    """Scenario cfg for a real date: saturation m from the daily wetness, 72h rainfall
+    from the trailing 3-day total, and whether the day crossed the ID threshold."""
+    dates, rain, mwet = load_wetness()
+    if date_str not in mwet:
+        sys.exit(f"{date_str} not in wetness series ({dates[0]}..{dates[-1]}).")
+    i = dates.index(date_str)
+    rain72 = sum(rain[d] for d in dates[max(0, i - 2):i + 1])
+    return {"name": date_str, "rainfall_mm_72h": round(rain72),
+            "saturation": round(mwet[date_str], 3), "fs_layer": "FS_real",
+            "rain_day_mm": round(rain[date_str], 1),
+            "is_trigger": date_str in trigger_days()}
+
+
+# ------------------------------------------------------------------------------
 # Agent 1 — InSAR Auditor
 # ------------------------------------------------------------------------------
 class InSARAuditor:
     """Reads Phase-2 velocity + temporal coherence; flags confident creep."""
 
-    def __init__(self, stack: str):
+    def __init__(self, stack: str, use_vslope: bool = False):
         self.stack = stack
-        with rasterio.open(VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif") as s:
-            self.velocity = s.read(1)
+        self.vel_kind = "downslope V_slope" if use_vslope else "LOS"
+        name = "v_slope" if use_vslope else "mean_velocity_los_highpass"
+        with rasterio.open(VEL_DIR / f"{stack}_{name}.tif") as s:
+            v = s.read(1)
             self.transform = s.transform
             self.crs = s.crs
             self.width, self.height = s.width, s.height
+        # V_slope is +ve downslope and already masks single-look blind pixels (|C|<0.3) to
+        # NaN. Negate it so the failure direction stays NEGATIVE, matching the LOS sign
+        # convention every downstream step (creep<thr, severity<=-50, sort, narrative) uses.
+        self.velocity = -v if use_vslope else v
         tcoh = VEL_DIR / f"{stack}_temporal_coherence.tif"
         self.tcoh = rasterio.open(tcoh).read(1) if tcoh.exists() else None
 
     def creep_mask(self, vel_thr: float) -> np.ndarray:
         m = np.isfinite(self.velocity) & (self.velocity < vel_thr)
         logger.info(f"[Agent 1: InSAR Auditor] {int(m.sum()):,} pixels creeping "
-                    f"(LOS velocity < {vel_thr} mm/yr).")
+                    f"({self.vel_kind} velocity < {vel_thr} mm/yr).")
         return m
 
 
@@ -117,16 +178,27 @@ class InSARAuditor:
 class MeteorologicalTrigger:
     """Mock rainfall scenario → saturation → selects the applicable FS raster."""
 
-    def __init__(self, stack: str, scenario: str):
+    def __init__(self, stack: str, scenario: str, cfg=None):
         self.stack = stack
         self.scenario = scenario
-        self.cfg = SCENARIOS[scenario]
-        fs_path = HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif"
-        with rasterio.open(fs_path) as s:
-            self.fs = s.read(1)
-        logger.info(f"[Agent 2: Meteorological Trigger] scenario='{scenario}' "
-                    f"rainfall={self.cfg['rainfall_mm_72h']} mm/72h -> "
-                    f"saturation m={self.cfg['saturation']} -> uses {self.cfg['fs_layer']}.")
+        self.cfg = cfg if cfg is not None else SCENARIOS[scenario]
+        if self.cfg["fs_layer"] == "FS_real":     # real-rainfall: interpolate end-members
+            m = float(self.cfg["saturation"])
+            with rasterio.open(HAZ_DIR / f"{stack}_FS_dry.tif") as s:
+                fs_dry = s.read(1)
+            with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
+                fs_sat = s.read(1)
+            self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
+            logger.info(f"[Agent 2: Meteorological Trigger] REAL rainfall {scenario}: "
+                        f"day {self.cfg.get('rain_day_mm')} mm, 72h {self.cfg['rainfall_mm_72h']} mm "
+                        f"-> saturation m={m:.2f} -> FS_real=(1-m)*FS_dry+m*FS_saturated"
+                        f"{'  [ID-THRESHOLD TRIGGER]' if self.cfg.get('is_trigger') else ''}.")
+        else:
+            with rasterio.open(HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif") as s:
+                self.fs = s.read(1)
+            logger.info(f"[Agent 2: Meteorological Trigger] scenario='{scenario}' "
+                        f"rainfall={self.cfg['rainfall_mm_72h']} mm/72h -> "
+                        f"saturation m={self.cfg['saturation']} -> uses {self.cfg['fs_layer']}.")
 
     def unstable_mask(self, fs_fail: float) -> np.ndarray:
         return np.isfinite(self.fs) & (self.fs < fs_fail)
@@ -217,7 +289,7 @@ class CascadingReasoner:
         reason = (
             f"{cfg['fs_layer']} = {mean_fs:.2f} (< {FS_FAIL}: theoretically unstable "
             f"under {cfg['rainfall_mm_72h']} mm/72h rainfall) coincides with measured "
-            f"LOS creep of {mean_vel:.0f} mm/yr (peak {max_vel:.0f}) over "
+            f"{a.vel_kind} creep of {mean_vel:.0f} mm/yr (peak {max_vel:.0f}) over "
             f"{area_m2/1e6:.3f} km² of {mean_slope:.0f}° slope."
         )
         return {
@@ -407,10 +479,81 @@ def write_report(path: Path, stack: str, scenario: str, cfg: dict, alerts: list[
 
 
 # ------------------------------------------------------------------------------
-def run_scenario(stack: str, scenario: str) -> dict:
+# Season hazard timeline — the time-resolved view the mock scenarios cannot give.
+# ------------------------------------------------------------------------------
+def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None:
+    """Alert-zone count per day, driven by the REAL daily saturation. Same FS<1 AND
+    creep rule, but FS_real is re-interpolated for each day's measured wetness, so the
+    hazard rises and falls with the actual rainfall (peaking on the trigger day)."""
+    auditor = InSARAuditor(stack, use_vslope)
+    creep = auditor.creep_mask(VEL_CREEP_THR)
+    with rasterio.open(HAZ_DIR / f"{stack}_FS_dry.tif") as s:
+        fs_dry = s.read(1)
+    with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
+        fs_sat = s.read(1)
+    dates, rain, mwet = load_wetness()
+    trig = trigger_days()
+    px_km2 = (abs(auditor.transform.a) / 1000.0) ** 2
+
+    rows = []
+    for d in dates:
+        m = mwet[d]
+        fs = (1.0 - m) * fs_dry + m * fs_sat
+        labels, n = ndimage.label(creep & np.isfinite(fs) & (fs < FS_FAIL))
+        if n:
+            sizes = np.bincount(labels.ravel())[1:]
+            keep = sizes[sizes >= MIN_CLUSTER_PX]
+            nz, area = int(keep.size), float(keep.sum() * px_km2)
+        else:
+            nz, area = 0, 0.0
+        rows.append((d, rain[d], m, nz, area))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "hazard_timeline.csv"
+    csv_path.write_text(
+        "date,rain_mm,saturation_m,n_alert_zones,alert_area_km2\n"
+        + "\n".join(f"{d},{r:.2f},{m:.3f},{nz},{a:.4f}" for d, r, m, nz, a in rows),
+        encoding="utf-8")
+    _timeline_figure(out_dir / "hazard_timeline.png", rows, trig, stack)
+    peak = max(rows, key=lambda x: x[3])
+    logger.info(f"[hazard timeline] {len(rows)} days -> {csv_path.name} + .png ; "
+                f"peak {peak[3]} zones on {peak[0]} (m={peak[2]:.2f}, {peak[1]:.0f} mm); "
+                f"trigger day(s): {sorted(trig) if trig else 'none'}")
+
+
+def _timeline_figure(path: Path, rows, trig: set, stack: str) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    dates = [r[0] for r in rows]
+    x = np.arange(len(rows))
+    rain = np.array([r[1] for r in rows])
+    nz = np.array([r[3] for r in rows])
+    fig, ax = plt.subplots(figsize=(11, 5))
+    ax.bar(x, rain, color="#9ecae1", width=1.0)
+    ax.set_ylabel("daily rainfall (mm)", color="#3182bd")
+    ax2 = ax.twinx()
+    ax2.plot(x, nz, color="#cc3311", lw=1.6)
+    ax2.set_ylabel("alert zones (FS<1 & creep)", color="#cc3311")
+    for i, d in enumerate(dates):
+        if d in trig:
+            ax.axvline(i, color="k", ls="--", alpha=0.6)
+    tick = np.linspace(0, len(rows) - 1, 7).astype(int)
+    ax.set_xticks(tick)
+    ax.set_xticklabels([dates[i] for i in tick], fontsize=8)
+    ax.set_title(f"{stack}: hazard driven by REAL rainfall — alert zones (red) vs daily rain "
+                 f"(blue); dashed = ID-threshold trigger")
+    fig.tight_layout()
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+
+
+# ------------------------------------------------------------------------------
+def run_scenario(stack: str, scenario: str, out_dir: Path = OUT_DIR, cfg=None,
+                 use_vslope: bool = False) -> dict:
     logger.info(f"===== Orchestrating scenario '{scenario}' for {stack} =====")
-    auditor = InSARAuditor(stack)
-    met = MeteorologicalTrigger(stack, scenario)
+    auditor = InSARAuditor(stack, use_vslope)
+    met = MeteorologicalTrigger(stack, scenario, cfg)
     reasoner = CascadingReasoner(stack, auditor)
 
     creep = auditor.creep_mask(VEL_CREEP_THR)
@@ -423,6 +566,7 @@ def run_scenario(stack: str, scenario: str) -> dict:
         "scenario": {"name": scenario, **met.cfg},
         "thresholds": {"fs_fail": FS_FAIL, "vel_creep_mmyr": VEL_CREEP_THR,
                        "min_cluster_px": MIN_CLUSTER_PX},
+        "velocity_basis": auditor.vel_kind,
         "summary": {
             "n_alert_zones": len(alerts),
             "n_critical": sum(1 for a in alerts if a["severity"] == "CRITICAL"),
@@ -431,10 +575,11 @@ def run_scenario(stack: str, scenario: str) -> dict:
         },
         "alerts": alerts,
     }
-    (OUT_DIR / f"alerts_{scenario}.json").write_text(json.dumps(payload, indent=2),
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"alerts_{scenario}.json").write_text(json.dumps(payload, indent=2),
                                                      encoding="utf-8")
-    write_report(OUT_DIR / f"alert_report_{scenario}.md", stack, scenario, met.cfg, alerts)
-    write_dashboard(OUT_DIR / f"dashboard_{scenario}.html", stack, scenario, met.cfg,
+    write_report(out_dir / f"alert_report_{scenario}.md", stack, scenario, met.cfg, alerts)
+    write_dashboard(out_dir / f"dashboard_{scenario}.html", stack, scenario, met.cfg,
                     alerts, met.fs, creep, auditor.width, auditor.height)
     logger.info(f"Scenario '{scenario}': {len(alerts)} alerts -> "
                 f"alerts_{scenario}.json / alert_report_{scenario}.md / "
@@ -446,10 +591,31 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
     ap.add_argument("--scenario", choices=list(SCENARIOS) + ["all"], default="all")
+    ap.add_argument("--date", default=None,
+                    help="Run a REAL-rainfall-driven scenario for this date (YYYY-MM-DD): the "
+                         "saturation comes from the measured daily wetness, not a mock scenario.")
+    ap.add_argument("--rainfall-timeline", action="store_true",
+                    help="Write the season alert-zone timeline driven by real daily rainfall.")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Detect creep from the slope-parallel velocity (*_v_slope.tif, "
+                         "downslope-projected, single-look blind pixels excluded) instead of raw "
+                         "LOS. Sharper/more physical; off by default to preserve the LOS baselines.")
+    ap.add_argument("--out-dir", default=None,
+                    help="Output directory for alerts/report/dashboard "
+                         "(default: data/alerts/). Use per-stack dirs to avoid collisions.")
     args = ap.parse_args()
 
+    out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
+    if args.rainfall_timeline:
+        hazard_timeline(args.stack, out_dir, args.use_vslope)
+        return 0
+    if args.date:
+        run_scenario(args.stack, args.date, out_dir, real_rainfall_cfg(args.date), args.use_vslope)
+        logger.info(f"Real-rainfall scenario {args.date} -> {out_dir}/dashboard_{args.date}.html")
+        return 0
     scenarios = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
-    results = {sc: run_scenario(args.stack, sc) for sc in scenarios}
+    results = {sc: run_scenario(args.stack, sc, out_dir, use_vslope=args.use_vslope)
+               for sc in scenarios}
 
     logger.info("-" * 60)
     logger.info("Scenario comparison (the cascade in action):")
@@ -457,7 +623,7 @@ def main() -> int:
         logger.info(f"  {sc:<8s}: {s['n_alert_zones']:>3d} zones, "
                     f"{s['n_critical']} critical, {s['n_llof']} LLOF, "
                     f"{s['total_alert_area_km2']:.2f} km²")
-    logger.info(f"Open the dashboards in a browser: {OUT_DIR}/dashboard_<scenario>.html")
+    logger.info(f"Open the dashboards in a browser: {out_dir}/dashboard_<scenario>.html")
     return 0
 
 

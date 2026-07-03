@@ -63,6 +63,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
+ALOS_DEM_DIR = PROJECT_ROOT / "data" / "dem_alos_12m"   # 12.5 m ALOS PALSAR DEM (optional upgrade)
 VEL_DIR = PROJECT_ROOT / "data" / "velocity"
 OUT_DIR = PROJECT_ROOT / "data" / "hazard"
 LOG_DIR = PROJECT_ROOT / "logs"
@@ -81,8 +82,14 @@ logger = logging.getLogger("geomech")
 
 
 # ------------------------------------------------------------------------------
-def find_dem_for_stack(stack: str) -> Path:
-    """Return the _dem.tif of the first KEEP product of a stack."""
+def find_dem_for_stack(stack: str) -> tuple[Path, bool]:
+    """Return (dem_path, is_fine). Prefer the 12.5 m ALOS PALSAR DEM (a single AOI tile,
+    shared by all stacks) if present, falling back to the ~30 m HyP3 DEM of the stack's
+    first KEEP product. `is_fine` flags the ALOS DEM so slope is computed at native 12.5 m
+    then averaged onto the 80 m grid (sharper steepness — see slope_on_grid)."""
+    alos = sorted(ALOS_DEM_DIR.glob("*.dem.tif")) + sorted(ALOS_DEM_DIR.glob("*_DEM.tif"))
+    if alos:
+        return alos[0], True
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     keep = sorted(r["product"] for r in rows
                   if r["stack"] == stack and r["decision"] == "KEEP")
@@ -91,7 +98,7 @@ def find_dem_for_stack(stack: str) -> Path:
     dem = PROCESSED_DIR / keep[0] / f"{keep[0]}_dem.tif"
     if not dem.exists():
         raise SystemExit(f"DEM not found: {dem}")
-    return dem
+    return dem, False
 
 
 def load_master_grid(vel_path: Path):
@@ -125,6 +132,42 @@ def compute_slope(dem: np.ndarray, pixel_m: float) -> np.ndarray:
     slope = np.arctan(np.sqrt(dz_dx**2 + dz_dy**2))
     slope[np.isnan(dem)] = np.nan
     return slope.astype(np.float32)
+
+
+def slope_on_grid(dem_path: Path, is_fine: bool, dst_transform, dst_crs, w, h,
+                  dst_res: float, dem_80: np.ndarray) -> np.ndarray:
+    """Slope (radians) on the 80 m master grid. For the ~30 m HyP3 DEM, compute slope on
+    the already-reprojected 80 m DEM (current behaviour). For the 12.5 m ALOS DEM, compute
+    slope at NATIVE 12.5 m then AVERAGE-aggregate onto each 80 m cell — mean-of-slopes is
+    sharper than slope-of-mean (the 80 m DEM's known steepness under-estimate; §21)."""
+    if not is_fine:
+        return compute_slope(dem_80, dst_res)
+    from rasterio.windows import from_bounds
+    from rasterio.warp import transform_bounds
+    left, top = dst_transform.c, dst_transform.f
+    right, bottom = left + w * dst_res, top - h * dst_res
+    with rasterio.open(dem_path) as src:
+        b = transform_bounds(dst_crs, src.crs, left, bottom, right, top)
+        buf = 4 * abs(src.transform.a)                      # gradient halo
+        win = from_bounds(b[0] - buf, b[1] - buf, b[2] + buf, b[3] + buf,
+                          src.transform).round_offsets().round_lengths()
+        dem_fine = src.read(1, window=win, boundless=True, fill_value=np.nan).astype(np.float32)
+        win_transform = src.window_transform(win)
+        fine_res, fine_crs, nodata = abs(src.transform.a), src.crs, src.nodata
+    if nodata is not None:
+        dem_fine[dem_fine == nodata] = np.nan
+    dem_fine[(dem_fine < -100) | (dem_fine > 9000)] = np.nan
+    slope_fine = compute_slope(dem_fine, fine_res)          # radians, native 12.5 m
+    SENT = -9999.0                                          # NaN-safe nodata for averaging
+    src_arr = np.where(np.isfinite(slope_fine), slope_fine, SENT).astype(np.float32)
+    slope_80 = np.full((h, w), np.nan, dtype=np.float32)
+    reproject(source=src_arr, destination=slope_80,
+              src_transform=win_transform, src_crs=fine_crs,
+              dst_transform=dst_transform, dst_crs=dst_crs,
+              resampling=Resampling.average, src_nodata=SENT, dst_nodata=np.nan)
+    logger.info(f"Slope from ALOS 12.5 m DEM: native window {dem_fine.shape} -> "
+                f"averaged onto {h}x{w} @ {dst_res:.0f} m grid.")
+    return slope_80
 
 
 def compute_twi(dem: np.ndarray, slope_rad: np.ndarray, pixel_m: float) -> np.ndarray:
@@ -186,19 +229,54 @@ def factor_of_safety(slope_rad, c_kpa, phi_deg, gamma, z, m):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
-    ap.add_argument("--cohesion-kpa", type=float, default=5.0)
-    ap.add_argument("--phi", type=float, default=32.0, help="friction angle (deg)")
+    # --- Soil shear-strength parameters -------------------------------------------------
+    # CALIBRATED (2026-06-03) from the GSI meso-scale (1:10,000) landslide-susceptibility
+    # field study of the NH-244 Batote(Chakwa Nala)->Ganpat Bridge corridor, Ramban/Doda,
+    # J&K (GSI 2024-25 field season; brief in Research/LandslideInventory/). That study
+    # measured a friction angle of phi = 36.4-39.1 deg on site overburden (silty colluvium/
+    # scree/RBM, 0.5-20 m thick, >75% fines, moisture-sensitive) -> we adopt phi=36 deg
+    # (conservative end), replacing the generic literature 32 deg. gamma=19 and z=3 m sit
+    # within the measured ranges.
+    #
+    # MATRIC-SUCTION DRY/WET COHESION SPLIT (2026-06-08, Area 7 #4 — was deferred, now done):
+    # the same study reports good DRY strength but "significant reduction when wet" + "rapid
+    # strength loss during saturation" (low-plasticity fines). Unsaturated soil carries an
+    # APPARENT cohesion from matric suction that VANISHES as it saturates (extended Mohr-
+    # Coulomb / Fredlund). So we split cohesion into a DRY end-member (c' + suction) and a
+    # WET one (c' alone): the engine builds FS_dry with c_dry and FS_saturated with c_wet.
+    # Because cohesion interpolates linearly in m, FS stays EXACTLY linear in m, so the
+    # downstream FS_real=(1-m)*FS_dry+m*FS_saturated coupling (orchestrator, per-zone m*) is
+    # unchanged. c_dry = GSI dry-cohesion magnitude (brief: "mean 18.5 kg/cm2"; taken
+    # literally that is ~1814 kPa = rock-like and implausible for this silty colluvium, so we
+    # INTERPRET the magnitude as ~18.5 kPa — physically credible for suction-enhanced dry
+    # fines; FLAG for confirmation vs the source PDF). c_wet = 5 kPa (the prior conservative
+    # wet value; FS_saturated is therefore UNCHANGED from the pre-split model). A nonlinear
+    # soil-water-retention (van Genuchten) suction curve is the next refinement.
+    ap.add_argument("--cohesion-dry-kpa", type=float, default=18.5,
+                    help="dry/unsaturated cohesion kPa = c' + matric-suction apparent cohesion "
+                         "(GSI LSM dry, magnitude-interpreted; used for FS_dry)")
+    ap.add_argument("--cohesion-wet-kpa", type=float, default=5.0,
+                    help="saturated effective cohesion kPa (suction gone; used for FS_saturated)")
+    ap.add_argument("--phi", type=float, default=36.0,
+                    help="friction angle deg (GSI LSM Ramban/Doda: 36.4-39.1; default = conservative 36)")
     ap.add_argument("--gamma", type=float, default=19.0, help="soil unit weight kN/m³")
-    ap.add_argument("--soil-depth-m", type=float, default=3.0, help="failure depth z")
+    ap.add_argument("--soil-depth-m", type=float, default=3.0,
+                    help="failure depth z (GSI LSM overburden 0.5-20 m; 3 m = shallow translational)")
     ap.add_argument("--fs-fail", type=float, default=1.0)
     ap.add_argument("--fs-marginal", type=float, default=1.3)
     ap.add_argument("--vel-creep-thr", type=float, default=-15.0,
                     help="LOS velocity mm/yr below which a pixel counts as creeping")
+    ap.add_argument("--use-vslope", action="store_true",
+                    help="Fuse creep from the slope-parallel velocity (*_v_slope.tif, downslope-"
+                         "projected, blind pixels excluded) instead of raw LOS. Writes a distinct "
+                         "*_hazard_class_vslope.tif (FS/slope/twi are velocity-independent and kept "
+                         "canonical), so the LOS hazard baseline is preserved.")
     args = ap.parse_args()
 
     stack = args.stack
     logger.info(f"=== Geomechanical engine for {stack} ===")
-    logger.info(f"Soil: c'={args.cohesion_kpa} kPa, phi={args.phi}°, "
+    logger.info(f"Soil: c_dry={args.cohesion_dry_kpa} kPa (w/ matric suction), "
+                f"c_wet={args.cohesion_wet_kpa} kPa (saturated), phi={args.phi}°, "
                 f"gamma={args.gamma} kN/m³, z={args.soil_depth_m} m")
 
     vel_hp = VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif"
@@ -209,10 +287,12 @@ def main() -> int:
     pixel_m = abs(transform.a)
     logger.info(f"Master grid: {w}x{h} @ {pixel_m} m, {crs}")
 
-    dem = reproject_dem(find_dem_for_stack(stack), transform, crs, w, h)
-    logger.info(f"DEM reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
+    dem_path, dem_is_fine = find_dem_for_stack(stack)
+    dem = reproject_dem(dem_path, transform, crs, w, h)
+    logger.info(f"DEM ({'ALOS 12.5 m' if dem_is_fine else 'HyP3 ~30 m'}: {dem_path.name}) "
+                f"reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
 
-    slope = compute_slope(dem, pixel_m)
+    slope = slope_on_grid(dem_path, dem_is_fine, transform, crs, w, h, pixel_m, dem)
     slope_deg = np.degrees(slope)
     sd = slope_deg[np.isfinite(slope_deg)]
     logger.info(f"Slope (deg): median={np.median(sd):.1f} p95={np.percentile(sd,95):.1f} "
@@ -220,9 +300,10 @@ def main() -> int:
 
     twi = compute_twi(dem, slope, pixel_m)
 
-    fs_dry = factor_of_safety(slope, args.cohesion_kpa, args.phi, args.gamma,
+    # Matric-suction split: dry uses suction-enhanced cohesion, saturated uses c' (suction gone).
+    fs_dry = factor_of_safety(slope, args.cohesion_dry_kpa, args.phi, args.gamma,
                               args.soil_depth_m, m=0.0)
-    fs_sat = factor_of_safety(slope, args.cohesion_kpa, args.phi, args.gamma,
+    fs_sat = factor_of_safety(slope, args.cohesion_wet_kpa, args.phi, args.gamma,
                               args.soil_depth_m, m=1.0)
     for name, fs in (("dry", fs_dry), ("saturated", fs_sat)):
         v = fs[np.isfinite(fs)]
@@ -231,8 +312,14 @@ def main() -> int:
                     f"%<1.0 (unstable)={frac_fail:.1f}%")
 
     # --- Hazard fusion: physics (FS_saturated) + observation (InSAR creep) ---
-    with rasterio.open(vel_hp) as s:
+    creep_src = (VEL_DIR / f"{stack}_v_slope.tif") if args.use_vslope else vel_hp
+    if not creep_src.exists():
+        raise SystemExit(f"Creep velocity raster missing: {creep_src} — "
+                         f"run {'slope_velocity.py' if args.use_vslope else 'Phase 2'} first.")
+    with rasterio.open(creep_src) as s:
         vel = s.read(1)  # mm/yr, same grid; NaN where no measurement
+    if args.use_vslope:
+        vel = -vel       # +downslope -> negative, matching the creep-threshold sign
     creep = np.isfinite(vel) & (vel < args.vel_creep_thr)
     unstable = np.isfinite(fs_sat) & (fs_sat < args.fs_fail)
     marginal = np.isfinite(fs_sat) & (fs_sat < args.fs_marginal)
@@ -252,13 +339,18 @@ def main() -> int:
 
     # --- Write outputs ---
     prof = dict(profile, dtype="float32", count=1, nodata=np.nan, compress="lzw")
-    outputs = {
-        "slope_deg": slope_deg.astype(np.float32),
-        "twi": twi,
-        "FS_dry": fs_dry,
-        "FS_saturated": fs_sat,
-        "hazard_class": hazard,
-    }
+    if args.use_vslope:
+        # FS/slope/twi are velocity-independent (identical to the LOS run); write only the
+        # creep-fused hazard, to a distinct name so the LOS baseline raster stands.
+        outputs = {"hazard_class_vslope": hazard}
+    else:
+        outputs = {
+            "slope_deg": slope_deg.astype(np.float32),
+            "twi": twi,
+            "FS_dry": fs_dry,
+            "FS_saturated": fs_sat,
+            "hazard_class": hazard,
+        }
     for name, arr in outputs.items():
         path = OUT_DIR / f"{stack}_{name}.tif"
         with rasterio.open(path, "w", **prof) as d:

@@ -80,11 +80,12 @@ import rasterio
 from rasterio.windows import Window
 from scipy.ndimage import gaussian_filter
 
+from config import load_config
+
 # ------------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
-AOI_PATH = PROJECT_ROOT / "ramban_aoi.geojson"
 OUT_DIR = PROJECT_ROOT / "data" / "velocity"
 LOG_DIR = PROJECT_ROOT / "logs"
 
@@ -439,6 +440,8 @@ def nan_gaussian_highpass(arr: np.ndarray, sigma: float):
 # ------------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--config", default=None,
+                    help="Path to config.yaml (default: project-root config.yaml).")
     ap.add_argument("--stack", default="ASC_path27_frame106")
     ap.add_argument("--block", type=int, default=1024)
     ap.add_argument("--buffer-km", type=float, default=3.0)
@@ -457,6 +460,7 @@ def main() -> int:
     ap.set_defaults(deramp=True)
     args = ap.parse_args()
 
+    cfg = load_config(args.config)
     stack = args.stack
     logger.info(f"=== SBAS inversion for stack {stack} ===")
 
@@ -469,7 +473,7 @@ def main() -> int:
     inverter = PixelInverter(G, n_unknowns, args.min_pairs)
 
     transform, width, height, crs, offsets = compute_clipped_grid(
-        products, AOI_PATH, args.buffer_km
+        products, cfg.aoi_path, args.buffer_km
     )
 
     planes = (fit_deramp_planes(products, offsets, width, height)

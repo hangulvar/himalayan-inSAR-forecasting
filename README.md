@@ -16,6 +16,17 @@ The whole chain runs start to finish on a pathfinder satellite stack:
 | **4A — Agentic warning system** | 3-agent orchestrator → geolocated alerts + HTML dashboard | ✅ Complete |
 | **4B — Interactive 3-D UI** | Draped-terrain 3-D hazard explorer (`dashboard_3d.html`) | ✅ Complete |
 
+#### Beyond the MVP — production hardening + a forecasting/validation investigation
+
+The MVP is the *foundation*; substantial post-MVP work has since landed (full detail + every headline number in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md)):
+
+- **Reproducibility & scale:** Dockerized (Linux container); AOI-parameterized; all **3 ascending stacks** inverted into a **union hazard mosaic**. The 2 descending stacks were evaluated and honestly **rejected** as too noisy.
+- **Field-standard cross-check:** **MintPy + ERA5 tropospheric correction** corroborates the custom SBAS engine on frame106 (agreement r ≈ 0.55–0.59 after correction).
+- **Hazard → forecast:** **inverse-velocity time-to-failure** (Fukuzono) screening, and **slope-parallel velocity (V_slope)** projection that quantifies the single-look blind spot and improves cross-geometry agreement.
+- **Rainfall-trigger investigation (a worked, honest scientific arc — incl. a self-correction):** real ERA5-Land rainfall + a **verified regional Himalayan intensity–duration curve**, cross-checked against **CHIRPS** and **half-hourly GPM IMERG** (via Google Earth Engine), back-tested against documented 2025 failures, plus a per-elevation freeze-thaw + chronic-saturation analysis. **Key finding (after a date correction):** the deadly **20 April 2025 Ramban cloudburst** (3 deaths; NH-44 washed out at 5 sites) **was acute-rainfall-triggered, and the model detects it** — the regional curve flags it at Δ=0 and sub-daily IMERG resolves the burst (E=2.25). An earlier "rainfall ruled out" reading turned out to be an **artifact of an imprecise news date** (our inventory had 27 Apr; the real disaster was 20 Apr). The refined picture: **primed slopes** (snowmelt/saturation/freeze-thaw) **+ a cloudburst trigger** — the model captures *both*; the smaller 8 May event stays marginal. A standing caveat: daily *AOI-mean* products dilute the localized cell, so sub-daily/point data is what resolves it. Next: a **verified landslide inventory (GSI Bhukosh)** for a scored test.
+
+This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** (the 20 Apr date correction inverted an earlier finding) — is the project's scientific posture, and the explicit path toward a defensible, publishable tool.
+
 **New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
 ---
@@ -114,7 +125,22 @@ The leading underscore on diagnostic files keeps them out of the per-product dir
 
 ## 🛠️ Environment Setup
 
-### Conda (required)
+### Docker (recommended) — reproducible Linux container
+
+The whole pipeline now runs in a reproducible **Linux container**, which eliminates
+the Windows-specific issues (notably the `0xC06D007F` BLAS-DLL crash). Build once,
+then run any phase; the project (code + the ~73 GB `data/`) is bind-mounted at `/app`
+so nothing large is baked into the image.
+
+```bash
+docker compose build                                  # builds insar-himalaya:latest
+docker compose run --rm insar python workflows/agentic_orchestrator.py
+```
+
+Full build/run/credentials guide: **[`docker/README.md`](docker/README.md)**. MintPy
+(field-standard SBAS, heavier deps) has its **own** image: `docker compose build mintpy`.
+
+### Conda (native, alternative)
 
 ```bash
 # From the project root (which is inside OneDrive — that's fine for source code,
@@ -202,7 +228,23 @@ Without this step, every `hyp3_sdk.HyP3()` call will fail with `AuthenticationEr
 
 ### Step 4: (Optional) `.env` for non-Earthdata services
 
-Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if you'll use those. The `.gitignore` is pre-configured to never commit `.env`.
+Copy `.env.template` to `.env` and fill in Mapbox / GEE / Sentinel Hub keys if you'll use those. The `.gitignore` is pre-configured to never commit `.env`. `.env` also records the **host paths** of your credential files (`NETRC_PATH`, `CDSAPI_RC`) so the Docker containers auto-mount them.
+
+### Step 5: (Optional) Copernicus CDS / ERA5 — for the MintPy tropospheric correction
+
+Only needed for MintPy's ERA5 atmospheric correction. Copy `.cdsapirc.template` to `~/.cdsapirc` (Windows `%USERPROFILE%\.cdsapirc`) and paste your **CDS Personal Access Token** from https://cds.climate.copernicus.eu/how-to-api (new-CDS format: `url:` + `key:`), then accept the *"ERA5 hourly data on pressure levels"* licence on the CDS site. Set `CDSAPI_RC=<that path>` in `.env` so the `mintpy` container mounts it read-only. The real `.cdsapirc` is git-ignored. Full notes: `SESSION_REVIEW.md` §4.
+
+### Step 6: (Optional) Google Earth Engine — for CHIRPS gauge rainfall
+
+Only needed for `workflows/fetch_chirps.py` (gauge-blended CHIRPS daily rainfall, the cross-check to ERA5-Land). One-time host setup: (1) have a Google Cloud project with the **Earth Engine API** enabled (https://code.earthengine.google.com); (2) run `earthengine authenticate` — opens a browser, writes `~/.config/earthengine/credentials`; (3) set `EE_PROJECT_ID` in `.env`, and `EE_CREDENTIALS=<host path to that credentials file>` so the `insar` container mounts it read-only (falls back to a harmless placeholder so all other scripts run without GEE). `earthengine-api` is already in the `insar` image — **rebuild once** after pulling: `docker compose build insar`. The real credentials file is git-ignored.
+
+### Step 7: (Optional, **deferred** — manual external-data fetches) GACOS & GSI Bhukosh
+
+> These two are **manual, user-side downloads** (interactive portals / email-delivered files, not scriptable APIs — both are unreachable from the container/CI). No API key needed. Documented here so they can be picked up later; **expect each to take time**, and **verify the portal/URL is current** (Indian government geoportals in particular get reorganized — search for the live entry point).
+
+**(a) GACOS** — a free no-MATLAB **weather-model tropospheric correction**, the cross-check/alternative to the MintPy ERA5 path (`RESULTS_AND_KPIS.md` §13; Yu et al. 2018). Steps: (1) at **http://www.gacos.net/** submit a request with the AOI bounding box (Ramban ≈ 75.1–75.4 °E, 33.1–33.4 °N) and the **list of SAR acquisition dates** (frame106 ≈ 15 dates, pass ≈ 12:56 UTC — read them off the HyP3 product names); (2) GACOS emails a link to the per-date `.ztd` zenith-delay maps; (3) drop them in a folder and run MintPy with `mintpy.troposphericDelay.method = gacos` + `mintpy.troposphericDelay.gacosDir = <folder>`, then re-run `workflows/compare_tropo_methods.py` to add a `gacos` column. *Status: not done — needs the manual request + email turnaround.*
+
+**(b) GSI landslide inventory** — the **authoritative field-validated inventory** (~302 mapped Ramban-sub-basin landslides) for a *scored* precision/recall back-test (`RESULTS_AND_KPIS.md` §12g; the date-correction lesson shows exactly why verified ground truth matters). Steps: (1) register (free) and log in. As of **2025** the inventory is uploaded to the **NGDR portal** (National Geoscience Data Repository, Ministry of Mines — **https://geodataindia.gov.in**, the *current/newer* entry point) **and** the **Bhukosh** portal (**https://bhukosh.gsi.gov.in/Bhukosh/Public**); the **Bhusanket** portal (**https://bhusanket.gsi.gov.in**) carries the operational landslide *forecast bulletins* + susceptibility maps. ⚠️ **These portals get reorganized** — if a link is dead, search "**geodataindia** landslide" / "GSI **NGDR** landslide inventory download" / "Bhukosh shapefile", or try ISRO **Bhuvan** (bhuvan.nrsc.gov.in) landslide layers, or NASA **COOLR** as a sparse stopgap. (2) Navigate to the Jammu & Kashmir / Ramban toposheets, select the **Landslide Inventory (field-validated)** layer, download as **shapefile/KML**. (3) Drop it in `data/inventory/` — `backtest_inventory.py` is built to ingest it (a small polygon→centroid adapter is the only code step). *Status: not done — needs the manual portal login + interactive download (firewalled from the agent).*
 
 ---
 
@@ -243,6 +285,88 @@ python workflows/build_3d_dashboard.py           # → data/alerts/dashboard_3d.
 
 **See the demo:** open `data/alerts/dashboard_monsoon.html` (2-D, per scenario)
 or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
+
+### Configuration, multi-stack & MintPy (current)
+
+- **`config.yaml`** controls the AOI, job-name prefix, time window, baseline rules,
+  and the connectivity-rescue gate — point the pipeline at a new valley by editing it
+  (no code edits). Scripts read it via `workflows/config.py` (`--config` to override).
+- **One-time (existing Ramban data):** seed the product→stack manifest with
+  `python workflows/stacks.py --seed-legacy` (new AOIs get it from the downloader).
+- **Automated, quality-gated connectivity rescue:**
+  `python workflows/sbas_network_graph.py --recommend-only` →
+  `python workflows/apply_connectivity_rescues.py` (offline; only clean bridges).
+- **Multi-stack driver (Phases 2–4 + AOI union):** `python workflows/run_multistack.py`
+  — inverts all connectable stacks, builds per-look hazard and a **union** hazard/alert
+  product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
+  `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
+  standing product** (saturation **m=0.50** under the matric-suction FS physics §20 + the 12.5 m ALOS DEM
+  §21) that scores **AUC 0.64 — the project's best** in the back-test (`RESULTS_AND_KPIS.md` §16d/§20/§21).
+  Add `--use-vslope`
+  for the parallel downslope-projected product (`data/mosaic_vslope/`).
+- **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
+  --stack <stack>`, then `smallbaselineApp.py` in the `mintpy` container — see
+  [`docker/README.md`](docker/README.md) and `SESSION_REVIEW.md` §4.
+- **Tropospheric-correction method comparison (noise-floor attack, TRAIN-style):**
+  `docker compose run --rm mintpy bash /app/workflows/run_mintpy_era5_f106.sh` +
+  `run_mintpy_height_f106.sh` (ERA5 weather-model vs empirical height-correlation), then
+  `docker compose run --rm insar python workflows/compare_tropo_methods.py` → ERA5 cuts
+  velocity scatter **−31 %** (the empirical topo-only method does not); `RESULTS_AND_KPIS.md` §13.
+- **Forecasting / rainfall trigger (real-weather-driven):**
+  `python workflows/fetch_rainfall.py` (ERA5-Land water + temperature; `mintpy` image) **or**
+  `python workflows/fetch_chirps.py` (CHIRPS gauge rainfall via GEE; needs Step 6 auth) →
+  `python workflows/rainfall_id_threshold.py --csv <daily.csv> --threshold {caine1980|nwhimalaya}`
+  (global vs regional Himalayan I-D curve) →
+  `python workflows/rainfall_specificity.py --csv <daily.csv>` (sensitivity/selectivity trade-off) and/or
+  `python workflows/fetch_gpm_imerg.py` (half-hourly GPM IMERG sub-daily-intensity test; needs Step 6 auth) →
+  `python workflows/agentic_orchestrator.py --rainfall-timeline` (couples rain into FS) →
+  `python workflows/backtest_inventory.py --inventory data/inventory/gsi_inventory_aoi.geojson
+  --alerts data/alerts/mosaic_asc/alerts_operational.json` (**scored** validation vs the GSI
+  field-validated inventory: null-point control + distance-ROC/**AUC**, `--min-looks N` for the
+  multi-look core; `RESULTS_AND_KPIS.md` §16b–e). `inverse_velocity_ttf.py` screens for
+  accelerating creep. Add `--use-vslope` to the orchestrator/TTF for the downslope basis.
+- **Rainfall-realistic operating point (the saturation that beats chance):**
+  `python workflows/rainfall_selectivity_backtest.py` — sweeps the assumed soil saturation,
+  rebuilds + scores the AOI union mosaic at each, and shows AUC rising 0.41→0.55 as m falls
+  from worst-case 1.0 to the realistic ~0.25–0.40 (`RESULTS_AND_KPIS.md` §16d). The chosen
+  point (m=0.50 under the matric-suction physics §20 + 12.5 m DEM §21) is wired in as `operational` above.
+- **Two-tier hazard product (recall complement, §23):** the `watch` scenario (m=0.70) builds a broader,
+  higher-recall monitoring footprint beside the precise `operational` ALERT map — `run_multistack.py` emits
+  both. Score the WATCH map with `python workflows/backtest_inventory.py
+  --alerts data/alerts/mosaic_asc/alerts_watch.json --inventory data/inventory/gsi_inventory_aoi.geojson
+  [--min-looks 2]` (132 zones, recall 0.63, AUC 0.50; ≥2-look core AUC 0.59 beats chance — vs ALERT's
+  12 zones / recall 0.25 / AUC 0.64). ALERT = act now; WATCH = monitor wider. Both tiers are shown side by
+  side in the operational dashboard's WHERE panel (scored numbers read live from the back-test reports).
+- **Two-factor operational warning (WHERE × WHEN):**
+  `python workflows/operational_alarm.py --threshold nwhimalaya` — gates the validated operational
+  footprint by the regional rainfall curve graded by exceedance E (DORMANT/WATCH/ALERT). Cuts the raw
+  112/214-day trigger to 27 ALERT days (4.1×) and catches the 20 Apr cloudburst at Δ=0 (§17). Writes a
+  self-contained dashboard `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (`--as-of <date>` for
+  the "current state" banner).
+- **Per-zone gating (which zones are live today):** `python workflows/per_zone_gate.py` — each operational
+  zone's critical saturation m\*=(1−FS_dry)/(FS_sat−FS_dry); on a regional WATCH/ALERT day the active set =
+  zones whose m\* the day's saturation has reached (53–95 of 95, ranked by vulnerability, capped at the
+  validated footprint — no ballooning) (§19).
+- **Per-zone detection confidence (uncertainty quantification, §24):** `python workflows/velocity_uncertainty.py
+  [--footprint operational|watch]` — propagates each stack's velocity noise floor (σ_v 14–24 mm/yr) into a
+  per-zone confidence p=Φ((−15−v)/σ_v) that the creep is real (not noise), with multi-look corroboration
+  P=1−Π(1−p). Writes confidence-filtered `alerts_<scenario>_conf{,70,90}.json` (scoreable by
+  `backtest_inventory.py`). Honest finding: this measurement confidence is orthogonal to inventory AUC — a
+  triage axis, not a spatial ranker.
+- **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
+  footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
+  `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate
+  (which would shrink its breadth and apply it outside the validated map). Writes a ranked
+  `data/alerts/mosaic_asc/per_zone_triage_watch.{csv,md,png}`; a zone tops the list only if it is both
+  fragile and confidently moving (multi-look zones get a confidence boost).
+- **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
+  MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
+
+Any command runs in Docker too, e.g. `docker compose run --rm insar python workflows/run_multistack.py`.
+
+> ℹ️ The status table and per-script notes here describe the original Phase 1–4A
+> pathfinder run. For the **latest state** (Docker, multi-stack union, MintPy) always
+> read **`SESSION_REVIEW.md`** first.
 
 ### What each script produces
 

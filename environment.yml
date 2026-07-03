@@ -13,6 +13,7 @@ dependencies:
   - matplotlib
   - jupyterlab
   - python-dotenv  # Added this dependency based on the code
+  - pyyaml         # config.yaml loader (workflows/config.py)
   - pip
   - pip:
     - hyp3_sdk     # ASF's cloud processing submission API

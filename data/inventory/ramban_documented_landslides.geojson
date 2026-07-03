@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "note": "Documented NH-44 Ramban landslide locations for back-testing. COORDINATES ARE APPROXIMATE place-centroids along the Ramban-Banihal NH-44 corridor, derived from public reporting + peer-reviewed papers + named recurrent zones — NOT field-mapped scarps. For a rigorous SCORED spatial back-test, replace with the GSI Bhukosh georeferenced inventory (~302 landslides in the Ramban sub-basin; needs a portal login + manual download). 'recurrent_zone' = chronic NH-44 hotspot; 'event_2025' = a dated 2025 failure. DATE CORRECTION (2026-06-02): literature review established the MAJOR April 2025 event was the 20 APRIL CLOUDBURST (night of 19-20 Apr; Karol->Marog stretch; Seri Bagna 3 deaths; Kela Morh/T-2 tunnel; ~100 mm/1 hr localized, 40 mm/3 hr, 60-140 mm/day) — peer-reviewed (Springer Landslides 2025; ScienceDirect 2026) + multi-source news. This was rainfall-triggered. The earlier 'Digdol-Khooni Nallah 2025-04-27' entry is now flagged LOW date-confidence (the Kashmir Vision piece dated 27 Apr is very likely a follow-up on the 20 Apr disaster). Window 2025-04-01..2025-10-31.",
+  "sources": [
+    {"id": "Springer Landslides 2025", "title": "Devastating landslide incident in Ramban District (J&K) on April 20, 2025: combined effect of intense rainfall, anthropogenic factors, flash floods, and geomorphology", "url": "https://link.springer.com/article/10.1007/s10346-025-02580-1"},
+    {"id": "ScienceDirect 2026", "title": "Hydro-meteorological and infrastructural damage analysis of the 2025 Ramban cloudburst event (NW Himalaya, J&K)", "url": "https://www.sciencedirect.com/science/article/pii/S221242092600138X"},
+    {"id": "Down To Earth 2025-04-20", "title": "Massive flash floods in Ramban wash away NH-44 at 5 locations; three people killed", "url": "https://www.downtoearth.org.in/natural-disasters/massive-flash-floods-in-jammu-and-kashmirs-ramban-wash-away-nh-44-at-5-locations-three-people-killed"},
+    {"id": "India TV 2025-04-20", "title": "Ramban landslide/cloudburst: schools closed Apr 21; deaths and damage", "url": "https://www.indiatvnews.com/jammu-and-kashmir/ramban-landslide-schools-government-institutions-closed-on-april-21-heavy-rainfall-cloudburst-deaths-damage-jammu-kashmir-weather-updates-video-latest-2025-04-20-986474"},
+    {"id": "Mongabay 2025", "title": "Study maps the most unstable slopes along an important Himalayan highway", "url": "https://india.mongabay.com/2025/09/study-maps-the-most-unstable-slopes-along-an-important-himalayan-highway/"},
+    {"id": "India TV 2025-05-08", "title": "Heavy rain triggers mudslides in J-K's Ramban; NH-44 closed", "url": "https://www.indiatvnews.com/jammu-and-kashmir/heavy-rain-triggers-mudslides-in-ramban-traffic-disrupted-as-jammu-srinagar-nh-44-closed-commuters-advised-to-stay-indoors-2025-05-08-989228"},
+    {"id": "Kashmir Vision 2025-04-27", "title": "The NH-44 Landslide in Ramban! (likely a follow-up on the 20 Apr cloudburst)", "url": "https://kashmirvision.in/2025/04/27/the-nh-44-landslide-in-ramban/"},
+    {"id": "Greater Kashmir", "title": "NH-44 shut after heavy landslide near Digdol, Khooni Nallah", "url": "https://www.greaterkashmir.com/latest-news/nh-44-shut-after-heavy-landslide-near-digdol-khooni-nallah-ssp-traffic/"},
+    {"id": "GSI Bhukosh/Bhusanket", "title": "GSI landslide inventory (NGDR / Bhukosh / Bhusanket portals) — authoritative ~302 Ramban-sub-basin landslides", "url": "https://bhusanket.gsi.gov.in/"},
+    {"id": "NASA GLC/COOLR", "title": "NASA Global Landslide Catalog (COOLR), ~2007-2018", "url": "https://gpm.nasa.gov/landslides/data.html"}
+  ],
+  "features": [
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.238, 33.250]},
+     "properties": {"name": "Cafeteria Morh", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "Mongabay 2025; Kashmir Observer"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.225, 33.258]},
+     "properties": {"name": "Maroog", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "GSI/NHAI documentation"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.218, 33.262]},
+     "properties": {"name": "Battery Chashma", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "GSI/NHAI documentation"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.210, 33.270]},
+     "properties": {"name": "Digdol", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "Greater Kashmir; NHAI tunnel works"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.205, 33.278]},
+     "properties": {"name": "Khooni Nallah", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "Greater Kashmir; NHAI tunnel works"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.198, 33.290]},
+     "properties": {"name": "Panthyal", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "Mongabay 2025; NHAI Digdol-Panthyal tunnel"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.195, 33.330]},
+     "properties": {"name": "Ramsoo (Ramsu)", "type": "recurrent_zone", "coord_confidence": "approximate_place_centroid", "source": "Mongabay 2025 (Nashri-Panthya-Ramsu stretch)"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.250, 33.247]},
+     "properties": {"name": "Seri Bagna (20 Apr 2025 cloudburst, 3 deaths)", "type": "event_2025", "date": "2025-04-20", "coord_confidence": "approximate_place_centroid", "rainfall_note": "cloudburst night 19-20 Apr; ~100 mm/1 hr localized, 40 mm/3 hr, 60-140 mm/day", "date_confidence": "high (peer-reviewed + multi-source)", "source": "Springer Landslides 2025; Down To Earth 2025-04-20"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.243, 33.251]},
+     "properties": {"name": "Kela Morh / T-2 tunnel (20 Apr 2025 cloudburst)", "type": "event_2025", "date": "2025-04-20", "coord_confidence": "approximate_place_centroid", "rainfall_note": "same 20 Apr cloudburst; NH-44 washed out at ~5 locations over a 10 km stretch", "date_confidence": "high (peer-reviewed + multi-source)", "source": "Springer Landslides 2025; ScienceDirect 2026; ETV Bharat"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.207, 33.274]},
+     "properties": {"name": "Digdol-Khooni Nallah slide", "type": "event_2025", "date": "2025-04-27", "coord_confidence": "approximate_place_centroid", "date_confidence": "low (likely the 20 Apr cloudburst reported a week later; kept for transparency)", "source": "Kashmir Vision 2025-04-27"}},
+    {"type": "Feature", "geometry": {"type": "Point", "coordinates": [75.190, 33.300]},
+     "properties": {"name": "Chamba Seri mudslide", "type": "event_2025", "date": "2025-05-08", "coord_confidence": "approximate_place_centroid", "date_confidence": "medium (news-reported; smaller event)", "source": "India TV 2025-05-08"}}
+  ]
+}

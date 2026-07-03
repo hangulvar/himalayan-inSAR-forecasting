@@ -1,0 +1,25 @@
+# MintPy environment — field-standard SBAS time-series + ERA5 tropospheric
+# correction (Roadmap §1). Kept SEPARATE from environment.docker.yml so the lean
+# `insar` image stays small; MintPy's heavy dependency tree (cartopy, h5py, dask,
+# pyresample, gdal, pyaps3, ...) is isolated here. conda-forge ships all of these.
+#
+# Two-tier reproducibility like the insar image: this is the human-readable spec;
+# pin to docker/conda-mintpy-linux-64.lock after the first successful build.
+#
+# cdsapi>=0.7.2 targets the NEW CDS endpoint; pyaps3 is MintPy's ERA5 downloader
+# (must be new-CDS compatible — smoke-test one ERA5 fetch after building).
+channels:
+  - conda-forge
+dependencies:
+  # PIN the generation: an unpinned solve pulled Python 3.14 + numpy 2.4, and
+  # MintPy 1.6.2's inversion-quality code hits numpy-2.x's removal of the implicit
+  # size-1-array -> scalar conversion ("only 0-dimensional arrays ... to scalars"
+  # / "setting an array element with a sequence"), crashing invert_network. numpy
+  # <2 (1.26) restores that behaviour; py3.11 is a well-tested MintPy combo.
+  # See error_history_log.md (2026-05-31).
+  - python=3.11.*
+  - "numpy<2"
+  - mintpy
+  - pyaps3
+  - cdsapi>=0.7.2
+  - pip
