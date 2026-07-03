@@ -59,13 +59,16 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject
 
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
 ALOS_DEM_DIR = PROJECT_ROOT / "data" / "dem_alos_12m"   # 12.5 m ALOS PALSAR DEM (optional upgrade)
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-OUT_DIR = PROJECT_ROOT / "data" / "hazard"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+OUT_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 GAMMA_W = 9.81  # unit weight of water, kN/m³
@@ -82,13 +85,15 @@ logger = logging.getLogger("geomech")
 
 
 # ------------------------------------------------------------------------------
-def find_dem_for_stack(stack: str) -> tuple[Path, bool]:
+def find_dem_for_stack(stack: str, prefer_alos: bool = True) -> tuple[Path, bool]:
     """Return (dem_path, is_fine). Prefer the 12.5 m ALOS PALSAR DEM (a single AOI tile,
     shared by all stacks) if present, falling back to the ~30 m HyP3 DEM of the stack's
     first KEEP product. `is_fine` flags the ALOS DEM so slope is computed at native 12.5 m
     then averaged onto the 80 m grid (sharper steepness — see slope_on_grid)."""
+    # prefer_alos=False skips the tile (e.g. after a zero-coverage check: the single
+    # user-fetched tile is per-AOI — it covers Ramban, not necessarily another site).
     alos = sorted(ALOS_DEM_DIR.glob("*.dem.tif")) + sorted(ALOS_DEM_DIR.glob("*_DEM.tif"))
-    if alos:
+    if alos and prefer_alos:
         return alos[0], True
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     keep = sorted(r["product"] for r in rows
@@ -291,6 +296,14 @@ def main() -> int:
     dem = reproject_dem(dem_path, transform, crs, w, h)
     logger.info(f"DEM ({'ALOS 12.5 m' if dem_is_fine else 'HyP3 ~30 m'}: {dem_path.name}) "
                 f"reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
+    if dem_is_fine and not np.isfinite(dem).any():
+        logger.warning(f"ALOS tile {dem_path.name} has ZERO coverage of this master grid "
+                       f"(the 12.5 m upgrade is a per-AOI tile) — falling back to the "
+                       f"HyP3 product DEM.")
+        dem_path, dem_is_fine = find_dem_for_stack(stack, prefer_alos=False)
+        dem = reproject_dem(dem_path, transform, crs, w, h)
+        logger.info(f"DEM (HyP3 ~30 m: {dem_path.name}) reprojected. "
+                    f"Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
 
     slope = slope_on_grid(dem_path, dem_is_fine, transform, crs, w, h, pixel_m, dem)
     slope_deg = np.degrees(slope)

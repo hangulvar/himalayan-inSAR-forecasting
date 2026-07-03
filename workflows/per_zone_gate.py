@@ -37,14 +37,16 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
+from config import load_config  # noqa: E402
 from rainfall_id_threshold import THRESHOLDS, SLUG  # noqa: E402
 from rainfall_specificity import peak_exceedance  # noqa: E402
 from velocity_uncertainty import stack_noise, confidence  # noqa: E402  (§24 detection confidence)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 
 # Operational saturation baseline (m=0.50 under matric-suction §20 + the 12.5 m ALOS DEM §21;
 # history m=0.40 flat -> 0.55 suction -> 0.50 +DEM) and the §17 temporal-gate thresholds.

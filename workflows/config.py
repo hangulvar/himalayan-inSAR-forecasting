@@ -56,6 +56,15 @@ class Config:
         stem = self.aoi_path.stem
         return stem[:-4] if stem.endswith("_aoi") else stem
 
+    @property
+    def data_suffix(self) -> str:
+        """'' for ramban (grandfathered — its products already live in the plain
+        dirs) else '_<slug>'. Appended to the Phase 2-4 output dir names
+        (data/velocity, data/hazard, data/alerts, data/mosaic*) so two AOIs
+        coexist: the same Sentinel-1 frames can cover both sites, so stack
+        labels alone do not separate them."""
+        return "" if self.aoi_slug == "ramban" else f"_{self.aoi_slug}"
+
 
 def _to_utc(value) -> datetime:
     """Normalize a YAML date/datetime to a tz-aware UTC datetime.

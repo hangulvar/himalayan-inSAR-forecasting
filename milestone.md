@@ -1054,6 +1054,72 @@ moving" priority — the operator reads the top few instead of all 132 — with 
 
 ---
 
+## ✅ Milestone 31 — Pointing the tool at a second mountain  *(Vaishno Devi AOI, Phase 1, 2026-07-03)*
+
+**What we set out to do:** prove the "point it anywhere" promise for real. The new target: the **Vaishno
+Devi pilgrimage route** — the full climb from Katra town up to the shrine and on to the Bhairav temple —
+to find which parts of the track and the mountain-side infrastructure sit under slopes that are slowly
+creeping.
+
+**How we drew the new area:** instead of hand-drawing a box, we pulled the route's real landmarks (Katra,
+the trek start, the shrine, the Bhairav temple, even the ropeway between them) from OpenStreetMap and wrapped
+a box around them with a couple of kilometres of margin — enough to include the slopes *above* the path
+(the ones that could fail onto it) and the town at the bottom.
+
+**A lucky discovery:** the satellite "picture frames" that cover Ramban turn out to cover Katra too — the
+two sites are neighbours on the same orbital tracks. That means the radar archive we already downloaded
+for Ramban *also* photographs the new mountain, giving us history for free.
+
+**What happened:** we ordered 49 radar-pair computations from the NASA/ASF cloud (~490 of our 8,000
+credits). 48 came back perfect; 1 failed on their side. The failure exposed a small blind spot in our
+ordering script — it counted failed orders as "done", so re-running would never re-order them. One-line fix,
+re-ran, and it re-ordered exactly the missing one. Then the quality audit ran over everything and told us,
+honestly: the **deep-winter radar pairs are mostly ruined by snow and atmosphere** (expected in the high
+Himalaya), but the **spring chains — the ones that matter heading into the monsoon — are clean and fully
+connected**.
+
+**One important piece of plumbing:** because the two sites share picture frames, their results would have
+overwritten each other. We taught every step of the pipeline to keep **separate output folders per site**
+(Ramban keeps its original folders untouched; the new site gets its own `_vaishnodevi` folders). The two
+mountains now coexist in one project.
+
+**Plain-language result:** the raw radar ingredients for the Vaishno Devi route are **downloaded, audited,
+and ready** — next step is turning them into a motion map, then a hazard map for the track. (Honest caveat:
+the soil-strength number we'll use at first is borrowed from Ramban, and there's no local landslide list yet
+to score against — the new site starts as "framework-validated", not "site-validated".)
+
+---
+
+## ✅ Milestone 32 — The shrine route gets its first hazard map  *(Vaishno Devi Phases 2–4, 2026-07-03)*
+
+**What we set out to do:** turn the freshly-audited radar ingredients (Milestone 31) into the same product
+Ramban has — a motion map, then a physics hazard map, then ranked alert zones — for the pilgrimage route.
+
+**What broke first (and why that's good news):** pointing the machinery at a second mountain immediately
+exposed three hidden "only works for Ramban" assumptions — a quality bar set higher than a short radar
+series can ever reach, a high-resolution elevation tile that only covers Ramban, and one function whose
+callers were never updated after an earlier upgrade. All three fixed; the pipeline is now genuinely
+site-agnostic, and each fix came from a *real* failure rather than a guess.
+
+**What we got:** the two clean spring radar chains (May–June 2026, two different satellite tracks) became
+velocity maps, then a hazard map, then alert zones — landing in the new site's own folders, with Ramban's
+untouched. Under today's standing "realistic wet-season" assumption the route corridor shows **27 alert
+zones (4 critical)**; the wider watch net has 72; a worst-case fully-soaked monsoon scenario has 185. Most
+importantly, **411 spots are flagged by both satellite tracks independently** — that double-confirmed core
+is where to look first.
+
+**The honest caveat, in plain words:** this map is built from only ~7 weeks of radar — its "is it moving?"
+measurements are several times noisier than Ramban's year-long series — and it borrows Ramban's soil
+calibration, with no local landslide list yet to score against. Treat it as a **first reconnaissance map**,
+strongest where the two tracks agree, and improving every 12 days as new acquisitions extend the chain
+through the monsoon.
+
+**Plain-language result:** the Vaishno Devi route now has a working end-to-end hazard product — velocity →
+physics → ranked alert zones with dashboards — in its own folders beside Ramban's. Next: draw the actual
+pilgrim track on top and name which segments sit in or below the flagged zones.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

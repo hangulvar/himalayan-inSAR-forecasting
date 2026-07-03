@@ -34,12 +34,17 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
+from config import load_config  # noqa: E402
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 
 
 def load_timeseries(stack: str):
     """Return (t_days, dates, cube) — cube is (n_dates, H, W) cumulative LOS mm."""
-    path = PROJECT_ROOT / "data" / "velocity" / f"{stack}_displacement_timeseries.tif"
+    path = VEL_DIR / f"{stack}_displacement_timeseries.tif"
     if not path.exists():
         raise SystemExit(f"Missing time series: {path} — run Phase 2 (custom inverter) first.")
     with rasterio.open(path) as src:
@@ -187,7 +192,7 @@ def main() -> int:
     stack = args.stack
 
     alerts_path = Path(args.alerts) if args.alerts else \
-        PROJECT_ROOT / "data" / "alerts" / stack / "alerts_monsoon.json"
+        ALERTS_DIR / stack / "alerts_monsoon.json"
     if not alerts_path.exists():
         raise SystemExit(f"Missing alerts JSON: {alerts_path}")
     alerts = json.loads(alerts_path.read_text(encoding="utf-8"))["alerts"]
@@ -199,7 +204,7 @@ def main() -> int:
     # --use-vslope, select on the slope-parallel velocity instead (negated so +downslope
     # -> negative, matching the creep-threshold sign), which excludes blind-spot pixels.
     vel_name = "v_slope" if args.use_vslope else "mean_velocity_los_highpass"
-    vel_path = PROJECT_ROOT / "data" / "velocity" / f"{stack}_{vel_name}.tif"
+    vel_path = VEL_DIR / f"{stack}_{vel_name}.tif"
     with rasterio.open(vel_path) as vsrc:
         vel = vsrc.read(1).astype(np.float64)
     if args.use_vslope:

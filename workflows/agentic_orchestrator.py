@@ -62,9 +62,10 @@ from scipy import ndimage
 from config import load_config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-OUT_DIR = PROJECT_ROOT / "data" / "alerts"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+OUT_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 LOG_DIR = PROJECT_ROOT / "logs"
 

@@ -11,38 +11,38 @@
 
 ---
 
-# LIVE — Session 13 · branch `mvp-expansion` · updated 2026-07-03
+# LIVE — Session 14 · branch `aoi-vaishnodevi` · updated 2026-07-03
 
 ## Current state
 
-- **The full MVP is COMPLETE and demonstrable:** radar → audited data → SBAS velocity (3 ASC stacks; DESC dumped, quality-first) → physics hazard → explainable rainfall-driven warning + 3-D UI. Dockerized, point-anywhere (`config.yaml`), multi-stack + union mosaic. Plain-language story: `milestone.md` M1–M30.
-- **Validation is scored and beats chance.** CURRENT operating point = the **m=0.50 ALERT** product — project-best AUC (§21b). Scoring method: null-point control + distance-ROC/AUC (§16b).
-- **Two-tier product (§23):** precise **ALERT** map beside a higher-recall **WATCH** map (m=0.70); its ≥2-look core also beats chance. Both tiers surfaced in the dashboard's WHERE panel, scores read live from the back-test reports (self-updating).
-- **Per-zone detection confidence (§24):** velocity noise floor (σ_v, robust MAD) → P(creep is real, not noise); a *triage* axis, orthogonal to inventory AUC. Colour-coded column in the dashboard's per-zone panel.
-- **WATCH triage (§25):** the 132-zone net is *ranked, not gated* (priority = fragility m\* × confidence P); top-5 "read first" shortlist inside the dashboard's WATCH card.
-- **Two-factor warning WHERE×WHEN:** regional-curve temporal gate (§17, catches the 20 Apr 2025 cloudburst at Δ=0) + per-zone critical-saturation gating m\* (§19).
-- **Physics upgrades in force:** φ=36° GSI-calibrated friction (§15/§16a) + matric-suction dry/wet cohesion split (§20) + 12.5 m ALOS DEM slope (§21) — each removed an assumption AND raised the score.
-- **ERA5 tropo velocity:** frame106 good (§13/§18 — trust the multi-look core); frame102/101 honestly QC-stopped (§22), mosaic stays on custom velocities.
-- ⭐ **Headline demo:** `data/alerts/mosaic_asc/operational_alarm_dashboard.html` — WHERE (two tiers) × WHEN (alarm calendar) × WHICH ZONES (ranked triage panel + confidence column; `--as-of <date>`). Also `data/alerts/dashboard_3d.html` (3-D) and per-stack `dashboard_operational.html`.
-- **Data state:** all 3 ASC stacks at φ=36° + suction + 12.5 m DEM; zone counts per scenario → §23. (V_slope mosaics NOT refreshed since §16c — still pre-DEM.)
+- **The Ramban product is COMPLETE, scored, and LIVE:** two-tier ALERT/WATCH warning (§23) with per-zone confidence (§24) + triage (§25), temporal gate (§17), physics-upgraded to the project-best operating point (§21b). Story: `milestone.md` M1–M30. `mvp-expansion` is ready to merge to `master` (user's call).
+- **Live rainfall ingestion (Area 6) SHIPPED:** `live_alarm.py` — one idempotent command (run once in each image) extends the season CSV through today and regenerates the alarm dashboard; Ramban's 2026 season verified current through 26 Jun (4 April ALERT days; ~5-day ERA5-Land lag is by design).
+- **Second AOI — Vaishno Devi (Katra) pilgrimage corridor — Phase 1 COMPLETE (§26, M31):** OSM-anchored Trikuta-route polygon; 49 pairs / 8 stacks submitted (490 credits, 7,510 left); 48 products QA'd; the 1 ASF-side failure resubmitted after fixing a dedupe gap (FAILED jobs counted as done — `error_history_log.md` 2026-07-03).
+- **Key structural fact:** Katra shares Sentinel-1 frames with Ramban (path27/100/34) — the 2025 archive covers the new site for free; May–Jun 2026 acquisitions landed in new frame labels (f105, f103) via frame drift.
+- **QA verdict for the new site:** winter-2026 pairs mostly QUARANTINED (phase-elev R² ≤0.85, snow/atmo); the **spring chains connect fully after rescue** (f105, f103) — the monsoon-relevant baseline is clean. Season-gap disconnections (Nov 25–Jan 26 hole) go to the SVD/period-split path.
+- **AOI-coexistence layer SHIPPED:** whole rainfall/trigger chain is config-driven (`aoi_slug`-prefixed files; Ramban names grandfathered byte-identical), and Phase 2–4 output dirs are slug-scoped (`data/*_vaishnodevi/` vs Ramban's plain dirs) — 12 scripts, 20/20 dir resolutions verified in-container. Rationale: shared frames mean stack labels can't separate the sites.
+- **Vaishno Devi Phases 2–4 COMPLETE (§27, M32):** both connected spring stacks inverted (2 ASC tracks, 4 pairs each) → hazard (φ=36° borrowed, HyP3 30 m DEM via new ALOS-fallback) → alert zones + dashboards + union mosaic in `data/*_vaishnodevi/` (Ramban's dirs verified untouched). Union: **operational 27 zones (4 crit, 6 multi-look) / watch 72 / monsoon 185**; HIGH 2,705 px, **≥2-track core 411 px — the trust-first set**. `[UNVALIDATED]` — no local inventory; ~7-week baseline, high noise floor (§27 caveats).
+- **Cross-AOI stress test paid off:** three latent single-AOI assumptions found+fixed (min-pairs clamp, ALOS-tile zero-coverage fallback, `slope_velocity` un-rerun §21 signature break) — `error_history_log.md` 2026-07-03b.
+- ⭐ **Headline demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026.html` live season); Vaishno Devi `data/alerts_vaishnodevi/<stack>/dashboard_operational.html` + union `alerts_*.json`. Cosmetic gap: dashboards still titled "Ramban NH-44" pending a `site_name` config field.
 
 ## Recommended next step
 
-Top remaining items (each needs external data / compute / per-stack tuning — see STABLE §3 for the full menu):
-(a) nonlinear van-Genuchten suction curve (§20 is first-order linear); (b) lab confirmation of c_dry/c_wet
-(the 18.5 unit question, §20); (c) per-stack ERA5 reference-pixel + unwrapping QC to rescue frame102/101
-(§22 fix path); (d) live rainfall ingestion (replace manual fetch); (e) NISAR ingestion as it matures
-(operational window from Jul 2026); (f) **new-AOI replication before monsoon** — point `config.yaml` +
-start the S1/HyP3 pull early (velocity needs a time series).
+**The actual deliverable question — "which parts of the track are at risk":** overlay the OSM route +
+infrastructure (track, ropeway, Sanjichhat helipad, Bhawan complex) on the VD union zones and produce a
+per-segment risk read (distance-to-zone + zone priority). Then: VD rainfall season (`live_alarm.py` is
+slug-aware) for the WHEN axis; bump `search_end` + resubmit every ~2 weeks to extend the chains through the
+monsoon (velocity noise drops as chains lengthen); fetch a Trikuta ALOS 12.5 m tile (user-side, same §21
+path). Ramban backlog unchanged (STABLE §3).
 
-> **⏸ Deferred user-side manual setups (both documented in `README.md` Step 7):** (1) GACOS tropo
-> cross-check; (2) GSI Bhukosh verified-date inventory (dropped as a blocker — the CSV suffices spatially).
+> **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
+> lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
+> (ASF Vertex, like the Ramban one).
 
 ## Uncommitted delta
 
-- Working tree **clean at `737e739`**; all Session-13 work committed (B1 `39c723c`, B2 `1314682`+`a4b5db6`, B3 `d7535f6`, B4 `737e739`).
-- **[2026-07-03] NEW this session — documentation-ritual streamline:** `.claude/commands/wrap-session.md` (one-command end-of-session ritual), this restructured LIVE/STABLE SESSION_REVIEW (verbose snapshot archived), CLAUDE.md §5 ritual rules updated (CLAUDE.md itself is untracked). Suggested commit:
-  `git add .claude/commands/wrap-session.md SESSION_REVIEW.md && git commit -m "Streamline documentation ritual: /wrap-session command + LIVE/STABLE SESSION_REVIEW"`
+- Committed on `aoi-vaishnodevi` through the user's AOI-coexistence commit; prior batches (AOI+config+compose `9cf39ab`, live-rainfall, QA/dedupe) all in.
+- **[2026-07-03] NEW this batch — VD Phases 2–4 + robustness fixes + docs:** `custom_sbas_inverter.py` (min-pairs clamp), `geomechanical_engine.py` (ALOS zero-coverage fallback, `prefer_alos` param), `slope_velocity.py` (latent §21 tuple fix), `run_multistack.py` (output log uses real dir names), `RESULTS_AND_KPIS.md` §27, `milestone.md` M32, `error_history_log.md` 2026-07-03b, this LIVE block. Suggested commit:
+  `git add workflows/ RESULTS_AND_KPIS.md milestone.md error_history_log.md SESSION_REVIEW.md && git commit -m "VD Phases 2-4: first shrine-corridor hazard product (27/72/185 zones, 411px 2-track core); fix 3 latent single-AOI assumptions (§27, M32)"`
 
 ---
 

@@ -37,9 +37,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
+from config import load_config  # noqa: E402
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 MOSAIC_ALERTS_DIR = ALERTS_DIR / "mosaic_asc"
 
 CREEP_THR = -15.0                                  # mm/yr; Phase-4 creep test (neg = downslope)

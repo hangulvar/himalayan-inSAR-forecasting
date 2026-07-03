@@ -50,13 +50,16 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject
 
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 SCENARIOS = ["dry", "monsoon", "extreme"]

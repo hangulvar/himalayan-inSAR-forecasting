@@ -36,13 +36,15 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
+from config import load_config                                  # noqa: E402
 from per_zone_gate import critical_saturation, tier_of          # m* + vulnerability tier (§19)
 from velocity_uncertainty import stack_noise, confidence        # noise floor + P (§24)
 from run_multistack import MERGE_DEG, connected_stacks          # union-merge distance + stacks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 MOSAIC_ALERTS_DIR = ALERTS_DIR / "mosaic_asc"
 
 

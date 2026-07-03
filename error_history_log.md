@@ -23,6 +23,48 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-03b] First cross-AOI run surfaced three latent "only-works-for-Ramban" assumptions
+
+* **Symptom:** `run_multistack.py` under the Vaishno Devi config failed twice in sequence:
+  (1) `custom_sbas_inverter.py`: "No solvable reference candidate in AOI — relax --min-pairs";
+  (2) after fixing that, `geomechanical_engine.py`: `IndexError` in `np.percentile` on an empty slope
+  array, preceded by "DEM (ALOS 12.5 m …) reprojected. Valid pixels: 0/34,608".
+* **Root causes (all latent single-AOI assumptions, invisible while only Ramban existed):**
+  1. **`--min-pairs` default 8 is unreachable by a 4-pair stack** — the new spring chains have 4
+     interferograms, so *no* pixel could ever qualify. Fix: clamp `min_pairs` to the stack's pair
+     count (logged when clamped); Ramban's 30–40-pair stacks unaffected.
+  2. **The 12.5 m ALOS DEM is a single per-AOI tile** (user-fetched for Ramban, §21) but
+     `find_dem_for_stack()` preferred it unconditionally → reprojection onto the Katra grid gave 0
+     valid pixels → NaN slope → crash. Fix: zero-coverage check + WARN + fallback to the HyP3
+     product DEM (`find_dem_for_stack(stack, prefer_alos=False)`).
+  3. **`slope_velocity.py` never adapted to §21's signature change** — it still used
+     `find_dem_for_stack`'s return as a bare Path (it became a `(path, is_fine)` tuple on
+     2026-06-10). Latent because V_slope was never re-run post-§21. Fix: unpack the tuple AND pass
+     `prefer_alos=False` — it needs the *product* `_dem.tif` anyway, since it derives the
+     lv_theta/lv_phi look-vector paths from the product directory.
+* **Lessons:** (a) a second AOI is a free integration test — defaults tuned on one site's data
+  volume (min-pairs, DEM tiles) must degrade gracefully, not die; (b) when a function's return shape
+  changes, grep ALL callers — an un-rerun caller stays silently broken; (c) prefer fallback-with-WARN
+  over hard preference for per-site optional upgrades.
+
+### [2026-07-03] HyP3 dedupe counted FAILED jobs as "done" — re-runs never resubmitted them
+
+* **Symptom:**
+  The Vaishno Devi Phase-1 pull came back 48/49 (one pair FAILED server-side at ASF:
+  `ASC_path27_frame106` 2026-01-13→2026-01-25). Re-running `submit_hyp3_jobs.py --submit` — the
+  documented idempotent recovery — reported `Skipped (dupes): 49, Submitted: 0`: the missing pair
+  was never re-ordered.
+* **Root cause:**
+  `fetch_existing_pair_signatures()` builds the dedupe set from **every** job under the name prefix,
+  regardless of `status_code` — so a FAILED job's granule pair looked "already submitted" forever.
+  A latent idempotency gap (same class as the Session-13 scenario-staleness sentinel): invisible until
+  the first genuine ASF-side failure, because every earlier job had succeeded.
+* **Fix:** skip `status_code == "FAILED"` jobs in the dedupe scan (`submit_hyp3_jobs.py`). Verified:
+  the next `--submit` run skipped 48 and resubmitted exactly the 1 failed pair (10 credits).
+* **Lesson:** dedupe/skip logic must key on *successful* prior work, not mere existence — "a job was
+  submitted" and "the work is done" are different predicates; test recovery paths with at least one
+  synthetic failure.
+
 ### [2026-06-08] MintPy CLI tools "command not found" under `bash -lc` in the micromamba image
 
 * **Symptom:**

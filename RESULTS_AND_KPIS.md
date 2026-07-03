@@ -1234,6 +1234,95 @@ does not change the ALERT/WATCH products or the §19 gate.
 
 ---
 
+## 26. Second AOI — Vaishno Devi (Katra) pilgrimage corridor: Phase 1 complete  `[REAL / MEASURED]`
+
+Source: `submit_hyp3_jobs.py` + `download_hyp3_products.py` + the Phase-1 QA chain (Docker, 2026-07-03),
+branch `aoi-vaishnodevi`. First real exercise of the point-anywhere Infra 0b: `config.yaml` now targets
+**`vaishnodevi_aoi.geojson`** — an OSM-anchored box around the Katra → Banganga → Adhkuwari → Sanjichhat →
+Bhawan (33.0299 N 74.9482 E) → Bhairon-temple route on the Trikuta massif (74.905–74.985 E, 32.960–33.055 N;
+anchors verified against OSM nodes incl. the Bhawan–Bhairon ropeway), padded ~2 km to include the slopes
+*above* the track and Katra town (runout exposure).
+
+**Phase-1 pull (search window 2026-01-01 → 2026-07-31):** 59 S1 SLC scenes → **49 consecutive pairs across
+8 stacks** (ASC path27 f101/f105/f106, ASC path100 f102/f103, DESC path34 f480/f484/f485). Submitted at
+**10 credits/job = 490 credits** (7,510 remain). **48 SUCCEEDED, 1 FAILED at ASF** (f106 2026-01-13→01-25);
+all 48 downloaded, verified, extracted, manifest-recorded. The failed pair exposed a **dedupe gap**: FAILED
+jobs counted as "done", so re-runs never resubmitted them — fixed (skip FAILED in the dedupe scan), re-run
+then resubmitted exactly the 1 missing pair (see `error_history_log.md` 2026-07-03).
+
+**Key structural finding — the two AOIs share Sentinel-1 frames.** Katra sits inside the same footprints as
+Ramban (path27 f101/f106, path100 f102, path34 f484), so the 2026 pairs joined the existing stacks: the 2025
+archive already covers the Trikuta corridor (free baseline extension), and per-track frame drift put the
+May–Jun 2026 acquisitions into new labels (path27→**f105**, path100→**f103**).
+
+**QA verdict (pooled graph, 231 products, both AOIs): 141 KEEP / 46 CONCERN / 44 QUARANTINE.**
+- **Winter-2026 pairs are heavily quarantined** (phase-elevation R² up to **0.85**; scene relief reaches
+  ~6,400 m) — the Jan–Apr chain is mostly atmospheric noise, as NW-Himalaya physics predicts.
+- **The spring 2026 stacks connect cleanly after rescue:** ASC f105 islands 2→1, ASC f103 2→1 (the May–Jun
+  chains — the seasonally-relevant ones for the monsoon product).
+- The big pooled stacks report BROKEN connectivity, but much of that is the **Nov-2025→Jan-2026 acquisition
+  hole** between the two campaigns — no rescue can bridge a gap with no scenes; the inverter's SVD/
+  period-split path (frame479 precedent) applies. DESC stacks fragment as usual (f484: 9 islands).
+
+**Infra hardening shipped with this (the AOI-coexistence layer):** (a) rainfall/trigger chain fully
+config-driven — AOI + `aoi_slug`-prefixed filenames (`<slug>_era5land_daily.csv`, `<slug>_wetness_daily.csv`),
+Ramban names byte-identical (grandfathered); (b) **Phase 2–4 output dirs slug-scoped** —
+`data/{velocity,hazard,alerts,mosaic,mosaic_vslope}` for Ramban (grandfathered), `…_<slug>` for any other AOI
+(12 workflow scripts; verified 20/20 dir resolutions in-container) — required because shared frames mean
+stack labels alone cannot separate the sites; (c) `.netrc` mount enabled in compose (Phase-1 auth).
+
+**Honest caveats for the Vaishno Devi product:** φ=36° is a *Ramban/Doda* calibration — carried over as an
+assumption, not a fit; no local landslide inventory yet, so no scored back-test — the site inherits the
+*framework's* Ramban validation, and its own numbers stay `[UNVALIDATED]` until a Trikuta inventory exists;
+first velocity will come from short (4-pair) spring chains → noise floor well above Ramban's 14–24 mm/yr σ_v.
+
+**Producing scripts:** `submit_hyp3_jobs.py` (+FAILED-dedupe fix), `download_hyp3_products.py`,
+`feature_engineering.py` → `phase_elevation_audit.py` → `export_audit_json.py` → `_consolidate_quarantine.py`
+→ `sbas_network_graph.py` → `apply_connectivity_rescues.py`; config plumbing in `workflows/config.py`
+(`aoi_slug`, `data_suffix`). **Artefacts (git-ignored):** 48 products in `data/processed_tiffs/`, QA masks +
+`_connectivity_report.md`, `_rescue_recommendations.json`; Phase 2–4 outputs will land in
+`data/*_vaishnodevi/`.
+
+---
+
+## 27. Vaishno Devi Phases 2–4 — first hazard + alert product for the shrine corridor  `[REAL / UNVALIDATED]`
+
+Source: `run_multistack.py` (Docker, 2026-07-03), branch `aoi-vaishnodevi`, outputs in `data/*_vaishnodevi/`.
+First full Phase 2→4 run on a second AOI. Inverted the two **connected spring stacks** (§26):
+`ASC_path100_frame103` (4 pairs, 2026-05-06→06-23) and `ASC_path27_frame105` (4 pairs, 2026-05-01→06-18) —
+two independent ascending tracks over the same box, so "multi-look" = 2-track corroboration.
+
+**Velocity (honest quality):** short 4-pair chains → **high noise floor** — frame103 high-pass std
+**61 mm/yr** (vs Ramban's σ_v 14–24, §24), 19.6 % of kept pixels beyond |100| mm/yr (sanity-flagged, not
+removed); ~7,100 px/stack pass the −15 mm/yr creep test, much of it noise. **Trust order: the ≥2-look core
+first**, single-look with per-zone confidence second.
+
+**Hazard (φ=36° borrowed, HyP3 ~30 m DEM after ALOS fallback; slope median 18°, p95 44°):**
+union mosaic **HIGH = 2,705 px**, of which **411 confirmed by both tracks**. Union alert zones:
+**dry 0 · operational (m=0.50) 27 (4 critical, 6 multi-look) · watch (m=0.70) 72 (11, 14) ·
+monsoon/extreme 185 (72, 19)**. Dry=0 replicates the Ramban cascade shape (rain-triggered site).
+
+**Three latent single-AOI assumptions surfaced and fixed** (first cross-AOI run as a stress test;
+`error_history_log.md` 2026-07-03b): (1) `--min-pairs 8` default unreachable by a 4-pair stack → clamp to
+stack size; (2) the 12.5 m ALOS tile is per-AOI (Ramban) — zero-coverage now falls back to the HyP3 product
+DEM; (3) `slope_velocity.py` still unpacked `find_dem_for_stack`'s pre-§21 return shape — latent since
+2026-06-10 because V_slope was never re-run; now requests the product DEM explicitly (`prefer_alos=False`).
+
+**Caveats (why `[UNVALIDATED]`):** no Trikuta landslide inventory → no scored back-test (site inherits the
+*framework's* Ramban validation §16/§21b, not its own AUC); φ=36° + the m=0.50/0.70 operating points are
+Ramban-calibrated; 30 m slope (no local ALOS tile yet — same §21 upgrade path applies); velocity baseline is
+~7 weeks. **Next:** overlay the OSM route/infrastructure on the union zones (the actual "which parts of the
+track" deliverable), VD rainfall season (`live_alarm.py` is slug-aware), and extend the S1 chain through the
+monsoon (`search_end` bump + idempotent resubmit).
+
+**Producing scripts:** `run_multistack.py` → `custom_sbas_inverter.py` (min-pairs clamp) →
+`geomechanical_engine.py` (DEM fallback) → `agentic_orchestrator.py`. **Artefacts (git-ignored):**
+`data/velocity_vaishnodevi/`, `data/hazard_vaishnodevi/`, `data/alerts_vaishnodevi/<stack>/dashboard_*.html`,
+`data/alerts_vaishnodevi/mosaic_asc/alerts_*.json`, `data/mosaic_vaishnodevi/MOSAIC_ASC_*.tif`. Ramban's
+`data/mosaic/` verified untouched (mtime 2026-06-10).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

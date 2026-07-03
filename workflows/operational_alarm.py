@@ -42,6 +42,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
+from config import load_config  # noqa: E402
 from rainfall_id_threshold import THRESHOLDS, SLUG, antecedent_index, load_daily  # noqa: E402
 from rainfall_specificity import (  # noqa: E402
     peak_exceedance, documented_events, nearest_alert_delta,
@@ -49,7 +50,7 @@ from rainfall_specificity import (  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{load_config().data_suffix}"
 INV_DIR = PROJECT_ROOT / "data" / "inventory"
 INVENTORY = INV_DIR / "ramban_documented_landslides.geojson"
 
