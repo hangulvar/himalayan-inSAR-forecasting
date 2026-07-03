@@ -10,18 +10,19 @@
 # Path (relative to the project root, or absolute) to the AOI polygon.
 # Must be GeoJSON in EPSG:4326. Draw it in Google Earth Pro -> Save As .kml ->
 # convert to GeoJSON (geopandas/QGIS). See InSAR_hazard_forecasting_Context.md.
-aoi_path: ramban_aoi.geojson
+aoi_path: vaishnodevi_aoi.geojson
 
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix. Use a short, unique slug per AOI.
-job_name_prefix: Ramban_NH44
+job_name_prefix: VaishnoDevi_Trikuta
 
 # --- Catalog search window (inclusive), ISO dates ---------------------------
-# Pick the period whose ground motion matters. Here: the 2025 monsoon and
-# immediate post-monsoon, when slope failure is most likely.
-search_start: 2025-05-01
-search_end: 2025-10-31
+# Pick the period whose ground motion matters. Here: a ~6-month pre-monsoon
+# baseline from the archive through the 2026 monsoon (extend search_end and
+# re-run the submitter to append pairs — it is idempotent/deduplicating).
+search_start: 2026-01-01
+search_end: 2026-07-31
 
 # --- Pair-network / baseline rules ------------------------------------------
 baseline:

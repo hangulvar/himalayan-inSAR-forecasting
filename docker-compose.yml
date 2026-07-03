@@ -21,8 +21,9 @@ services:
       # PROJECT_ROOT in every script resolves to /app, so data/ lands at /app/data.
       - .:/app
       # Phase-1 ASF credentials (read-only). Phases 2-4 do NOT need this.
-      # To run Phase 1: set NETRC_PATH to your host ~/.netrc and uncomment:
-      # - ${NETRC_PATH}:/home/mambauser/.netrc:ro
+      # NETRC_PATH comes from .env (git-ignored); falls back to the committable
+      # template so non-Phase-1 scripts still run without real creds.
+      - ${NETRC_PATH:-./.netrc.template}:/home/mambauser/.netrc:ro
       # Google Earth Engine OAuth credentials (read-only) for fetch_chirps.py.
       # Set EE_CREDENTIALS in .env to your host ~/.config/earthengine/credentials
       # (written by `earthengine authenticate`); falls back to a harmless placeholder
