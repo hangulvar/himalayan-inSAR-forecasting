@@ -109,6 +109,10 @@ dmypy.json
 *.kml
 *.kmz
 *.geojson
+# Keep the small hand-curated per-AOI inputs (polygons + route lines) — everything
+# else *.geojson stays ignored:
+!*_aoi.geojson
+!*_route.geojson
 *.csv
 *.xlsx
 *.parquet
