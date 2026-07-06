@@ -45,6 +45,7 @@ _CFG = load_config()
 SLUG = _CFG.aoi_slug
 MOSAIC_DIR = PROJECT_ROOT / "data" / f"mosaic{_CFG.data_suffix}"
 OUT_DIR = PROJECT_ROOT / "data" / f"alerts{_CFG.data_suffix}" / "mosaic_asc"
+INVENTORY = PROJECT_ROOT / "data" / "inventory" / f"{SLUG}_documented_landslides.geojson"
 
 SCENARIOS = ["operational", "watch", "monsoon"]      # tier order after CORE
 CLASS_ORDER = ["CORE", "OPERATIONAL", "WATCH", "MONSOON"]
@@ -196,18 +197,36 @@ def main() -> int:
                                  s["min_zone_m"] if s["min_zone_m"] is not None else 9e9,
                                  -s["length_m"]))
 
+    # Ground truth overlay (§31): classify each documented/GSI location like the
+    # infrastructure points, so the map carries the verification evidence too.
+    truth = []
+    if INVENTORY.exists():
+        for feat in json.loads(INVENTORY.read_text(encoding="utf-8"))["features"]:
+            if feat["geometry"]["type"] != "Point":
+                continue
+            p = feat["properties"]
+            x, y = TO_GRID.transform(*feat["geometry"]["coordinates"])
+            dists = {sc: zone_distance(x, y, zones[sc])[0] for sc in SCENARIOS}
+            truth.append({"name": p.get("name"), "type": p.get("type"),
+                          "date": p.get("date"),
+                          "class": classify(raster_dist(d_core_px, x, y), dists),
+                          "lonlat": feat["geometry"]["coordinates"],
+                          "min_zone_m": (None if math.isinf(min(dists.values()))
+                                         else round(min(dists.values())))})
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     report = {"generated": date.today().isoformat(), "aoi": SLUG,
               "route_file": route_path.name, "buffer_m": BUFFER_M, "on_m": ON_M,
               "validity": "UNVALIDATED at this site — reconnaissance triage (§27)",
               "class_order": CLASS_ORDER,
               "n_segments": len(segments), "segments": segments,
-              "infrastructure_points": points}
+              "infrastructure_points": points,
+              "ground_truth": truth}
     (OUT_DIR / "route_exposure.json").write_text(json.dumps(report, indent=2),
                                                  encoding="utf-8")
     write_md(OUT_DIR / "route_exposure.md", report)
     make_map(OUT_DIR / "route_exposure.png", haz, core, transform, crs,
-             lines_for_map, segments, points)
+             lines_for_map, segments, points, truth)
 
     n_by = {c: sum(1 for s in segments if s["class"] == c) for c in CLASS_ORDER}
     km_by = {c: sum(s["length_m"] for s in segments if s["class"] == c) / 1000
@@ -242,10 +261,23 @@ def write_md(path: Path, r: dict) -> None:
     for p in r["infrastructure_points"]:
         lines.append(f"- **{p['class']}** — {p['name']} ({p['kind']}); "
                      f"zone distances (m): {p['dist_m']}")
+    truth = r.get("ground_truth", [])
+    if truth:
+        by = {}
+        for t in truth:
+            by[t["class"]] = by.get(t["class"], 0) + 1
+        lines += ["", "## Ground truth (GSI inventory, §31) vs the flagged zones", "",
+                  f"{len(truth)} documented locations; by exposure class: "
+                  + ", ".join(f"{k} {v}" for k, v in sorted(by.items())) + ".", ""]
+        for t in truth:
+            if t.get("date"):
+                lines.append(f"- ★ **{t['date']} — {t['name']}**: class **{t['class']}**, "
+                             f"nearest zone {t['min_zone_m']} m.")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def make_map(path: Path, haz, core, transform, crs, lines, segments, points) -> None:
+def make_map(path: Path, haz, core, transform, crs, lines, segments, points,
+             truth=()) -> None:
     from rasterio.plot import plotting_extent
     fig, ax = plt.subplots(figsize=(9, 10))
     ext = plotting_extent(haz, transform)
@@ -266,8 +298,17 @@ def make_map(path: Path, haz, core, transform, crs, lines, segments, points) -> 
         ax.plot(x, y, "^", ms=9, mec="k", mfc=CLASS_COLOR.get(p["class"], "#999"))
         ax.annotate(p["name"][:22], (x, y), fontsize=6, xytext=(3, 3),
                     textcoords="offset points")
+    for t in truth:
+        x, y = to_grid.transform(*t["lonlat"])
+        if t.get("date"):                       # the dated disaster: unmissable star
+            ax.plot(x, y, "*", ms=17, mec="k", mfc="#e31a1c", zorder=6)
+            ax.annotate(f"{t['date']} {t['name'][:28]}", (x, y), fontsize=7,
+                        fontweight="bold", xytext=(5, -9), textcoords="offset points")
+        else:
+            ax.plot(x, y, "x", ms=4, mew=1.2, color="#111", alpha=0.75)
     ax.set_title(f"Route exposure — hazard px (yellow/red), ≥2-look core (purple),\n"
-                 f"route (blue), exposed segment starts (dots), infrastructure (triangles)")
+                 f"route (blue), segment starts (dots), infrastructure (triangles),\n"
+                 f"GSI ground truth (× = surveyed instability, ★ = 26 Aug 2025 disaster)")
     ax.set_xlabel(str(crs))
     fig.tight_layout()
     fig.savefig(path, dpi=170)

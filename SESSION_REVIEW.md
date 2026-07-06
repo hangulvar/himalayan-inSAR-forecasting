@@ -31,14 +31,27 @@
 - **VD upgraded to the 12.5 m ALOS DEM (§30, M35):** user-fetched Trikuta tile (100 % AOI coverage, health-checked); `ALOS_DEM_DIR` slug-scoped. Slope median 18→21.9°; **2-track core 411→567 px**; operational 27→37 zones; **the CORE route segment above Bhairon top now runs 800 m THROUGH core pixels (0 m)**; op product still off-track; alarm still DORMANT. §27/§28 counts superseded.
 - **★★ VD VALIDATED (§31, M36) — no longer `[UNVALIDATED]`:** GSI note on the **26 Aug 2025 Ardhkuwari disaster (32 dead)** → committed inventory (1 dated event + 40 GSI DMS locations). **Temporal: the disaster day was the season's max-rain day (191 mm) AND the model's peak-E day — caught at Δ=0 by full ALERT** (asterisk: extreme season, 59 ALERT days). **Spatial: operational map AUC 0.620 / recall 0.805 / lift 1.67× — beats chance first try**; watch 0.558/0.854. **Revision: the ≥2-look core scores 0 vs this corridor inventory** (track failures = fast cut-slope rockfall, a different class from SBAS creep; core sits on the upper massif, unsampled) — for *track* hazard trust the single-look operational map; the Bhairon-top core segment still merits its field check. Dashboards now wear VD's own scores. Soil context (Trikuta carbonates + scree, Reasi Thrust) recorded → site-specific φ/c pass is a justified next accuracy item.
 
-## Recommended next step
+## Recommended next steps — the product-improvement roadmap (2026-07-07)
 
-Field-facing: get the CORE segment (route_exposure.md row 1) eyeballed on the ground / on recent optical
-imagery. Pipeline: **refresh cadence** — re-run `live_alarm.py` (both images) as the monsoon builds, and
-bump `search_end` + resubmit every ~2 weeks to extend the S1 chains (noise floor drops as chains lengthen).
-The frame106 Jan pair is CLOSED: it fails deterministically at ASF (mcf reference-point error) and is now
-auto-PARKED after its 2nd failure (§26 addendum) — Phase 1 final state 48/49. User-side: Trikuta ALOS
-12.5 m tile (§21 path). Ramban backlog unchanged (STABLE §3).
+Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
+
+1. **Radar cadence (agent, ~1 cmd/2 weeks):** early-July S1 passes not yet in the archive (checked
+   2026-07-07) — when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack →
+   route_exposure → live_alarm. Every cycle lengthens the chains and drops the σ_v noise floor.
+2. **VD operating-point sweep (agent, medium):** parameterize `rainfall_selectivity_backtest.py` (still
+   hardcodes Ramban's mosaic dirs) and sweep m against the §31 inventory — replace the borrowed
+   m=0.50/0.70 with site-tuned operating points. Highest analytical payoff now that scoring exists.
+3. **Site-specific soil pass (agent + user sources, medium):** φ/c for Trikuta carbonates + Vaishnodevi-Fm
+   scree (GSI-note geology) replacing the Batote–Doda values; re-run + re-score (§20/§21 pattern).
+4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep — candidates: coherence-drop
+   change detection (catches fast failures), Sentinel-2 optical change, a steep-cut-slope proxy layer in
+   the reasoner. This is what closes the 598 m miss, not more creep tuning.
+5. **Per-zone WHEN (agent, medium):** sub-daily/point IMERG so ALERT varies per zone — the extreme-season
+   over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
+6. **Docs debt (agent, small):** Foundations primer CF entries for M31–M36 (the CLAUDE.md ritual is
+   overdue); run `/wrap-session` at session end.
+7. **User-side:** field/optical check of the Bhairon-top CORE segment (unchanged); merge `mvp-expansion`
+   → `master` (+ add `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
@@ -54,6 +67,8 @@ auto-PARKED after its 2nd failure (§26 addendum) — Phase 1 final state 48/49.
 - **[2026-07-06c] VD 12.5 m DEM:** committed (`26f0286`).
 - **[2026-07-07] VD validation batch:** `data/inventory/vaishnodevi_documented_landslides.geojson` (NEW, tracked), `.gitignore` (inventory re-include), `RESULTS_AND_KPIS.md` §31, `milestone.md` M36, this LIVE block. Data (git-ignored): `vaishnodevi_era5land_daily.csv` (2025 season), `backtest_*_vaishnodevi*` reports/maps, `operational_alarm_*_vaishnodevi_2025.*`, regenerated 2026 dashboard with real scores. No code changes. Suggested commit:
   `git add data/inventory/vaishnodevi_documented_landslides.geojson .gitignore RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD validated on the 26 Aug 2025 Ardhkuwari disaster: temporal Delta=0 on the season peak-E day, operational AUC 0.62/recall 0.81 beats chance; 2-look core untested by corridor inventory (§31, M36)"`
+- **[2026-07-07b] Ground truth on the route map + roadmap:** `route_exposure.py` (inventory overlay: ★ disaster + × GSI points, per-point 250 m classification in report/JSON/map) — surfaced the honest **598 m miss at the disaster site** (§31 addendum); improvement roadmap written into this file. Suggested commit:
+  `git add workflows/route_exposure.py RESULTS_AND_KPIS.md SESSION_REVIEW.md && git commit -m "Route map now carries the GSI ground truth (disaster star + 40 survey points, 250m classes): disaster site is 598m from nearest zone - the honest calibration target (§31 addendum)"`
 
 ---
 

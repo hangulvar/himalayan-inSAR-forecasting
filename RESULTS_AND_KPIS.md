@@ -1469,6 +1469,14 @@ from slope-cutting — independent GSI concurrence with our corridor read.)
 
 **Wired through:** the suffix-scoped tier lookup (§29) picked the new reports up automatically — the live
 2026 dashboard now shows **VD's own AUC 0.62 / recall 0.854**, "beats chance" restored honestly.
+
+> **↪ Addendum (2026-07-07) — ground truth ON the route-exposure map.** `route_exposure.py` now overlays
+> the §31 inventory (★ = the dated disaster, × = GSI locations) and classifies each point at the strict
+> **250 m** operational buffer: **29/41 CLEAR, 9 WATCH, 3 MONSOON — and the disaster site itself is
+> CLEAR, nearest zone 598 m.** The sharp honest read: the product **beats chance at 2 km** (§31 AUC) but
+> does **NOT pinpoint the kill site at 250 m** — consistent with the failure-class gap (fast cut-slope
+> rockfall ≠ slow SBAS creep) + 80 m pixels + the 7-week baseline. This 598 m miss is now the calibration
+> target for the site-specific improvement work (soil pass, operating-point sweep, rockfall proxy).
 **Artefacts:** `backtest_{operational,watch}_vaishnodevi{,_2look}_*` in `data/inventory/`,
 `operational_alarm_*_vaishnodevi_2025.*` (as-of 2025-08-26 = ALERT), regenerated 2026 dashboard.
 
