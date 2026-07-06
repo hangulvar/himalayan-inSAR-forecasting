@@ -25,14 +25,15 @@
 - **Cross-AOI stress test paid off:** three latent single-AOI assumptions found+fixed (min-pairs clamp, ALOS-tile zero-coverage fallback, `slope_velocity` un-rerun §21 signature break) — `error_history_log.md` 2026-07-03b.
 - ⭐ **Headline demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026.html` live season); Vaishno Devi `data/alerts_vaishnodevi/<stack>/dashboard_operational.html` + union `alerts_*.json`. Cosmetic gap: dashboards still titled "Ramban NH-44" pending a `site_name` config field.
 
+- **Route exposure DONE (§28, M33) — the deliverable:** `route_exposure.py` + OSM-real `vaishnodevi_route.geojson`. Headline: **1 CORE segment (680 m of path above Bhairon top, 2-track-confirmed — read first)**; **0 OPERATIONAL** segments (standing product's zones are off-track); WATCH 7 segs/7.3 km (Himkoti + Hathimata variants pass through zones; shrine complex + ropeway within ~200 m); MONSOON-only 8 segs (classic Track); **Katra + trek start CLEAR**. Also fixed: `.gitignore` was silently ignoring `*_aoi.geojson` — **`vaishnodevi_aoi.geojson` was never actually committed**; re-included, needs `git add`.
+
 ## Recommended next step
 
-**The actual deliverable question — "which parts of the track are at risk":** overlay the OSM route +
-infrastructure (track, ropeway, Sanjichhat helipad, Bhawan complex) on the VD union zones and produce a
-per-segment risk read (distance-to-zone + zone priority). Then: VD rainfall season (`live_alarm.py` is
-slug-aware) for the WHEN axis; bump `search_end` + resubmit every ~2 weeks to extend the chains through the
-monsoon (velocity noise drops as chains lengthen); fetch a Trikuta ALOS 12.5 m tile (user-side, same §21
-path). Ramban backlog unchanged (STABLE §3).
+Field-facing: get the CORE segment (route_exposure.md row 1) eyeballed on the ground / on recent optical
+imagery. Pipeline: VD rainfall season (`live_alarm.py` is slug-aware) for the WHEN axis; bump `search_end`
++ resubmit every ~2 weeks to extend chains through the monsoon (noise floor drops as chains lengthen);
+fetch a Trikuta ALOS 12.5 m tile (user-side, §21 path); `site_name` config field for dashboard titles.
+Ramban backlog unchanged (STABLE §3).
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
@@ -41,8 +42,8 @@ path). Ramban backlog unchanged (STABLE §3).
 ## Uncommitted delta
 
 - Committed on `aoi-vaishnodevi` through the user's AOI-coexistence commit; prior batches (AOI+config+compose `9cf39ab`, live-rainfall, QA/dedupe) all in.
-- **[2026-07-03] NEW this batch — VD Phases 2–4 + robustness fixes + docs:** `custom_sbas_inverter.py` (min-pairs clamp), `geomechanical_engine.py` (ALOS zero-coverage fallback, `prefer_alos` param), `slope_velocity.py` (latent §21 tuple fix), `run_multistack.py` (output log uses real dir names), `RESULTS_AND_KPIS.md` §27, `milestone.md` M32, `error_history_log.md` 2026-07-03b, this LIVE block. Suggested commit:
-  `git add workflows/ RESULTS_AND_KPIS.md milestone.md error_history_log.md SESSION_REVIEW.md && git commit -m "VD Phases 2-4: first shrine-corridor hazard product (27/72/185 zones, 411px 2-track core); fix 3 latent single-AOI assumptions (§27, M32)"`
+- **[2026-07-03] NEW this batch — VD Phases 2–4 + route exposure + fixes + docs:** `custom_sbas_inverter.py` (min-pairs clamp), `geomechanical_engine.py` (ALOS zero-coverage fallback), `slope_velocity.py` (latent §21 tuple fix), `run_multistack.py` (log dirs), **`route_exposure.py` (NEW)**, **`vaishnodevi_route.geojson` (NEW, OSM ODbL)**, `.gitignore` (`!*_aoi.geojson` `!*_route.geojson` — the AOI file was silently ignored), `RESULTS_AND_KPIS.md` §27–§28, `milestone.md` M32–M33, `error_history_log.md` 2026-07-03b, this LIVE block. Suggested commit:
+  `git add workflows/ .gitignore vaishnodevi_aoi.geojson vaishnodevi_route.geojson RESULTS_AND_KPIS.md milestone.md error_history_log.md SESSION_REVIEW.md && git commit -m "VD Phases 2-4 + route exposure: 1 CORE segment above Bhairon top, op product off-track, variants in WATCH net (§27-28, M32-33); 3 latent single-AOI fixes; un-ignore *_aoi.geojson"`
 
 ---
 

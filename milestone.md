@@ -1120,6 +1120,33 @@ pilgrim track on top and name which segments sit in or below the flagged zones.
 
 ---
 
+## ✅ Milestone 33 — Drawing the pilgrim track on the hazard map  *(Route exposure, 2026-07-03)*
+
+**What we set out to do:** answer the question this whole second site exists for — *which parts of the
+actual walking route, and which buildings and cable-cars, sit near the slopes our radar+physics flags?*
+
+**What we did, plainly:** we pulled the real mapped geometry of the route from OpenStreetMap — the classic
+track, the two newer route variants (Himkoti and Hathimata), the Bhawan–Bhairon ropeway, the helipads and
+the shrine buildings — walked along it in 40-metre steps, and measured the distance from every step to the
+nearest flagged slope, using the same honest 250-metre yardstick our Ramban validation earned.
+
+**What the map says (first reconnaissance read):**
+- **One 680 m stretch of path above the Bhairon top** is the single place where the route comes near
+  ground that **both satellite tracks independently agree is creeping** — the most trustworthy flag we
+  have; look there first.
+- Under the standing realistic-wet-season setting, **no part of the track sits inside a flagged zone** —
+  the flagged slopes are off-track. Reassuring, with the usual young-data caveats.
+- The **two modern route variants pass through the wider "keep an eye on it" net** (~5 km combined), and
+  the **shrine complex, Bhairon temple and the ropeway** all sit within a couple hundred metres of
+  watch-level slopes. The classic track only shows up in the everything-soaked worst case.
+- **Katra town and the trek start are clear.**
+
+**Plain-language result:** the route now has a ranked, mapped exposure list — one double-confirmed hotspot
+to inspect, the modern variants and the shrine complex on the monitoring list, the classic track only in the
+worst case, and the town clear. Every 12 days of new radar sharpens it.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

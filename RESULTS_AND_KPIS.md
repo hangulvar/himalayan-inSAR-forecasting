@@ -1323,6 +1323,36 @@ monsoon (`search_end` bump + idempotent resubmit).
 
 ---
 
+## 28. Route exposure — which parts of the Vaishno Devi track are near flagged hazard  `[REAL / UNVALIDATED]`
+
+Source: `route_exposure.py` (Docker, 2026-07-03), branch `aoi-vaishnodevi` — the deliverable the second AOI
+was built for. Route geometry: **`vaishnodevi_route.geojson`** — real OSM ways fetched via the OSM
+`api/0.6/map` endpoint (Overpass was down; 21 walkable ways + ropeway + helipads + 5 POIs, incl. the named
+"Vaishno Devi Track/Trek", "Himkoti Route", "Hathimata Route"; ODbL attribution in the file). Method:
+densify the route to 40 m samples; exposure = within the **§16b honest 250 m detection buffer** of (a) a
+≥2-look CORE pixel, (b) a union alert zone per scenario (centroid+equivalent-radius circles); direct hit
+≤80 m (one pixel). Classes ranked CORE > OPERATIONAL > WATCH > MONSOON.
+
+**Result — 16 exposed segments (~14.2 km of ~walkable network):**
+- **CORE ×1 (read first): 680 m of unnamed path NE of/above the Bhairon top** — the only route element
+  near a 2-track-confirmed creep cluster (direct hit; min 248 m to core px).
+- **OPERATIONAL ×0** — under the standing m=0.50 product **no route segment is within 250 m of an
+  operational zone** (nearest is ~694 m from Bhawan). The rain-realistic flagged slopes sit off-track.
+- **WATCH ×7 (7.3 km):** both modern route variants pass *through* watch zones (Hathimata 2.6 km @ 0 m,
+  Himkoti 2.28 km @ 0 m), plus "Vaishno Devi Trek" 720 m, the **Bhawan–Bhairon ropeway**, and the shrine
+  POIs (Bhawan 187 m, Bhairon temple + ropeway station ~110–140 m from watch/monsoon zones).
+- **MONSOON-only ×8 (6.2 km):** mostly the classic "Vaishno Devi Track" switchbacks (32–177 m from
+  worst-case zones). **Katra town and the Banganga trek start: CLEAR.**
+
+**How to read it honestly:** at this site single-look zones ride a ~61 mm/yr noise floor (§27), so the
+CORE segment is the only *measurement-corroborated* flag; WATCH/MONSOON proximity = "these segments border
+slopes the physics+radar puts in the wide net" — monitoring guidance, not a prediction. `[UNVALIDATED]`
+caveats of §27 apply unchanged. **Artefacts:** `data/alerts_vaishnodevi/mosaic_asc/route_exposure.{json,md,png}`.
+**Also fixed:** `.gitignore`'s blanket `*.geojson` was silently ignoring `vaishnodevi_aoi.geojson` (it was
+never committed!) — re-included via `!*_aoi.geojson` + `!*_route.geojson`; both files need a fresh `git add`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
