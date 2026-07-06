@@ -1276,6 +1276,13 @@ assumption, not a fit; no local landslide inventory yet, so no scored back-test 
 *framework's* Ramban validation, and its own numbers stay `[UNVALIDATED]` until a Trikuta inventory exists;
 first velocity will come from short (4-pair) spring chains → noise floor well above Ramban's 14–24 mm/yr σ_v.
 
+> **↪ Addendum (2026-07-06):** the resubmitted f106 Jan pair failed a **second** time — the job log shows
+> a deterministic GAMMA unwrapping error (`mcf: reference point outside image segment`; the deep-winter
+> pair has almost no coherent area). Unfixable client-side, immaterial to the product (the winter chain is
+> quarantined anyway). The submitter now **retries a failed pair once, then PARKS it** (≥2 failures →
+> skipped with a loud warning) so idempotent re-runs stop re-buying a proven failure — final Phase-1 state
+> is **48/49 products, 1 parked**. See `error_history_log.md` 2026-07-06.
+
 **Producing scripts:** `submit_hyp3_jobs.py` (+FAILED-dedupe fix), `download_hyp3_products.py`,
 `feature_engineering.py` → `phase_elevation_audit.py` → `export_audit_json.py` → `_consolidate_quarantine.py`
 → `sbas_network_graph.py` → `apply_connectivity_rescues.py`; config plumbing in `workflows/config.py`

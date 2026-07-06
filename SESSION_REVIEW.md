@@ -33,9 +33,10 @@
 
 Field-facing: get the CORE segment (route_exposure.md row 1) eyeballed on the ground / on recent optical
 imagery. Pipeline: **refresh cadence** — re-run `live_alarm.py` (both images) as the monsoon builds, and
-bump `search_end` + resubmit every ~2 weeks to extend the S1 chains (noise floor drops as chains lengthen;
-the failed frame106 Jan pair's resubmission also needs a `download_hyp3_products.py` pass). User-side:
-Trikuta ALOS 12.5 m tile (§21 path). Ramban backlog unchanged (STABLE §3).
+bump `search_end` + resubmit every ~2 weeks to extend the S1 chains (noise floor drops as chains lengthen).
+The frame106 Jan pair is CLOSED: it fails deterministically at ASF (mcf reference-point error) and is now
+auto-PARKED after its 2nd failure (§26 addendum) — Phase 1 final state 48/49. User-side: Trikuta ALOS
+12.5 m tile (§21 path). Ramban backlog unchanged (STABLE §3).
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
@@ -46,6 +47,8 @@ Trikuta ALOS 12.5 m tile (§21 path). Ramban backlog unchanged (STABLE §3).
 - Committed on `aoi-vaishnodevi` through `735b552` (VD Phases 2–4 + route exposure).
 - **[2026-07-06] NEW this batch — VD live alarm + honesty guards:** `config.py` + `config.yaml` (`site_name`), `operational_alarm.py` (suffix-scoped back-test lookups, per-AOI inventory, unscored tier cards), `agentic_orchestrator.py` / `build_3d_dashboard.py` (config-driven titles), `live_alarm.py` (dashboard-path print), `RESULTS_AND_KPIS.md` §29, `milestone.md` M34, this LIVE block. Suggested commit:
   `git add workflows/ config.yaml RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD live two-factor alarm (DORMANT as-of 2026-06-30) + cross-AOI honesty guards: suffix-scoped scores, unscored cards, site_name titles (§29, M34)"`
+- **[2026-07-06b] Loose end closed — frame106 Jan pair:** `submit_hyp3_jobs.py` (retry-then-park: ≥2 ASF failures → skip with warning; dry-run verified 49 planned / 49 skipped / 1 parked), `RESULTS_AND_KPIS.md` §26 addendum, `error_history_log.md` 2026-07-06. Suggested commit:
+  `git add workflows/submit_hyp3_jobs.py RESULTS_AND_KPIS.md error_history_log.md SESSION_REVIEW.md && git commit -m "Retry-then-park for HyP3 pairs: frame106 Jan pair fails deterministically (mcf ref-point) — parked after 2nd failure, re-runs stop re-buying it (§26 addendum)"`
 
 ---
 

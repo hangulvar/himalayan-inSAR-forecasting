@@ -232,18 +232,32 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
         return signatures
 
     matched = 0
+    fail_counts: dict[frozenset, int] = {}
     for job in jobs:
         if not (job.name and job.name.startswith(name_prefix)):
             continue
-        if job.status_code == "FAILED":
-            continue   # don't count failed pairs as done — a re-run resubmits them
-        matched += 1
         granules = job.job_parameters.get("granules") if job.job_parameters else None
-        if granules and len(granules) >= 2:
-            signatures.add(frozenset(granules[:2]))
+        if not granules or len(granules) < 2:
+            continue
+        sig = frozenset(granules[:2])
+        if job.status_code == "FAILED":
+            # ONE failure gets retried on the next run (transient ASF hiccups); a pair
+            # that failed TWICE fails deterministically inside the processor (e.g. the
+            # frame106 Jan pair's "mcf reference point outside image segment") — PARK
+            # it rather than re-buying the same failure on every idempotent re-run.
+            fail_counts[sig] = fail_counts.get(sig, 0) + 1
+            continue
+        matched += 1
+        signatures.add(sig)
+    parked = {s for s, n in fail_counts.items() if n >= 2 and s not in signatures}
+    for s in parked:
+        logger.warning(f"PARKED (failed {fail_counts[s]}× at ASF — deterministic; "
+                       f"investigate before resubmitting manually): {sorted(s)}")
+    signatures |= parked
     logger.info(
         f"Dedupe scan: {matched} existing jobs under prefix '{name_prefix}', "
-        f"{len(signatures)} unique pair signatures."
+        f"{len(signatures)} unique pair signatures ({len(parked)} parked as "
+        f"permanently failing)."
     )
     return signatures
 

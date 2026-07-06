@@ -23,6 +23,27 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-06] The frame106 Jan pair fails DETERMINISTICALLY at ASF — retry-then-park added
+
+* **Symptom:** the resubmitted `VaishnoDevi_Trikuta_ASCENDING_path27_frame106` pair
+  (2026-01-13→2026-01-25) FAILED again — both attempts, ~2 h apart, identical pair.
+* **Root cause (from the job's processing log):** hyp3-gamma dies in unwrapping —
+  `mcf: ERROR: range position of phase reference point outside of image segment: 3384  bounds: 0 3384`.
+  The deep-winter pair has so little coherent area that GAMMA's auto-chosen phase reference point falls
+  outside the usable segment. Nothing on our side can fix it (no reference-point control in the
+  INSAR_GAMMA job API); resubmitting the identical job fails forever.
+* **Interaction with the 2026-07-03 dedupe fix:** skipping FAILED jobs in dedupe made re-runs resubmit
+  failed pairs — correct for transient failures, but a *deterministic* failure would now be re-bought
+  (10 credits) on EVERY idempotent re-run.
+* **Fix:** retry-then-park in `fetch_existing_pair_signatures()` — a pair with ONE failure is retried on
+  the next run; a pair with ≥2 failures (and no success) is treated as done and logged loudly as
+  `PARKED (failed 2× at ASF — deterministic)`. Verified: dry-run now plans 49, skips 49 (48 succeeded +
+  1 parked), submits 0.
+* **Impact:** none on the product — the pair's frame101 twin was QUARANTINE (R²=0.83) and the whole
+  winter-2026 chain is quarantined anyway (§26); the VD product is built from the clean spring stacks.
+* **Lesson:** idempotent retry logic needs BOTH halves — retry what might be transient, park what is
+  proven deterministic — or a self-healing loop becomes a money-burning loop.
+
 ### [2026-07-03b] First cross-AOI run surfaced three latent "only-works-for-Ramban" assumptions
 
 * **Symptom:** `run_multistack.py` under the Vaishno Devi config failed twice in sequence:
