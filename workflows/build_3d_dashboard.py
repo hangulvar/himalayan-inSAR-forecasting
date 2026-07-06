@@ -56,7 +56,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
-_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+_CFG = load_config()
+_SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
+SITE = _CFG.site_name              # human-readable label for dashboard titles
 VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
 HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
@@ -193,7 +195,7 @@ def main() -> int:
                         "method": "restyle", "args": [{"visible": vis}]})
 
     layout = {
-        "title": {"text": f"Ramban NH-44 — 3-D Hazard Explorer ({stack})", "x": 0.5},
+        "title": {"text": f"{SITE} — 3-D Hazard Explorer ({stack})", "x": 0.5},
         "scene": {
             "xaxis": {"title": "pixel (E→)", "showspikes": False},
             "yaxis": {"title": "pixel (N→)", "showspikes": False},
@@ -216,7 +218,7 @@ def main() -> int:
 
     config = {"responsive": True, "displaylogo": False}
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Ramban 3-D Hazard Explorer</title>
+<title>{SITE} — 3-D Hazard Explorer</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <style>
  html,body{{margin:0;height:100%;background:#0d1b2a;font-family:Segoe UI,Arial,sans-serif}}
@@ -227,7 +229,7 @@ def main() -> int:
 </style></head><body>
 <div id="plot"></div>
 <div id="info">
- <b>🏔️ Ramban NH-44 — 3-D Hazard Explorer</b><br>
+ <b>🏔️ {SITE} — 3-D Hazard Explorer</b><br>
  Drag to orbit · scroll to zoom · hover an <span class="k">alert diamond</span> for its reasoning.<br>
  Use the top buttons to switch rainfall scenario — watch alerts grow from
  <span class="k">dry</span> to <span class="k">monsoon</span>. Toggle

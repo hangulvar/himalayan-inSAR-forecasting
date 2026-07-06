@@ -41,6 +41,7 @@ class RescueGateConfig:
 @dataclass(frozen=True)
 class Config:
     aoi_path: Path
+    site_name: str
     job_name_prefix: str
     search_start: datetime
     search_end: datetime
@@ -98,8 +99,13 @@ def load_config(path: str | Path | None = None) -> Config:
 
     b = raw.get("baseline") or {}
     g = raw.get("rescue_gate") or {}
+    slug_stem = aoi.stem[:-4] if aoi.stem.endswith("_aoi") else aoi.stem
     return Config(
         aoi_path=aoi,
+        # Human-readable site label for dashboard titles; optional — falls back to
+        # the slug. (Ramban's config should carry `site_name: Ramban NH-44` to keep
+        # its historical dashboard titles when regenerated.)
+        site_name=str(raw.get("site_name") or slug_stem.title()),
         job_name_prefix=str(raw["job_name_prefix"]),
         search_start=_to_utc(raw["search_start"]),
         search_end=_to_utc(raw["search_end"]),

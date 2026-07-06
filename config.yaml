@@ -12,6 +12,9 @@
 # convert to GeoJSON (geopandas/QGIS). See InSAR_hazard_forecasting_Context.md.
 aoi_path: vaishnodevi_aoi.geojson
 
+# Human-readable site label used in dashboard titles.
+site_name: Vaishno Devi — Trikuta shrine corridor
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix. Use a short, unique slug per AOI.

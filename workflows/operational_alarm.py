@@ -50,9 +50,14 @@ from rainfall_specificity import (  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
-ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{load_config().data_suffix}"
+_CFG = load_config()
+_SFX = _CFG.data_suffix              # '' for ramban; '_<slug>' so AOIs coexist
+SITE = _CFG.site_name
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 INV_DIR = PROJECT_ROOT / "data" / "inventory"
-INVENTORY = INV_DIR / "ramban_documented_landslides.geojson"
+# Per-AOI inventory convention (ramban's name unchanged); events are skipped
+# gracefully when the site has no inventory yet.
+INVENTORY = INV_DIR / f"{SLUG}_documented_landslides.geojson"
 
 LEVELS = ["DORMANT", "WATCH", "ALERT"]
 LEVEL_COLOR = {"DORMANT": "#e8e8e8", "WATCH": "#f0b428", "ALERT": "#dc2828"}
@@ -92,13 +97,15 @@ def load_tier(path: Path, required: bool = False):
         "auc": None, "recall": None, "spec": None, "lift250": None,
         "core_zones": None, "core_auc": None, "core_lift": None,
     }
-    rpt = INV_DIR / f"backtest_{scenario}_report.json"
+    # Back-test reports are per-AOI: suffixed for non-ramban sites so another AOI's
+    # dashboard can never wear ramban's validation scores (fields stay None -> omitted).
+    rpt = INV_DIR / f"backtest_{scenario}{_SFX}_report.json"
     if rpt.exists():
         sc = json.loads(rpt.read_text(encoding="utf-8")).get("scored", {})
         ab = sc.get("at_buffer_km", {})
         tier.update(auc=sc.get("auc"), recall=ab.get("tpr"), spec=ab.get("specificity"),
                     lift250=_lift_at(sc.get("roc", []), 0.25))
-    core = INV_DIR / f"backtest_{scenario}_2look_report.json"
+    core = INV_DIR / f"backtest_{scenario}{_SFX}_2look_report.json"
     if core.exists():
         c = json.loads(core.read_text(encoding="utf-8"))
         cs = c.get("scored", {})
@@ -187,7 +194,9 @@ def main() -> int:
     alert_dates = [dates[i] for i in alert_idx]
 
     # Temporal coincidence: each documented dated event vs nearest ALERT / nearest WATCH+ day.
-    events = documented_events(Path(args.inventory))
+    # No inventory for this AOI yet -> no event panel (never score another site's events).
+    inv_path = Path(args.inventory)
+    events = documented_events(inv_path) if inv_path.exists() else []
     per_event = []
     for name, ev in events:
         d_alert = nearest_alert_delta(ev, alert_dates)
@@ -351,14 +360,23 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     rec_txt = f"{rec:.2f}" if isinstance(rec, (int, float)) else "n/a"
     auc_txt = _auc_txt(tier.get("auc"))
     triage = ""
+    unscored = not isinstance(tier.get("auc"), (int, float))
     if role == "ALERT":
-        title = "WHERE — ALERT footprint (act now · the map that beats chance)"
-        lift250 = tier.get("lift250")
-        lift_txt = (f", <b>{lift250:.0f}× better than luck @250 m</b>"
-                    if isinstance(lift250, (int, float)) else "")
-        scored = (f"Scored vs the GSI field-validated inventory (random-luck control): "
-                  f"<b>AUC {auc_txt}</b> (beats chance), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
-                  f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
+        title = ("WHERE — ALERT footprint (act now)" if unscored else
+                 "WHERE — ALERT footprint (act now · the map that beats chance)")
+        if unscored:
+            # No back-test at this site yet — never borrow another AOI's validation claims.
+            scored = ("<b>Not yet back-tested at this site</b> (no local landslide "
+                      "inventory) — the footprint inherits the framework's validation, "
+                      "not its own score. Held FIXED — the rainfall gate changes only "
+                      "the alarm STATE, not the map.")
+        else:
+            lift250 = tier.get("lift250")
+            lift_txt = (f", <b>{lift250:.0f}× better than luck @250 m</b>"
+                        if isinstance(lift250, (int, float)) else "")
+            scored = (f"Scored vs the GSI field-validated inventory (random-luck control): "
+                      f"<b>AUC {auc_txt}</b> (beats chance), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
+                      f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
     else:
         title = "WHERE — WATCH footprint (monitor wider · higher recall)"
         ratio = (f" (≈{rec / compare_recall:.1f}× the ALERT recall)"
@@ -369,8 +387,12 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
             cl_txt = f", lift {cl:.2f}×@2 km" if isinstance(cl, (int, float)) else ""
             core = (f" Its <b>≥2-look core</b> ({cz} zones) still beats chance: "
                     f"<b>AUC {_auc_txt(ca)}</b>{cl_txt}.")
-        scored = (f"Recall <b>{rec_txt}</b>@2 km{ratio}, at lower precision "
-                  f"(AUC {auc_txt}, ≈chance overall).{core} Monitor these; act on the ALERT core.")
+        if unscored:
+            scored = ("<b>Not yet back-tested at this site</b> — a deliberately wider "
+                      "monitoring net. Monitor these; act on the ALERT footprint.")
+        else:
+            scored = (f"Recall <b>{rec_txt}</b>@2 km{ratio}, at lower precision "
+                      f"(AUC {auc_txt}, ≈chance overall).{core} Monitor these; act on the ALERT core.")
         top = tier.get("triage_top")
         if top:
             items = "\n".join(
@@ -455,7 +477,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </div>"""
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Ramban NH-44 — Operational Landslide Alarm</title>
+<title>{SITE} — Operational Landslide Alarm</title>
 <style>
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
@@ -475,7 +497,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  a{{color:#1a5fb4}}
 </style></head><body>
 <header>
-  <h1>🏔️ Ramban NH-44 — Operational Landslide Alarm</h1>
+  <h1>🏔️ {SITE} — Operational Landslide Alarm</h1>
   <div class="sub"><b>WHERE</b> (two-tier hazard footprint: ALERT + WATCH) × <b>WHEN</b> (regional rainfall
    gate) × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
    generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>

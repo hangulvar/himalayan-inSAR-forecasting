@@ -11,7 +11,7 @@
 
 ---
 
-# LIVE — Session 14 · branch `aoi-vaishnodevi` · updated 2026-07-03
+# LIVE — Session 15 · branch `aoi-vaishnodevi` · updated 2026-07-06
 
 ## Current state
 
@@ -27,13 +27,15 @@
 
 - **Route exposure DONE (§28, M33) — the deliverable:** `route_exposure.py` + OSM-real `vaishnodevi_route.geojson`. Headline: **1 CORE segment (680 m of path above Bhairon top, 2-track-confirmed — read first)**; **0 OPERATIONAL** segments (standing product's zones are off-track); WATCH 7 segs/7.3 km (Himkoti + Hathimata variants pass through zones; shrine complex + ropeway within ~200 m); MONSOON-only 8 segs (classic Track); **Katra + trek start CLEAR**. Also fixed: `.gitignore` was silently ignoring `*_aoi.geojson` — **`vaishnodevi_aoi.geojson` was never actually committed**; re-included, needs `git add`.
 
+- **VD is LIVE (§29, M34):** two-factor alarm running on the real 2026 season — **DORMANT as-of 2026-06-30** (13 April trigger days gated to 0 ALERT; 0/33 zones active). Cross-AOI honesty guards shipped: suffix-scoped back-test lookups (a site can never wear another's AUC), "not yet back-tested at this site" cards, per-AOI inventory convention, `site_name` config field (VD dashboards correctly titled; **add `site_name: Ramban NH-44` to Ramban's config at merge**).
+
 ## Recommended next step
 
 Field-facing: get the CORE segment (route_exposure.md row 1) eyeballed on the ground / on recent optical
-imagery. Pipeline: VD rainfall season (`live_alarm.py` is slug-aware) for the WHEN axis; bump `search_end`
-+ resubmit every ~2 weeks to extend chains through the monsoon (noise floor drops as chains lengthen);
-fetch a Trikuta ALOS 12.5 m tile (user-side, §21 path); `site_name` config field for dashboard titles.
-Ramban backlog unchanged (STABLE §3).
+imagery. Pipeline: **refresh cadence** — re-run `live_alarm.py` (both images) as the monsoon builds, and
+bump `search_end` + resubmit every ~2 weeks to extend the S1 chains (noise floor drops as chains lengthen;
+the failed frame106 Jan pair's resubmission also needs a `download_hyp3_products.py` pass). User-side:
+Trikuta ALOS 12.5 m tile (§21 path). Ramban backlog unchanged (STABLE §3).
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
@@ -41,9 +43,9 @@ Ramban backlog unchanged (STABLE §3).
 
 ## Uncommitted delta
 
-- Committed on `aoi-vaishnodevi` through the user's AOI-coexistence commit; prior batches (AOI+config+compose `9cf39ab`, live-rainfall, QA/dedupe) all in.
-- **[2026-07-03] NEW this batch — VD Phases 2–4 + route exposure + fixes + docs:** `custom_sbas_inverter.py` (min-pairs clamp), `geomechanical_engine.py` (ALOS zero-coverage fallback), `slope_velocity.py` (latent §21 tuple fix), `run_multistack.py` (log dirs), **`route_exposure.py` (NEW)**, **`vaishnodevi_route.geojson` (NEW, OSM ODbL)**, `.gitignore` (`!*_aoi.geojson` `!*_route.geojson` — the AOI file was silently ignored), `RESULTS_AND_KPIS.md` §27–§28, `milestone.md` M32–M33, `error_history_log.md` 2026-07-03b, this LIVE block. Suggested commit:
-  `git add workflows/ .gitignore vaishnodevi_aoi.geojson vaishnodevi_route.geojson RESULTS_AND_KPIS.md milestone.md error_history_log.md SESSION_REVIEW.md && git commit -m "VD Phases 2-4 + route exposure: 1 CORE segment above Bhairon top, op product off-track, variants in WATCH net (§27-28, M32-33); 3 latent single-AOI fixes; un-ignore *_aoi.geojson"`
+- Committed on `aoi-vaishnodevi` through `735b552` (VD Phases 2–4 + route exposure).
+- **[2026-07-06] NEW this batch — VD live alarm + honesty guards:** `config.py` + `config.yaml` (`site_name`), `operational_alarm.py` (suffix-scoped back-test lookups, per-AOI inventory, unscored tier cards), `agentic_orchestrator.py` / `build_3d_dashboard.py` (config-driven titles), `live_alarm.py` (dashboard-path print), `RESULTS_AND_KPIS.md` §29, `milestone.md` M34, this LIVE block. Suggested commit:
+  `git add workflows/ config.yaml RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD live two-factor alarm (DORMANT as-of 2026-06-30) + cross-AOI honesty guards: suffix-scoped scores, unscored cards, site_name titles (§29, M34)"`
 
 ---
 

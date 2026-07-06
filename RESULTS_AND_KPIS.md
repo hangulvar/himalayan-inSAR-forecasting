@@ -1353,6 +1353,39 @@ never committed!) — re-included via `!*_aoi.geojson` + `!*_route.geojson`; bot
 
 ---
 
+## 29. Vaishno Devi goes LIVE — two-factor alarm for the shrine corridor  `[REAL / UNVALIDATED]`
+
+Source: `live_alarm.py` two-stage run (Docker, 2026-07-06), branch `aoi-vaishnodevi`. The corridor now has
+the same WHERE × WHEN warning as Ramban: ERA5-Land season fetched for the **VD bbox**
+(`vaishnodevi_era5land_daily_vaishnodevi_2026.csv`, 2026-04-01→06-30, 91 days — ~5-day publication lag),
+wetness m(t) + regional I-D gate + per-zone gating + the operational dashboard, all suffixed
+`_vaishnodevi_2026` in the slug-scoped dirs.
+
+**First live read (as-of 2026-06-30): DORMANT.** Season so far: **13 raw regional trigger days — all in
+the 2026-04-03..17 spring wet spell — gated to 0 ALERT days** (13× selectivity); daily m(t)=0.56 on 30 Jun;
+**0 of 33 per-zone-gated zones active** (m\* > today's m; season-peak 33 active during the April spell).
+The monsoon build-up will move this — re-run `live_alarm.py` (both images) to refresh.
+
+**Cross-AOI honesty guards shipped with this (the important part):**
+- `load_tier` back-test lookups are now **suffix-scoped** (`backtest_<scenario><data_suffix>_report.json`)
+  — verified in-container that the VD tier loads its 27 zones with `auc=None` even though Ramban's report
+  exists. **A site can never wear another site's validation scores.**
+- Tier cards render "**Not yet back-tested at this site**" when unscored (the old template claimed
+  "AUC n/a *(beats chance)*" — a false claim, now conditional). Verified: 2× in the VD dashboard, 0×
+  "beats chance".
+- Events panel: per-AOI inventory convention (`<slug>_documented_landslides.geojson`), skipped gracefully
+  when absent — Ramban's 2025 events are never scored against another site's season.
+- **`site_name` config field** (new, optional): dashboard titles now read from config — VD dashboards say
+  "Vaishno Devi — Trikuta shrine corridor", ending the "Ramban NH-44" mislabel. ⚠️ At merge time, add
+  `site_name: Ramban NH-44` to the Ramban `config.yaml` to keep its historical titles.
+
+**Producing scripts:** `live_alarm.py` (+ dashboard-path print fix), `operational_alarm.py` (guards +
+unscored cards), `config.py` (`site_name`), `agentic_orchestrator.py` + `build_3d_dashboard.py` (titles).
+**Artefacts (git-ignored):** `data/alerts_vaishnodevi/mosaic_asc/operational_alarm_dashboard_vaishnodevi_2026.html`,
+`data/rainfall/*_vaishnodevi_2026.*`, `data/alerts_vaishnodevi/per_zone_*`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

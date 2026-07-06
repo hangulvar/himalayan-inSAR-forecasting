@@ -62,7 +62,9 @@ from scipy import ndimage
 from config import load_config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+_CFG = load_config()
+_SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
+SITE = _CFG.site_name              # human-readable label for dashboard titles
 VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
 HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 OUT_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
@@ -373,7 +375,7 @@ def write_dashboard(path: Path, stack: str, scenario: str, cfg: dict,
         "no ground is both theoretically unstable AND measurably creeping.</p>")
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Ramban Hazard Dashboard — {scenario}</title>
+<title>{SITE} Hazard Dashboard — {scenario}</title>
 <style>
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
@@ -399,7 +401,7 @@ def write_dashboard(path: Path, stack: str, scenario: str, cfg: dict,
  footer{{padding:10px 24px;font-size:11px;color:#888}}
 </style></head><body>
 <header>
-  <h1>🏔️ Ramban NH-44 — Landslide Hazard Dashboard</h1>
+  <h1>🏔️ {SITE} — Landslide Hazard Dashboard</h1>
   <div class="sub">Agentic forecast · stack {stack} · scenario: <b>{scenario.upper()}</b>
    ({cfg['rainfall_mm_72h']} mm/72h rainfall, saturation m={cfg['saturation']}, {cfg['fs_layer']})
    · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>

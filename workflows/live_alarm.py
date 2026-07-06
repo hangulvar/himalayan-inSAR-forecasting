@@ -156,7 +156,8 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str) -> None:
     run("operational_alarm.py", "--csv", str(season_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat(), "--out-suffix", suffix)
     print(f"\nLIVE alarm regenerated as-of {as_of} -> "
-          f"data/alerts/mosaic_asc/operational_alarm_dashboard{suffix}.html")
+          f"data/alerts{load_config().data_suffix}/mosaic_asc/"
+          f"operational_alarm_dashboard{suffix}.html")
 
 
 def main() -> int:

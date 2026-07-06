@@ -1147,6 +1147,31 @@ worst case, and the town clear. Every 12 days of new radar sharpens it.
 
 ---
 
+## ✅ Milestone 34 — The shrine corridor gets a live weather-aware alarm  *(VD two-factor warning, 2026-07-06)*
+
+**What we set out to do:** yesterday's route map answers *where* to look; a warning system also needs
+*when*. Ramban already had this "two-factor" design — a fixed hazard map that only *arms* when real
+rainfall crosses a danger line. We pointed the same machinery at the new site.
+
+**What we did, plainly:** fetched the real 2026 rain-and-snowmelt season for the Katra hills (April through
+June so far), converted it to a daily ground-wetness estimate, and ran it through the alarm: which days
+crossed the regional rain-danger line, and which of the 33 flagged slopes would have been "live" on each day.
+
+**What the alarm says today:** **all quiet (DORMANT).** The season's 13 danger-line days were all in one
+April wet spell, and none rose far enough above the line to rate an actual ALERT; on 30 June no flagged
+slope was wet enough to be active. As the monsoon builds, one command refreshes the whole picture.
+
+**Just as important — honesty plumbing:** we made it *impossible* for the new site's dashboard to wear the
+old site's medals. Vaishno Devi has no landslide history-list yet, so its dashboard now plainly says "not
+yet back-tested at this site" instead of borrowing Ramban's accuracy scores (which the old template would
+have quietly done). Each site also finally shows its **own name** in its dashboards.
+
+**Plain-language result:** the Vaishno Devi corridor now has a **live, weather-gated warning dashboard** —
+currently reading all-quiet — that refreshes with one command and tells the truth about what has and hasn't
+been validated at this site.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
