@@ -1,0 +1,706 @@
+{
+  "type": "FeatureCollection",
+  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Only the dated event feeds the temporal back-test.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ardhkuwari landslide disaster (Inderprastha Bhojnalaya)",
+        "type": "event_2025",
+        "date": "2025-08-26",
+        "time_local": "~15:00 IST",
+        "casualties": 32,
+        "injured": 20,
+        "coord_confidence": "anchored_to_gsi_slope_nos_110_111 (per the note: slopes around the incident were pre-flagged as Nos. 110, 111, 115, 117)",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), pp.1-3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941791,
+          33.008764
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 2 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Debris",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941528,
+          33.009167
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 3 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Cut face",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.940361,
+          33.009917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 7 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.938861,
+          33.010944
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 9 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Slope vulnerable for rock slide",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.938306,
+          33.0115
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 12 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rock slide",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.934778,
+          33.010917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 15 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Cut face on left bank of nala",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.938167,
+          33.010556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 22 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.940667,
+          33.006722
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 41 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Detached boulder prone to slide (dimension 3x3.5 m approx.)",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.925417,
+          33.000778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 34 to 35 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.931361,
+          33.004972
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 35A \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Cracks and Subsidence",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.931594,
+          33.004244
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 46 \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Detached boulder prone to slide (dimension 4x3 m approx.)",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.927917,
+          33.000333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 48 to 48 A \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Open cracks in the compacted scree making the slope forming material vulnerable to fall.",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.927917,
+          33.001028
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 49A \u2014 Tarakot-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Cut face/rock slide",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.929472,
+          33.000778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 52 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Vulnerable to planar and wedge failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.94525,
+          33.027917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 55 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar along some joint and many wedges",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.945389,
+          33.02675
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 57 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.944056,
+          33.026472
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 59 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Old planar failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941611,
+          33.024806
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 60 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall/shooting stone area",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.939611,
+          33.022833
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 62 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Shooting stone zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.938278,
+          33.021056
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 65 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Topple /wedge",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.937806,
+          33.018333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 70 \u2014 Bhawan-Sanjichat-Adhkuwari",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar/wedge",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941333,
+          33.013417
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 77 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Old planar failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.942722,
+          33.026083
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 78 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Old planar failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.942528,
+          33.026417
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 80 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Wedge failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.942028,
+          33.026556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 81 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Shooting stone zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941083,
+          33.02525
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 82 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Shooting stone zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9405,
+          33.02425
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 87 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.934944,
+          33.020944
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 91 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar/Wedge",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.931333,
+          33.019583
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 99 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Overhang",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.933394,
+          33.014389
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 104 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.938528,
+          33.012389
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 106 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Wedge failure",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.939528,
+          33.011306
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 110 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941694,
+          33.008972
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 111 \u2014 Bhawan-Adhkuwari (Himkoti Marg)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar/Wedge",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.941889,
+          33.008556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 115 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.944333,
+          33.006722
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 117 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Planar/Wedge (Highly shattered rockmass)",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.942861,
+          33.007694
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 118 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Shooting stone area",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.947639,
+          33.005611
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 119 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rockfall",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.949722,
+          33.006694
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 120 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Rock slide vulnerable zone",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.947694,
+          33.004833
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 121 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Debris slide",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9465,
+          32.999861
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GSI loc 122 \u2014 Banganga-Adhkuwari track",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Debris slide",
+        "coord_confidence": "gsi_dms_survey",
+        "source": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari on the Vaishno Devi Yatra Route' (29.08.2025), Table-7.1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.942333,
+          32.998139
+        ]
+      }
+    }
+  ]
+}

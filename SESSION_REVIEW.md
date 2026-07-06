@@ -11,7 +11,7 @@
 
 ---
 
-# LIVE — Session 15 · branch `aoi-vaishnodevi` · updated 2026-07-06
+# LIVE — Session 16 · branch `aoi-vaishnodevi` · updated 2026-07-07
 
 ## Current state
 
@@ -29,6 +29,7 @@
 
 - **VD is LIVE (§29, M34):** two-factor alarm running on the real 2026 season — **DORMANT as-of 2026-06-30** (13 April trigger days gated to 0 ALERT). Cross-AOI honesty guards shipped: suffix-scoped back-test lookups (a site can never wear another's AUC), "not yet back-tested at this site" cards, per-AOI inventory convention, `site_name` config field (VD dashboards correctly titled; **add `site_name: Ramban NH-44` to Ramban's config at merge**).
 - **VD upgraded to the 12.5 m ALOS DEM (§30, M35):** user-fetched Trikuta tile (100 % AOI coverage, health-checked); `ALOS_DEM_DIR` slug-scoped. Slope median 18→21.9°; **2-track core 411→567 px**; operational 27→37 zones; **the CORE route segment above Bhairon top now runs 800 m THROUGH core pixels (0 m)**; op product still off-track; alarm still DORMANT. §27/§28 counts superseded.
+- **★★ VD VALIDATED (§31, M36) — no longer `[UNVALIDATED]`:** GSI note on the **26 Aug 2025 Ardhkuwari disaster (32 dead)** → committed inventory (1 dated event + 40 GSI DMS locations). **Temporal: the disaster day was the season's max-rain day (191 mm) AND the model's peak-E day — caught at Δ=0 by full ALERT** (asterisk: extreme season, 59 ALERT days). **Spatial: operational map AUC 0.620 / recall 0.805 / lift 1.67× — beats chance first try**; watch 0.558/0.854. **Revision: the ≥2-look core scores 0 vs this corridor inventory** (track failures = fast cut-slope rockfall, a different class from SBAS creep; core sits on the upper massif, unsampled) — for *track* hazard trust the single-look operational map; the Bhairon-top core segment still merits its field check. Dashboards now wear VD's own scores. Soil context (Trikuta carbonates + scree, Reasi Thrust) recorded → site-specific φ/c pass is a justified next accuracy item.
 
 ## Recommended next step
 
@@ -50,8 +51,9 @@ auto-PARKED after its 2nd failure (§26 addendum) — Phase 1 final state 48/49.
   `git add workflows/ config.yaml RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD live two-factor alarm (DORMANT as-of 2026-06-30) + cross-AOI honesty guards: suffix-scoped scores, unscored cards, site_name titles (§29, M34)"`
 - **[2026-07-06b] Loose end closed — frame106 Jan pair:** `submit_hyp3_jobs.py` (retry-then-park: ≥2 ASF failures → skip with warning; dry-run verified 49 planned / 49 skipped / 1 parked), `RESULTS_AND_KPIS.md` §26 addendum, `error_history_log.md` 2026-07-06. Suggested commit:
   `git add workflows/submit_hyp3_jobs.py RESULTS_AND_KPIS.md error_history_log.md SESSION_REVIEW.md && git commit -m "Retry-then-park for HyP3 pairs: frame106 Jan pair fails deterministically (mcf ref-point) — parked after 2nd failure, re-runs stop re-buying it (§26 addendum)"`
-- **[2026-07-06c] VD 12.5 m DEM:** `geomechanical_engine.py` (`ALOS_DEM_DIR` slug-scoped), user tile in `data/dem_alos_12m_vaishnodevi/` (git-ignored), full `--force` re-run + route exposure + alarm refreshed, `RESULTS_AND_KPIS.md` §30 (+§27/§28 superseded tags), `milestone.md` M35, this LIVE block. Suggested commit:
-  `git add workflows/geomechanical_engine.py RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD on the 12.5m ALOS DEM: slug-scoped ALOS_DEM_DIR; 2-track core 411->567px, CORE route segment now 800m through core px; alarm still DORMANT (§30, M35)"`
+- **[2026-07-06c] VD 12.5 m DEM:** committed (`26f0286`).
+- **[2026-07-07] VD validation batch:** `data/inventory/vaishnodevi_documented_landslides.geojson` (NEW, tracked), `.gitignore` (inventory re-include), `RESULTS_AND_KPIS.md` §31, `milestone.md` M36, this LIVE block. Data (git-ignored): `vaishnodevi_era5land_daily.csv` (2025 season), `backtest_*_vaishnodevi*` reports/maps, `operational_alarm_*_vaishnodevi_2025.*`, regenerated 2026 dashboard with real scores. No code changes. Suggested commit:
+  `git add data/inventory/vaishnodevi_documented_landslides.geojson .gitignore RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD validated on the 26 Aug 2025 Ardhkuwari disaster: temporal Delta=0 on the season peak-E day, operational AUC 0.62/recall 0.81 beats chance; 2-look core untested by corridor inventory (§31, M36)"`
 
 ---
 

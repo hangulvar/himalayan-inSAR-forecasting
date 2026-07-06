@@ -1195,6 +1195,38 @@ convincing. That stretch is worth a real-world look.
 
 ---
 
+## ✅ Milestone 36 — The second mountain passes its first real exam  *(VD validated on the Ardhkuwari disaster, 2026-07-07)*
+
+**What we set out to do:** until now the Vaishno Devi product was honestly labelled "not yet tested at
+this site." You gave us what was missing: the official GSI report on the **26 August 2025 Ardhkuwari
+disaster** (32 lives lost near the Inderprastha Bhojnalaya on the pilgrim track) plus GSI's own table of
+40 surveyed danger spots along the routes. We turned that into the site's first genuine exam.
+
+**A chilling detail from the report itself:** GSI had *already flagged the exact slopes that failed* —
+years before — as vulnerable spots Nos. 110 and 111. This is precisely the kind of place-and-warn problem
+our tool exists for.
+
+**The when-test (strongest result):** we fetched the real 2025 rain record for these hills. The disaster
+day turns out to be **the wettest day of the entire season — 191 mm** — and our alarm, given only rain
+data, marks **that exact day as the single most dangerous day of 2025** and would have been at full ALERT
+on it. The honest asterisk: that monsoon was so relentless that the alarm would have been ON for many
+days that season — so "we'd have been alarmed that day" matters less than "that day was our #1."
+
+**The where-test:** our standing hazard map scores **clearly better than random luck** at its very first
+scoring (about the same grade Ramban earned after months of tuning) — 4 in 5 of GSI's danger spots lie
+within 2 km of one of our 37 flagged zones. **The humbling part:** our "double-confirmed" spots — where
+both satellite tracks agree ground is creeping — are all *away* from the track and scored zero against
+GSI's track-side list. Lesson learned and recorded: the track's dangers are fast rockfalls off cut
+slopes, a different beast from the slow creep radar sees best. For the *track*, trust the wide validated
+map; the double-confirmed core above Bhairon top is still worth its field check, but it's answering a
+different question.
+
+**Plain-language result:** the Vaishno Devi warning system is now **validated against a real disaster** —
+it beats chance on where, and its worst-day-of-the-season call lands exactly on the day that killed 32
+people. Its dashboards now wear the site's own scores, earned, not borrowed.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

@@ -1422,6 +1422,58 @@ core first. **Artefacts:** regenerated `data/{velocity,hazard,alerts,mosaic}_vai
 
 ---
 
+## 31. ★★ Vaishno Devi VALIDATED — the 26 Aug 2025 Ardhkuwari disaster back-test  `[REAL / MEASURED]`
+
+Source: user-supplied **GSI Preliminary Note** (29.08.2025, authoritative — read directly per the §12g
+ground-truth rule) + `backtest_inventory.py` ×4 + `operational_alarm.py` (Docker, 2026-07-06/07), branch
+`aoi-vaishnodevi`. **The site is no longer `[UNVALIDATED]`.**
+
+**Ground truth (new, committed):** `data/inventory/vaishnodevi_documented_landslides.geojson` — the dated
+**26.08.2025 ~15:00 Ardhkuwari disaster (Inderprastha Bhojnalaya; 32 dead, ≥20 injured)** + **40
+GSI-DMS-surveyed instability locations** along all four track segments (Table-7.1 of the note). The event
+coordinate is anchored to GSI slope **Nos. 110/111** — the note itself states the failed slopes were
+pre-flagged as Nos. 110/111/115/117 in GSI's 2022-23 survey (33.00876 N 74.94179 E). Caveats recorded in
+the file: corridor-biased; mostly *assessed-vulnerable* spots, not all occurred slides.
+
+**TEMPORAL — the headline.** VD-bbox ERA5-Land 2025 season (`vaishnodevi_era5land_daily.csv`): the
+disaster day **26 Aug 2025 was the season's MAXIMUM rain day — 191.3 mm** (61.4 mm on the 25th; 253 mm/48 h).
+The regional I-D gate: **event caught at Δ=0 by full ALERT (1/1)**, and the alarm's default "current state"
+(peak-E day of the whole season) **self-selected 2025-08-26** — the model's single strongest alarm day of
+2025 IS the disaster day. **Honest counterweight:** 2025 was an extreme monsoon at this site — raw trigger
+102/214 d, gated ALERT still **59 d (27.6 %)**, so the gate is far less selective than Ramban-2025 (27 d);
+a Δ=0 hit is *necessary* evidence, not *sufficient* — the peak-E coincidence is the stronger fact.
+
+**SPATIAL (null n=5000 in the VD polygon, seed 20260606):**
+| arm | zones | AUC | recall@2 km | lift@2 km |
+|---|---|---|---|---|
+| **operational (m=0.50)** | 37 | **0.620** | **0.805** | **1.67×** |
+| watch (m=0.70) | 97 | 0.558 | 0.854 | 1.27× |
+| operational ≥2-look | 10 | 0.527 | **0.000** | 0× |
+| watch ≥2-look | 14 | 0.457 | 0.000 | 0× |
+
+The **operational map beats chance at its first scored test** (AUC 0.62 ≈ Ramban's 0.64 §21b) — with
+borrowed φ and a 7-week velocity baseline. **The honest surprise: the ≥2-look core scores ZERO against
+this inventory** (all core zones >2 km from the corridor, median 4 km). Interpretation, not failure-hiding:
+the corridor ground truth is **cut-slope debris/rockfall failures** (GSI's own failure types) — fast,
+shallow, small — a *different failure class* from the slow deep creep SBAS detects; the 2-track core sits
+on the upper massif, which this corridor-hugging inventory simply does not sample. **Trust guidance
+REVISED for this site:** for *route/track* hazard read the validated single-look operational map first
+(AUC 0.62); the ≥2-look core (incl. the §30 800 m Bhairon-top segment) remains the most *measurement*-
+corroborated creep but is **untested by this inventory** — field-check stands.
+
+**Context from the note (for future calibration):** Trikuta Fm limestone/dolomite (Sirban Gp) +
+Quaternary Vaishnodevi-Fm scree (loose→compacted) + Reasi Thrust adjacent — carbonate + scree mechanics
+differ from the Batote-Doda calibration behind φ=36°/c; a site-specific FS parameter pass is now a
+justified next accuracy item. (Compendium Spl. Pub. 107: Ardhkuwari-Bhawan new track = High susceptibility
+from slope-cutting — independent GSI concurrence with our corridor read.)
+
+**Wired through:** the suffix-scoped tier lookup (§29) picked the new reports up automatically — the live
+2026 dashboard now shows **VD's own AUC 0.62 / recall 0.854**, "beats chance" restored honestly.
+**Artefacts:** `backtest_{operational,watch}_vaishnodevi{,_2look}_*` in `data/inventory/`,
+`operational_alarm_*_vaishnodevi_2025.*` (as-of 2025-08-26 = ALERT), regenerated 2026 dashboard.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
