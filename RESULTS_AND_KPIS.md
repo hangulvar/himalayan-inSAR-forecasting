@@ -1308,6 +1308,7 @@ first**, single-look with per-zone confidence second.
 union mosaic **HIGH = 2,705 px**, of which **411 confirmed by both tracks**. Union alert zones:
 **dry 0 · operational (m=0.50) 27 (4 critical, 6 multi-look) · watch (m=0.70) 72 (11, 14) ·
 monsoon/extreme 185 (72, 19)**. Dry=0 replicates the Ramban cascade shape (rain-triggered site).
+*(zone/pixel counts superseded by §30 — 12.5 m ALOS DEM upgrade.)*
 
 **Three latent single-AOI assumptions surfaced and fixed** (first cross-AOI run as a stress test;
 `error_history_log.md` 2026-07-03b): (1) `--min-pairs 8` default unreachable by a 4-pair stack → clamp to
@@ -1340,7 +1341,7 @@ densify the route to 40 m samples; exposure = within the **§16b honest 250 m de
 ≥2-look CORE pixel, (b) a union alert zone per scenario (centroid+equivalent-radius circles); direct hit
 ≤80 m (one pixel). Classes ranked CORE > OPERATIONAL > WATCH > MONSOON.
 
-**Result — 16 exposed segments (~14.2 km of ~walkable network):**
+**Result — 16 exposed segments (~14.2 km of ~walkable network)** *(superseded by §30 — 12.5 m DEM)*:
 - **CORE ×1 (read first): 680 m of unnamed path NE of/above the Bhairon top** — the only route element
   near a 2-track-confirmed creep cluster (direct hit; min 248 m to core px).
 - **OPERATIONAL ×0** — under the standing m=0.50 product **no route segment is within 250 m of an
@@ -1390,6 +1391,34 @@ The monsoon build-up will move this — re-run `live_alarm.py` (both images) to 
 unscored cards), `config.py` (`site_name`), `agentic_orchestrator.py` + `build_3d_dashboard.py` (titles).
 **Artefacts (git-ignored):** `data/alerts_vaishnodevi/mosaic_asc/operational_alarm_dashboard_vaishnodevi_2026.html`,
 `data/rainfall/*_vaishnodevi_2026.*`, `data/alerts_vaishnodevi/per_zone_*`.
+
+---
+
+## 30. ★ Vaishno Devi on the 12.5 m ALOS DEM — sharper slopes, stronger 2-track core  `[REAL / UNVALIDATED]`
+
+Source: `run_multistack.py --force` + `route_exposure.py` + `live_alarm.py` (Docker, 2026-07-06), branch
+`aoi-vaishnodevi`. The user fetched a Trikuta ALOS PALSAR RTC tile (`AP_15676_FBS_F0650_RT1`, ASF Vertex) —
+health-checked: 12.5 m, EPSG:32643 (native UTM zone of the grid), **100 % AOI coverage**, 99.7 % valid,
+elev 266–4,614 m. `ALOS_DEM_DIR` is now **slug-scoped** (`data/dem_alos_12m` = Ramban unchanged;
+`data/dem_alos_12m_vaishnodevi` = the new tile), completing the per-AOI coexistence layer — the §21 recipe
+(native-slope-then-average) now applies per site automatically.
+
+**Effect of 30 m → 12.5 m slope (supersedes §27/§28 counts):**
+- Slope: median **18.0→21.9°**, p95 43.9→46.2°, max 63.9→**71.3°** (same direction as Ramban's §21).
+- Union mosaic: HIGH **2,705→3,690 px**; **≥2-track core 411→567 px (+38 %)**.
+- Union zones: **operational 27→37** (critical 4→8, multi-look 6→10), watch 72→97, monsoon/extreme 185→254;
+  **dry stays 0** (cascade shape preserved).
+- **Route exposure: the CORE finding strengthens** — the unnamed path above the Bhairon top is now
+  **800 m long and passes DIRECTLY THROUGH ≥2-look core pixels (min distance 0 m)**, up from 680 m at
+  248 m. Still **0 OPERATIONAL segments** (the standing product's zones remain off-track); WATCH 7 segs /
+  7.84 km, MONSOON-only 9 / 5.56 km; POI classes unchanged (shrine complex + ropeway = WATCH; Katra +
+  trek start CLEAR).
+- **Live alarm re-read (as-of 2026-06-30): still DORMANT** — 13 April trigger days gated to 0 ALERT;
+  per-zone tracking now 47 zones, 0 active today (season peak 47 in the April spell).
+
+**Caveat unchanged:** sharper terrain, same young radar — `[UNVALIDATED]`, trust the (now larger) 2-track
+core first. **Artefacts:** regenerated `data/{velocity,hazard,alerts,mosaic}_vaishnodevi/*`,
+`route_exposure.{json,md,png}`, `operational_alarm_dashboard_vaishnodevi_2026.html`.
 
 ---
 

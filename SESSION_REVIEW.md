@@ -27,7 +27,8 @@
 
 - **Route exposure DONE (§28, M33) — the deliverable:** `route_exposure.py` + OSM-real `vaishnodevi_route.geojson`. Headline: **1 CORE segment (680 m of path above Bhairon top, 2-track-confirmed — read first)**; **0 OPERATIONAL** segments (standing product's zones are off-track); WATCH 7 segs/7.3 km (Himkoti + Hathimata variants pass through zones; shrine complex + ropeway within ~200 m); MONSOON-only 8 segs (classic Track); **Katra + trek start CLEAR**. Also fixed: `.gitignore` was silently ignoring `*_aoi.geojson` — **`vaishnodevi_aoi.geojson` was never actually committed**; re-included, needs `git add`.
 
-- **VD is LIVE (§29, M34):** two-factor alarm running on the real 2026 season — **DORMANT as-of 2026-06-30** (13 April trigger days gated to 0 ALERT; 0/33 zones active). Cross-AOI honesty guards shipped: suffix-scoped back-test lookups (a site can never wear another's AUC), "not yet back-tested at this site" cards, per-AOI inventory convention, `site_name` config field (VD dashboards correctly titled; **add `site_name: Ramban NH-44` to Ramban's config at merge**).
+- **VD is LIVE (§29, M34):** two-factor alarm running on the real 2026 season — **DORMANT as-of 2026-06-30** (13 April trigger days gated to 0 ALERT). Cross-AOI honesty guards shipped: suffix-scoped back-test lookups (a site can never wear another's AUC), "not yet back-tested at this site" cards, per-AOI inventory convention, `site_name` config field (VD dashboards correctly titled; **add `site_name: Ramban NH-44` to Ramban's config at merge**).
+- **VD upgraded to the 12.5 m ALOS DEM (§30, M35):** user-fetched Trikuta tile (100 % AOI coverage, health-checked); `ALOS_DEM_DIR` slug-scoped. Slope median 18→21.9°; **2-track core 411→567 px**; operational 27→37 zones; **the CORE route segment above Bhairon top now runs 800 m THROUGH core pixels (0 m)**; op product still off-track; alarm still DORMANT. §27/§28 counts superseded.
 
 ## Recommended next step
 
@@ -49,6 +50,8 @@ auto-PARKED after its 2nd failure (§26 addendum) — Phase 1 final state 48/49.
   `git add workflows/ config.yaml RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD live two-factor alarm (DORMANT as-of 2026-06-30) + cross-AOI honesty guards: suffix-scoped scores, unscored cards, site_name titles (§29, M34)"`
 - **[2026-07-06b] Loose end closed — frame106 Jan pair:** `submit_hyp3_jobs.py` (retry-then-park: ≥2 ASF failures → skip with warning; dry-run verified 49 planned / 49 skipped / 1 parked), `RESULTS_AND_KPIS.md` §26 addendum, `error_history_log.md` 2026-07-06. Suggested commit:
   `git add workflows/submit_hyp3_jobs.py RESULTS_AND_KPIS.md error_history_log.md SESSION_REVIEW.md && git commit -m "Retry-then-park for HyP3 pairs: frame106 Jan pair fails deterministically (mcf ref-point) — parked after 2nd failure, re-runs stop re-buying it (§26 addendum)"`
+- **[2026-07-06c] VD 12.5 m DEM:** `geomechanical_engine.py` (`ALOS_DEM_DIR` slug-scoped), user tile in `data/dem_alos_12m_vaishnodevi/` (git-ignored), full `--force` re-run + route exposure + alarm refreshed, `RESULTS_AND_KPIS.md` §30 (+§27/§28 superseded tags), `milestone.md` M35, this LIVE block. Suggested commit:
+  `git add workflows/geomechanical_engine.py RESULTS_AND_KPIS.md milestone.md SESSION_REVIEW.md && git commit -m "VD on the 12.5m ALOS DEM: slug-scoped ALOS_DEM_DIR; 2-track core 411->567px, CORE route segment now 800m through core px; alarm still DORMANT (§30, M35)"`
 
 ---
 

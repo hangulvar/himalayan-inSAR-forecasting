@@ -65,8 +65,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
-ALOS_DEM_DIR = PROJECT_ROOT / "data" / "dem_alos_12m"   # 12.5 m ALOS PALSAR DEM (optional upgrade)
 _SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+# 12.5 m ALOS PALSAR DEM (optional per-AOI upgrade, §21) — slug-scoped like the output
+# dirs, since a tile covers ONE site (ramban keeps data/dem_alos_12m unchanged).
+ALOS_DEM_DIR = PROJECT_ROOT / "data" / f"dem_alos_12m{_SFX}"
 VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
 OUT_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"

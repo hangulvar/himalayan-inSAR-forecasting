@@ -1172,6 +1172,29 @@ been validated at this site.
 
 ---
 
+## ✅ Milestone 35 — Sharper glasses for the second mountain  *(VD 12.5 m DEM, 2026-07-06)*
+
+**What we set out to do:** the Vaishno Devi hazard map was built on a blurry 30-metre elevation model
+(a stopgap after we discovered the sharp one only covered Ramban). You fetched the matching sharp
+12.5-metre tile for the Trikuta hills; we plugged it in and re-ran everything.
+
+**Health check first:** the new tile passed — it covers 100 % of the corridor (the exact failure mode we
+hit before), in the map projection our grid already uses, with sensible elevations from Katra's valley
+floor to the high ridges. Each site now automatically finds *its own* sharp elevation tile.
+
+**What sharper terrain changed:** steeper slopes emerged from the blur (typical slope up from 18° to 22°,
+the steepest now 71°), so more ground fails the stability test — and crucially the **double-confirmed
+core grew by about a third** (411 → 567 spots where both satellite tracks agree). The route finding
+strengthened: the path above the Bhairon top now **passes directly through** double-confirmed creeping
+ground for 800 metres, not merely near it. The standing everyday product still flags nothing *on* the
+track, the town stays clear, and the live alarm still reads **all quiet** for late June.
+
+**Plain-language result:** same honest young-data caveats, but the map now sees the terrain at full
+sharpness — and its single most important finding (the stretch above Bhairon top) got more, not less,
+convincing. That stretch is worth a real-world look.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
