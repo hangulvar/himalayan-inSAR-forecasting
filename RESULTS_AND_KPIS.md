@@ -1482,6 +1482,43 @@ from slope-cutting — independent GSI concurrence with our corridor read.)
 
 ---
 
+## 32. ★ Vaishno Devi operating points EARNED — the site's own m-sweep  `[REAL / MEASURED]`
+
+Source: `rainfall_selectivity_backtest.py` (now AOI-parameterized: slug-scoped mosaic dir, per-site
+inventory default, suffixed outputs — Ramban's §16d artifacts untouched; + fixed a latent crash when a
+sweep lacks the m=1.0 baseline row) vs the §31 inventory, 5,000-null control, seed 20260606 (Docker,
+2026-07-07). Replaces the borrowed Ramban operating points with **site-swept** ones, wired as new optional
+config keys **`operational_m` / `watch_m`** (defaults 0.50/0.70 → Ramban byte-identical until its config
+opts in; orchestrator `SCENARIOS` reads them, so every downstream product inherits automatically).
+
+**The sweep (16 m-values, 0.25→1.0):** AUC rises from ~0.52 (m≤0.33) to a **spike 0.753 at m=0.35**, a
+**stable plateau ~0.70 at m=0.38–0.42**, then declines (0.617 @0.50 → 0.558 @0.70 → 0.572 @1.0). Recall
+climbs 0.73 @0.40 → 0.854 @0.70 → **0.927 @0.75** → 1.0 @0.85 (spec collapsing 0.65→0.14).
+
+**Decisions (rationale on record):**
+- **ALERT: m=0.40** — plateau centre, NOT the 0.35 spike (it borders a cliff: m=0.33 → AUC 0.52; on a
+  41-point inventory a 2-zone wobble flips it — plateau beats peak for an operational product).
+- **WATCH: m=0.75** — recall 0.854→**0.927** (38/41) for +8 zones; perfect recall @0.85 costs +54 zones and
+  spec 0.14 (the §23 "3× noise for scraps" trade, again rejected).
+
+**Re-scored official footprints (reproduce the sweep exactly):**
+| tier | zones | AUC | recall@2 km | spec | lift | precision |
+|---|---|---|---|---|---|---|
+| operational m=0.40 *(was 0.50)* | 21 (3 crit, 8 ML) | **0.696** *(was 0.617)* | 0.732 | **0.654** | **2.11×** | 0.679 |
+| watch m=0.75 *(was 0.70)* | 105 (22 crit, 13 ML) | 0.543 | **0.927** | 0.293 | 1.31× | 0.567 |
+
+Temporal Δ=0 ALERT catch of the 26 Aug disaster preserved in all arms; route exposure re-read barely moves
+(CORE 0.80 km unchanged, WATCH 7.92 km, op zones still off-track); live 2026 dashboard: DORMANT, now
+showing m=0.40/0.75 with the earned scores. **§31's scored rows (AUC 0.620 @ m=0.50) are superseded as the
+operating point but stand as the first-exam record.** **Honest caveat:** tuned against a corridor-biased
+41-point inventory — this sharpens *corridor* discrimination (which is the product's question), not
+whole-mountain skill; re-sweep when the inventory grows or the chains lengthen materially.
+
+**Artefacts:** `rainfall_selectivity{_report}_vaishnodevi.*` in `data/inventory/`, regenerated
+`backtest_*_vaishnodevi*`, footprints/dashboards in `data/alerts_vaishnodevi/`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

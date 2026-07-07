@@ -36,9 +36,16 @@ sys.path.insert(0, str(PROJECT_ROOT / "workflows"))
 import agentic_orchestrator as orch          # noqa: E402
 import run_multistack as multi               # noqa: E402
 import backtest_inventory as bt              # noqa: E402
+from config import load_config               # noqa: E402
 
+_CFG = load_config()
+_SFX = _CFG.data_suffix                      # '' for ramban; '_<slug>' so AOIs coexist
 INV_DIR = PROJECT_ROOT / "data" / "inventory"
-MOSAIC_ALERTS_DIR = PROJECT_ROOT / "data" / "alerts" / "mosaic_asc"
+MOSAIC_ALERTS_DIR = multi.MOSAIC_ALERTS_DIR  # slug-scoped (data/alerts<sfx>/mosaic_asc)
+# Per-AOI inventory: ramban keeps its original GSI file (grandfathered); other sites
+# use the <slug>_documented_landslides.geojson convention (§31).
+DEFAULT_INVENTORY = (INV_DIR / "gsi_inventory_aoi.geojson" if _CFG.aoi_slug == "ramban"
+                     else INV_DIR / f"{_CFG.aoi_slug}_documented_landslides.geojson")
 DEFAULT_SATURATIONS = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0]
 
 
@@ -63,7 +70,7 @@ def build_stack_alerts(stack: str, m: float, scen: str) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--inventory", default=str(INV_DIR / "gsi_inventory_aoi.geojson"))
+    ap.add_argument("--inventory", default=str(DEFAULT_INVENTORY))
     ap.add_argument("--stacks", nargs="*", default=None,
                     help="Explicit stack list (default: connected stacks).")
     ap.add_argument("--saturations", default=None,
@@ -152,21 +159,24 @@ def write_outputs(rows, args) -> None:
             f"{ab.get('lift', '-')}x | {f['peak_lift'] if f else '-'}x@"
             f"{f['peak_lift_km'] if f else '-'}km | {c['auc'] if c else '-'} |")
     best = max((r for r in rows if r["full"]), key=lambda r: r["full"]["auc"])
+    base_txt = (f"vs **{base[1]['full']['auc']} at m=1.0** ({base[1]['n_zones']} zones, "
+                f"the monsoon baseline)" if base[1] and base[1]["full"]
+                else "(no m=1.0 baseline in this sweep)")
     lines += ["",
               f"**Best full-union AUC = {best['full']['auc']} at m={best['m']:.2f}** "
-              f"({best['n_zones']} zones) vs **{base[1]['full']['auc']} at m=1.0** "
-              f"({base[1]['n_zones']} zones, the monsoon baseline).",
+              f"({best['n_zones']} zones) {base_txt}.",
               "",
               "_The regional ID curve is a TEMPORAL gate (which days to issue) and cannot move "
               "this spatial score; the saturation level sets the spatial footprint. Lowering m "
               "concentrates the alert on the steepest/most-marginal slopes._"]
-    (INV_DIR / "rainfall_selectivity_report.md").write_text("\n".join(lines) + "\n",
-                                                            encoding="utf-8")
-    (INV_DIR / "rainfall_selectivity_report.json").write_text(
+    (INV_DIR / f"rainfall_selectivity_report{_SFX}.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8")
+    (INV_DIR / f"rainfall_selectivity_report{_SFX}.json").write_text(
         json.dumps({"buffer_km": args.buffer_km, "n_null": args.n_null,
                     "null_seed": args.null_seed, "rows": rows}, indent=2), encoding="utf-8")
-    _plot(INV_DIR / "rainfall_selectivity.png", rows, args.buffer_km)
-    print(f"-> {INV_DIR/'rainfall_selectivity_report.md'} , .json , rainfall_selectivity.png")
+    _plot(INV_DIR / f"rainfall_selectivity{_SFX}.png", rows, args.buffer_km)
+    print(f"-> {INV_DIR / f'rainfall_selectivity_report{_SFX}.md'} , .json , "
+          f"rainfall_selectivity{_SFX}.png")
     print(f"   best full AUC {best['full']['auc']} @ m={best['m']:.2f} "
           f"(baseline m=1.0: {base[1]['full']['auc']})")
 

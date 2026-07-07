@@ -42,6 +42,8 @@ class RescueGateConfig:
 class Config:
     aoi_path: Path
     site_name: str
+    operational_m: float
+    watch_m: float
     job_name_prefix: str
     search_start: datetime
     search_end: datetime
@@ -106,6 +108,12 @@ def load_config(path: str | Path | None = None) -> Config:
         # the slug. (Ramban's config should carry `site_name: Ramban NH-44` to keep
         # its historical dashboard titles when regenerated.)
         site_name=str(raw.get("site_name") or slug_stem.title()),
+        # Site-tuned operating points (assumed saturation m) for the two warning
+        # tiers, from the per-site selectivity sweep (`rainfall_selectivity_
+        # backtest.py`; ramban §21b/§23, vaishnodevi §32). Defaults = the
+        # ramban-calibrated values, so configs without these keys are unchanged.
+        operational_m=float(raw.get("operational_m", 0.50)),
+        watch_m=float(raw.get("watch_m", 0.70)),
         job_name_prefix=str(raw["job_name_prefix"]),
         search_start=_to_utc(raw["search_start"]),
         search_end=_to_utc(raw["search_end"]),

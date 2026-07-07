@@ -96,8 +96,10 @@ logger = logging.getLogger("orchestrator")
 # operational_alarm.py TEMPORAL DORMANT/WATCH/ALERT states, which decide WHEN to consult a map.)
 SCENARIOS = {
     "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
-    "operational": {"rainfall_mm_72h": 29,  "saturation": 0.50, "fs_layer": "FS_real"},
-    "watch":       {"rainfall_mm_72h": 50,  "saturation": 0.70, "fs_layer": "FS_real"},
+    # Operating points are per-site (config operational_m / watch_m; defaults keep
+    # the ramban-tuned 0.50 / 0.70 — VD is swept to 0.40 / 0.75, §32).
+    "operational": {"rainfall_mm_72h": 29,  "saturation": _CFG.operational_m, "fs_layer": "FS_real"},
+    "watch":       {"rainfall_mm_72h": 50,  "saturation": _CFG.watch_m,       "fs_layer": "FS_real"},
     "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
     "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }

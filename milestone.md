@@ -1227,6 +1227,35 @@ people. Its dashboards now wear the site's own scores, earned, not borrowed.
 
 ---
 
+## ✅ Milestone 37 — The second mountain earns its own dial settings  *(VD operating-point sweep, 2026-07-07)*
+
+**What we set out to do:** the new site's two warning tiers were still using **Ramban's** dial settings —
+the assumed ground-wetness levels (m=0.50 and 0.70) that decide how wide each warning net is. Borrowed
+settings were the honest stopgap; now that the site has its own graded exam (Milestone 36), we could tune
+the dials against *its own* ground truth.
+
+**What we did, plainly:** we turned the wetness dial through sixteen positions and graded the resulting
+map at each one against the GSI danger-spot list (with the usual 5,000-random-points luck control). Then —
+the important discipline — we did **not** pick the single best-scoring position. The very best score sat
+right next to a cliff where the grade collapses; with only 41 ground-truth points, that peak could topple
+when the next radar pass arrives. We picked the **middle of the stable plateau** instead.
+
+**The new dials:** the act-now list tightens to **21 zones with a clearly better grade** (0.70 vs 0.62,
+twice as good as luck, two-thirds of random ground correctly rejected); the wide watch net moves slightly
+wider and now catches **38 of GSI's 41 danger spots**. Perfect 41/41 was available — for a net half again
+as big flagging most of the corridor — and we declined it, on paper, with reasons.
+
+**Built to travel:** the dial settings now live in each site's **config file** — Ramban keeps its own
+tuned values, the shrine route gets its own, and any third mountain will get the same sweep instead of
+hand-me-downs. Every dashboard and back-test inherited the new settings automatically and the disaster-day
+catch was re-verified intact.
+
+**Plain-language result:** the shrine-route warning system now runs on **dial settings earned from its own
+disaster record** — a sharper act-now list (grade 0.70), a wider catch-almost-everything watch net (38/41)
+— chosen for robustness over bragging rights, with the reasoning written down.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

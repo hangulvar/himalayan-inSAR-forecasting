@@ -15,6 +15,12 @@ aoi_path: vaishnodevi_aoi.geojson
 # Human-readable site label used in dashboard titles.
 site_name: Vaishno Devi — Trikuta shrine corridor
 
+# Site-tuned warning-tier operating points (assumed saturation m), from the
+# selectivity sweep vs the GSI route inventory (§32): ALERT plateau 0.38-0.42
+# (AUC 0.70), WATCH at recall 0.93. Ramban's config omits these (defaults 0.50/0.70).
+operational_m: 0.40
+watch_m: 0.75
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix. Use a short, unique slug per AOI.
