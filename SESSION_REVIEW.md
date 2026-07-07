@@ -48,8 +48,9 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
    the reasoner. This is what closes the 598 m miss, not more creep tuning.
 5. **Per-zone WHEN (agent, medium):** sub-daily/point IMERG so ALERT varies per zone — the extreme-season
    over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
-6. **Docs debt (agent, small):** Foundations primer CF entries for M31–M36 (the CLAUDE.md ritual is
-   overdue); run `/wrap-session` at session end.
+6. ✅ **DONE (2026-07-07) — Docs debt:** primer updated for M31–M36 (new Part C-quinquies CV1–CV4:
+   transferability, route exposure, failure classes, single-event validation; +4 Part-D Q&As; Part E
+   refreshed incl. the consolidated VD-caveats bullet; pitch now covers both sites).
 7. **User-side:** field/optical check of the Bhairon-top CORE segment (unchanged); merge `mvp-expansion`
    → `master` (+ add `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
 
