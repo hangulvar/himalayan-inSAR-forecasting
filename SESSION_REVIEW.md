@@ -53,8 +53,10 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 6. ✅ **DONE (2026-07-07) — Docs debt:** primer updated for M31–M36 (new Part C-quinquies CV1–CV4:
    transferability, route exposure, failure classes, single-event validation; +4 Part-D Q&As; Part E
    refreshed incl. the consolidated VD-caveats bullet; pitch now covers both sites).
-7. **User-side:** field/optical check of the Bhairon-top CORE segment (unchanged); merge `mvp-expansion`
-   → `master` (+ add `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
+7. **User-side:** field check of the NE-flank CORE target — **full brief with polygons, checklist and
+   safety notes: `Research/Field Brief - Bhairon NE flank creep target (2026-07-07).md`** (+ GPS-loadable
+   `data/alerts_vaishnodevi/mosaic_asc/bhairon_core_creep.kml`); merge `mvp-expansion` → `master`
+   (+ add `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
