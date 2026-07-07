@@ -38,6 +38,14 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 1. **Radar cadence (agent, ~1 cmd/2 weeks):** early-July S1 passes not yet in the archive (checked
    2026-07-07) — when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack →
    route_exposure → live_alarm. Every cycle lengthens the chains and drops the σ_v noise floor.
+   **NISAR (checked 2026-07-07): REAL L-band products now exist over the VD AOI** — 8 GSLC/RSLC/GCOV
+   scenes (Nov 25–Jan 26) and **3 GUNW interferograms** (Nov–Dec 25) via `asf_search dataset=NISAR`.
+   Too few for a velocity chain yet; the 1–3-day forward-processing window opened Jul 2026 — **recheck
+   monthly**, build the GUNW ingestion adapter when ~8+ same-track pairs exist (L-band = vegetation
+   coherence, our worst enemy). **Field target upgraded:** Area A abuts a settlement (62 OSM buildings
+   ≤1.5 km, closest 87 m; Panchari Gali 810 m) — coords independently re-verified; brief updated.
+   **New tool:** `polygon_stats.py` (user-drawn KML/GeoJSON polygons → per-polygon risk stats; self-tested
+   on the creep clusters).
 2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** sweep script AOI-parameterized; 16-value
    sweep → **ALERT m=0.40** (plateau, AUC 0.696/spec 0.654/lift 2.11×, 21 zones — spike at 0.35 rejected as
    cliff-adjacent) + **WATCH m=0.75** (recall 0.927 = 38/41, 105 zones — perfect recall @0.85 declined).

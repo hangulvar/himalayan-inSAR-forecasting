@@ -42,7 +42,22 @@ centroid: 33.056940 N, 74.962295 E
 ```
 
 **Honest print on the map's edge:** pixels are **80 m** — treat every polygon edge as ±80 m; walk a
-buffer, not a line.
+buffer, not a line. **Note on Area A's shape:** the cluster is L-shaped, so its geometric *centroid pin
+falls in the notch outside the creeping pixels* — navigate by the polygon outline, not the centre pin.
+
+## ⚠️ SETTLEMENT EXPOSURE (added 2026-07-07, after user review in Google Earth)
+
+**Area A overlaps/abuts a small settlement.** OpenStreetMap shows **62 mapped buildings within 1.5 km of
+Area A's centroid — the closest at 87 m** (33.06039 N, 74.96094 E), i.e. within one pixel of the creeping
+ground; nearest named locality **Panchari Gali** (810 m W). This upgrades the target from *path exposure*
+to *settlement exposure*: the inspection should include the buildings — wall/foundation cracks, doors and
+windows that no longer close square, deformed water channels/terraces — and, if residents are present,
+their memory of cracks, spring behaviour and past slips (local knowledge is dated ground truth).
+
+**Coordinate verification (2026-07-07):** an independent round-trip re-check sampled every raster at the
+published coordinates: Area A interior points return exactly the published values (≥2 looks, HIGH class,
+−56/−50 and −50/−45 mm/yr on the two tracks), an independent clustering pass reproduces the polygon
+identically, and an off-site control returns background. The coordinates stand.
 
 ## What to check (in priority order)
 
