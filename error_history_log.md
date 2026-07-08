@@ -23,6 +23,17 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-07] Sweep report writer assumed an m=1.0 baseline row — crashed on a refinement sweep
+
+* **Symptom:** `rainfall_selectivity_backtest.py --saturations 0.33,...,0.48` (the VD refinement pass)
+  computed all rows, then died in `write_outputs`: f-string over `base[1]['full']` with `base[1] = None`.
+* **Root cause:** the report writer looked up the m=1.0 row for its "vs monsoon baseline" sentence and
+  assumed it always exists — true for the default saturation list, false for any focused refinement sweep.
+* **Fix:** baseline sentence is now conditional ("no m=1.0 baseline in this sweep"). Run-1 artifacts were
+  unaffected (the crash happened before any file write).
+* **Lesson:** report writers are code too — a "always in the default run" row is an input assumption;
+  refinement/partial runs are the norm once a tool is actually used.
+
 ### [2026-07-06] The frame106 Jan pair fails DETERMINISTICALLY at ASF — retry-then-park added
 
 * **Symptom:** the resubmitted `VaishnoDevi_Trikuta_ASCENDING_path27_frame106` pair

@@ -1519,6 +1519,31 @@ whole-mountain skill; re-sweep when the inventory grows or the chains lengthen m
 
 ---
 
+## 33. Watchlist tooling + first user-drawn target + NISAR availability  `[REAL / MEASURED]`
+
+Source: `polygon_stats.py` (NEW), `_tmp` NISAR/OSM probes (Docker, 2026-07-07). Housekeeping-grade, but
+recorded here because the producing outputs are git-ignored under `data/`.
+
+- **`polygon_stats.py` — score any user-drawn KML/GeoJSON polygon** against the current AOI product
+  (pixel/hazard/2-look coverage, per-track LOS velocity, slope, FS_sat, distance to each alert tier, +
+  a plain-language risk line). Self-tested on the §30 creep clusters (correctly returns "HIGH INTEREST:
+  2-track creep confirmed").
+- **First watchlist target — Bhavan overhang** (`Research/Vaishno_Devi_Watchlist/`, drawn by user):
+  0.81 km², centroid 33.02750 N 74.95549 E, slope to **61°**, **FS_saturated ≈ 0.8** (fails when soaked),
+  108/127 px WATCH-class, **no 2-track creep**, nearest monsoon zone 177 m → verdict **CONDITIONAL**.
+  Honest note: the two tracks' LOS *disagree* over this steep face (−8 vs +58 mm/yr; layover/unwrap
+  artifact) so radar can neither clear nor corroborate it — it is the CV3 brittle/rockfall class (no creep
+  to measure). Added to the site inventory as a `user_observed_vulnerable_location` (now 42 features).
+- **NISAR over the VD AOI (ASF, `dataset=NISAR`):** 8 GSLC/RSLC/GCOV scenes (Nov 25–Jan 26) + **3 GUNW
+  interferograms** (Nov–Dec 25) — real L-band products exist but too few for a velocity chain; recheck
+  monthly (forward-processing window opened Jul 2026). L-band recovers vegetation coherence (our worst
+  enemy).
+- **Coordinate re-verification (§30 target):** independent round-trip sampling + re-clustering reproduced
+  the NE-flank creep polygons exactly; Area A abuts a settlement (62 OSM buildings ≤1.5 km, closest 87 m;
+  Panchari Gali 810 m W) — the field brief was upgraded to "settlement exposure".
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

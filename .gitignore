@@ -113,6 +113,8 @@ dmypy.json
 # else *.geojson stays ignored:
 !*_aoi.geojson
 !*_route.geojson
+# Keep the user-drawn field watchlist targets (KML is otherwise ignored):
+!Research/*_Watchlist/*.kml
 *.csv
 *.xlsx
 *.parquet

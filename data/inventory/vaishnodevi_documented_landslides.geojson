@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Only the dated event feeds the temporal back-test.",
+  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Only the dated event feeds the temporal back-test. 2026-07-07: +1 user_observed_vulnerable_location (Bhavan overhang, polygon in Research/Vaishno_Devi_Watchlist/) \u2014 lower evidentiary grade than the GSI points; filter by 'type' if a GSI-only score is wanted.",
   "features": [
     {
       "type": "Feature",
@@ -699,6 +699,23 @@
         "coordinates": [
           74.942333,
           32.998139
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bhavan overhang \u2014 exposed formation above the shrine complex",
+        "type": "user_observed_vulnerable_location",
+        "failure_type": "Overhanging exposed rock formation (brittle/rockfall class \u2014 no creep expected)",
+        "coord_confidence": "centroid of the user-drawn 0.81 km2 polygon (Research/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml)",
+        "source": "Field observation by project owner in Google Earth Pro, 2026-07-07; product stats: polygon_stats bhawan_overhang (FS_sat 0.8, slope max 61 deg, 108/127 px WATCH-class, no 2-track creep, monsoon zone 177 m)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.955488,
+          33.027498
         ]
       }
     }
