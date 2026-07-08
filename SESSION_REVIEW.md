@@ -11,19 +11,19 @@
 
 ---
 
-# LIVE — Session 16 · branch `aoi-vaishnodevi` · updated 2026-07-07
+# LIVE — Session 17 · branch `aoi-vaishnodevi` · updated 2026-07-08
 
 ## Current state
 
 - **Ramban: COMPLETE, scored, LIVE** — two-tier ALERT/WATCH (§23) + per-zone confidence (§24) + triage (§25) + temporal gate (§17), project-best operating point (§21b); live 2026 alarm via `live_alarm.py`. `mvp-expansion` ready to merge to `master` (user's call; add `site_name: Ramban NH-44` at merge).
-- **Vaishno Devi (Katra shrine corridor): a full second AOI, VALIDATED and site-tuned.** Phases 1–4 replicated (§26–§27, M31–M32); OSM-anchored AOI + real route geometry; on the 12.5 m ALOS DEM (§30, M35).
-- **★★ VD validated on the 26 Aug 2025 Ardhkuwari disaster (§31, M36):** temporal Δ=0 on the model's own peak-E day; spatial operational map beats chance first try. Then operating points **earned** by the site's m-sweep (§32, M37): ALERT m=0.40, WATCH m=0.75, wired as per-site config keys.
-- **The deliverable — route exposure (§28, M33):** the CORE finding is the **NE-flank creep target** (2-track-confirmed, §30) — and it **abuts a settlement** (§33: 62 buildings ≤1.5 km, closest 87 m). Standing product's zones are off-track; Katra + trek start CLEAR. Full **field brief** written (`Research/Field Brief - Bhairon NE flank creep target (2026-07-07).md`) + GPS KML.
-- **Honest limits carried (§31/CV3):** the ≥2-look creep core scores 0 vs the corridor inventory (track = fast cut-slope rockfall ≠ SBAS creep); disaster site sits 598 m from nearest zone (§31 addendum) — the calibration target. VD still borrows Ramban's φ/c.
-- **AOI coexistence layer complete:** everything slug-scoped (filenames, output dirs, ALOS tiles, inventories, back-test lookups, `site_name`, operating points) — Ramban byte-identical, two sites never collide. Verified in-container.
-- **Watchlist tooling (§33):** `polygon_stats.py` scores any user-drawn KML; first target (Bhavan overhang) = CONDITIONAL (FS_sat 0.8, 61° slope, no creep — the CV3 brittle class). Watchlist now git-tracked under `Research/`.
-- **NISAR (§33):** real L-band products now over the AOI (3 GUNW + 8 GSLC/RSLC/GCOV) but too few for a chain — recheck monthly.
-- ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD `data/alerts_vaishnodevi/mosaic_asc/operational_alarm_dashboard_vaishnodevi_2026.html` (DORMANT as-of 30 Jun) + route/creep artefacts.
+- **Vaishno Devi: a full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM, disaster-validated (Δ=0 peak-day catch + beats-chance spatial, §31), operating points earned by the local m-sweep (ALERT m=0.40 / WATCH m=0.75, §32) as per-site config keys.
+- **The deliverable — route exposure (§28, M33):** CORE finding is the **NE-flank creep target** (2-track-confirmed, §30; abuts a settlement, §33). Field brief + GPS KML shipped 2026-07-07.
+- **★ NEW (§34, M38) — the fast-failure toolkit for the Bhavan overhang (CV3 class):** `coherence_watch.py` (NEW) is the pipeline's **first fast-failure detector** — per-polygon 12-day coherence timelines, AOI-relative drop gating (a scene-wide rain drop was demonstrably filtered on first run); current verdict **OK/quiet** on the overhang + both creep polygons. Re-run every radar cycle.
+- **★ NEW (§34) — rockfall runout screen:** `rockfall_runout.py` (NEW), energy-line cone on the 12.5 m DEM — **the Bhavan shrine complex is INSIDE the LIKELY (≥32°) band (33.2°)**, ropeway ghati station POSSIBLE, ~2.3 km of route LIKELY; bands exported as Google-Earth KML. First-order screen, caveats on record.
+- **★ NEW (§34) — records cross-check:** the overhang's slope system is institutionally KNOWN — GSI Table-7.1 planar/wedge locs 315–440 m from the polygon edge, a treated 12 Mar 2016 failure at the Bhawan complex (37 deep anchors), SMVDSB+THDCIL programme since 2012. **Field step zero: request treatment as-builts.** Full brief incl. joint tell-tale protocol: `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang (2026-07-08).md`.
+- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from nearest zone (§31 addendum) — still the calibration target (coherence watch addresses the *class*, not this miss retroactively); VD still borrows Ramban's φ/c; fast-failure tools are unproven-in-anger (Part E, M38).
+- **NISAR (§33):** real L-band products over the AOI (3 GUNW + 8 GSLC/RSLC/GCOV) but too few for a chain — recheck monthly.
+- ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD `..._vaishnodevi_2026.html` (DORMANT as-of 30 Jun) + route/creep/runout/coherence artefacts in `data/alerts_vaishnodevi/mosaic_asc/`.
 
 ## Recommended next steps — the product-improvement roadmap (2026-07-07)
 
@@ -47,9 +47,10 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
    regenerated + re-scored; Δ=0 disaster catch intact. Re-sweep when the inventory grows or chains lengthen.
 3. **Site-specific soil pass (agent + user sources, medium):** φ/c for Trikuta carbonates + Vaishnodevi-Fm
    scree (GSI-note geology) replacing the Batote–Doda values; re-run + re-score (§20/§21 pattern).
-4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep — candidates: coherence-drop
-   change detection (catches fast failures), Sentinel-2 optical change, a steep-cut-slope proxy layer in
-   the reasoner. This is what closes the 598 m miss, not more creep tuning.
+4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep. ✅ **coherence-drop change
+   detection BUILT (2026-07-08, §34)** — remaining candidates: Sentinel-2 optical change (the DROP-flag
+   follow-up; could also run post-storm proactively) and a steep-cut-slope proxy layer in the reasoner.
+   This axis is what closes the 598 m miss, not more creep tuning.
 5. **Per-zone WHEN (agent, medium):** sub-daily/point IMERG so ALERT varies per zone — the extreme-season
    over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
 6. ✅ **DONE (2026-07-07) — Docs debt:** primer updated for M31–M36 (new Part C-quinquies CV1–CV4:
@@ -66,10 +67,16 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 
 ## Uncommitted delta
 
-Prior batches (§29–§32, M34–M37, field brief, coords/NISAR/`polygon_stats`) all committed through `2c7dd88`.
+Prior batches (through §33/M37 + the 2026-07-07 wrap) all committed through `c450299`.
 
-- **[2026-07-07 wrap] Watchlist + inventory + doc ritual:** watchlist folder **moved `data/` → `Research/Vaishno_Devi_Watchlist/`** so it's git-tracked (+ `.gitignore` re-include `!Research/*_Watchlist/*.kml`; + `README.md` with risk-testing ideas for the overhang); Bhavan overhang added to `vaishnodevi_documented_landslides.geojson` as a `user_observed_vulnerable_location` (**42 features**); `RESULTS_AND_KPIS.md` **§33**; `error_history_log.md` (sweep-writer baseline-crash entry); `session_journey.md` (Sessions 14–16 slim entry); this LIVE block. Suggested commit:
-  `git add .gitignore Research/Vaishno_Devi_Watchlist data/inventory/vaishnodevi_documented_landslides.geojson RESULTS_AND_KPIS.md error_history_log.md session_journey.md SESSION_REVIEW.md && git commit -m "Watchlist tracked under Research/ + Bhavan overhang in inventory (user_observed); session wrap docs (§33)"`
+- **[2026-07-08] Fast-failure toolkit (§34, M38):** NEW `workflows/coherence_watch.py` +
+  `workflows/rockfall_runout.py`; NEW `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang
+  (2026-07-08).md`; watchlist `README.md` ideas #3/#4/#6/#7 marked ✅ with pointers; `RESULTS_AND_KPIS.md`
+  **§34**; wrap docs (error log Overpass-406 entry, Session-17 journey entry, milestone M38, primer CV5 +
+  Part D Q&A + Part E refresh incl. retiring the stale "Ramban-tuned dials" caveat, this LIVE block).
+  Git-ignored outputs: `coherence_watch_*`, `rockfall_runout_*` in `data/alerts_vaishnodevi/mosaic_asc/`,
+  cached `data/osm/vaishnodevi_buildings_overpass.json`. Suggested commit: see wrap-session close-out
+  (one commit: scripts + brief + README + docs).`
 
 ---
 

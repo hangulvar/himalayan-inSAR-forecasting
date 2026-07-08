@@ -1256,6 +1256,50 @@ disaster record** — a sharper act-now list (grade 0.70), a wider catch-almost-
 
 ---
 
+## ✅ Milestone 38 — Watching for the failures that give no warning  *(Bhavan overhang toolkit, 2026-07-08)*
+
+**What we set out to do:** the user had drawn a worrying rock formation hanging directly above the
+Vaishno Devi shrine complex. Our radar method is built for *slow-creeping* slopes — but an overhang
+doesn't creep; it holds, and then one day it lets go. Our own honesty notes call this the blind spot:
+the fast, brittle failures the creep map cannot see. So we built the first tools aimed at exactly
+that class.
+
+**Tool 1 — a tripwire in the radar's static.** Every 12 days the satellite compares "how similar does
+this patch of ground look to last time" — a quantity called *coherence*. Undisturbed rock looks almost
+identical pass after pass; a slope that has just collapsed looks completely scrambled. So instead of
+measuring slow motion, we now watch for a **sudden scramble** over the drawn formation. The clever bit:
+rain and growing vegetation scramble the *whole scene* a little, so the script only raises its hand when
+the formation scrambles **more than the rest of the area did** — and on its very first run it correctly
+ignored one rainy fortnight that had dimmed the entire scene. Current reading: quiet.
+
+**Tool 2 — "if it falls, what does it hit?"** A century-old empirical rule says falling rock almost
+always stops before a line drawn downhill at a certain angle from where it broke off. We swept that
+line from every point of the formation across the fine 12.5 m terrain model and shaded three zones:
+*likely reach*, *possible reach*, *extreme worst case*. The sober result: **the shrine complex below
+sits inside the likely-reach zone**, the ropeway's lower station in the possible zone, and about
+2.3 km of pilgrim track in the likely band. (Stated equally plainly: this is a "could a rock get
+there" screen — no bouncing physics, no accounting for barriers already installed.)
+
+**Tool 3 — asking who already knows.** Before instrumenting a face above a famous shrine, check the
+records. They are eloquent: the government geologists' own survey flags rock-wedge failure spots on the
+track a few hundred metres below the formation; the shrine complex itself had a **rain-triggered slope
+failure in March 2016** that took 37 deep steel anchors to fix; and the shrine board has run a rockfall
+programme with engineering partners **since 2012** — steel nets, catch fences, shelter sheds. Our
+concern isn't paranoia; it's the same concern the authorities have been paying to manage for a decade.
+First step of any field visit is now: *ask them for the maps of what's already been reinforced.*
+
+**Plus a paper instrument:** a step-by-step field protocol for the cheapest monitoring there is —
+painted marks and small plaster bridges across the cracks behind the overhang, re-photographed monthly
+and after storms. If a crack opens even a couple of millimetres, the plaster snaps and the photos prove
+it: an early warning the radar cannot give for this kind of failure.
+
+**Plain-language result:** the formation above the shrine is now **watched** (radar tripwire, currently
+quiet), its **consequence is mapped** (the complex is within likely reach of a fall), and the **paper
+trail confirms** the slope system is a known, actively managed hazard. The blind spot isn't closed — no
+tool here predicts *when* — but for the first time the pipeline has instruments pointed at it.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

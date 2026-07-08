@@ -23,6 +23,22 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-08] Overpass API returns 406 to PowerShell's hashtable POST body — urlencode it yourself
+
+* **Symptom:** `Invoke-RestMethod -Uri overpass-api.de/api/interpreter -Method Post -Body @{data=$q}`
+  → HTTP **406 Not Acceptable** (and a second symptom: the query "succeeding" but returning 1 element).
+* **Root cause:** PowerShell's automatic form-encoding of a hashtable body mangles the Overpass QL
+  quoted filter `["building"]`, and no User-Agent is sent — Overpass rejects the request. Separately,
+  the first bbox (33.005–33.05 N) was too narrow: the AOI's only mapped building cluster (Panchari Gali,
+  ~33.057 N) sits just outside it, so even a fixed request undercounted.
+* **Fix:** build the body explicitly — `'data=' + [System.Net.WebUtility]::UrlEncode($q)` with
+  `-ContentType 'application/x-www-form-urlencoded'` and a `User-Agent` header; widen the bbox to the
+  full massif (33.00–33.075 N). 63 buildings returned, cached at
+  `data/osm/vaishnodevi_buildings_overpass.json`.
+* **Lesson:** for non-trivial POST bodies, never hand PowerShell a hashtable — encode the string
+  yourself. And sanity-check a spatial query's *count* against what you already know before trusting it
+  (we knew ~62 buildings existed near Area A from the 2026-07-07 session).
+
 ### [2026-07-07] Sweep report writer assumed an m=1.0 baseline row — crashed on a refinement sweep
 
 * **Symptom:** `rainfall_selectivity_backtest.py --saturations 0.33,...,0.48` (the VD refinement pass)

@@ -1544,6 +1544,49 @@ recorded here because the producing outputs are git-ignored under `data/`.
 
 ---
 
+## 34. Fast-failure toolkit for the Bhavan overhang: coherence-drop watch, rockfall runout screen, records cross-check  `[REAL / MEASURED]`
+
+Source: `coherence_watch.py` (NEW), `rockfall_runout.py` (NEW), stdlib cross-check + web records
+(2026-07-08, Docker). Executes Watchlist-README ideas **#3 #4 #6 #7** for the §33 CONDITIONAL target —
+the pipeline's first instruments matched to the **CV3 brittle/fast failure class** (no creep to measure).
+
+- **`coherence_watch.py` — the pipeline's FIRST fast-failure detector.** Per-polygon coherence timeline
+  from the existing 12-day `*_corr.tif` pairs; flags an epoch when the polygon decorrelates ≥0.12 vs its
+  own history BOTH absolutely AND relative to the AOI mean (the AOI-relative gate subtracts scene-wide
+  rain/vegetation drops). Verdict tiers: DROP-CONFIRMED (≥2 tracks) / DROP-SINGLE-TRACK / OK / DATA-GAP.
+  **First run (8 pairs, 4 epochs × 2 tracks, May–Jun 2026): Bhavan overhang OK, both NE-flank creep
+  polygons OK** — and the design demonstrably works: the 13 May frame105 pair dropped 0.15 absolute but
+  only 0.045 AOI-relative (scene-wide wetting, correctly NOT flagged). Overhang face runs 0.33–0.55
+  coherence vs 0.55–0.69 AOI-wide (steep-face geometry, as expected). Needs ≥3 usable epochs/track;
+  re-runs every radar cycle. Caveat: a storm exactly coincident with a failure can mask the local drop.
+- **`rockfall_runout.py` — energy-line (Fahrböschung/shadow-angle) runout screen** on the 12.5 m ALOS
+  DEM, bands LIKELY ≥32° / POSSIBLE ≥27.5° / MAX_SHADOW ≥22° (Evans & Hungr 1993). From the overhang
+  polygon: **the Bhavan shrine complex POI is INSIDE the LIKELY cone (reach angle 33.2°)**; Bhairon Ghati
+  ropeway station POSSIBLE (27.7°); ~2.3 km of walking route in the LIKELY band (Vaishno Devi Trek 620 m,
+  Hathimata 560 m, Himkoti 260 m, ropeway alignment 260 m, unnamed path 600 m). Honest caveats on record:
+  first-order screen — no trajectory/bounce/barrier physics, NO terrain-blocking check, 22° band at
+  multi-km range is an extreme upper bound, and OSM buildings at the complex are unmapped (0 of 63 cached
+  buildings in cone = UNDERCOUNT; the POI/route read is the trustworthy part).
+- **Records cross-check (idea #7) — the face system is institutionally KNOWN:** (a) GSI Table-7.1 locs
+  **52/55/57** (Bhawan–Sanjichat track) sit **315–440 m** from the polygon *edge* with failure types
+  "planar and wedge failure" / "planar along some joint and many wedges" — the same brittle class we
+  flagged; (b) a **12 Mar 2016 slope failure at the Bhawan complex itself** (track between elevator point
+  and gate 5) was stabilized with 37 pre-stressed cable anchors (26.5–30.5 m, ₹5.78 cr); (c) SMVDSB has
+  worked with THDCIL on rockfall/shooting-stone mitigation **since 2012** (rockfall barriers 3000–5000 kJ,
+  cable nets, shelter sheds) and a tripartite **GSI+THDCIL+SMVDSB MoU** targets Adhkuwari–Bhawan slopes.
+  → Action for the field visit: request SMVDSB/THDCIL treatment as-builts + inspection records BEFORE
+  instrumenting — parts of this face may already be netted/anchored.
+- **Verdict evolution:** §33 CONDITIONAL (physics-unstable, radar-blind) → now *watched* (coherence),
+  *consequence-quantified* (shrine complex in the LIKELY cone), and *institutionally corroborated*
+  (2016 failure + GSI planar/wedge flags nearby). Field brief with the joint tell-tale protocol:
+  `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang (2026-07-08).md`.
+
+**Artefacts:** `coherence_watch_bhavan_overhang.*`, `coherence_watch_bhairon_creep.*`,
+`rockfall_runout_bhavan_overhang.{png,md,json}` + `_bands.kml` + `_reach_angle_deg.tif` in
+`data/alerts_vaishnodevi/mosaic_asc/`; cached OSM buildings `data/osm/vaishnodevi_buildings_overpass.json`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -1185,6 +1185,50 @@ had been flagged by GSI years earlier — the institutional gap our tool exists 
 
 ---
 
+## CV5. Instruments for the fast failures — the coherence tripwire and the energy line
+
+CV3 named the gap: brittle failures give no creep to measure. This section is the first pair of
+instruments pointed at that gap (Milestone 38).
+
+**Coherence as a tripwire.** Every interferogram comes with a *coherence* map — per pixel, "how similar
+did this patch of ground look on the two dates?" (0 = pure static, 1 = identical). We normally use it
+only as a quality filter. But read over time it is a *change detector*: bare rock holds high coherence
+pass after pass, and a slope that has just collapsed turns to static — **the pixel decorrelating IS the
+event**. The catch: rain-wet ground and flushing vegetation also lower coherence, across the *whole
+scene*. So the watch flags only a **localized** drop:
+
+> flag if (polygon's drop vs its own history ≥ 0.12) **and** (its drop *relative to the AOI mean* ≥ 0.12)
+
+Two satellite tracks give an independent second witness — a drop on both is much harder for noise to
+fake. **Everyday analogy:** a shopkeeper's window rattles in every storm (scene-wide) — you only run
+outside when *your* window rattles on a calm day, or louder than the whole street's.
+
+**The energy line (Fahrböschung / shadow angle).** For "if it falls, what does it hit?" there is a
+century-old empirical rule (Heim 1932; Evans & Hungr 1993): a falling rock almost always comes to rest
+before the line drawn from its detachment point at a characteristic angle to the horizontal —
+
+> reachable if  (height drop / horizontal distance) ≥ tan(reach angle)
+
+Most fragmental rockfall stops inside the **32°** line; median events reach ~27.5°; the empirical
+extreme is ~**22°**. Sweep that line from every cell of the source polygon over a fine DEM and you get
+three nested "runout cones" — no physics simulation, just a well-tested envelope. **Everyday analogy:**
+you don't need ballistics to know where dropped marbles end up on a staircase — the bottom landing, and
+generations of janitors can tell you how far they roll.
+
+**What these tools do and don't claim.** The tripwire detects *after or during* failure (early only if
+the face fails piecewise); it never predicts. The cone says *could reach*, not *will* — it ignores
+bounce, barriers and intervening ridges. Their value is honest coverage: watch + consequence for the
+failure class the creep map is blind to.
+
+🔗 **In our project: Milestone 38 / §34.** `coherence_watch.py` (first run over the Bhavan overhang:
+quiet — and it correctly ignored a rainy fortnight that dimmed the whole scene) and
+`rockfall_runout.py` (the shrine complex sits inside the 32° likely-reach cone; ~2.3 km of track in the
+likely band). The records cross-check found the slope system already under managed treatment
+(2016 Bhawan failure, SMVDSB/THDCIL programme since 2012) — corroboration, and a reminder to ask for
+the as-builts before instrumenting.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -1380,6 +1424,16 @@ Scoring a creep detector on a rockfall caseload is scoring an ECG on broken arms
 we took — is to re-scope the claim (the physics map, which does score, leads for track hazard) and add
 rockfall-appropriate signals (coherence-drop change detection, optical) to the roadmap.
 
+**Q: You admitted radar can't see fast rockfall — so what do you actually do about a cliff you're worried about?**
+A: Three things, none of them creep measurement. First, a **coherence tripwire** (CV5): the radar's own
+per-pixel similarity score turns to static when a face fails, so we watch each drawn polygon's coherence
+against its own history — and against the AOI mean, so a rainy fortnight that dims the whole scene doesn't
+false-alarm. Second, an **energy-line runout screen**: a century-old empirical angle rule that converts
+"unstable face" into "the shrine complex below is within likely reach" — the number an authority acts on.
+Third, the **paper trail**: the records showed this face system already had a treated 2016 failure and a
+decade-old mitigation programme — so step zero is asking for the as-builts, not installing instruments.
+I'd stress the honesty: the tripwire detects, it does not predict; the cone says *could reach*, not *will*.
+
 **Q: What would you do differently with more resources?**
 A: Three things, in order: a denser landslide inventory with verified dates (validation is the bottleneck,
 not processing); sub-daily point rainfall so the alarm varies per zone instead of per region (an extreme
@@ -1477,8 +1531,15 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   **failure-class gap** (CV3): track-side rockfall gives no slow creep — our creep core scored 0 against the
   corridor list, and the disaster site sits **598 m** from the nearest zone (the standing calibration
   target); (d) in an **extreme monsoon the AOI-wide gate saturates** (59 ALERT days in 2025) — per-zone
-  sub-daily rain is the fix. Operating points (m = 0.50/0.70) are also still Ramban-tuned pending a local
-  sweep.
+  sub-daily rain is the fix. *(Update M37: operating points are now site-earned — ALERT m=0.40 / WATCH
+  m=0.75 from the local sweep, §32 — so the "Ramban-tuned dials" caveat is retired; the other four stand.)*
+- **Fast-failure instruments are new and unproven-in-anger (Milestone 38 / CV5 / §34):** the coherence
+  tripwire has never yet seen a real failure (its first timelines are 4 epochs — the minimum it can even
+  flag on is 3); a storm exactly coincident with a collapse could mask the local drop; and steep-face
+  layover pixels carry little signal either way. The runout cone is a *reach envelope* — no bounce,
+  barrier or ridge-blocking physics, and OSM has almost no buildings mapped at the shrine complex, so
+  its buildings count undercounts (the POI/route read is the trustworthy part). Neither tool predicts
+  timing. Treat both as watch + consequence coverage for the CV3 class, not as forecasts.
 
 ---
 
@@ -1516,6 +1577,8 @@ core still beats chance (Milestone 28 / CF9); (c) it's
 | **Ascending/Descending** | Satellite flying S→N (looks E) vs N→S (looks W). |
 | **Perpendicular baseline** | Sideways gap between two orbit positions; small is better. |
 | **Raster / pixel** | A gridded image; each cell holds one number. |
+| **Coherence-drop watch** | Flagging a polygon whose coherence suddenly falls more than the scene's — a fast-failure tell. |
+| **Energy line (Fahrböschung)** | Empirical angle from a detachment point below which falling rock rarely travels; sweeping it gives a runout cone. |
 
 ---
 
