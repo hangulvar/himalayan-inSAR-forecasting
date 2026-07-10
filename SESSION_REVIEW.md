@@ -11,55 +11,67 @@
 
 ---
 
-# LIVE — Session 17 · branch `aoi-vaishnodevi` · updated 2026-07-08
+# LIVE — Session 18 · branch `aoi-vaishnodevi` · updated 2026-07-10
 
 ## Current state
 
-- **Ramban: COMPLETE, scored, LIVE** — two-tier ALERT/WATCH (§23) + per-zone confidence (§24) + triage (§25) + temporal gate (§17), project-best operating point (§21b); live 2026 alarm via `live_alarm.py`. `mvp-expansion` ready to merge to `master` (user's call; add `site_name: Ramban NH-44` at merge).
-- **Vaishno Devi: a full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM, disaster-validated (Δ=0 peak-day catch + beats-chance spatial, §31), operating points earned by the local m-sweep (ALERT m=0.40 / WATCH m=0.75, §32) as per-site config keys.
-- **The deliverable — route exposure (§28, M33):** CORE finding is the **NE-flank creep target** (2-track-confirmed, §30; abuts a settlement, §33). Field brief + GPS KML shipped 2026-07-07.
-- **★ NEW (§34, M38) — the fast-failure toolkit for the Bhavan overhang (CV3 class):** `coherence_watch.py` (NEW) is the pipeline's **first fast-failure detector** — per-polygon 12-day coherence timelines, AOI-relative drop gating (a scene-wide rain drop was demonstrably filtered on first run); current verdict **OK/quiet** on the overhang + both creep polygons. Re-run every radar cycle.
-- **★ NEW (§34) — rockfall runout screen:** `rockfall_runout.py` (NEW), energy-line cone on the 12.5 m DEM — **the Bhavan shrine complex is INSIDE the LIKELY (≥32°) band (33.2°)**, ropeway ghati station POSSIBLE, ~2.3 km of route LIKELY; bands exported as Google-Earth KML. First-order screen, caveats on record.
-- **★ NEW (§34) — records cross-check:** the overhang's slope system is institutionally KNOWN — GSI Table-7.1 planar/wedge locs 315–440 m from the polygon edge, a treated 12 Mar 2016 failure at the Bhawan complex (37 deep anchors), SMVDSB+THDCIL programme since 2012. **Field step zero: request treatment as-builts.** Full brief incl. joint tell-tale protocol: `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang (2026-07-08).md`.
-- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from nearest zone (§31 addendum) — still the calibration target (coherence watch addresses the *class*, not this miss retroactively); VD still borrows Ramban's φ/c; fast-failure tools are unproven-in-anger (Part E, M38).
-- **NISAR (§33):** real L-band products over the AOI (3 GUNW + 8 GSLC/RSLC/GCOV) but too few for a chain — recheck monthly.
-- ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD `..._vaishnodevi_2026.html` (DORMANT as-of 30 Jun) + route/creep/runout/coherence artefacts in `data/alerts_vaishnodevi/mosaic_asc/`.
+- **★ NEW (§35) — the VD site is now in WATCH:** the first routine radar-cadence cycle (roadmap #1) ran
+  end-to-end 2026-07-10; `live_alarm.py` (fetch in the mintpy image) brought ERA5-Land to 07-04 and the
+  monsoon onset flipped the site **DORMANT → WATCH, all vulnerable zones active** (§35; 0 ALERT days —
+  the acute trigger has not fired). **Re-run `live_alarm.py` every few days through the monsoon** (mintpy
+  image for fetch, then insar image for the dashboard).
+- **Radar side of the cycle (§35):** July S1 passes STILL not at ASF (latest scenes 18–23 Jun; lag >17
+  days) — the operational chains (f103/f105) can't extend yet. A backfilled 2 Mar path-27 scene yielded 4
+  new mid-chain pairs (f101/f106 baseline densified; f106 islands 6→4, f101 unchanged — new bridges failed
+  the rescue gate by a hair, kept out on purpose). Regenerated cascade **reproduces §32 exactly**;
+  `coherence_watch` verdict **OK/quiet** on overhang + creep polygons.
+- **Ramban: COMPLETE, scored, LIVE** — two-tier ALERT/WATCH (§23) + per-zone confidence (§24) + triage
+  (§25) + temporal gate (§17), project-best operating point (§21b). `mvp-expansion` ready to merge to
+  `master` (user's call; add `site_name: Ramban NH-44` at merge).
+- **Vaishno Devi: a full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM,
+  disaster-validated (§31), operating points earned by the local m-sweep (§32) as per-site config keys.
+- **The deliverable — route exposure (§28, M33):** CORE finding is the **NE-flank creep target**
+  (2-track-confirmed, §30; abuts a settlement, §33). Field brief + GPS KML shipped 2026-07-07.
+- **Fast-failure toolkit for the Bhavan overhang (§34, M38):** `coherence_watch.py` (first fast-failure
+  detector, re-run every cycle — done this cycle), `rockfall_runout.py` (shrine complex in the LIKELY
+  cone), records cross-check (face institutionally KNOWN; field step zero = request treatment as-builts;
+  brief in `Research/Vaishno_Devi_Watchlist/`).
+- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from
+  nearest zone (§31 addendum) — still the calibration target; VD still borrows Ramban's φ/c; fast-failure
+  tools are unproven-in-anger (Part E, M38).
+- **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
+- ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD
+  `..._vaishnodevi_2026.html` (**WATCH as-of 04 Jul**, §35) + route/creep/runout/coherence artefacts in
+  `data/alerts_vaishnodevi/mosaic_asc/`.
+- **Ops learning (error log 2026-07-10):** 4 of the 5 Phase-1 QA scripts have no argparse — `--help`
+  EXECUTES them (harmless: idempotency held, verified against §32).
 
-## Recommended next steps — the product-improvement roadmap (2026-07-07)
+## Recommended next steps — the product-improvement roadmap (2026-07-10)
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
 
-1. **Radar cadence (agent, ~1 cmd/2 weeks):** early-July S1 passes not yet in the archive (checked
-   2026-07-07) — when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack →
-   route_exposure → live_alarm. Every cycle lengthens the chains and drops the σ_v noise floor.
-   **NISAR (checked 2026-07-07): REAL L-band products now exist over the VD AOI** — 8 GSLC/RSLC/GCOV
-   scenes (Nov 25–Jan 26) and **3 GUNW interferograms** (Nov–Dec 25) via `asf_search dataset=NISAR`.
-   Too few for a velocity chain yet; the 1–3-day forward-processing window opened Jul 2026 — **recheck
-   monthly**, build the GUNW ingestion adapter when ~8+ same-track pairs exist (L-band = vegetation
-   coherence, our worst enemy). **Field target upgraded:** Area A abuts a settlement (62 OSM buildings
-   ≤1.5 km, closest 87 m; Panchari Gali 810 m) — coords independently re-verified; brief updated.
-   **New tool:** `polygon_stats.py` (user-drawn KML/GeoJSON polygons → per-polygon risk stats; self-tested
-   on the creep clusters).
-2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** sweep script AOI-parameterized; 16-value
-   sweep → **ALERT m=0.40** (plateau, AUC 0.696/spec 0.654/lift 2.11×, 21 zones — spike at 0.35 rejected as
-   cliff-adjacent) + **WATCH m=0.75** (recall 0.927 = 38/41, 105 zones — perfect recall @0.85 declined).
-   Wired as per-site config keys `operational_m`/`watch_m` (Ramban defaults unchanged); full cascade
-   regenerated + re-scored; Δ=0 disaster catch intact. Re-sweep when the inventory grows or chains lengthen.
+0. **Monsoon watch (user or agent, minutes, every few days):** the site is in WATCH (§35) — re-run
+   `live_alarm.py` (mintpy fetch → insar alarm) every ~3 days; escalate per the field briefs if ALERT
+   fires or `coherence_watch` flags a DROP after a storm.
+1. **Radar cadence (agent, ~1 cmd/2 weeks):** cycle ran 2026-07-10 (§35) — July S1 passes still absent;
+   when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack → route_exposure →
+   live_alarm → coherence_watch. Every cycle lengthens the chains and drops the σ_v noise floor.
+   **NISAR:** 8 GSLC/RSLC/GCOV + 3 GUNW over the AOI (checked 2026-07-07); too few for a chain — recheck
+   monthly, build the GUNW adapter when ~8+ same-track pairs exist.
+2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** per-site `operational_m`/`watch_m`
+   config keys wired; re-sweep when the inventory grows or chains lengthen.
 3. **Site-specific soil pass (agent + user sources, medium):** φ/c for Trikuta carbonates + Vaishnodevi-Fm
    scree (GSI-note geology) replacing the Batote–Doda values; re-run + re-score (§20/§21 pattern).
-4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep. ✅ **coherence-drop change
-   detection BUILT (2026-07-08, §34)** — remaining candidates: Sentinel-2 optical change (the DROP-flag
-   follow-up; could also run post-storm proactively) and a steep-cut-slope proxy layer in the reasoner.
-   This axis is what closes the 598 m miss, not more creep tuning.
+4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep. ✅ coherence-drop detection
+   BUILT (§34) — remaining candidates: Sentinel-2 optical change (the DROP-flag follow-up; could also run
+   post-storm proactively) and a steep-cut-slope proxy layer in the reasoner. This axis is what closes the
+   598 m miss, not more creep tuning.
 5. **Per-zone WHEN (agent, medium):** sub-daily/point IMERG so ALERT varies per zone — the extreme-season
    over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
-6. ✅ **DONE (2026-07-07) — Docs debt:** primer updated for M31–M36 (new Part C-quinquies CV1–CV4:
-   transferability, route exposure, failure classes, single-event validation; +4 Part-D Q&As; Part E
-   refreshed incl. the consolidated VD-caveats bullet; pitch now covers both sites).
-7. **User-side:** field check of the NE-flank CORE target — **full brief with polygons, checklist and
-   safety notes: `Research/Field Brief - Bhairon NE flank creep target (2026-07-07).md`** (+ GPS-loadable
-   `data/alerts_vaishnodevi/mosaic_asc/bhairon_core_creep.kml`); merge `mvp-expansion` → `master`
-   (+ add `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
+6. ✅ **DONE (2026-07-07) — Docs debt:** primer covers M31–M38 (CV1–CV5, Part D/E refreshed).
+7. **User-side:** field check of the NE-flank CORE target (brief: `Research/Field Brief - Bhairon NE flank
+   creep target (2026-07-07).md` + `bhairon_core_creep.kml`); merge `mvp-expansion` → `master` (+ add
+   `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
 
 > **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
 > lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
@@ -67,16 +79,13 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 
 ## Uncommitted delta
 
-Prior batches (through §33/M37 + the 2026-07-07 wrap) all committed through `c450299`.
+Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0c6883`.
 
-- **[2026-07-08] Fast-failure toolkit (§34, M38):** NEW `workflows/coherence_watch.py` +
-  `workflows/rockfall_runout.py`; NEW `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang
-  (2026-07-08).md`; watchlist `README.md` ideas #3/#4/#6/#7 marked ✅ with pointers; `RESULTS_AND_KPIS.md`
-  **§34**; wrap docs (error log Overpass-406 entry, Session-17 journey entry, milestone M38, primer CV5 +
-  Part D Q&A + Part E refresh incl. retiring the stale "Ramban-tuned dials" caveat, this LIVE block).
-  Git-ignored outputs: `coherence_watch_*`, `rockfall_runout_*` in `data/alerts_vaishnodevi/mosaic_asc/`,
-  cached `data/osm/vaishnodevi_buildings_overpass.json`. Suggested commit: see wrap-session close-out
-  (one commit: scripts + brief + README + docs).`
+- **[2026-07-10] Radar-cadence cycle #1 (§35):** NO code changes — docs only: `RESULTS_AND_KPIS.md`
+  **§35**, `error_history_log.md` (no-argparse `--help` footgun), this LIVE block (+ git-ignored
+  Session-18 journey entry). Git-ignored data outputs: 4 new products in `data/processed_tiffs/`,
+  refreshed rainfall CSV + alarm report/dashboard (WATCH), `per_zone_vulnerability.*`,
+  `coherence_watch_*`, `route_exposure.*`. Suggested commit: see wrap-session close-out.
 
 ---
 

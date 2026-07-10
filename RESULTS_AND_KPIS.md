@@ -1587,6 +1587,40 @@ the pipeline's first instruments matched to the **CV3 brittle/fast failure class
 
 ---
 
+## 35. First operational radar-cadence cycle — monsoon onset flips Vaishno Devi to WATCH  `[REAL / MEASURED]`
+
+Source: the full per-cycle loop run end-to-end on 2026-07-10 (roadmap item #1, first execution as a
+routine): `submit_hyp3_jobs.py` → `download_hyp3_products.py` → Phase-1 QA chain → `run_multistack.py` →
+`route_exposure.py` + `live_alarm.py` + `coherence_watch.py`. Branch `aoi-vaishnodevi`.
+
+- **The headline — site state DORMANT → WATCH.** `live_alarm.py` fetch stage (mintpy image) extended
+  ERA5-Land by **+4 days to 2026-07-04** (~5-day publication lag); the alarm stage then read modeled
+  saturation **m=0.96** (was 0.56 as-of 06-30) → **29 of 29 vulnerable zones ACTIVE (season peak;
+  0 active as-of 06-30)**, regional tier **WATCH**. Temporal gate: WATCH+ on **16/95 days (16.8%)**,
+  **ALERT 0 days** (acute E≥2 intensity–duration trigger never reached). The monsoon has arrived at the
+  site; the per-zone gate (§24/§32 machinery) is doing exactly what it was built for.
+- **July S1 passes STILL absent from the ASF archive** (checked 2026-07-10; latest scenes 18–23 Jun on
+  all 8 tracks) — the operational chains (f103/f105) cannot extend yet; ingestion lag now >17 days for
+  path27. Recheck next cycle.
+- **But the archive check paid anyway — a backfilled 2 Mar 2026 path-27 scene appeared:** 4 new 12-day
+  pairs (f101/f106, Feb 18→Mar 2→Mar 14, replacing 24-day links), submitted at 40 credits (**7,460
+  remain**), all SUCCEEDED + extracted (Phase-1 state now **52/53 products, 1 parked**). QA: 2 CLEAN
+  (f106 0218→0302 R²=0.158; f101 0302→0314 R²=0.001), 2 CONCERN (R²=0.461/0.478 — both a hair over the
+  0.45 rescue gate). Network effect: **f106 islands 6→4** (2 rescues selected, still disconnected),
+  **f101 8→8** (both new bridges gated out as too noisy). The operational stacks are untouched; the
+  densified Feb–Mar baseline waits for future scenes to stitch it.
+- **Regression check passed:** the regenerated cascade reproduces §32 exactly — ALERT 21 zones
+  (3 critical, 8 ≥2-look), WATCH 105 zones; `route_exposure` 17 exposed segments (unchanged).
+- **`coherence_watch` per-cycle verdict: OK/quiet** on the Bhavan overhang + both creep polygons (no new
+  radar epochs, so the timeline itself is unchanged since §34's first run).
+
+**Artefacts (git-ignored):** 4 new products in `data/processed_tiffs/`; refreshed
+`vaishnodevi_era5land_daily_vaishnodevi_2026.csv`, `operational_alarm_report_vaishnodevi_2026.*`,
+`operational_alarm_dashboard_vaishnodevi_2026.html` (as-of 2026-07-04, WATCH),
+`per_zone_vulnerability.*`, `coherence_watch_*`, `route_exposure.*`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

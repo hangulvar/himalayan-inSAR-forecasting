@@ -23,6 +23,26 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-10] Passing `--help` to the Phase-1 QA scripts EXECUTES them (no argparse)
+
+* **Symptom:** a "print the usage of the five QA-chain scripts" probe (`python workflows/<script> --help`)
+  silently **ran** `feature_engineering.py`, `phase_elevation_audit.py`, `_consolidate_quarantine.py` and
+  `apply_connectivity_rescues.py` end-to-end (~15 min of masking + audits + a quarantine-list rewrite and
+  10 rescue re-promotions). Only `sbas_network_graph.py` printed usage.
+
+* **Root Cause:** four of the five Phase-1 scripts have **no argparse** — their `main()` takes no CLI
+  arguments, so any argument (including `--help`) is ignored and the script just runs.
+
+* **Resolution:** no damage — the scripts are idempotent by house rule (masking skipped all existing
+  products; the audit is deterministic on unchanged inputs; the re-applied rescues were the same 10),
+  and the intended real run followed minutes later anyway. Verified state by re-running the chain
+  properly and checking the cascade reproduced §32 exactly.
+
+* **Lesson:** don't probe these scripts with `--help`; read the docstring instead. This is also a live
+  demonstration of WHY the "workflow scripts are idempotent" house rule exists — an accidental
+  double-run must be a no-op. If a new workflow script is added, either give it argparse or keep it
+  argument-free AND idempotent.
+
 ### [2026-07-08] Overpass API returns 406 to PowerShell's hashtable POST body — urlencode it yourself
 
 * **Symptom:** `Invoke-RestMethod -Uri overpass-api.de/api/interpreter -Method Post -Body @{data=$q}`
