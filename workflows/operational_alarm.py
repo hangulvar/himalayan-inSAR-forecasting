@@ -343,11 +343,22 @@ def _conf_cell(v) -> str:
     return f"<td><b style='color:{color}'>{p:.2f}</b></td>"
 
 
+def _gmaps(lat, lon, decimals: int = 4) -> str:
+    """A lat, lon rendered as a click-to-open Google Maps link (satellite view of the spot)."""
+    lat, lon = float(lat), float(lon)
+    return (f'<a href="https://www.google.com/maps?q={lat:.5f},{lon:.5f}" target="_blank" '
+            f'title="Open this location in Google Maps">{lat:.{decimals}f}, {lon:.{decimals}f}</a>')
+
+
 def _stack_links(scenario: str) -> str:
-    """Per-stack map links for a tier's scenario (operational -> dashboard_operational.html, etc.)."""
+    """Per-stack map links for a tier's scenario (operational -> dashboard_operational.html, etc.).
+    Links whichever per-stack dashboards actually exist for THIS site (the stack set differs
+    per AOI — hardcoding ramban's trio put dead links on other sites' dashboards)."""
+    stacks = sorted(p.parent.name for p in ALERTS_DIR.glob(f"*/dashboard_{scenario}.html")
+                    if p.parent.name != "mosaic_asc" and not p.parent.name.endswith("_vslope"))
     return "\n".join(
         f'<li><a href="../{s}/dashboard_{scenario}.html">{s.replace("ASC_", "")}</a></li>'
-        for s in ("ASC_path27_frame106", "ASC_path100_frame102", "ASC_path27_frame101"))
+        for s in stacks)
 
 
 def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
@@ -364,6 +375,9 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     if role == "ALERT":
         title = ("WHERE — ALERT footprint (act now)" if unscored else
                  "WHERE — ALERT footprint (act now · the map that beats chance)")
+        subtitle = ("The short, high-confidence list: slopes that are already creeping (measured "
+                    "from satellite radar) AND are physically fragile. When the alarm is WATCH or "
+                    "ALERT, these are the places to check first.")
         if unscored:
             # No back-test at this site yet — never borrow another AOI's validation claims.
             scored = ("<b>Not yet back-tested at this site</b> (no local landslide "
@@ -379,6 +393,8 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
                       f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
     else:
         title = "WHERE — WATCH footprint (monitor wider · higher recall)"
+        subtitle = ("The wider monitoring net: catches more of the real failures at the cost of more "
+                    "false positives. Use it to plan patrols and monitoring — act on the ALERT list.")
         ratio = (f" (≈{rec / compare_recall:.1f}× the ALERT recall)"
                  if isinstance(rec, (int, float)) and compare_recall else "")
         cz, ca, cl = tier.get("core_zones"), tier.get("core_auc"), tier.get("core_lift")
@@ -396,7 +412,7 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
         top = tier.get("triage_top")
         if top:
             items = "\n".join(
-                f"<li>{float(z['lat']):.3f}, {float(z['lon']):.3f} — <b>{z['priority']}</b> "
+                f"<li>{_gmaps(z['lat'], z['lon'], 3)} — <b>{z['priority']}</b> "
                 f"<span style='color:#888'>(fragile m*{z['m_star']} · P{z['detection_confidence']}"
                 f"{' · 2-look' if z.get('n_looks', 1) >= 2 else ''})</span></li>"
                 for z in top)
@@ -405,12 +421,17 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
                       f"<ol style='margin:4px 0 0 18px;padding:0'>{items}</ol>"
                       f"<div style='color:#888;margin-top:3px'>priority = (1−m*)×P = fragility × "
                       f"detection confidence; full ranking in <code>per_zone_triage_watch.csv</code>.</div></div>")
+    links = _stack_links(tier["scenario"])
+    links_html = (f'<div style="font-size:13px;margin-top:6px"><b>Zoom in</b> — interactive '
+                  f'per-stack maps (one per radar viewing geometry):</div>'
+                  f'<ul style="font-size:13px;margin:4px 0 0 18px">{links}</ul>') if links else ""
     return f"""  <div class="card">
     <h2>{title}</h2>
+    <div class="sub2">{subtitle}</div>
     <div class="big">{tier['n_zones']} zones</div>
     <div style="font-size:13px;color:#444">{tier['n_crit']} critical · {tier['n_multi']} multi-look-confirmed · {m_txt}</div>
     <p style="font-size:13px">{scored}</p>
-    <ul style="font-size:13px;margin:4px 0 0 18px">{_stack_links(tier['scenario'])}</ul>
+    {links_html}
     {triage}
   </div>"""
 
@@ -427,11 +448,24 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     n_zones = r["footprint_zones"]
     # Live-zone count: the per-zone-gated count (§19) if available, else the whole footprint on WATCH+.
     live = per_zone["n_active"] if per_zone else (n_zones if lvl in ("WATCH", "ALERT") else 0)
-    blurb = {"ALERT": "Rainfall is well above the regional danger line — raise the alarm on the "
-                      "validated hazard footprint.",
-             "WATCH": "Rainfall has crossed the regional danger line — the hazard footprint is armed; "
-                      "monitor.",
-             "DORMANT": "Rainfall is below the regional danger line — no active slope-failure alarm."}[lvl]
+    blurb = {"ALERT": "Recent rainfall is WELL ABOVE the level that has historically triggered "
+                      "landslides in this region — raise the alarm: restrict exposure below the "
+                      "ALERT-footprint slopes and prioritise the live-zone list below.",
+             "WATCH": "Recent rainfall has crossed the level that has historically triggered "
+                      "landslides in this region — the hazard maps are armed: monitor the live-zone "
+                      "list below and brief field teams, but this is not yet an act-now alarm.",
+             "DORMANT": "Recent rainfall is below the regional landslide-triggering level — the "
+                        "slopes still creep, but there is no active rainfall trigger today."}[lvl]
+    # Site-specific honest caveats for the footer/guide (never wear another site's notes).
+    if SLUG == "ramban":
+        site_notes = ("20 Apr 2025 is the verified deadly cloudburst; 27 Apr / 8 May reach only WATCH "
+                      "on reanalysis rain (their cells are sub-grid). Velocity coverage ~14% of AOI "
+                      "(unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a matric-suction "
+                      "dry/wet split (§20, lab-unconfirmed).")
+    else:
+        site_notes = ("Soil strength (φ, cohesion) is calibrated at Ramban and carried to this site "
+                      "as an assumption until a local soil pass; radar velocity covers only part of "
+                      "the AOI (an unmeasured slope is NOT a safe slope).")
     png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
 
     ev_rows = "\n".join(
@@ -449,7 +483,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
             tier_badge = {"fails-when-barely-wet": "#dc2828", "fails-on-a-wet-day": "#f0b428",
                           "fails-only-when-very-wet": "#8aa1b1"}
             zrows = "\n".join(
-                f"<tr><td>{i}</td><td>{float(z['lat']):.4f}, {float(z['lon']):.4f}</td>"
+                f"<tr><td>{i}</td><td>{_gmaps(z['lat'], z['lon'])}</td>"
                 f"<td>{z['m_star']}</td><td>{z['fs_0p40']}</td><td>{z['creep_mmyr']}</td>"
                 f"{_conf_cell(z.get('detection_confidence'))}"
                 f"<td>{'<b style=color:#aa0000>CRITICAL</b>' if z['severity']=='CRITICAL' else 'HIGH'}</td>"
@@ -472,6 +506,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <div class="card" style="flex:1 1 100%">
     <h2>WHICH ZONES — live as of {as_of} &nbsp;<span style="font-weight:400;color:#666">
       ({per_zone['n_active']} of {per_zone['total']} operational zones active, ranked by vulnerability)</span></h2>
+    <div class="sub2">Today's working checklist: a zone is "live" when the soil is estimated to be wet
+      enough to reach ITS OWN tipping point (m* ≤ today's saturation). Most fragile first — click any
+      coordinate to open the exact spot in Google Maps.</div>
     {body}
   </div>
 </div>"""
@@ -482,19 +519,27 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
  header h1{{margin:0;font-size:20px}} header .sub{{opacity:.85;font-size:13px;margin-top:4px}}
+ .tabs{{background:#13263a;padding:8px 24px;display:flex;gap:8px}}
+ .tab{{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 14px;
+   border-radius:6px;font-size:13px;cursor:pointer}}
+ .tab.active{{background:#fff;color:#0d1b2a;font-weight:600}}
  .banner{{margin:18px 24px;padding:18px 22px;border-radius:8px;color:#fff;background:{color};
    box-shadow:0 2px 6px rgba(0,0,0,.2)}}
  .banner .lvl{{font-size:30px;font-weight:800;letter-spacing:1px}}
  .banner .meta{{font-size:14px;margin-top:6px;opacity:.95}}
+ .banner a{{color:#fff}}
  .wrap{{display:flex;gap:18px;padding:0 24px 18px;flex-wrap:wrap}}
  .card{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;flex:1 1 340px;min-width:320px}}
  .card h2{{margin:0 0 8px;font-size:15px}} .big{{font-size:26px;font-weight:700}}
+ .sub2{{font-size:12px;color:#777;margin:-2px 0 8px;line-height:1.45}}
  table{{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}}
  th,td{{border:1px solid #e3e3e3;padding:5px 8px;text-align:left}} th{{background:#f0f2f5}}
  .calendar{{margin:0 24px 18px}} .calendar img{{width:100%;max-width:1100px;border:1px solid #ccc;border-radius:6px;background:#fff}}
  .pill{{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;color:#fff;margin-right:4px}}
  footer{{padding:12px 24px;font-size:11px;color:#888}}
  a{{color:#1a5fb4}}
+ .guide p, .guide li{{font-size:13px;line-height:1.55}}
+ .guide h2{{font-size:15px}}
 </style></head><body>
 <header>
   <h1>🏔️ {SITE} — Operational Landslide Alarm</h1>
@@ -502,27 +547,37 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
    gate) × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
    generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
 </header>
+<nav class="tabs">
+  <button id="btn-dash" class="tab active" onclick="showTab('dash')">Dashboard</button>
+  <button id="btn-guide" class="tab" onclick="showTab('guide')">📖 Guide — how to read this page</button>
+</nav>
 
+<div id="tab-dash">
 <div class="banner">
   <div class="lvl">● ALARM: {lvl}</div>
   <div class="meta">as of <b>{as_of}</b> &nbsp;·&nbsp; rainfall exceedance E = <b>{e_now:.2f}×</b>
-   the regional danger line &nbsp;·&nbsp; <b>{live}</b> hazard zones live. &nbsp; {blurb}</div>
+   the regional danger line &nbsp;·&nbsp; <b>{live}</b> hazard zones live.<br>{blurb}
+   &nbsp;<a href="#" onclick="showTab('guide');return false">New here? Open the guide →</a></div>
 </div>
 
 <div class="wrap">
 {where_cards}
   <div class="card">
     <h2>WHEN — regional rainfall temporal gate</h2>
+    <div class="sub2">The maps above say WHERE failures are plausible; this card says WHEN the danger is
+      real. Each day's rainfall is compared against a published NW-Himalaya landslide-triggering
+      threshold, and the alarm state is graded by how far above it we are (the exceedance E).</div>
     <div class="big">{r['level_counts']['ALERT']} ALERT days <span style="font-size:14px;color:#666">/ season</span></div>
-    <div style="font-size:13px;color:#444">{r['alert_pct_season']}% of the season — a
-      <b>{r['selectivity_gain_raw_to_alert'].split('(')[-1].rstrip(')')}</b> cut vs the raw regional
-      trigger ({r['raw_regional_trigger_days']} days).</div>
+    <div style="font-size:13px;color:#444">{r['alert_pct_season']}% of the season. The raw regional
+      threshold alone would have fired on <b>{r['raw_regional_trigger_days']} days</b>; grading by E keeps
+      only the {r['level_counts']['ALERT']} day(s) genuinely well above the line —
+      <b>{r['selectivity_gain_raw_to_alert'].split('(')[-1].rstrip(')')}</b> alarm days, far less alarm fatigue.</div>
     <p style="font-size:13px;margin-bottom:4px">
       <span class="pill" style="background:#e8e8e8;color:#333">DORMANT E&lt;1</span>
       <span class="pill" style="background:#f0b428">WATCH 1≤E&lt;2</span>
       <span class="pill" style="background:#dc2828">ALERT E≥2</span></p>
-    <p style="font-size:13px;margin:6px 0 2px"><b>Validation</b> — documented failures vs the gate
-      (caught by ALARM {r['events_caught_by_alarm']}, by ALERT {r['events_caught_by_alert']}):</p>
+    <p style="font-size:13px;margin:6px 0 2px"><b>Validation</b> — documented failures at this site vs the
+      gate (caught by ALARM {r['events_caught_by_alarm']}, by ALERT {r['events_caught_by_alert']}):</p>
     <table><tr><th>event</th><th>date</th><th>E</th><th>gate state</th></tr>
 {ev_rows}</table>
   </div>
@@ -531,13 +586,111 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 
 <div class="calendar">
   <h2 style="margin:0 24px 6px 0;font-size:15px">Season alarm calendar &amp; rainfall exceedance</h2>
+  <div class="sub2" style="margin:0 0 8px">One column per day of the season, coloured by alarm state
+    (grey DORMANT · amber WATCH · red ALERT); the curve is the exceedance E. Use it to see at a glance
+    how active this season has been and whether wet spells are clustering.</div>
   <img src="data:image/png;base64,{png_b64}" alt="season alarm calendar"/>
 </div>
+</div><!-- /tab-dash -->
+
+<div id="tab-guide" class="guide" style="display:none">
+<div class="wrap">
+  <div class="card" style="flex:1 1 100%">
+    <h2>What is this dashboard?</h2>
+    <p>It is an automated landslide early-warning view for <b>{SITE}</b>, built from two independent
+      measurements: <b>satellite radar</b> (InSAR — millimetre-scale ground-motion mapping from orbit,
+      which finds slopes that are <i>already creeping</i>) and <b>slope physics</b> (a Factor-of-Safety
+      model on the terrain, which finds slopes that are <i>fragile when wet</i>). Where both agree, we
+      draw a hazard zone. Rainfall then decides whether those zones are dangerous <i>today</i>.</p>
+    <p>The page answers three questions, in order: <b>WHERE</b> could slopes fail (the two map cards) ·
+      <b>WHEN</b> is the danger real (the rainfall gate card + the banner) · <b>WHICH ZONES</b> matter
+      most right now (the ranked live-zone table).</p>
+  </div>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2>The three alarm states — and what to do</h2>
+    <table>
+      <tr><th>State</th><th>Meaning</th><th>Suggested action</th></tr>
+      <tr><td><b style="color:#888">DORMANT</b></td>
+        <td>Rainfall is below the regional landslide-triggering line (E &lt; 1). Slopes still creep,
+          but there is no rainfall trigger.</td>
+        <td>Routine monitoring only.</td></tr>
+      <tr><td><b style="color:#b8860b">WATCH</b></td>
+        <td>Rainfall has crossed the triggering line (1 ≤ E &lt; 2). The hazard maps are armed and
+          zones start going live.</td>
+        <td>Check the live-zone list; brief field teams; take extra care below listed slopes during
+          and right after storms.</td></tr>
+      <tr><td><b style="color:#dc2828">ALERT</b></td>
+        <td>Rainfall is well above the triggering line (E ≥ 2) — the regime in which the region's
+          documented failures have happened.</td>
+        <td>Act on the ALERT footprint: restrict exposure below those slopes, inspect drainage and
+          known cracks, prioritise by the table's ranking.</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>The rainfall number E (exceedance)</h2>
+    <p>Published research gives an <b>intensity–duration threshold</b> for the NW Himalaya: how much rain,
+      sustained over how long, has historically been enough to trigger landslides. Each day we compare the
+      accumulated rain over every window (1 day, 2 days, …) against that line and keep the worst ratio.</p>
+    <p><b>E = 1.0</b> means exactly on the historical danger line. <b>E = 2.25</b> means the rain was
+      2.25× that line. E grades the alarm: below 1 DORMANT, 1–2 WATCH, 2 and above ALERT. One honest
+      limitation: E uses an <i>AOI-average</i> daily value, so a very localised cloudburst can read lower
+      than what actually fell on one slope.</p>
+  </div>
+  <div class="card">
+    <h2>Why two maps (ALERT vs WATCH)?</h2>
+    <p>Any warning system trades misses against false alarms — so we publish both ends of the dial.
+      The <b>ALERT footprint</b> is the precise, act-now list. The <b>WATCH footprint</b> is a wider net
+      that catches more of the true failures at the cost of more false positives — right for planning
+      patrols, wrong for sirens.</p>
+    <p>Both maps are <b>held fixed</b>: rainfall changes only the alarm STATE, never the shapes. This
+      stops the map "ballooning" on wet days, which is what over-flags in naive systems. A zone marked
+      <b>multi-look-confirmed</b> (≥2-look) was detected independently from two different satellite
+      viewing geometries — stronger evidence it is real motion.</p>
+  </div>
+  <div class="card">
+    <h2>Reading the zone table</h2>
+    <ul style="margin:4px 0 0 18px;padding:0">
+      <li><b>location</b> — click any coordinate to open that exact spot in Google Maps (switch to
+        satellite/terrain view to see the slope).</li>
+      <li><b>m*</b> — the soil wetness at which THIS zone crosses its failure line (0 = bone dry,
+        1 = fully saturated). Lower = more fragile: m* ≈ 0.22 fails on a barely-wet day.</li>
+      <li><b>FS@0.40</b> — Factor of Safety at moderate wetness: resisting forces ÷ driving forces.
+        Below 1.0 = the physics says unstable.</li>
+      <li><b>creep mm/yr</b> — the measured ground motion speed from radar (along the satellite's line
+        of sight). Larger magnitude = faster creep; these slopes are moving <i>today</i>, rain or not.</li>
+      <li><b>confidence</b> — the probability the measured creep is real motion rather than radar noise
+        (<b style="color:#1a8a4a">green ≥ 0.9</b>, <b style="color:#b8860b">amber ≥ 0.7</b>).</li>
+      <li><b>severity / vulnerability</b> — CRITICAL combines the worst physics with the fastest creep;
+        the vulnerability pill says how wet a day it takes to tip the zone.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Honest limitations</h2>
+    <p>{site_notes}</p>
+    <p>The rainfall gate uses ONE AOI-average value per day, so localised cloudbursts can under-read
+      (sub-daily, per-zone rainfall is on the roadmap). Radar only measures where the ground stays
+      coherent between passes — an unmeasured slope is NOT a safe slope. This dashboard is decision
+      support for prioritising attention; it does not replace field judgment or official warnings.</p>
+    <p style="color:#888">Full rankings and provenance: <code>per_zone_vulnerability.csv</code>,
+      <code>per_zone_triage_watch.csv</code>, and the committed ledger <code>RESULTS_AND_KPIS.md</code>
+      (§ references throughout this page point there).</p>
+  </div>
+</div>
+</div><!-- /tab-guide -->
 
 <footer>Operational MVP · the WHEN gate uses one AOI rainfall value/day; per-zone differentiation is by each
- zone's critical saturation m* (§19), capped at the validated footprint. 20 Apr 2025 is the verified deadly
- cloudburst; 27 Apr / 8 May reach only WATCH on reanalysis rain (their cells are sub-grid). Velocity coverage
- ~14% of AOI (unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a matric-suction dry/wet split (§20, lab-unconfirmed).</footer>
+ zone's critical saturation m* (§19), capped at the validated footprint. {site_notes}</footer>
+<script>
+function showTab(t){{
+  document.getElementById('tab-dash').style.display = (t==='dash') ? '' : 'none';
+  document.getElementById('tab-guide').style.display = (t==='guide') ? '' : 'none';
+  document.getElementById('btn-dash').classList.toggle('active', t==='dash');
+  document.getElementById('btn-guide').classList.toggle('active', t==='guide');
+  window.scrollTo(0, 0);
+}}
+</script>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(html, encoding="utf-8")
