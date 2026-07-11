@@ -106,6 +106,13 @@ Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0
   §5.3.1 has NO soil params (SMR-based) but independently corroborates the §31 Ardhkuwari/new-track
   High zone; new dated 30 Dec 2008 Bhawan event for the inventory; Chenab-gouge (same Sirban
   formation) + Ramban–Gool analogue c/φ/γ; future-dated "Sept 2026" claim flagged.
+- **[2026-07-11] Temporal validation doubled (§38) + README refresh:** VD inventory grew 1→4 dated
+  events (all source-verified per §12g rule; the "2 Sep 2025" deep-research claim EXCLUDED as
+  fabricated — yatra was closed then). **21 Jul 2025 Banganga caught at Δ=0 (E=2.51)** alongside
+  Ardhkuwari → 2/2 in-window fatal events. 2008 Bhawan rockfall (source-internal Aug/Dec
+  discrepancy, flagged) + 2016 Bhawan failure recorded as historical features. 2025+2026 alarm
+  products regenerated; spatial re-score/m-sweep deliberately NOT re-run. Committed README rewritten
+  (two-site status, §-cited arc, stale "live rainfall pending" line fixed) ahead of public linking.
 - **[2026-07-11] Soil parameters RESOLVED (§37):** user obtained Kumar & Anbalagan 2013 (PDF in
   watchlist folder) + deep-research synthesis (soil numbers recovered from its embedded base64
   images). Site envelope brackets every engine value (φ 32–43° vs 36; c 4.9–27.5/4.5–7.9 kPa vs

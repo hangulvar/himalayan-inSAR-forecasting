@@ -1,31 +1,33 @@
 # 🏔️ Geospatial Analysis & Hazard Monitoring in the Western Himalayas
 
-A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into an automated, explainable hazard warning. The case study is the **NH-44 corridor through Ramban, Jammu & Kashmir** — a known landslide-prone segment with documented historical failures.
+A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into an automated, explainable hazard warning. Two live case studies in Jammu & Kashmir: the **NH-44 corridor through Ramban** (the original build) and the **Vaishno Devi pilgrimage corridor on the Trikuta massif** (the point-anywhere replication — disaster-validated, and in live WATCH through the 2026 monsoon).
 
-### 🎉 Status: full end-to-end MVP complete (Phases 1 – 4 Part A)
+### 🎉 Status: an operational, validated two-site warning system
 
-The whole chain runs start to finish on a pathfinder satellite stack:
+The full chain — built and hardened on Ramban, then re-pointed at a second AOI by editing one config file:
 
-> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → automated, explainable rainfall-driven alerts + browser dashboard.**
+> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → automated, explainable rainfall-gated warning + browser dashboard (with a plain-language Guide tab).**
 
 | Phase | What it does | Status |
 |---|---|---|
-| **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Complete |
-| **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Pathfinder (1 of 5 stacks) |
-| **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Pathfinder |
-| **4A — Agentic warning system** | 3-agent orchestrator → geolocated alerts + HTML dashboard | ✅ Complete |
-| **4B — Interactive 3-D UI** | Draped-terrain 3-D hazard explorer (`dashboard_3d.html`) | ✅ Complete |
+| **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Both sites |
+| **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Multi-stack union |
+| **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Site-calibrated soils |
+| **4A — Agentic warning system** | Two-tier ALERT/WATCH footprints × rainfall gate × per-zone ranking | ✅ Live at both sites |
+| **4B — Interactive UIs** | 3-D hazard explorer + publish-ready operational dashboard | ✅ Complete |
 
-#### Beyond the MVP — production hardening + a forecasting/validation investigation
+#### Beyond the MVP — the validation and operations arc
 
-The MVP is the *foundation*; substantial post-MVP work has since landed (full detail + every headline number in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md)):
+Full detail + every headline number lives in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md) (cited below by §); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md):
 
-- **Reproducibility & scale:** Dockerized (Linux container); AOI-parameterized; all **3 ascending stacks** inverted into a **union hazard mosaic**. The 2 descending stacks were evaluated and honestly **rejected** as too noisy.
-- **Field-standard cross-check:** **MintPy + ERA5 tropospheric correction** corroborates the custom SBAS engine on frame106 (agreement r ≈ 0.55–0.59 after correction).
-- **Hazard → forecast:** **inverse-velocity time-to-failure** (Fukuzono) screening, and **slope-parallel velocity (V_slope)** projection that quantifies the single-look blind spot and improves cross-geometry agreement.
-- **Rainfall-trigger investigation (a worked, honest scientific arc — incl. a self-correction):** real ERA5-Land rainfall + a **verified regional Himalayan intensity–duration curve**, cross-checked against **CHIRPS** and **half-hourly GPM IMERG** (via Google Earth Engine), back-tested against documented 2025 failures, plus a per-elevation freeze-thaw + chronic-saturation analysis. **Key finding (after a date correction):** the deadly **20 April 2025 Ramban cloudburst** (3 deaths; NH-44 washed out at 5 sites) **was acute-rainfall-triggered, and the model detects it** — the regional curve flags it at Δ=0 and sub-daily IMERG resolves the burst (E=2.25). An earlier "rainfall ruled out" reading turned out to be an **artifact of an imprecise news date** (our inventory had 27 Apr; the real disaster was 20 Apr). The refined picture: **primed slopes** (snowmelt/saturation/freeze-thaw) **+ a cloudburst trigger** — the model captures *both*; the smaller 8 May event stays marginal. A standing caveat: daily *AOI-mean* products dilute the localized cell, so sub-daily/point data is what resolves it. Next: a **verified landslide inventory (GSI Bhukosh)** for a scored test.
+- **Reproducibility & scale:** Dockerized; AOI-parameterized (`config.yaml` points the whole pipeline at a new site); ascending stacks inverted into a **union hazard mosaic**; the descending stacks evaluated and honestly **rejected** as too noisy. **MintPy + ERA5** cross-check corroborates the custom SBAS engine (§9).
+- **The operational warning (Ramban, §16–§25):** a **two-tier ALERT/WATCH** product with per-zone detection confidence, triage ranking, and a regional intensity–duration **rainfall gate** — the scored back-test beats chance, and a worked self-correction (a wrong news date had inverted a conclusion — §12g) set the project's verified-ground-truth rule.
+- **The second site (Vaishno Devi, §26–§32):** the entire pipeline re-pointed at the Trikuta shrine corridor; **validated against the 26 Aug 2025 Ardhkuwari disaster** (temporal Δ=0 catch + beats-chance spatial score, §31) with operating points earned by a local sweep (§32), on a 12.5 m DEM (§30).
+- **Route exposure & field targets (§28, §33–§34):** per-segment track exposure, a 2-track-confirmed creep target with field briefs + GPS KMLs, and a **fast-failure toolkit** for the brittle rockfall class — per-cycle coherence-drop tripwire, energy-line runout screen (the shrine complex sits in the LIKELY cone), and an institutional-records cross-check.
+- **Soil parameters site-corroborated (§36–§38):** site literature (incl. a pathway back-analysis paper) brackets every strength value in use — the "borrowed soils" caveat is retired; temporal validation now rests on **two independent fatal events, both caught on the day** (Ardhkuwari §31 + the 21 Jul 2025 Banganga landslide §38).
+- **Live operations (§35):** a routine radar-cadence cycle (resubmit → QA → invert → re-score) plus a rainfall-refresh loop; the monsoon onset flipped the VD site **DORMANT → WATCH** on 2026-07-04, with all vulnerable zones active — the per-zone gate doing exactly what it was built for.
 
-This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** (the 20 Apr date correction inverted an earlier finding) — is the project's scientific posture, and the explicit path toward a defensible, publishable tool.
+This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** — is the project's scientific posture. The operational dashboard is a **research prototype, not an official warning system**, and says so prominently.
 
 **New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
@@ -430,7 +432,7 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 2. **InSAR time-series velocity** ✅ — Sentinel-1 SBAS over Ramban; landslide creep at mm/yr precision (Phase 2, pathfinder stack).
 3. **Geomechanical Modelling** ✅ — LOS velocity + DEM-derived slope/TWI → Infinite-Slope Factor of Safety + hazard fusion (Phase 3).
 4. **Agentic warning system** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable alerts (Phase 4A).
-5. **Meteorological Triggers (live)** ⏳ — swap mock rainfall scenarios for real Copernicus CDS forecasts (future hardening).
+5. **Meteorological Triggers (live)** ✅ — real ERA5-Land rainfall auto-fetched per season (`live_alarm.py`), graded by a verified regional intensity–duration curve into DORMANT/WATCH/ALERT (§17, §35); remaining hardening = sub-daily per-zone rain (IMERG).
 
 ---
 

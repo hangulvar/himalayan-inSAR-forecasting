@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Only the dated event feeds the temporal back-test. 2026-07-07: +1 user_observed_vulnerable_location (Bhavan overhang, polygon in Research/Vaishno_Devi_Watchlist/) \u2014 lower evidentiary grade than the GSI points; filter by 'type' if a GSI-only score is wanted.",
+  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Every feature carrying a 'date' feeds the temporal back-test. 2026-07-07: +1 user_observed_vulnerable_location (Bhavan overhang, polygon in Research/Vaishno_Devi_Watchlist/) \u2014 lower evidentiary grade than the GSI points; filter by 'type' if a GSI-only score is wanted. 2026-07-11: +3 dated events (2008 Bhawan rockfall [GSI Spl.Pub.107 \u00a75.4.4 \u2014 source-internal Aug/Dec date discrepancy, flagged], 2016 Bhawan complex failure [SMVDSB/THDCIL records], 21 Jul 2025 Banganga [press-verified, 3+ outlets]). EXCLUDED after verification: the '2 Sep 2025 new-track rockfall, 3 dead' claim from a deep-research synthesis \u2014 no press/GSI trace, and the yatra was closed 26 Aug-14 Sep 2025; treated as fabricated (see RESULTS_AND_KPIS \u00a738).",
   "features": [
     {
       "type": "Feature",
@@ -19,6 +19,68 @@
         "coordinates": [
           74.941791,
           33.008764
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Banganga (Gulshan Ka Langar) landslide, old track",
+        "type": "event_2025",
+        "date": "2025-07-21",
+        "time_local": "~08:30 IST",
+        "casualties": 1,
+        "injured": 9,
+        "trigger": "heavy rain \u2014 Katra recorded 184.2 mm in the 24 h ending 08:30 IST 21 Jul 2025 (press)",
+        "failure_type": "Landslide/boulder fall onto the old track (booking office + overhead iron structure caved in)",
+        "coord_confidence": "anchored to Banganga locality on the old track (settlement-level, not GPS-precise)",
+        "source": "Press-verified 2026-07-11 across 3+ independent outlets (Kashmir Reader, The Kashmir Horizon, Greater Jammu, Deccan Herald; articles 21-22 Jul 2025) \u2014 date, casualties and the 184.2 mm/24 h figure consistent"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9493,
+          32.9887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bhawan rockfall at track km 11.550 (wedge failure)",
+        "type": "event_2008",
+        "date": "2008-08-30",
+        "time_local": "11:00 IST",
+        "casualties": 1,
+        "injured": 6,
+        "date_confidence": "SOURCE-INTERNAL DISCREPANCY: the GSI Spl.Pub.107 \u00a75.4.4 BODY says 30 Aug 2008 at 11:00 hrs (adopted \u2014 more specific); the section HEADING says 30 Dec 2008. Resolve via Kumar (2009a) before drawing any temporal conclusion from this event.",
+        "failure_type": "Rockfall by wedge failure in dolomitic limestone/cherty dolomite; source in the inaccessible escarpment >400 m above the heavily-inhabited foot-slope; bedding shear zone facilitated failure",
+        "coord_confidence": "anchored to the Bhawan complex (event at track km 11.550, foot-slope approaching the Shrine and Bhairon track)",
+        "source": "GSI Spl.Pub.107 \u00a75.4.4 (p.127; page image read 2026-07-11) citing Kumar (2009a)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9482,
+          33.0299
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bhawan complex slope failure (track between elevator point and gate 5)",
+        "type": "event_2016",
+        "date": "2016-03-12",
+        "failure_type": "Slope failure at the Bhawan complex; subsequently stabilized with 37 pre-stressed cable anchors (26.5\u201330.5 m)",
+        "coord_confidence": "anchored to the Bhawan complex",
+        "source": "SMVDSB/THDCIL records via 'Assessment of the Various Slope Stabilization Initiatives...' (Crimson AMMS.000775); see RESULTS_AND_KPIS \u00a734"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9482,
+          33.0299
         ]
       }
     },

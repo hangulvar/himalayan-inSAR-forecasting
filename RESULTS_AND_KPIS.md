@@ -1710,6 +1710,42 @@ primer Part E caveat (a) softened; soil brief lead #1 marked obtained.
 
 ---
 
+## 38. Temporal validation doubled — the 21 Jul 2025 Banganga disaster is also caught at Δ=0  `[REAL / MEASURED]`
+
+Source: verified-event inventory expansion (2026-07-11) + re-run of `operational_alarm.py` on the
+2025 season (`--csv vaishnodevi_era5land_daily.csv --out-suffix _vaishnodevi_2025`). Inventory:
+`data/inventory/vaishnodevi_documented_landslides.geojson` (committed) — now **4 dated events**
+(was 1), every addition source-verified per the §12g date rule.
+
+- **★ The headline: 2/2 in-window fatal events caught at Δ=0.** The newly added **21 Jul 2025
+  Banganga (Gulshan Ka Langar) landslide** (1 dead, 9 injured, ~08:30 IST; press-verified across
+  3+ independent outlets; Katra 184.2 mm/24 h) lands on a model ALERT day: **E = 2.51, nearest
+  ALERT Δ = 0** — alongside the §31 Ardhkuwari catch (E = 9.94, Δ = 0). The VD temporal test now
+  rests on two independent deadly events, both caught on the day, in a 59-ALERT-day extreme season
+  (27.6% of season — so Δ=0 twice is meaningful but the extreme-season over-firing caveat stands).
+- **New dated events recorded (not temporally testable — no rainfall series for their eras):**
+  (a) **30 Aug 2008, 11:00 IST — Bhawan rockfall at track km 11.550** (1 dead, 6 injured; wedge
+  failure in dolomitic limestone, source in the inaccessible escarpment **>400 m above** the
+  inhabited foot-slope — the Bhavan-overhang slope system's own documented fatal precedent).
+  ⚠ **Source-internal date discrepancy:** the GSI Spl.Pub.107 §5.4.4 *heading* says 30 **Dec**
+  2008, the *body* says 30 **Aug** 2008 at 11:00 hrs (adopted — more specific; resolve via Kumar
+  2009a). Read from the rasterized page (the PDF text layer drops all digits — §36 gotcha).
+  (b) **12 Mar 2016 Bhawan complex failure** (§34's treated failure, now an inventory feature).
+- **Excluded after verification (the date rule working):** the deep-research claim of a
+  "2 Sep 2025 new-track rockfall, 3 dead" — no press/GSI trace, and the yatra was **closed
+  26 Aug → 14 Sep 2025**, contradicting the claim; treated as fabricated (same document also
+  produced the future-dated "Sept 2026" event, §36).
+- **Honest bookkeeping:** the events-caught ratio now reads "2/4" because the two historical
+  events sit in the denominator with no rainfall data (their rows show "before this season's data
+  window" on the dashboard). The **spatial** back-test and the §32 m-sweep were deliberately NOT
+  re-run (+3 points among 41 does not justify moving earned operating points; re-sweep when the
+  inventory grows substantially).
+
+**Artefacts:** committed inventory (+3 features, updated provenance note); regenerated
+`operational_alarm_*_vaishnodevi_2025.*` + the 2026 live dashboard (4-row events table).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
