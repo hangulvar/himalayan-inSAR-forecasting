@@ -92,6 +92,12 @@ soil groundwork/resolution (§36/§37), temporal validation + README (§38), kno
 decontamination — are **all committed** through `43ddfb8`.
 
 Remaining uncommitted (the session-tail wrap):
+- **[2026-07-11 late] Primary-source batch #2 + GACOS attempt (§39):** 3 user-supplied PDFs analyzed —
+  2016 Bhawan event PRIMARY-VERIFIED (13:30 IST, rain-triggered; inventory enriched), NEW Himkoti
+  RD 0/850 inventory location (46 features), Kheri z-analogue; none holds soil c/φ (GSI-Kumar FSP /
+  EGCON now the last leads). GACOS pull was a 1×1 POINT outside the AOI — unusable; re-request as
+  area (N 33.11, W 74.85, S 32.90, E 75.05, times 12:56:36 / 13:04:41 UTC). Files: inventory GeoJSON,
+  `RESULTS_AND_KPIS.md` §39, soil brief lead #2 closed, throwaway `workflows/_gacos_epochs.py`.
 - **NEW `Research/Monsoon Watch Runbook (2026-07-11).md`** — plain-language 2–3-day operations loop
   (two commands: mintpy fetch → insar alarm; what to watch; escalation triggers). Demonstrated live.
 - **`RESULTS_AND_KPIS.md` §38 monsoon-watch addendum** — today's state (as-of 07-05: m=1.00 fully

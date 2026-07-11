@@ -73,11 +73,15 @@ than pretend it is site-measured. A confirmed "no site data found" is itself a u
    (φ 32–43°, c 4.9–27.5 kPa dry / 4.5–7.9 kPa saturated lows, weathering 1–3 m, sand 40–78%),
    every engine value is now inside the site envelope → **values kept, "borrowed" caveat retired**
    (full table: RESULTS_AND_KPIS.md §37).
-2. *"Assessment of the Various Slope Stabilization Initiatives Undertaken along the Pathways of
-   Shri Mata Vaishno Deviji Shrine"* — ResearchGate 373842077 / Crimson AMMS.000775 (stabilisation
-   *design* reports normally state assumed/measured c–φ for anchors/nets).
+2. ✅ **OBTAINED (2026-07-11) — no c/φ:** *"Assessment of the Various Slope Stabilization
+   Initiatives…"* (Naithani 2023, PDF in this folder) is a works-description paper (anchor/mesh/grout
+   specs only) — but it primary-verified the 12 Mar 2016 Bhawan event (13:30 IST, rain-triggered;
+   §39). Also obtained: GSI FS 2017-18 Himkoti-track report (kinematic, no c/φ — new inventory
+   location at RD 0/850) and GSI Kheri/Udhampur report (regional z-analogue 3–10 m, no lab strength).
 3. The unpublished **GSI Field Season Programme report (Kumar)** underlying Spl. Pub. 107 §5.3.1,
-   via GSI / Bhukosh.
+   via GSI / Bhukosh — **now the last live lead for the §37 overburden ranges**, alongside
+   EGCON-2022 proceedings (the deleted synthesis attributed the direct-shear ranges to GSI/EGCON
+   datasets; none of the three obtained PDFs contains them).
 
 **Remaining asks (narrowed):** (a) a primary source for the overburden shear-test ranges above
 (they reached us via a synthesis citing GSI/EGCON-2022 datasets — confirm the numbers first-hand);

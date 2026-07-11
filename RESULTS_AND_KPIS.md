@@ -1757,6 +1757,39 @@ Source: verified-event inventory expansion (2026-07-11) + re-run of `operational
 
 ---
 
+## 39. Primary-source batch #2 + GACOS first attempt — 2016 event verified first-hand; GACOS pull was a point, not a box  `[REAL / LITERATURE]`
+
+Source: three user-supplied PDFs in `Research/Vaishno_Devi_Watchlist/` + two GACOS archives in
+`data/hazard_vaishnodevi/` (2026-07-11).
+
+**The three PDFs (all primary sources — none contains soil c/φ, so §37's overburden ranges STILL
+await primary confirmation):**
+- **Naithani AK (2023), Crimson AMMS.000775 (§36 lead #2 — obtained):** a works-description paper
+  (anchor/mesh/grout specs), NO geotech design values. **But it primary-verifies the inventory's
+  2016 event first-hand:** *"at about 13:30 hours on 12th March 2016, track between elevator point
+  and gate no. 5 at Bhawan got damaged due to heavy and continuous rain which led to landsliding"* —
+  date confirmed + two new facts (13:30 IST; **rain-triggered**) + the damaged aged Durga Bhawan
+  building was dismantled and the slope treated. Inventory feature enriched.
+- **GSI open-file FS 2017-18 "Himkoti Track" (Singh, Rana & Jungral, M4-LS/NC/NR/SU-JK/2017/12224):**
+  kinematic assessment of the slope at **RD 0/850 (33°01'47.5"N 74°56'08"E)** after instability that
+  caused pilgrim casualties (event UNDATED in the source, pre-30.06.2017 → recorded as a vulnerable
+  location, not a dated event). Wedge/topple in highly jointed cherty dolomite, dip-slope J2
+  daylighting, slope ~67°, damage corridor 30–50 m, boulders 0.5–2 m (design case 5 m), rain-seepage
+  lubrication — yet another institutional confirmation of the CV3 cut-slope class on this corridor.
+  **NEW inventory feature** (46 total now).
+- **GSI "Kheri landslide, Udhampur district":** regional analogue OUTSIDE the AOI (Murree Fm,
+  NH corridor): deep-seated debris-cum-rock slide, **slip-surface depth 3–10 m**, slopes 20–40°,
+  600×85–130 m. No lab strength values. Kept as a z-depth analogue for the *deep-seated* class
+  (our z=3 m models the shallow translational class; consistent).
+
+**GACOS attempt #1 — unusable, re-request specified:** both archives contained exactly the requested
+epochs (frames 105/103, 5 each) but each `.ztd.tif` is a **1×1-pixel POINT at (74.821 E, 33.107 N) —
+outside the AOI** (the map selection collapsed to a click). Values ~2.30 m ZTD are physically sane
+(account/pipeline fine). Re-request as an AREA: N 33.11, W 74.85, S 32.90, E 75.05, same date lists,
+times 12:56:36 / 13:04:41 UTC. Cross-check (Area 1) blocked until then.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

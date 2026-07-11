@@ -72,9 +72,11 @@
         "name": "Bhawan complex slope failure (track between elevator point and gate 5)",
         "type": "event_2016",
         "date": "2016-03-12",
-        "failure_type": "Slope failure at the Bhawan complex; subsequently stabilized with 37 pre-stressed cable anchors (26.5\u201330.5 m)",
+        "time_local": "~13:30 IST",
+        "trigger": "heavy and continuous rain (per the primary source)",
+        "failure_type": "Rain-triggered landsliding damaging the track; aged Durga Bhawan building dismantled; slope subsequently stabilized (37 pre-stressed cable anchors, 26.5\u201330.5 m)",
         "coord_confidence": "anchored to the Bhawan complex",
-        "source": "SMVDSB/THDCIL records via 'Assessment of the Various Slope Stabilization Initiatives...' (Crimson AMMS.000775); see RESULTS_AND_KPIS \u00a734"
+        "source": "PRIMARY-VERIFIED 2026-07-11: Naithani AK (2023) 'Assessment of the Various Slope Stabilization Initiatives...', Aspects Min Miner Sci AMMS.000775 p.6 (PDF in Research/Vaishno_Devi_Watchlist/); see RESULTS_AND_KPIS \u00a734/\u00a739"
       },
       "geometry": {
         "type": "Point",
@@ -761,6 +763,24 @@
         "coordinates": [
           74.942333,
           32.998139
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Himkoti track RD 0/850 \u2014 GSI-assessed unstable slope (pilgrim-casualty history)",
+        "type": "gsi_vulnerable_location",
+        "failure_type": "Wedge/topple in highly jointed cherty dolomite; dip-slope discontinuities (J2 daylights); slope ~67\u00b0, damage corridor 30\u201350 m, boulders 0.5\u20132 m (design case 5 m); rain-seepage lubrication mechanism",
+        "history": "Instability 'in recent past which lead to casualty to pilgrims' \u2014 event UNDATED in the source (pre-30.06.2017, the SMVDSB request letter date), so recorded as a vulnerable location, NOT a dated event (per the date-verification rule)",
+        "coord_confidence": "gsi_report_dms (33\u00b001'47.5\"N 74\u00b056'08\"E, stated in the report)",
+        "source": "GSI open-file report FS 2017-18, 'Landslide and Slope Stability Assessment of Shri Mata Vaishno Devi Himkoti Track' (Singh, Rana & Jungral), Item M4-LS/NC/NR/SU-JK/2017/12224 (PDF in Research/Vaishno_Devi_Watchlist/); RESULTS_AND_KPIS \u00a739"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.935556,
+          33.029861
         ]
       }
     },
