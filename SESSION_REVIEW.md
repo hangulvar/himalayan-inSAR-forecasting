@@ -90,6 +90,14 @@ Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0
   (plain-language how-to-read cards) + per-card subtitles; every coordinate is a click-to-Google-Maps
   link; per-stack map links derived from disk (fixes dead Ramban links on VD); site-aware footer/blurbs.
   VD dashboard regenerated + browser-verified (identical numbers).
+- **[2026-07-11] Web-publishing readiness (user wants to post the dashboard on LinkedIn/X):**
+  `operational_alarm.py` — research-prototype DISCLAIMER strip + footer echo, license-required data
+  attributions (Copernicus/ESA, C3S ERA5-Land, JAXA ALOS, GSI, OSM/ODbL), `viewport` meta (mobile was
+  broken), OG/Twitter unfurl tags (og:url/og:image left as placeholders until hosted), About+credits
+  guide card, events-table "None"→"before this season's data window", card-level table scroll;
+  verified at 375 px (no horizontal overflow). Remaining user-side steps in NEW
+  `Research/Publishing Checklist - Live Dashboard (2026-07-11).md` (hosting, og:image, author credit,
+  post framing, staleness plan, relative per-stack links caveat).
 - **[2026-07-11] Soil-parameter groundwork (§36, roadmap #3):** NEW
   `Research/Vaishno_Devi_Watchlist/Soil Parameter Research Brief (2026-07-10).md` (deep-research
   handoff, updated with leads + date-verification rule); `RESULTS_AND_KPIS.md` **§36** — compendium

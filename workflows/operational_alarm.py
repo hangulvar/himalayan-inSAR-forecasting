@@ -469,7 +469,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
 
     ev_rows = "\n".join(
-        f"<tr><td>{e['name']}</td><td>{e['date']}</td><td>{e['E_on_day']}</td>"
+        f"<tr><td>{e['name']}</td><td>{e['date']}</td>"
+        f"<td>{e['E_on_day'] if e['E_on_day'] is not None else '<span style=color:#888>before this season&#39;s data window</span>'}</td>"
         f"<td>{'<b style=color:#aa0000>ALERT</b>' if e['alert_within_window'] else ('WATCH+' if e['alarm_within_window'] else '—')}</td></tr>"
         for e in r["per_event"])
 
@@ -514,7 +515,16 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </div>"""
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{SITE} — Operational Landslide Alarm</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="{SITE} — InSAR Landslide Monitoring (research prototype)">
+<meta property="og:description" content="Research demo: satellite-radar-measured slope creep × slope
+ physics × a rainfall gate, fused into an explainable landslide warning view. Static snapshot as of
+ {as_of}. Not an official warning system.">
+<meta name="twitter:card" content="summary">
+<!-- After hosting, add absolute URLs: <meta property="og:url" content="..."> and
+     <meta property="og:image" content="..."> (og:image cannot be a data: URI). -->
 <style>
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
@@ -528,8 +538,11 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  .banner .lvl{{font-size:30px;font-weight:800;letter-spacing:1px}}
  .banner .meta{{font-size:14px;margin-top:6px;opacity:.95}}
  .banner a{{color:#fff}}
+ .disclaimer{{background:#fff3cd;color:#7a5b00;border-bottom:1px solid #e6cf8b;padding:8px 24px;
+   font-size:12px;line-height:1.5}}
  .wrap{{display:flex;gap:18px;padding:0 24px 18px;flex-wrap:wrap}}
- .card{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;flex:1 1 340px;min-width:320px}}
+ .card{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;flex:1 1 340px;
+   min-width:280px;overflow-x:auto}}
  .card h2{{margin:0 0 8px;font-size:15px}} .big{{font-size:26px;font-weight:700}}
  .sub2{{font-size:12px;color:#777;margin:-2px 0 8px;line-height:1.45}}
  table{{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}}
@@ -551,6 +564,10 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <button id="btn-dash" class="tab active" onclick="showTab('dash')">Dashboard</button>
   <button id="btn-guide" class="tab" onclick="showTab('guide')">📖 Guide — how to read this page</button>
 </nav>
+<div class="disclaimer">⚠️ <b>RESEARCH PROTOTYPE.</b> This is an independent satellite-radar (InSAR)
+ research project and a <b>static snapshot</b> (rainfall data lags ~5 days). It is <b>NOT an official
+ warning system</b> and is not affiliated with SMVDSB, GSI, NDMA or any authority. Do not use it for
+ safety or travel decisions — always follow official advisories.</div>
 
 <div id="tab-dash">
 <div class="banner">
@@ -677,11 +694,30 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
       <code>per_zone_triage_watch.csv</code>, and the committed ledger <code>RESULTS_AND_KPIS.md</code>
       (§ references throughout this page point there).</p>
   </div>
+  <div class="card">
+    <h2>About this project &amp; data credits</h2>
+    <p>An independent, end-to-end research prototype: free public satellite data → ground-motion
+      measurement → physics-based hazard mapping → an explainable rainfall-gated warning view. It is a
+      <b>portfolio/research demonstration</b>, not an operational service: this page is a static
+      snapshot generated on the date in the header, and it is not affiliated with or endorsed by any
+      authority responsible for this site.</p>
+    <p><b>Data:</b> Contains modified Copernicus Sentinel-1 radar data (2025–26), interferometry
+      processed by ASF HyP3 (Alaska Satellite Facility) · rainfall from the Copernicus Climate Change
+      Service ERA5-Land reanalysis · terrain from the ALOS PALSAR radiometrically-terrain-corrected
+      DEM (© JAXA/METI, via ASF) · documented-landslide records from the Geological Survey of India ·
+      route and building context © OpenStreetMap contributors (ODbL).</p>
+  </div>
 </div>
 </div><!-- /tab-guide -->
 
 <footer>Operational MVP · the WHEN gate uses one AOI rainfall value/day; per-zone differentiation is by each
- zone's critical saturation m* (§19), capped at the validated footprint. {site_notes}</footer>
+ zone's critical saturation m* (§19), capped at the validated footprint. {site_notes}<br><br>
+ <b>Research prototype — not an official warning system.</b> Static snapshot; always follow official
+ advisories.<br>
+ <b>Data &amp; credits:</b> Contains modified Copernicus Sentinel-1 data (2025–26), processed by
+ ASF HyP3 (Alaska Satellite Facility) · rainfall: Copernicus Climate Change Service (C3S) ERA5-Land ·
+ DEM: ALOS PALSAR RTC © JAXA/METI, via ASF · landslide records: Geological Survey of India (GSI) ·
+ route &amp; buildings context: © OpenStreetMap contributors (ODbL) · map links: Google Maps.</footer>
 <script>
 function showTab(t){{
   document.getElementById('tab-dash').style.display = (t==='dash') ? '' : 'none';
