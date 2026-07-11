@@ -36,10 +36,16 @@
   detector, re-run every cycle — done this cycle), `rockfall_runout.py` (shrine complex in the LIKELY
   cone), records cross-check (face institutionally KNOWN; field step zero = request treatment as-builts;
   brief in `Research/Vaishno_Devi_Watchlist/`).
+- **★ NEW (§38–§40) — validation deepened on three fronts:** temporal test now 2/2 in-window fatal
+  events at Δ=0 (§38, incl. the press-verified 21 Jul 2025 Banganga catch); inventory at 46 features
+  with the 2016 Bhawan event PRIMARY-verified rain-triggered (§39); first **GACOS tropospheric
+  cross-check** run (§40) — mixed: one audit-flagged pair strongly corroborated by the independent
+  weather model, one not, CLEAN pairs hint at a future audit refinement (n=8, first look).
 - **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from
   nearest zone (§31 addendum) — still the calibration target; VD φ/c now literature-corroborated (§37 —
-  "borrowed" caveat retired; lab confirmation + γ still open); fast-failure tools are unproven-in-anger
-  (Part E, M38).
+  "borrowed" caveat retired; lab confirmation + γ still open; §37 overburden-range primary source still
+  unfound after 3 PDFs, §39); fast-failure tools are unproven-in-anger (Part E, M38); the §40 GACOS
+  discrepancy pair (0611–0623) stays an open question.
 - **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
 - ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD
   `..._vaishnodevi_2026.html` (**WATCH as-of 05 Jul, saturation m=1.00 — fully primed; acute E≥2
@@ -76,34 +82,30 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 7. **User-side:** field check of the NE-flank CORE target (brief: `Research/Field Brief - Bhairon NE flank
    creep target (2026-07-07).md` + `bhairon_core_creep.kml`; overhang step zero = request SMVDSB/THDCIL
    as-builts); merge `aoi-vaishnodevi` → `master`; publish the dashboard (user-side steps in the
-   Publishing Checklist); optional GACOS + soil primary sources.
+   Publishing Checklist); soil primary sources (GSI Kumar FSP report / EGCON-2022, §39).
 
-> **⏸ Deferred user-side manual setups (audited 2026-07-11):** (1) GACOS tropo cross-check (gacos.net —
-> manual account/request); (2) soil parameters: **primary-source confirmation of the §37 overburden
-> ranges + on-site lab** (the literature second-source is ✅ DONE, §37); (3) merge **`aoi-vaishnodevi`
-> → `master`** (supersedes the stale "merge mvp-expansion" item — mvp-expansion is fully contained in
-> this branch; optionally snapshot a `config_ramban.yaml` with `site_name: Ramban NH-44` at the same
-> time). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30 — the whole VD product runs on it).
+> **⏸ Deferred user-side manual setups (audited 2026-07-11):** ~~(1) GACOS tropo cross-check~~ ✅
+> **DONE, first result (§40)** — mixed: 1 of 2 audit-flagged pairs strongly corroborated (R²=0.59),
+> 1 not; a second pull (more epochs / a monsoon pair) would sharpen the trend. (2) soil parameters:
+> **primary-source confirmation of the §37 overburden ranges + on-site lab** (literature
+> second-source ✅ DONE §37; GSI Kumar FSP report / EGCON-2022 are the last live leads, §39); (3) merge
+> **`aoi-vaishnodevi` → `master`** (supersedes the stale "merge mvp-expansion" item — mvp-expansion is
+> fully contained in this branch; optionally snapshot a `config_ramban.yaml` with
+> `site_name: Ramban NH-44` at the same time). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30).
 
 ## Uncommitted delta
 
-Session 18's earlier batches — radar-cadence cycle #1 (§35), dashboard UX + web-publishing readiness,
-soil groundwork/resolution (§36/§37), temporal validation + README (§38), knowledge-base
-decontamination — are **all committed** through `43ddfb8`.
+Session 18's batches — radar-cadence cycle #1 (§35), dashboard UX + publishing readiness, soil
+groundwork/resolution (§36/§37), temporal validation + README (§38), decontamination, monsoon-watch
+runbook, stale-item audit, primary-source batch #2 (§39) — are **all committed** through `b85ae45`.
 
-Remaining uncommitted (the session-tail wrap):
-- **[2026-07-11 late] Primary-source batch #2 + GACOS attempt (§39):** 3 user-supplied PDFs analyzed —
-  2016 Bhawan event PRIMARY-VERIFIED (13:30 IST, rain-triggered; inventory enriched), NEW Himkoti
-  RD 0/850 inventory location (46 features), Kheri z-analogue; none holds soil c/φ (GSI-Kumar FSP /
-  EGCON now the last leads). GACOS pull was a 1×1 POINT outside the AOI — unusable; re-request as
-  area (N 33.11, W 74.85, S 32.90, E 75.05, times 12:56:36 / 13:04:41 UTC). Files: inventory GeoJSON,
-  `RESULTS_AND_KPIS.md` §39, soil brief lead #2 closed, throwaway `workflows/_gacos_epochs.py`.
-- **NEW `Research/Monsoon Watch Runbook (2026-07-11).md`** — plain-language 2–3-day operations loop
-  (two commands: mintpy fetch → insar alarm; what to watch; escalation triggers). Demonstrated live.
-- **`RESULTS_AND_KPIS.md` §38 monsoon-watch addendum** — today's state (as-of 07-05: m=1.00 fully
-  primed, WATCH, 29/29 zones, 0 ALERT days) + the runbook pointer.
-- Git-ignored: refreshed 2026 alarm products (unchanged numbers — no new rainfall day), Session-18
-  journey addendum. Suggested commit below.
+Remaining uncommitted (this wrap):
+- **[2026-07-11 last] GACOS cross-check RUN (§40):** corrected-area pull (10 epochs) delivered; NEW
+  `workflows/_gacos_crosscheck.py` (one-off) — GACOS ZTD → predicted LOS displacement, compared
+  against elevation AND our actual observed displacement across all 8 operational-stack pairs.
+  Mixed, honestly-reported result (headline numbers in §40); Area 1's GACOS item DONE, first result.
+  Files: the script, `RESULTS_AND_KPIS.md` §40, this LIVE block (+ git-ignored journey addendum and
+  `data/hazard_vaishnodevi/gacos_crosscheck.{json,md,png}` + extracted `gacos2_*` grids).
 
 ---
 
@@ -186,7 +188,8 @@ uniform soil strength (site-corroborated §20/§37, but one value per AOI) + dry
 TWI-proxy downstream flag; AOI-mean daily rainfall (live, but not sub-daily/per-zone); a
 static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 
-- **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), GACOS cross-check, DEM-error +
+- **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), ✅ GACOS cross-check (VD, §40 — mixed
+  first result, worth a second pull), DEM-error +
   coherence-weighted inversion, phase-linking/DS methods (recover vegetated slopes), <150 m Bperp rule.
 - **Area 2 — Signal strengthening:** ASC/DESC → vertical+EW (needs better DESC), PS points on rock/infra,
   longer series → seasonal vs steady-creep split.

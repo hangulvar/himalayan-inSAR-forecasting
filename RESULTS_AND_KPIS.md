@@ -1790,6 +1790,58 @@ times 12:56:36 / 13:04:41 UTC. Cross-check (Area 1) blocked until then.
 
 ---
 
+## 40. GACOS tropospheric cross-check — mixed result: 1 of 2 flagged pairs corroborated, 1 not  `[REAL / MEASURED]`
+
+Source: `workflows/_gacos_crosscheck.py` (new, one-off analysis script) on the corrected-area GACOS
+pull (§39 addendum) — 10 ZTD epochs, 8 consecutive-pair comparisons across both VD operational
+stacks (frame105/path27, frame103/path100). First-ever run of Area 1's GACOS cross-check.
+
+**Method:** GACOS zenith delay → slant delay via `LOS = ZTD / sin(lv_theta)`; pair delay difference
+→ predicted apparent displacement using the same `-phase·λ/(4π)` convention as
+`feature_engineering.py`, so it's directly comparable to our masked displacement. Two independent
+questions per pair: does GACOS's own delay field correlate with elevation (an external replay of
+the same hypothesis our phase-elevation audit tests), and — the stronger test — does GACOS's
+*predicted spatial pattern* correlate with what we *actually observed* for that pair.
+
+| pair | our audit R² | GACOS R² vs elev | GACOS R² vs OUR observed |
+|---|---|---|---|
+| 0501–0513 | 0.342 CONCERN | 0.125 | **0.589** |
+| 0513–0525 | 0.001 CLEAN | 0.764 | 0.280 |
+| 0525–0606 | 0.012 CLEAN | 0.827 | 0.080 |
+| 0606–0618 | 0.236 CLEAN | 0.858 | 0.398 |
+| 0506–0518 | 0.015 CLEAN | 0.922 | 0.345 |
+| 0518–0530 | 0.210 CLEAN | 0.953 | 0.395 |
+| 0530–0611 | 0.053 CLEAN | 0.455 | 0.327 |
+| 0611–0623 | 0.316 CONCERN | 0.233 | 0.126 |
+
+- **1 of the 2 CONCERN-flagged pairs is strongly corroborated:** 0501–0513 gets the **highest
+  GACOS-vs-observed R² of the whole set (0.589)** — an independent, physics-based weather model
+  (not derived from our phase data at all) explains 59% of the variance in what we actually saw for
+  exactly the pair our own audit flagged. Genuine external validation.
+- **The other CONCERN pair is NOT corroborated:** 0611–0623 has one of the lowest GACOS-vs-observed
+  scores (0.126). This is a discrepancy, not a failure of the gate — a CONCERN flag doesn't require
+  external confirmation to be a legitimate conservative call; the flagged pattern there may be real
+  motion, decorrelation noise, or convective weather too localized for GACOS's ~90 m/6-hourly model
+  to resolve (this pair spans 11→23 Jun, monsoon onset).
+- **GACOS's own elevation-correlation is high almost everywhere** (0.46–0.95, except the two
+  CONCERN pairs) — expected in this high-relief terrain, and it means "GACOS R² vs elevation" alone
+  doesn't discriminate atmosphere-heavy pairs; the *direct* GACOS-vs-observed comparison is the more
+  informative signal.
+- **A hint worth flagging, not acting on:** several CLEAN pairs (near-zero audit R²) show moderate
+  GACOS-vs-observed correlation (0.28–0.40) — the current elevation-only audit may be under-sensitive
+  to spatially complex (non-monotonic) atmospheric patterns that a full weather-model comparison
+  would catch. Possible future refinement of `phase_elevation_audit.py`; not implemented (n=8 is a
+  first look, not a powered test).
+
+**Honest framing:** qualitative cross-check on 8 pairs — not a statistically powered validation. The
+correct read is "partial corroboration, one clean win, one open discrepancy," not "GACOS confirms
+the gate." Roadmap Area 1's GACOS item moves from *deferred* to *done, first result* — a second pull
+(more epochs, or a monsoon-season pair) would sharpen the trend.
+
+**Artefacts:** `data/hazard_vaishnodevi/gacos_crosscheck.{json,md,png}`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
