@@ -74,12 +74,16 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
    over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
 6. ✅ **DONE (2026-07-07) — Docs debt:** primer covers M31–M38 (CV1–CV5, Part D/E refreshed).
 7. **User-side:** field check of the NE-flank CORE target (brief: `Research/Field Brief - Bhairon NE flank
-   creep target (2026-07-07).md` + `bhairon_core_creep.kml`); merge `mvp-expansion` → `master` (+ add
-   `site_name: Ramban NH-44` to Ramban's config); optional GACOS + soil-cohesion sources.
+   creep target (2026-07-07).md` + `bhairon_core_creep.kml`; overhang step zero = request SMVDSB/THDCIL
+   as-builts); merge `aoi-vaishnodevi` → `master`; publish the dashboard (user-side steps in the
+   Publishing Checklist); optional GACOS + soil primary sources.
 
-> **⏸ Deferred user-side manual setups:** (1) GACOS tropo cross-check (gacos.net); (2) soil-cohesion
-> lab/second-source confirmation; (3) merge `mvp-expansion` → `master`; (4) ALOS 12.5 m tile for Trikuta
-> (ASF Vertex, like the Ramban one).
+> **⏸ Deferred user-side manual setups (audited 2026-07-11):** (1) GACOS tropo cross-check (gacos.net —
+> manual account/request); (2) soil parameters: **primary-source confirmation of the §37 overburden
+> ranges + on-site lab** (the literature second-source is ✅ DONE, §37); (3) merge **`aoi-vaishnodevi`
+> → `master`** (supersedes the stale "merge mvp-expansion" item — mvp-expansion is fully contained in
+> this branch; optionally snapshot a `config_ramban.yaml` with `site_name: Ramban NH-44` at the same
+> time). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30 — the whole VD product runs on it).
 
 ## Uncommitted delta
 
@@ -135,7 +139,7 @@ Remaining uncommitted (the session-tail wrap):
   its BLAS DLLs → **`0xC06D007F`** (DLL-load failure, not a numerical bug). Keep `logging` ASCII.
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: ~6,170 (≈ enough for one more AOI's full Phase-1 pull). Disk: ~73 GB used in `data/`.
+- HyP3 credits: ~7,460 as of 2026-07-10 (§35; ≈ enough for one more AOI's full Phase-1 pull). Disk: ~74 GB in `data/`.
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
 
@@ -147,13 +151,16 @@ The core vision is fully built and scored above chance. Remaining work:
    gate into rescues; AOI guidance (a better polygon improves *targeting*, not the noise floor).
    **New-AOI replication readiness:** infra replicability HIGH (config-driven, Dockerized, multi-stack);
    scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1 acquisitions for a velocity
-   baseline, (b) site soil calibration (φ=36° is Ramban-specific), (c) a local inventory for validation.
+   baseline, (b) a site soil check (Ramban field-calibrated §20; VD literature-corroborated §37 — each
+   new site needs its own pass), (c) a local inventory for validation.
 1. **Accuracy backlog:** nonlinear van-Genuchten suction curve; lab confirmation of c_dry/c_wet;
    per-stack ERA5 reference-pixel + unwrapping QC (rescue frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
    decomposition (DEFERRED — needs better DESC: longer connected series / PS / phase-linking).
-3. **Make it live / smarter:** live rainfall ingestion (CHIRPS/GPM auto, replace manual fetch); real
-   flow-routing for LLOF (replace TWI proxy); hybrid LLM ("rules decide, LLM narrates").
+3. **Make it live / smarter:** ✅ live rainfall ingestion DONE (`live_alarm.py` incremental ERA5-Land
+   + one-command alarm regen; 2–3-day runbook 2026-07-11 — remaining upgrade is sub-daily/per-zone
+   IMERG, LIVE roadmap #5). Still open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM
+   ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
 5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on
    ASF Feb 2026; **calibrated forward processing at 1–3 day latency from Jul 2026**. L-band recovers
@@ -169,8 +176,9 @@ improvements until shown to matter.
 `InSAR_hazard_forecasting_Context.md` for durability). Each **AREA is self-contained**.
 
 **Where the MVP is weakest today:** ~30 mm/yr velocity noise floor; single-look (no true 3-D motion);
-assumed/uniform soil strength (φ now site-calibrated) + dry/sat end-members + TWI-proxy downstream flag;
-manual (not live) rainfall; a static-vs-worst-case hazard map; recall-limited validation on one small AOI.
+uniform soil strength (site-corroborated §20/§37, but one value per AOI) + dry/sat end-members +
+TWI-proxy downstream flag; AOI-mean daily rainfall (live, but not sub-daily/per-zone); a
+static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 
 - **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), GACOS cross-check, DEM-error +
   coherence-weighted inversion, phase-linking/DS methods (recover vegetated slopes), <150 m Bperp rule.
@@ -182,15 +190,17 @@ manual (not live) rainfall; a static-vs-worst-case hazard map; recall-limited va
   next = a susceptibility model (LR/RF) cross-check + a verified-date temporal test.
 - **Area 5 — Multi-sensor corroboration (GEE):** CHIRPS/IMERG/ERA5-Land rainfall, SMAP/ASCAT soil moisture,
   SoilGrids strength, DEM upgrades, WorldCover/NDVI veg masks, Sentinel-2/Landsat optical change, NASA GLC.
-- **Area 6 — Operationalize:** live rainfall ingestion, hybrid LLM, hosted + union 3-D dashboard.
+- **Area 6 — Operationalize:** ✅ live rainfall ingestion (done — `live_alarm.py` + runbook); hybrid LLM,
+  hosted + union 3-D dashboard.
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
   #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve remains).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
   decorrelation, our worst enemy); operational window from Jul 2026.
 
 **Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19); (2) ✅ physics/data
-upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) live rainfall;
-(5) NISAR ingestion as it matures; (6) susceptibility cross-check + nonlinear suction.
+upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) ✅ live rainfall
+(`live_alarm.py` + runbook); (5) NISAR ingestion as it matures; (6) susceptibility cross-check +
+nonlinear suction.
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall, soil moisture, and a
 validated inventory — never trust a single sensor or a single physics assumption.
