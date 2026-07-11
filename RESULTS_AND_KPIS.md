@@ -1625,7 +1625,9 @@ routine): `submit_hyp3_jobs.py` → `download_hyp3_products.py` → Phase-1 QA c
 
 Source: in-depth read of GSI **Spl. Pub. 107** ("Landslide Compendium of Northwestern Himalayas"),
 §5.3.1 + Annexure I + §5.4.4, and the deep-research output
-`Research/LandslideInventory/Research_and_Literature_Search_Soil.md` (2026-07-11). Assessment for
+`Research/LandslideInventory/Research_and_Literature_Search_Soil.md` (2026-07-11; **doc since
+REMOVED from the repo** — it hallucinated future-dated events; its verified extracts live in this §
+and §37, each with independent primary citations). Assessment for
 roadmap #3 (site-specific soil pass); brief updated:
 `Research/Vaishno_Devi_Watchlist/Soil Parameter Research Brief (2026-07-10).md`.
 
@@ -1670,7 +1672,9 @@ roadmap #3 (site-specific soil pass); brief updated:
 Source: **Kumar R. & Anbalagan R. (2013), "Geotechnical Evaluation of Landslides Along Pathways of
 Sri Mata Vaishnao Devi Hills", Int. J. of Landslide and Environment 1(1), 49–50** (PDF in hand —
 §36 priority lead #1, obtained by the user 2026-07-11) + the deep-research synthesis
-`Research/Vaishno_Devi_Watchlist/Vaishno Devi Research.md` (soil values recovered from its embedded
+`Research/Vaishno_Devi_Watchlist/Vaishno Devi Research.md` (**doc since REMOVED from the repo** —
+it fabricated a "2 Sep 2025" event, §38; the transcription below is the surviving local record of
+its soil values, hence the lab-unconfirmed tag) (soil values recovered from its embedded
 images — the export had replaced every number with an image placeholder).
 
 **The verdict: every current engine value sits INSIDE the site-reported envelope — values UNCHANGED,

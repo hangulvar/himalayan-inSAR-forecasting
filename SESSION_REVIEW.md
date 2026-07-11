@@ -42,7 +42,8 @@
   (Part E, M38).
 - **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
 - ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD
-  `..._vaishnodevi_2026.html` (**WATCH as-of 04 Jul**, §35) + route/creep/runout/coherence artefacts in
+  `..._vaishnodevi_2026.html` (**WATCH as-of 05 Jul, saturation m=1.00 — fully primed; acute E≥2
+  trigger not yet fired**, §35/§38) + route/creep/runout/coherence artefacts in
   `data/alerts_vaishnodevi/mosaic_asc/`.
 - **Ops learning (error log 2026-07-10):** 4 of the 5 Phase-1 QA scripts have no argparse — `--help`
   EXECUTES them (harmless: idempotency held, verified against §32).
@@ -106,6 +107,11 @@ Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0
   §5.3.1 has NO soil params (SMR-based) but independently corroborates the §31 Ardhkuwari/new-track
   High zone; new dated 30 Dec 2008 Bhawan event for the inventory; Chenab-gouge (same Sirban
   formation) + Ramban–Gool analogue c/φ/γ; future-dated "Sept 2026" claim flagged.
+- **[2026-07-11] Knowledge-base decontamination:** BOTH deep-research synthesis docs removed by the
+  user (`Vaishno Devi Research.md`, `Research_and_Literature_Search_Soil.md` — each fabricated
+  events); §36/§37 annotated with removal notes; new CLAUDE.md §5 rule: synthesis docs are lead
+  generators only — verify → transcribe with flags → record exclusions → delete source. Live alarm
+  refreshed (WATCH as-of 07-05, m=1.00 fully saturated).
 - **[2026-07-11] Temporal validation doubled (§38) + README refresh:** VD inventory grew 1→4 dated
   events (all source-verified per §12g rule; the "2 Sep 2025" deep-research claim EXCLUDED as
   fabricated — yatra was closed then). **21 Jul 2025 Banganga caught at Δ=0 (E=2.51)** alongside
