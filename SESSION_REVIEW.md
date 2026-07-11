@@ -86,6 +86,16 @@ Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0
   Session-18 journey entry). Git-ignored data outputs: 4 new products in `data/processed_tiffs/`,
   refreshed rainfall CSV + alarm report/dashboard (WATCH), `per_zone_vulnerability.*`,
   `coherence_watch_*`, `route_exposure.*`. Suggested commit: see wrap-session close-out.
+- **[2026-07-10/11] Dashboard UX (post-wrap):** `workflows/operational_alarm.py` — Guide tab
+  (plain-language how-to-read cards) + per-card subtitles; every coordinate is a click-to-Google-Maps
+  link; per-stack map links derived from disk (fixes dead Ramban links on VD); site-aware footer/blurbs.
+  VD dashboard regenerated + browser-verified (identical numbers).
+- **[2026-07-11] Soil-parameter groundwork (§36, roadmap #3):** NEW
+  `Research/Vaishno_Devi_Watchlist/Soil Parameter Research Brief (2026-07-10).md` (deep-research
+  handoff, updated with leads + date-verification rule); `RESULTS_AND_KPIS.md` **§36** — compendium
+  §5.3.1 has NO soil params (SMR-based) but independently corroborates the §31 Ardhkuwari/new-track
+  High zone; new dated 30 Dec 2008 Bhawan event for the inventory; Chenab-gouge (same Sirban
+  formation) + Ramban–Gool analogue c/φ/γ; future-dated "Sept 2026" claim flagged.
 
 ---
 

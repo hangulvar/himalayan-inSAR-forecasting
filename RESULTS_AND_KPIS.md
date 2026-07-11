@@ -1621,6 +1621,50 @@ routine): `submit_hyp3_jobs.py` → `download_hyp3_products.py` → Phase-1 QA c
 
 ---
 
+## 36. Soil-parameter literature assessment + GSI compendium corroboration (Vaishno Devi)  `[REAL / LITERATURE]`
+
+Source: in-depth read of GSI **Spl. Pub. 107** ("Landslide Compendium of Northwestern Himalayas"),
+§5.3.1 + Annexure I + §5.4.4, and the deep-research output
+`Research/LandslideInventory/Research_and_Literature_Search_Soil.md` (2026-07-11). Assessment for
+roadmap #3 (site-specific soil pass); brief updated:
+`Research/Vaishno_Devi_Watchlist/Soil Parameter Research Brief (2026-07-10).md`.
+
+- **Compendium §5.3.1 (VD meso-scale LSM) holds NO soil strength parameters** — it is an
+  **SMR-based** (Slope Mass Rating, rock-mass classification) zonation; no c/φ/γ anywhere in the
+  chapter. Not a calibration source. (Gotcha: the PDF's text layer is font-shifted AND drops all
+  digits — any numeric read needs the rendered page, not extraction.)
+- **★ Independent corroboration of §31/CV3:** GSI concluded the High-susceptibility zones are
+  *"restricted mainly to the new track from Ardhkunwari to Bhawan… largely due to cutting the slope
+  for making the new track just below the existing old track."* The 26 Aug 2025 disaster our model
+  is validated against (§31) occurred at **Ardhkuwari on exactly this stretch**, and the cut-slope
+  mechanism is our CV3 failure class — a government survey independently pre-identified both the
+  place and the mechanism.
+- **New dated event for the inventory: 30 December 2008 failure at Bhawan (§5.4.4)** — a *winter*
+  (non-monsoon; freeze-thaw candidate) event at the Bhavan-overhang watchlist target, predating the
+  treated 12 Mar 2016 failure (§34). Annexure I also lists ~6 descriptive slides "Around
+  Vaishnodevi" (Balganga, Darshan Jodi, Shiv Mandir dhaba, Katra–Reasi railway tunnel site) —
+  candidate inventory rows, but no coordinates and digits lost to extraction (visual read needed).
+- **Best analogue strength values found (none measured on Trikuta itself):**
+  - **Chenab Bridge fault gouge, Reasi — SAME Sirban Dolomite formation ~20 km away:**
+    c′ = 5.9–17.65 kPa, φ′ = 31.8° (direct shear on undisturbed gouge; IJEAST/3-D stability
+    papers). Closest-to-site data so far.
+  - **Ramban–Gool debris slides:** γ = 18–20 kN/m³, c = 10–16 kPa, φ = 23–37° (strain-controlled
+    lab tests; Geol. Soc. India). The debris/colluvium class our FS engine targets.
+  - Read against our borrowed set (φ=36°, c_dry=18.5, c_wet=5 kPa, γ=19): **φ=36° sits at the
+    optimistic top of both analogue ranges** (gouge: 31.8°) — φ≈32° is the analogue-supported
+    bracket for a §20-pattern sensitivity pass; c_wet=5 kPa is conservative (good).
+- **⚠ Red flag in the deep-research doc:** it cites a "September 2026 landslide near Panchi with
+  casualties" — **a future date** (doc dated 2026-07-11); hallucinated or a garbled 26 Aug 2025
+  Ardhkuwari. Per the §12g lesson, every event claim in that document stays unverified until
+  checked against GSI/peer-reviewed sources.
+- **Actionable leads for actual Trikuta parameters (fed to the research brief):**
+  (1) *"Geotechnical Evaluation of Landslides Along Pathways of Sri Mata Vaishnao Devi Hills"*
+  (ResearchGate 277775139); (2) *"Assessment of the Various Slope Stabilization Initiatives…
+  Shri Mata Vaishno Deviji Shrine"* (ResearchGate 373842077 / Crimson AMMS.000775 — treatment
+  design c–φ); (3) the unpublished GSI FSP report (Kumar) underlying §5.3.1, via GSI/Bhukosh.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
