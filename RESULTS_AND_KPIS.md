@@ -1665,6 +1665,51 @@ roadmap #3 (site-specific soil pass); brief updated:
 
 ---
 
+## 37. Vaishno Devi soil parameters SITE-CORROBORATED — the "borrowed φ/c" caveat is retired  `[REAL / LITERATURE]`
+
+Source: **Kumar R. & Anbalagan R. (2013), "Geotechnical Evaluation of Landslides Along Pathways of
+Sri Mata Vaishnao Devi Hills", Int. J. of Landslide and Environment 1(1), 49–50** (PDF in hand —
+§36 priority lead #1, obtained by the user 2026-07-11) + the deep-research synthesis
+`Research/Vaishno_Devi_Watchlist/Vaishno Devi Research.md` (soil values recovered from its embedded
+images — the export had replaced every number with an image placeholder).
+
+**The verdict: every current engine value sits INSIDE the site-reported envelope — values UNCHANGED,
+provenance upgraded.** No re-run/re-sweep needed (changing values within the envelope would churn
+the §32 operating points for no scientific gain).
+
+| Engine parameter | In use | VD site evidence | Status |
+|---|---|---|---|
+| φ (soil/overburden) | 36° | **32–43°** (direct shear, VD overburden; GSI-derived) | mid-range → corroborated |
+| c_dry | 18.5 kPa | **4.9–27.5 kPa** (0.05–0.28 kg/cm²) | inside → corroborated |
+| c_wet | 5 kPa | saturated/parallel-dataset lows **4.5–7.9 kPa** (0.0459–0.0801 kg/cm²) | conservative end → corroborated |
+| z (failure depth) | 3 m | VD cut-slope **weathering depth 1–3 m** | max of range → corroborated |
+| γ (unit weight) | 19 kN/m³ | no VD value (regional 18–20, §36) | still analogue-only |
+
+Grain size of the VD overburden: **sand 40–78%, silt 20–57%, clay 2–13%** — cohesion-poor granular
+matrix, consistent with the matric-suction dry/wet cohesion split (§20): strong dry, collapses wet.
+
+**Separately — the ROCK-JOINT strength set (the CV3 cut-slope class, NOT the soil engine):**
+Kumar & Anbalagan back-analysed a failed planar-wedge cut slope (joint J1, FS=1 at failure):
+adopted **c_J = 2.9 t/m² ≈ 28.4 kPa, φ_J = 46°**; full trade-off curve c_J 0.81–3.73 t/m² ↔
+φ_J 39.3–61.7° for JRC 5–9, residual φ_R 30–45°. Applied to the neighbouring slope: **static
+FS = 1.1, dynamic (seismic) FS = 0.98** — quantitative confirmation that the pathway cut-slopes
+live at the margin (fails under seismic/pore-pressure loading), i.e. the §33/§34 overhang concern
+in the site's own peer-reviewed record. These are joint parameters for planar/wedge rock failure —
+kept on record for a future rock-slope module; applying φ=46° to the soil engine would be a
+category error (it would halve the hazard map using numbers that don't describe colluvium).
+
+**Honest provenance caveats:** the soil ranges come via a deep-research synthesis citing GSI/EGCON
+datasets we do not hold first-hand (and that same document earlier hallucinated a future-dated
+event, §36) — so the tag is **site-corroborated (literature), lab-unconfirmed**, not
+"site-measured". The Kumar & Anbalagan joint set IS first-hand (PDF on disk). Remaining gaps:
+γ for VD, and primary-source/lab confirmation of the soil ranges.
+
+**Changes shipped:** provenance comment in `geomechanical_engine.py` (defaults untouched);
+dashboard `site_notes` updated (borrowed → literature-corroborated) + VD dashboard regenerated;
+primer Part E caveat (a) softened; soil brief lead #1 marked obtained.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

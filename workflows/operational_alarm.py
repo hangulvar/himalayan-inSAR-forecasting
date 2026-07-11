@@ -463,9 +463,12 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
                       "(unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a matric-suction "
                       "dry/wet split (§20, lab-unconfirmed).")
     else:
-        site_notes = ("Soil strength (φ, cohesion) is calibrated at Ramban and carried to this site "
-                      "as an assumption until a local soil pass; radar velocity covers only part of "
-                      "the AOI (an unmeasured slope is NOT a safe slope).")
+        # Vaishno Devi (the only non-ramban site today): φ/c corroborated by site literature
+        # (Kumar & Anbalagan 2013 + GSI overburden ranges, ledger §37) but not lab-confirmed.
+        site_notes = ("Soil strength (φ, cohesion) sits within this site's published literature "
+                      "ranges (project ledger §37) but is not yet confirmed by on-site lab testing; "
+                      "radar velocity covers only part of the AOI (an unmeasured slope is NOT a "
+                      "safe slope).")
     png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
 
     ev_rows = "\n".join(

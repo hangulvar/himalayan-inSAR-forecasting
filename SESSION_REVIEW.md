@@ -37,8 +37,9 @@
   cone), records cross-check (face institutionally KNOWN; field step zero = request treatment as-builts;
   brief in `Research/Vaishno_Devi_Watchlist/`).
 - **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from
-  nearest zone (§31 addendum) — still the calibration target; VD still borrows Ramban's φ/c; fast-failure
-  tools are unproven-in-anger (Part E, M38).
+  nearest zone (§31 addendum) — still the calibration target; VD φ/c now literature-corroborated (§37 —
+  "borrowed" caveat retired; lab confirmation + γ still open); fast-failure tools are unproven-in-anger
+  (Part E, M38).
 - **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
 - ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD
   `..._vaishnodevi_2026.html` (**WATCH as-of 04 Jul**, §35) + route/creep/runout/coherence artefacts in
@@ -60,8 +61,9 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
    monthly, build the GUNW adapter when ~8+ same-track pairs exist.
 2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** per-site `operational_m`/`watch_m`
    config keys wired; re-sweep when the inventory grows or chains lengthen.
-3. **Site-specific soil pass (agent + user sources, medium):** φ/c for Trikuta carbonates + Vaishnodevi-Fm
-   scree (GSI-note geology) replacing the Batote–Doda values; re-run + re-score (§20/§21 pattern).
+3. ✅ **LARGELY DONE (2026-07-11) — site-specific soil pass (§37):** Kumar & Anbalagan 2013 (in hand) +
+   GSI-derived overburden ranges bracket every engine value → values kept, provenance upgraded, no
+   re-run needed. Remaining: primary-source confirmation of the soil ranges, Trikuta γ, on-site lab.
 4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep. ✅ coherence-drop detection
    BUILT (§34) — remaining candidates: Sentinel-2 optical change (the DROP-flag follow-up; could also run
    post-storm proactively) and a steep-cut-slope proxy layer in the reasoner. This axis is what closes the
@@ -104,6 +106,13 @@ Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0
   §5.3.1 has NO soil params (SMR-based) but independently corroborates the §31 Ardhkuwari/new-track
   High zone; new dated 30 Dec 2008 Bhawan event for the inventory; Chenab-gouge (same Sirban
   formation) + Ramban–Gool analogue c/φ/γ; future-dated "Sept 2026" claim flagged.
+- **[2026-07-11] Soil parameters RESOLVED (§37):** user obtained Kumar & Anbalagan 2013 (PDF in
+  watchlist folder) + deep-research synthesis (soil numbers recovered from its embedded base64
+  images). Site envelope brackets every engine value (φ 32–43° vs 36; c 4.9–27.5/4.5–7.9 kPa vs
+  18.5/5; weathering 1–3 m vs z=3) → **values kept, "borrowed φ/c" caveat retired**; rock-joint set
+  (c_J≈28.4 kPa, φ_J=46°, seismic FS 0.98) recorded for the CV3 class. Provenance comment in
+  `geomechanical_engine.py`; site_notes updated in `operational_alarm.py` + VD dashboard
+  regenerated; primer Part E caveat (a) rewritten; brief lead #1 marked obtained.
 
 ---
 

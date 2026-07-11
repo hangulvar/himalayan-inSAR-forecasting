@@ -66,13 +66,22 @@ than pretend it is site-measured. A confirmed "no site data found" is itself a u
   debris — γ = 18–20 kN/m³, c = 10–16 kPa, φ = 23–37°. Beat these, don't just re-find them.
 
 **Priority leads to chase first (most likely to hold Trikuta-specific values):**
-1. *"Geotechnical Evaluation of Landslides Along Pathways of Sri Mata Vaishnao Devi Hills, Jammu,
-   India"* — ResearchGate publication 277775139.
+1. ✅ **OBTAINED (2026-07-11)** — *"Geotechnical Evaluation of Landslides Along Pathways of Sri Mata
+   Vaishnao Devi Hills"* (Kumar & Anbalagan 2013; PDF in this folder). Yields the ROCK-JOINT set
+   (c_J = 2.9 t/m² ≈ 28.4 kPa, φ_J = 46°, φ_R 30–45°, JRC 5–9; neighbour slope static FS 1.1 /
+   seismic 0.98) — cut-slope class, NOT soil. Combined with GSI-derived overburden ranges
+   (φ 32–43°, c 4.9–27.5 kPa dry / 4.5–7.9 kPa saturated lows, weathering 1–3 m, sand 40–78%),
+   every engine value is now inside the site envelope → **values kept, "borrowed" caveat retired**
+   (full table: RESULTS_AND_KPIS.md §37).
 2. *"Assessment of the Various Slope Stabilization Initiatives Undertaken along the Pathways of
    Shri Mata Vaishno Deviji Shrine"* — ResearchGate 373842077 / Crimson AMMS.000775 (stabilisation
    *design* reports normally state assumed/measured c–φ for anchors/nets).
 3. The unpublished **GSI Field Season Programme report (Kumar)** underlying Spl. Pub. 107 §5.3.1,
    via GSI / Bhukosh.
+
+**Remaining asks (narrowed):** (a) a primary source for the overburden shear-test ranges above
+(they reached us via a synthesis citing GSI/EGCON-2022 datasets — confirm the numbers first-hand);
+(b) a Trikuta-specific **unit weight γ** (still analogue: 18–20 kN/m³); (c) any on-site lab tests.
 
 **⚠ Date-verification rule:** a prior research pass produced an impossible future-dated event
 ("September 2026 Panchi landslide"). Verify every event date against a primary source before

@@ -1437,8 +1437,8 @@ I'd stress the honesty: the tripwire detects, it does not predict; the cone says
 **Q: What would you do differently with more resources?**
 A: Three things, in order: a denser landslide inventory with verified dates (validation is the bottleneck,
 not processing); sub-daily point rainfall so the alarm varies per zone instead of per region (an extreme
-season saturates an AOI-wide gate); and site-measured soil parameters — our new site still borrows the
-neighbouring valley's φ and cohesion, honestly labelled.
+season saturates an AOI-wide gate); and lab-confirmed soil parameters — the second site's values are now
+corroborated by published site studies (§37), but nothing has been measured on-site for this project.
 
 ---
 
@@ -1525,8 +1525,10 @@ core still beats chance (Milestone 28 / CF9); (c) it's
 - **Second site (Vaishno Devi) — validated, with named gaps (Milestones 31–36 / §31, CV1–CV4):** the route
   product **beats chance at its first real exam** (26 Aug 2025 Ardhkuwari disaster + 40 GSI survey points:
   AUC 0.62, recall 0.81@2 km; the model's peak-danger day of 2025 WAS the disaster day) — but carry these
-  four caveats when discussing it: (a) **soil φ/c are borrowed** from the Ramban-area calibration; the site
-  is carbonate rock + scree, so a local parameter pass is pending; (b) the ground truth is **corridor-biased**
+  four caveats when discussing it: (a) **soil φ/c are literature-corroborated but not lab-confirmed** —
+  site studies (Kumar & Anbalagan 2013 + GSI overburden data, §37) bracket every value we use (φ 32–43°
+  vs our 36°; c within the published dry/wet ranges), so the old "borrowed from Ramban" caveat is retired,
+  though nothing has been measured on-site *for us*; (b) the ground truth is **corridor-biased**
   (GSI surveyors walk the track) and mostly *assessed-vulnerable* spots, not occurred slides; (c) the
   **failure-class gap** (CV3): track-side rockfall gives no slow creep — our creep core scored 0 against the
   corridor list, and the disaster site sits **598 m** from the nearest zone (the standing calibration

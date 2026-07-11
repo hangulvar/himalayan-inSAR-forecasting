@@ -259,6 +259,13 @@ def main() -> int:
     # fines; FLAG for confirmation vs the source PDF). c_wet = 5 kPa (the prior conservative
     # wet value; FS_saturated is therefore UNCHANGED from the pre-split model). A nonlinear
     # soil-water-retention (van Genuchten) suction curve is the next refinement.
+    #
+    # VAISHNO DEVI CORROBORATION (2026-07-11, RESULTS_AND_KPIS.md §37): site literature
+    # (Kumar & Anbalagan 2013 + GSI-derived overburden data) brackets every default —
+    # soil φ 32–43° (ours 36), c 4.9–27.5 kPa dry / 4.5–7.9 kPa saturated lows (ours 18.5/5),
+    # weathering depth 1–3 m (ours 3). Values kept; the VD "borrowed φ/c" caveat is retired.
+    # NOTE: that paper's c=2.9 t/m², φ=46° are ROCK-JOINT (planar/wedge) parameters — do NOT
+    # feed them into this soil-mantle engine.
     ap.add_argument("--cohesion-dry-kpa", type=float, default=18.5,
                     help="dry/unsaturated cohesion kPa = c' + matric-suction apparent cohesion "
                          "(GSI LSM dry, magnitude-interpreted; used for FS_dry)")
