@@ -11,7 +11,7 @@
 
 ---
 
-# LIVE — Session 18 · branch `aoi-vaishnodevi` · updated 2026-07-10
+# LIVE — Session 18 · branch `aoi-vaishnodevi` · updated 2026-07-11
 
 ## Current state
 
@@ -52,9 +52,10 @@
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
 
-0. **Monsoon watch (user or agent, minutes, every few days):** the site is in WATCH (§35) — re-run
-   `live_alarm.py` (mintpy fetch → insar alarm) every ~3 days; escalate per the field briefs if ALERT
-   fires or `coherence_watch` flags a DROP after a storm.
+0. **Monsoon watch (user, minutes, every 2–3 days) — now a runbook:** site in WATCH, m=1.00 (§38
+   addendum). Follow `Research/Monsoon Watch Runbook (2026-07-11).md` (mintpy fetch → insar alarm;
+   watch the dashboard; escalate per the field briefs if ALERT fires or `coherence_watch` flags a
+   DROP after a storm).
 1. **Radar cadence (agent, ~1 cmd/2 weeks):** cycle ran 2026-07-10 (§35) — July S1 passes still absent;
    when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack → route_exposure →
    live_alarm → coherence_watch. Every cycle lengthens the chains and drops the σ_v noise floor.
@@ -82,50 +83,17 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 
 ## Uncommitted delta
 
-Prior batches (through §34/M38 + the 2026-07-08 wrap) all committed through `f0c6883`.
+Session 18's earlier batches — radar-cadence cycle #1 (§35), dashboard UX + web-publishing readiness,
+soil groundwork/resolution (§36/§37), temporal validation + README (§38), knowledge-base
+decontamination — are **all committed** through `43ddfb8`.
 
-- **[2026-07-10] Radar-cadence cycle #1 (§35):** NO code changes — docs only: `RESULTS_AND_KPIS.md`
-  **§35**, `error_history_log.md` (no-argparse `--help` footgun), this LIVE block (+ git-ignored
-  Session-18 journey entry). Git-ignored data outputs: 4 new products in `data/processed_tiffs/`,
-  refreshed rainfall CSV + alarm report/dashboard (WATCH), `per_zone_vulnerability.*`,
-  `coherence_watch_*`, `route_exposure.*`. Suggested commit: see wrap-session close-out.
-- **[2026-07-10/11] Dashboard UX (post-wrap):** `workflows/operational_alarm.py` — Guide tab
-  (plain-language how-to-read cards) + per-card subtitles; every coordinate is a click-to-Google-Maps
-  link; per-stack map links derived from disk (fixes dead Ramban links on VD); site-aware footer/blurbs.
-  VD dashboard regenerated + browser-verified (identical numbers).
-- **[2026-07-11] Web-publishing readiness (user wants to post the dashboard on LinkedIn/X):**
-  `operational_alarm.py` — research-prototype DISCLAIMER strip + footer echo, license-required data
-  attributions (Copernicus/ESA, C3S ERA5-Land, JAXA ALOS, GSI, OSM/ODbL), `viewport` meta (mobile was
-  broken), OG/Twitter unfurl tags (og:url/og:image left as placeholders until hosted), About+credits
-  guide card, events-table "None"→"before this season's data window", card-level table scroll;
-  verified at 375 px (no horizontal overflow). Remaining user-side steps in NEW
-  `Research/Publishing Checklist - Live Dashboard (2026-07-11).md` (hosting, og:image, author credit,
-  post framing, staleness plan, relative per-stack links caveat).
-- **[2026-07-11] Soil-parameter groundwork (§36, roadmap #3):** NEW
-  `Research/Vaishno_Devi_Watchlist/Soil Parameter Research Brief (2026-07-10).md` (deep-research
-  handoff, updated with leads + date-verification rule); `RESULTS_AND_KPIS.md` **§36** — compendium
-  §5.3.1 has NO soil params (SMR-based) but independently corroborates the §31 Ardhkuwari/new-track
-  High zone; new dated 30 Dec 2008 Bhawan event for the inventory; Chenab-gouge (same Sirban
-  formation) + Ramban–Gool analogue c/φ/γ; future-dated "Sept 2026" claim flagged.
-- **[2026-07-11] Knowledge-base decontamination:** BOTH deep-research synthesis docs removed by the
-  user (`Vaishno Devi Research.md`, `Research_and_Literature_Search_Soil.md` — each fabricated
-  events); §36/§37 annotated with removal notes; new CLAUDE.md §5 rule: synthesis docs are lead
-  generators only — verify → transcribe with flags → record exclusions → delete source. Live alarm
-  refreshed (WATCH as-of 07-05, m=1.00 fully saturated).
-- **[2026-07-11] Temporal validation doubled (§38) + README refresh:** VD inventory grew 1→4 dated
-  events (all source-verified per §12g rule; the "2 Sep 2025" deep-research claim EXCLUDED as
-  fabricated — yatra was closed then). **21 Jul 2025 Banganga caught at Δ=0 (E=2.51)** alongside
-  Ardhkuwari → 2/2 in-window fatal events. 2008 Bhawan rockfall (source-internal Aug/Dec
-  discrepancy, flagged) + 2016 Bhawan failure recorded as historical features. 2025+2026 alarm
-  products regenerated; spatial re-score/m-sweep deliberately NOT re-run. Committed README rewritten
-  (two-site status, §-cited arc, stale "live rainfall pending" line fixed) ahead of public linking.
-- **[2026-07-11] Soil parameters RESOLVED (§37):** user obtained Kumar & Anbalagan 2013 (PDF in
-  watchlist folder) + deep-research synthesis (soil numbers recovered from its embedded base64
-  images). Site envelope brackets every engine value (φ 32–43° vs 36; c 4.9–27.5/4.5–7.9 kPa vs
-  18.5/5; weathering 1–3 m vs z=3) → **values kept, "borrowed φ/c" caveat retired**; rock-joint set
-  (c_J≈28.4 kPa, φ_J=46°, seismic FS 0.98) recorded for the CV3 class. Provenance comment in
-  `geomechanical_engine.py`; site_notes updated in `operational_alarm.py` + VD dashboard
-  regenerated; primer Part E caveat (a) rewritten; brief lead #1 marked obtained.
+Remaining uncommitted (the session-tail wrap):
+- **NEW `Research/Monsoon Watch Runbook (2026-07-11).md`** — plain-language 2–3-day operations loop
+  (two commands: mintpy fetch → insar alarm; what to watch; escalation triggers). Demonstrated live.
+- **`RESULTS_AND_KPIS.md` §38 monsoon-watch addendum** — today's state (as-of 07-05: m=1.00 fully
+  primed, WATCH, 29/29 zones, 0 ALERT days) + the runbook pointer.
+- Git-ignored: refreshed 2026 alarm products (unchanged numbers — no new rainfall day), Session-18
+  journey addendum. Suggested commit below.
 
 ---
 

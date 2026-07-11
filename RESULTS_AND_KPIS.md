@@ -1748,6 +1748,13 @@ Source: verified-event inventory expansion (2026-07-11) + re-run of `operational
 **Artefacts:** committed inventory (+3 features, updated provenance note); regenerated
 `operational_alarm_*_vaishnodevi_2025.*` + the 2026 live dashboard (4-row events table).
 
+> **↪ Monsoon-watch addendum (2026-07-11):** the 2–3-day refresh loop is now a documented runbook
+> (`Research/Monsoon Watch Runbook (2026-07-11).md`) and was demonstrated live. Latest state as-of
+> **2026-07-05: saturation m = 1.00 (fully primed), WATCH, 29/29 zones active, 0 ALERT days** — the
+> "primed slopes awaiting an acute trigger" configuration (cf. the Ramban 20-Apr pattern), at the
+> season's saturation ceiling. Today's fetch returned no new day (ERA5-Land latest 2026-07-06 07:00,
+> a partial day — the documented ~5-day-lag "nothing new yet" case, not an error).
+
 ---
 
 ## How to maintain this ledger
