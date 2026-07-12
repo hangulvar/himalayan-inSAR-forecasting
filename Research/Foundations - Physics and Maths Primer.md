@@ -1440,6 +1440,16 @@ not processing); sub-daily point rainfall so the alarm varies per zone instead o
 season saturates an AOI-wide gate); and lab-confirmed soil parameters — the second site's values are now
 corroborated by published site studies (§37), but nothing has been measured on-site for this project.
 
+**Q: Could this scale to ten sites? What's automated and what isn't?**
+A: The plumbing scales; the science must be earned per site — and we've made that split explicit
+(M39). Everything site-specific lives in one registry config per AOI; outputs are name-spaced so
+sites can't collide; the radar library is shared across sites on the same satellite frames; and a
+status dashboard shows every site's stage checklist, current alarm state, and next command. What
+stays human per site — deliberately — is drawing the boundary, the soil literature/field pass, a
+*verified* landslide inventory, and tuning the alarm operating points against it. Ten sites is ten
+config cards plus ten rounds of that homework; the pipeline itself doesn't change. When NISAR data
+matures, its adapter plugs in at one shared seam, so every registered site inherits it at once.
+
 ---
 
 # Part E — Honest Limitations

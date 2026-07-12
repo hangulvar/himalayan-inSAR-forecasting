@@ -1842,6 +1842,43 @@ the gate." Roadmap Area 1's GACOS item moves from *deferred* to *done, first res
 
 ---
 
+## 41. Multi-AOI productization — config registry, status dashboard, onboarding playbook  `[INFRA / MEASURED]`
+
+**Date:** 2026-07-12 · **Produced by:** `workflows/config.py`, `workflows/aoi_status.py`,
+`tests/test_config_registry.py`, `NEW_AOI_PLAYBOOK.md`, `config/{ramban,vaishnodevi}.yaml`
+· **Branch:** `aoi-vaishnodevi`
+
+The "point the pipeline at a new site" capability, hardened from a convention into a product
+(user ask: reproducible for any AOI, dependency-tracked, dashboard-monitored, scale-ready):
+
+- **AOI config registry:** one canonical YAML per site under `config/`; the root `config.yaml` is
+  now a one-line `active_config:` pointer. Per-command targeting precedence: `--config` flag (4
+  scripts) → **`INSAR_CONFIG` env var (new — works for every script, including the many that call
+  `load_config()` at import time)** → the root pointer. Ramban's registry file carries
+  `site_name: Ramban NH-44` (closing that deferred merge item).
+- **Soil parameters are now config keys** (`soil:` block with per-site provenance comments),
+  not CLI defaults — a third AOI can no longer silently inherit Ramban's §20 calibration.
+  **Numerically zero-change by construction:** defaults equal the §20 values, pinned by
+  `test_config_registry.py` (6/6 PASS natively AND in the `insar` container).
+- **`aoi_status.py` — the multi-AOI dashboard** (console + `data/aoi_status.{html,json}`):
+  per-site stage checklist (incl. the manual steps: polygon, soil pass, ALOS DEM, inventory,
+  m-sweep), current alarm level / live zones / rainfall freshness, and the exact next command.
+  **Cross-checked against this ledger on first run:** displayed back-test AUCs and alarm states
+  reproduce §16d (Ramban), §32 and §35/§38 (VD WATCH, all zones active, as-of 07-05) exactly.
+  First actionable catch: it surfaced Ramban's live-season rainfall as **15 days stale** with the
+  refresh command attached.
+- **`NEW_AOI_PLAYBOOK.md`:** the committed 10-step onboarding recipe (automated commands with
+  verify-artifacts + the manual/scientific steps that cannot be automated), multi-AOI coexistence
+  rules, and the scaling/NISAR architecture notes (the GUNW adapter lands at the shared
+  `data/qa_masks/` seam, so every registry AOI inherits it).
+
+**Honest framing:** infra, not science — no new measurement. Scientific transferability per site
+still requires the three earned steps (soil pass, verified inventory, m-sweep), unchanged from the
+SESSION_REVIEW §3 readiness assessment; what changed is that they are now *tracked and guided* per
+site instead of remembered.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -11,48 +11,45 @@
 
 ---
 
-# LIVE — Session 18 · branch `aoi-vaishnodevi` · updated 2026-07-11
+# LIVE — Session 19 · branch `aoi-vaishnodevi` · updated 2026-07-12
 
 ## Current state
 
-- **★ NEW (§35) — the VD site is now in WATCH:** the first routine radar-cadence cycle (roadmap #1) ran
-  end-to-end 2026-07-10; `live_alarm.py` (fetch in the mintpy image) brought ERA5-Land to 07-04 and the
-  monsoon onset flipped the site **DORMANT → WATCH, all vulnerable zones active** (§35; 0 ALERT days —
-  the acute trigger has not fired). **Re-run `live_alarm.py` every few days through the monsoon** (mintpy
-  image for fetch, then insar image for the dashboard).
-- **Radar side of the cycle (§35):** July S1 passes STILL not at ASF (latest scenes 18–23 Jun; lag >17
-  days) — the operational chains (f103/f105) can't extend yet. A backfilled 2 Mar path-27 scene yielded 4
-  new mid-chain pairs (f101/f106 baseline densified; f106 islands 6→4, f101 unchanged — new bridges failed
-  the rescue gate by a hair, kept out on purpose). Regenerated cascade **reproduces §32 exactly**;
-  `coherence_watch` verdict **OK/quiet** on overhang + creep polygons.
+- **★ NEW (§41, M39) — multi-AOI productization:** per-AOI config registry (`config/*.yaml`; root
+  `config.yaml` = one-line `active_config` pointer), **`INSAR_CONFIG` env override** (per-command AOI
+  targeting for EVERY script — the old "`--config` everywhere" assumption was false for most of the
+  chain, error log 2026-07-12), **soil parameters now config keys** (test-pinned, numerically
+  zero-change), **`workflows/aoi_status.py`** (per-site stage checklist + alarm state + next command →
+  `data/aoi_status.html`), **`NEW_AOI_PLAYBOOK.md`** (10-step onboarding, manual steps M1–M5 explicit),
+  `tests/test_config_registry.py` 6/6 native + in-container. Ramban registry file carries
+  `site_name: Ramban NH-44` — that deferred merge sub-item is DONE.
+- **The VD site is in WATCH (§35, §38 addendum):** monsoon onset flipped DORMANT → WATCH 07-04, all
+  vulnerable zones active, 0 ALERT days. **Keep running `live_alarm.py` every 2–3 days** per
+  `Research/Monsoon Watch Runbook (2026-07-11).md`. ⚠ `aoi_status` flagged **Ramban's live-season
+  rainfall 15 d stale** (§41) — same two commands with `-e INSAR_CONFIG=config/ramban.yaml` refresh it.
+- **Radar side (§35):** July S1 passes still not at ASF as of 07-10 (latest scenes 18–23 Jun) — the
+  operational chains (f103/f105) can't extend yet; backfilled 2 Mar scene densified f101/f106 baseline;
+  regenerated cascade reproduces §32 exactly; `coherence_watch` OK/quiet.
 - **Ramban: COMPLETE, scored, LIVE** — two-tier ALERT/WATCH (§23) + per-zone confidence (§24) + triage
-  (§25) + temporal gate (§17), project-best operating point (§21b). `mvp-expansion` ready to merge to
-  `master` (user's call; add `site_name: Ramban NH-44` at merge).
-- **Vaishno Devi: a full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM,
-  disaster-validated (§31), operating points earned by the local m-sweep (§32) as per-site config keys.
-- **The deliverable — route exposure (§28, M33):** CORE finding is the **NE-flank creep target**
-  (2-track-confirmed, §30; abuts a settlement, §33). Field brief + GPS KML shipped 2026-07-07.
-- **Fast-failure toolkit for the Bhavan overhang (§34, M38):** `coherence_watch.py` (first fast-failure
-  detector, re-run every cycle — done this cycle), `rockfall_runout.py` (shrine complex in the LIKELY
-  cone), records cross-check (face institutionally KNOWN; field step zero = request treatment as-builts;
-  brief in `Research/Vaishno_Devi_Watchlist/`).
-- **★ NEW (§38–§40) — validation deepened on three fronts:** temporal test now 2/2 in-window fatal
-  events at Δ=0 (§38, incl. the press-verified 21 Jul 2025 Banganga catch); inventory at 46 features
-  with the 2016 Bhawan event PRIMARY-verified rain-triggered (§39); first **GACOS tropospheric
-  cross-check** run (§40) — mixed: one audit-flagged pair strongly corroborated by the independent
-  weather model, one not, CLEAN pairs hint at a future audit refinement (n=8, first look).
-- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m from
-  nearest zone (§31 addendum) — still the calibration target; VD φ/c now literature-corroborated (§37 —
-  "borrowed" caveat retired; lab confirmation + γ still open; §37 overburden-range primary source still
-  unfound after 3 PDFs, §39); fast-failure tools are unproven-in-anger (Part E, M38); the §40 GACOS
-  discrepancy pair (0611–0623) stays an open question.
+  (§25) + temporal gate (§17), project-best operating point (§21b). Merge `aoi-vaishnodevi` → `master`
+  is the user's call (the branch contains mvp-expansion + everything since).
+- **Vaishno Devi: full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM,
+  disaster-validated (§31), operating points from the local m-sweep (§32) in its registry file.
+- **Deliverables:** route exposure + NE-flank creep target (2-track-confirmed §30, abuts a settlement
+  §33; field brief + KML shipped) and the Bhavan-overhang fast-failure toolkit (§34, M38 —
+  coherence tripwire, runout cone, records cross-check).
+- **Validation fronts (§38–§40):** temporal test 2/2 in-window fatal events at Δ=0 (§38); inventory 46
+  features, 2016 Bhawan event primary-verified (§39); GACOS cross-check mixed first result (§40 — one
+  flagged pair corroborated, one not; second pull would sharpen).
+- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m
+  from nearest zone (§31 addendum) — still the calibration target; VD φ/c literature-corroborated
+  (§37; lab + γ + overburden primary source still open, §39); fast-failure tools unproven-in-anger
+  (Part E); §40 discrepancy pair (0611–0623) open; §41 is infra only — each new AOI still owes its
+  soil pass, verified inventory, and m-sweep.
 - **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
-- ⭐ **Demos:** Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`); VD
-  `..._vaishnodevi_2026.html` (**WATCH as-of 05 Jul, saturation m=1.00 — fully primed; acute E≥2
-  trigger not yet fired**, §35/§38) + route/creep/runout/coherence artefacts in
-  `data/alerts_vaishnodevi/mosaic_asc/`.
-- **Ops learning (error log 2026-07-10):** 4 of the 5 Phase-1 QA scripts have no argparse — `--help`
-  EXECUTES them (harmless: idempotency held, verified against §32).
+- ⭐ **Demos:** VD `data/alerts_vaishnodevi/mosaic_asc/operational_alarm_dashboard_vaishnodevi_2026.html`
+  (WATCH as-of 05 Jul); Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`);
+  **NEW `data/aoi_status.html`** — the all-sites control-room view (§41).
 
 ## Recommended next steps — the product-improvement roadmap (2026-07-10)
 
@@ -90,22 +87,22 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 > **primary-source confirmation of the §37 overburden ranges + on-site lab** (literature
 > second-source ✅ DONE §37; GSI Kumar FSP report / EGCON-2022 are the last live leads, §39); (3) merge
 > **`aoi-vaishnodevi` → `master`** (supersedes the stale "merge mvp-expansion" item — mvp-expansion is
-> fully contained in this branch; optionally snapshot a `config_ramban.yaml` with
-> `site_name: Ramban NH-44` at the same time). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30).
+> fully contained in this branch; ~~snapshot a `config_ramban.yaml`~~ ✅ DONE 2026-07-12 as
+> `config/ramban.yaml` with `site_name: Ramban NH-44`, §41). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30).
 
 ## Uncommitted delta
 
-Session 18's batches — radar-cadence cycle #1 (§35), dashboard UX + publishing readiness, soil
-groundwork/resolution (§36/§37), temporal validation + README (§38), decontamination, monsoon-watch
-runbook, stale-item audit, primary-source batch #2 (§39) — are **all committed** through `b85ae45`.
+Sessions ≤18 are **all committed** through `b447c38` (GACOS §40).
 
-Remaining uncommitted (this wrap):
-- **[2026-07-11 last] GACOS cross-check RUN (§40):** corrected-area pull (10 epochs) delivered; NEW
-  `workflows/_gacos_crosscheck.py` (one-off) — GACOS ZTD → predicted LOS displacement, compared
-  against elevation AND our actual observed displacement across all 8 operational-stack pairs.
-  Mixed, honestly-reported result (headline numbers in §40); Area 1's GACOS item DONE, first result.
-  Files: the script, `RESULTS_AND_KPIS.md` §40, this LIVE block (+ git-ignored journey addendum and
-  `data/hazard_vaishnodevi/gacos_crosscheck.{json,md,png}` + extracted `gacos2_*` grids).
+Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, M39)**:
+- NEW: `config/ramban.yaml`, `config/vaishnodevi.yaml` (the registry), `workflows/aoi_status.py`,
+  `NEW_AOI_PLAYBOOK.md`, `tests/test_config_registry.py`.
+- MODIFIED: `config.yaml` (→ one-line pointer), `workflows/config.py` (pointer resolution +
+  `INSAR_CONFIG` env override + `SoilConfig`), `workflows/geomechanical_engine.py` (soil defaults
+  from config; CLI still overrides), `README.md` (registry/dashboard/playbook wiring),
+  `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 0 fact update), `RESULTS_AND_KPIS.md` (§41),
+  `error_history_log.md` (2026-07-12 near-miss), `milestone.md` (M39), primer (Part D scaling Q).
+- Git-ignored as usual: `session_journey.md` entry, `data/aoi_status.{html,json}`.
 
 ---
 
@@ -155,12 +152,18 @@ Remaining uncommitted (this wrap):
 
 The core vision is fully built and scored above chance. Remaining work:
 
-0. **Infrastructure & portability:** Infra 0a/0b DONE. Still: fold the <150 m perpendicular-baseline
+0. **Infrastructure & portability:** Infra 0a/0b DONE. **Multi-AOI productization DONE (2026-07-12):**
+   per-AOI config registry (`config/*.yaml`, root `config.yaml` = one-line `active_config` pointer),
+   `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
+   config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
+   (multi-AOI stage/alarm dashboard + deterministic next step), `NEW_AOI_PLAYBOOK.md` (onboarding
+   runbook), `tests/test_config_registry.py`. Still: fold the <150 m perpendicular-baseline
    gate into rescues; AOI guidance (a better polygon improves *targeting*, not the noise floor).
    **New-AOI replication readiness:** infra replicability HIGH (config-driven, Dockerized, multi-stack);
    scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1 acquisitions for a velocity
    baseline, (b) a site soil check (Ramban field-calibrated §20; VD literature-corroborated §37 — each
-   new site needs its own pass), (c) a local inventory for validation.
+   new site needs its own pass, now recorded in its registry file), (c) a local inventory for validation
+   — the three manual steps the playbook and status dashboard track explicitly.
 1. **Accuracy backlog:** nonlinear van-Genuchten suction curve; lab confirmation of c_dry/c_wet;
    per-stack ERA5 reference-pixel + unwrapping QC (rescue frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW

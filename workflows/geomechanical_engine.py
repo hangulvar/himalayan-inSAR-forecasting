@@ -266,15 +266,21 @@ def main() -> int:
     # weathering depth 1–3 m (ours 3). Values kept; the VD "borrowed φ/c" caveat is retired.
     # NOTE: that paper's c=2.9 t/m², φ=46° are ROCK-JOINT (planar/wedge) parameters — do NOT
     # feed them into this soil-mantle engine.
-    ap.add_argument("--cohesion-dry-kpa", type=float, default=18.5,
+    #
+    # SOURCE OF VALUES: the per-AOI config's `soil:` block (workflows/config.py
+    # SoilConfig; registry files under config/). The CLI flags below OVERRIDE the
+    # config for one-off experiments; config defaults (no soil: block) = the Ramban
+    # values documented above, so existing sites are numerically unchanged.
+    _soil = load_config().soil
+    ap.add_argument("--cohesion-dry-kpa", type=float, default=_soil.cohesion_dry_kpa,
                     help="dry/unsaturated cohesion kPa = c' + matric-suction apparent cohesion "
                          "(GSI LSM dry, magnitude-interpreted; used for FS_dry)")
-    ap.add_argument("--cohesion-wet-kpa", type=float, default=5.0,
+    ap.add_argument("--cohesion-wet-kpa", type=float, default=_soil.cohesion_wet_kpa,
                     help="saturated effective cohesion kPa (suction gone; used for FS_saturated)")
-    ap.add_argument("--phi", type=float, default=36.0,
+    ap.add_argument("--phi", type=float, default=_soil.phi_deg,
                     help="friction angle deg (GSI LSM Ramban/Doda: 36.4-39.1; default = conservative 36)")
-    ap.add_argument("--gamma", type=float, default=19.0, help="soil unit weight kN/m³")
-    ap.add_argument("--soil-depth-m", type=float, default=3.0,
+    ap.add_argument("--gamma", type=float, default=_soil.gamma_kn_m3, help="soil unit weight kN/m³")
+    ap.add_argument("--soil-depth-m", type=float, default=_soil.depth_m,
                     help="failure depth z (GSI LSM overburden 0.5-20 m; 3 m = shallow translational)")
     ap.add_argument("--fs-fail", type=float, default=1.0)
     ap.add_argument("--fs-marginal", type=float, default=1.3)

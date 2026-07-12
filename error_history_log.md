@@ -23,6 +23,31 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-12] `--config` only exists on 4 scripts — most read config at IMPORT time (near-miss, caught pre-commit)
+
+* **Symptom:** while writing `NEW_AOI_PLAYBOOK.md`, the draft commands used
+  `--config config/<slug>.yaml` on `run_multistack.py`, `live_alarm.py`, `fetch_rainfall.py`,
+  `rainfall_selectivity_backtest.py` — **none of which accept the flag**. Following the draft
+  would have silently run those steps against the *active* (pointer) AOI instead of the intended
+  one, with per-AOI suffixes hiding the mistake until outputs landed in the wrong site's dirs.
+
+* **Root Cause:** most workflow scripts call `load_config()` **at module level**
+  (`_SFX = load_config().data_suffix` etc.), i.e. before any argparse runs — so a `--config` flag
+  cannot ever reach them without restructuring every script. Only the 4 scripts that defer config
+  loading into `main()` (submitter, downloader, inverter, network graph) expose the flag. The
+  `config.py` docstring's old claim ("each script's `--config`") overstated reality.
+
+* **Resolution:** added an **`INSAR_CONFIG` env var override** in `load_config()` (one change
+  covers every script, import-time loads included; explicit `path` still wins):
+  `docker compose run --rm -e INSAR_CONFIG=config/<aoi>.yaml insar python ...` — verified in-container.
+  Playbook + `aoi_status.py` next-step commands use the correct mechanism per script.
+
+* **Lesson:** grep for the flag before documenting it — a runbook is code and deserves the same
+  verification; and module-level config loading is the structural reason per-AOI targeting must be
+  an *environment* concern, not an *argument* concern.
+
+---
+
 ### [2026-07-10] Passing `--help` to the Phase-1 QA scripts EXECUTES them (no argparse)
 
 * **Symptom:** a "print the usage of the five QA-chain scripts" probe (`python workflows/<script> --help`)

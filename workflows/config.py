@@ -2,7 +2,15 @@
 
 One source of truth for the AOI, job-name prefix, search window and baseline
 rules — replacing the constants previously hardcoded across the workflow
-scripts. Pass a different path (each script's `--config`) to target another AOI.
+scripts. Three ways to target an AOI, in precedence order:
+
+  1. an explicit path (the `--config` flag on scripts that expose it);
+  2. the INSAR_CONFIG environment variable (works for EVERY script, including
+     the many that call load_config() at import time — the per-command
+     multi-AOI mechanism, e.g.
+     `docker compose run --rm -e INSAR_CONFIG=config/ramban.yaml insar python ...`);
+  3. the root config.yaml — normally a one-line `active_config:` pointer into
+     the per-AOI registry under config/ (a full config there still works).
 
 Usage (from any workflow script):
     from config import load_config
@@ -13,6 +21,7 @@ Usage (from any workflow script):
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -39,6 +48,23 @@ class RescueGateConfig:
 
 
 @dataclass(frozen=True)
+class SoilConfig:
+    """Infinite-slope soil shear-strength parameters (Phase 3, geomechanical_engine).
+
+    Defaults = the Ramban GSI-calibrated values (RESULTS_AND_KPIS.md §20), which the
+    Vaishno Devi literature pass (§37) also brackets. A NEW AOI must do its own soil
+    literature/field pass and set these in its config — do not silently inherit them
+    (see NEW_AOI_PLAYBOOK.md, manual step M2). CLI flags on geomechanical_engine.py
+    still override.
+    """
+    cohesion_dry_kpa: float
+    cohesion_wet_kpa: float
+    phi_deg: float
+    gamma_kn_m3: float
+    depth_m: float
+
+
+@dataclass(frozen=True)
 class Config:
     aoi_path: Path
     site_name: str
@@ -49,7 +75,9 @@ class Config:
     search_end: datetime
     baseline: BaselineConfig
     rescue_gate: RescueGateConfig
+    soil: SoilConfig
     exclude_from_rescue: tuple[str, ...]
+    source_path: Path  # the YAML this config was loaded from (after pointer resolution)
 
     @property
     def aoi_slug(self) -> str:
@@ -84,12 +112,37 @@ def _to_utc(value) -> datetime:
 
 
 def load_config(path: str | Path | None = None) -> Config:
-    """Read and validate config.yaml (default: project-root config.yaml)."""
+    """Read and validate config.yaml (default: project-root config.yaml).
+
+    The root config.yaml may be a one-line POINTER (`active_config: config/<aoi>.yaml`)
+    into the per-AOI registry under config/ — switch the whole pipeline to another AOI
+    by editing that single line. A full config at the root still works (legacy form).
+    The INSAR_CONFIG env var overrides the default path (but not an explicit `path`),
+    so any script can be pointed at another AOI without touching the pointer.
+    """
+    if path is None and os.environ.get("INSAR_CONFIG"):
+        path = os.environ["INSAR_CONFIG"]
+        if not Path(path).is_absolute():
+            path = PROJECT_ROOT / path
     cfg_path = Path(path) if path else DEFAULT_CONFIG_PATH
     if not cfg_path.exists():
         raise FileNotFoundError(f"Config not found: {cfg_path}")
 
     raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+
+    if "active_config" in raw:
+        target = Path(raw["active_config"])
+        if not target.is_absolute():
+            target = PROJECT_ROOT / target
+        if not target.exists():
+            raise FileNotFoundError(
+                f"{cfg_path} points at active_config={raw['active_config']} which does "
+                f"not exist ({target})")
+        pointed = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+        if "active_config" in pointed:
+            raise ValueError(f"active_config chains are not allowed: {target} is itself "
+                             f"a pointer")
+        return load_config(target)
 
     for key in ("aoi_path", "job_name_prefix", "search_start", "search_end"):
         if key not in raw:
@@ -101,6 +154,7 @@ def load_config(path: str | Path | None = None) -> Config:
 
     b = raw.get("baseline") or {}
     g = raw.get("rescue_gate") or {}
+    s = raw.get("soil") or {}
     slug_stem = aoi.stem[:-4] if aoi.stem.endswith("_aoi") else aoi.stem
     return Config(
         aoi_path=aoi,
@@ -127,5 +181,13 @@ def load_config(path: str | Path | None = None) -> Config:
             min_coherence=float(g.get("min_coherence", 0.6)),
             min_surviving_pct=float(g.get("min_surviving_pct", 15)),
         ),
+        soil=SoilConfig(
+            cohesion_dry_kpa=float(s.get("cohesion_dry_kpa", 18.5)),
+            cohesion_wet_kpa=float(s.get("cohesion_wet_kpa", 5.0)),
+            phi_deg=float(s.get("phi_deg", 36.0)),
+            gamma_kn_m3=float(s.get("gamma_kn_m3", 19.0)),
+            depth_m=float(s.get("depth_m", 3.0)),
+        ),
         exclude_from_rescue=tuple(raw.get("exclude_from_rescue") or []),
+        source_path=cfg_path,
     )

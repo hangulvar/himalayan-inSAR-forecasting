@@ -39,6 +39,7 @@ This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negati
 Geospatial Analysis Himalayas/
 │
 ├── README.md                       # This file
+├── NEW_AOI_PLAYBOOK.md             # Deterministic recipe for onboarding a new AOI
 ├── CLAUDE.md                       # Behavioural rules for AI-assisted dev
 ├── SESSION_REVIEW.md               # 🚦 "Start here" living dashboard (read first)
 ├── milestone.md                    # Plain-language story of each milestone (for humans)
@@ -67,6 +68,7 @@ Geospatial Analysis Himalayas/
 │   ├── geomechanical_engine.py         # P3: slope + TWI + Factor of Safety + hazard fusion
 │   ├── agentic_orchestrator.py         # P4A: 3-agent warning system → alerts + dashboard
 │   ├── build_3d_dashboard.py           # P4B: interactive 3-D hazard explorer (HTML)
+│   ├── aoi_status.py                   # Multi-AOI status dashboard + next-step guide
 │   ├── proj_pipeline_AOI.md            # Future AOI shortlist
 │   └── .gitkeep
 │
@@ -92,7 +94,9 @@ Geospatial Analysis Himalayas/
 │   ├── Joshimath InSAR.pdf  ·  Meteorology.md  ·  ...
 │
 ├── src/                            # Reserved for reusable modules (currently empty)
-└── config/                         # Reserved for parameter specs (currently empty)
+└── config/                         # ★ Per-AOI config REGISTRY (one YAML per site)
+    ├── ramban.yaml                     # Ramban NH-44 (the original build)
+    └── vaishnodevi.yaml                # Vaishno Devi — Trikuta corridor
 ```
 
 ---
@@ -290,9 +294,18 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
 
 ### Configuration, multi-stack & MintPy (current)
 
-- **`config.yaml`** controls the AOI, job-name prefix, time window, baseline rules,
-  and the connectivity-rescue gate — point the pipeline at a new valley by editing it
-  (no code edits). Scripts read it via `workflows/config.py` (`--config` to override).
+- **The AOI config registry (`config/*.yaml`)** — one YAML per site holds everything
+  site-specific: AOI polygon, job-name prefix, time window, **soil shear-strength
+  (`soil:` block)**, operating points (`operational_m`/`watch_m`), baseline rules and
+  the connectivity-rescue gate. The root **`config.yaml` is a one-line
+  `active_config:` pointer** selecting the default site; target any other site
+  per-command with `-e INSAR_CONFIG=config/<aoi>.yaml` (works for every script) or
+  `--config` where exposed. Point the pipeline at a new valley with **zero code
+  edits** — full recipe incl. the manual steps: **[NEW_AOI_PLAYBOOK.md](NEW_AOI_PLAYBOOK.md)**.
+- **Multi-AOI status dashboard:** `python workflows/aoi_status.py` — one card per
+  registry site: stage checklist (incl. manual steps), current alarm level / live
+  zones / rainfall freshness, and the exact next command. Writes
+  `data/aoi_status.html` + `.json`; read-only and env-light (runs natively).
 - **One-time (existing Ramban data):** seed the product→stack manifest with
   `python workflows/stacks.py --seed-legacy` (new AOIs get it from the downloader).
 - **Automated, quality-gated connectivity rescue:**
@@ -449,6 +462,7 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 ## 📚 Where To Read More
 
 - [SESSION_REVIEW.md](SESSION_REVIEW.md) — 🚦 the "start here" living dashboard (read first each session)
+- [NEW_AOI_PLAYBOOK.md](NEW_AOI_PLAYBOOK.md) — onboarding a new AOI, step by step (automated + manual)
 - [milestone.md](milestone.md) — plain-language story of each milestone (for humans, no jargon)
 - [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
 - [InSAR_hazard_forecasting_Context.md](InSAR_hazard_forecasting_Context.md) — original vision + full roadmap

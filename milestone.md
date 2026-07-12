@@ -1300,6 +1300,50 @@ tool here predicts *when* — but for the first time the pipeline has instrument
 
 ---
 
+## ✅ Milestone 39 — From "a project with two sites" to "a product you point at mountains"  *(multi-AOI productization, 2026-07-12)*
+
+**What we set out to do:** we had proven the pipeline twice — built on Ramban, replicated on Vaishno
+Devi. But the *knowledge of how to do that* lived partly in documents, partly in memory, and partly in
+"defaults that happened to be right." If we (or anyone else) pointed the tool at a third mountain next
+year, what would they need? Which steps are automatic and which need a human to fetch a map or read a
+soil study? Where would they even check what state each mountain is in? This milestone turned all of
+that from folklore into machinery.
+
+**A filing cabinet for mountains.** Every site now has exactly one settings file in a registry folder
+— Ramban's card, Vaishno Devi's card, and a template for the next one. The master switch is a single
+line saying "the pipeline currently points HERE." You can also aim any individual command at any site
+without touching the switch. While building this we caught a quiet trap: the old "just pass a config
+flag" advice only actually worked on 4 of our ~30 scripts — the rest decide their site the moment they
+wake up, before reading any flags. The fix (an environment setting every script respects) is exactly
+the kind of thing better discovered now, on purpose, than next year in the middle of a monsoon.
+
+**The soil numbers can no longer sneak.** The strength-of-the-ground numbers (how much cohesion, what
+friction angle) used to be built-in defaults — correct for Ramban, *checked* for Vaishno Devi, but a
+third site would have inherited them silently, and wrong soil numbers make a confident wrong map. Now
+each site's card carries its own soil values **with a note saying where they came from**, and a test
+pins the defaults so nothing changed numerically for the two existing sites.
+
+**A control room wall.** One command now draws a status board: one card per mountain, showing its
+current alarm state (Vaishno Devi: WATCH, all zones live), how fresh its rainfall data is, every
+pipeline stage as a checklist — including the *human* steps like "do the soil homework" and "build the
+verified landslide list" — and, for whatever's missing, **the exact command to run next**. On its very
+first run it caught something real: Ramban's live rainfall had quietly fallen 15 days behind, and the
+board printed the command to fix it.
+
+**A recipe book for the next mountain.** A step-by-step playbook now walks a newcomer from "draw a
+polygon around your valley" to "live monsoon monitoring," honestly split into what the machine does
+and the five things only a human can do (draw the boundary, read the soil literature, fetch the fine
+terrain tile, verify the landslide history, tune the alarm dials). It ends with the scaling plan: why
+adding site #3 is now mostly filling in one card, and where the next radar satellite (NISAR) will plug
+in so every site benefits at once.
+
+**Plain-language result:** the pipeline stopped being "a research project that happens to run in two
+places" and became **a product with a registry, a dashboard, and a manual**. Nothing scientific
+changed — the same maps, the same alarms — but the path from "new mountain" to "monitored mountain" is
+now written down, checked by tests, and watched from one screen.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
