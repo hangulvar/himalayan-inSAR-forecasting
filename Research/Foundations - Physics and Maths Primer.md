@@ -1440,6 +1440,17 @@ not processing); sub-daily point rainfall so the alarm varies per zone instead o
 season saturates an AOI-wide gate); and lab-confirmed soil parameters — the second site's values are now
 corroborated by published site studies (§37), but nothing has been measured on-site for this project.
 
+**Q: Your soil parameters come from literature, not measurement — how do you know they don't drive the result?**
+A: Because we measured exactly that (§42). We swept every soil parameter across its
+literature-plausible range and re-scored the operational alert map at each setting: the footprint
+swung from 125 zones to zero, and in-range values of soil depth alone can erase the product. So the
+honest answer is: they DO drive the result — which is why the per-site soil pass is a required,
+documented step with provenance recorded in each site's config, why we ran this sensitivity sweep
+at all, and why a field-measured soil depth is our top-priority ground-truth item. The wrong answer
+would have been to hide the sensitivity; instead it's a chart in the repo. And no, re-tuning the
+saturation dial can't substitute — soil strength and wetness are degenerate spatially, but the
+rainfall-to-wetness physics that times the warning only stays meaningful if the soils are right.
+
 **Q: Could this scale to ten sites? What's automated and what isn't?**
 A: The plumbing scales; the science must be earned per site — and we've made that split explicit
 (M39). Everything site-specific lives in one registry config per AOI; outputs are name-spaced so

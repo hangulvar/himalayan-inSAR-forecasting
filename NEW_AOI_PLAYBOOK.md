@@ -80,8 +80,15 @@ Step 1 green and the next command.
 ## Step 3 (M2, manual) — Site soil pass
 
 The infinite-slope engine needs shear-strength parameters (`c_dry`, `c_wet`, φ,
-γ, depth). **Do not silently inherit another site's values** — that was flagged
-as a portability trap. Process (as done for VD, §37):
+γ, depth). **Do not silently inherit another site's values** — and this is now
+**measured, not just principled** (§42): across the literature-plausible bracket
+the operational footprint swings 0–125 zones, and in-bracket depth/cohesion
+values can erase the alert product entirely. **Failure depth z is the single
+most load-bearing number** — prioritize pinning it. Re-tuning the operating
+point m cannot substitute (soil strength and m are degenerate spatially, but the
+rainfall→m→FS WHEN-gate calibration needs soils to be physically right, §42).
+
+Process (as done for VD, §37):
 
 1. Search site literature: GSI landslide-susceptibility reports for the district,
    back-analysis papers, geotechnical studies of nearby road/rail projects.
@@ -89,9 +96,20 @@ as a portability trap. Process (as done for VD, §37):
 3. Pick conservative values inside the bracket; record provenance as comments in
    the `soil:` block of `config/<slug>.yaml`.
 4. If literature is silent, start from the engine defaults (Ramban §20) and mark
-   the site's dashboard caveat "borrowed soils" until a local pass exists.
+   the site's dashboard caveat "borrowed soils" until a local pass exists — and
+   treat the map as provisional given §42.
 
 **Verify:** `soil:` block present in the registry file (aoi_status flags it).
+After Step 8, also run the per-site sensitivity artifact (seconds,
+non-destructive — backs up and checksum-restores the FS rasters):
+
+```bash
+docker compose run --rm -e INSAR_CONFIG=config/<slug>.yaml insar \
+  python workflows/soil_sensitivity_sweep.py
+```
+
+It reports which soil parameters your site's product stands on
+(`data/inventory/soil_sensitivity_report_<slug>.md`).
 
 ## Step 4 — Phase 1: pull + QA the radar
 

@@ -1344,6 +1344,38 @@ now written down, checked by tests, and watched from one screen.
 
 ---
 
+## ✅ Milestone 40 — We asked whether the soil homework matters. The mountain answered: completely.  *(soil-sensitivity sweep, 2026-07-13)*
+
+**What we set out to do:** of all the manual chores a new mountain demands, the most tedious is the
+"soil homework" — digging through geology reports to find how strong the local ground actually is
+(its cohesion, its friction, how deep the loose layer goes). We suspected it might not matter much:
+maybe any reasonable textbook values would give nearly the same danger map, and we could skip the
+homework at future sites. That's a testable claim, so we built a test: recompute the danger map for
+every plausible combination of soil values the literature allows, and score each one against the
+real landslide record. Total cost: a new script and about seven seconds of computing.
+
+**What we found:** the suspicion was wrong — decisively. Across values that are all *defensible from
+published studies*, the alert map swung from **125 danger zones down to zero**. Not "slightly
+different zones" — at several in-range settings the entire warning product simply vanishes, because
+the maths declares every slope strong enough to hold. The single most powerful number turned out to
+be the most mundane: **how thick the loose soil layer is**. Assume 2 metres instead of 3, and all 21
+of our validated warning zones disappear.
+
+**The tempting shortcut that doesn't work:** couldn't we just skip the homework and re-tune the
+alarm dial (the assumed wetness) until the map scores well again? Mathematically, yes — wetness and
+soil strength push the same lever. But then the dial stops meaning "how wet the ground is" and
+becomes an arbitrary fudge factor, and the rainfall-driven part of the warning system — *"this much
+rain makes the ground this wet, which tips these slopes"* — loses its physical honesty. A map tuned
+that way might still rank slopes usefully, but the WHEN of the warning would be built on sand.
+
+**Plain-language result:** the soil homework stays — now by *measurement*, not just principle. And
+the test itself became a permanent tool: every future site runs the seven-second sweep and gets a
+chart showing exactly which assumptions its warning map stands on. One more thing changed: the
+wish-list item "confirm the soil depth with a field measurement" jumped from nice-to-have to **the
+most valuable single number a site visit could bring back**.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

@@ -1879,6 +1879,55 @@ site instead of remembered.
 
 ---
 
+## 42. Soil-sensitivity sweep — the soil pass is LOAD-BEARING; the "skip it with priors" hypothesis is REJECTED  `[REAL / MEASURED]`
+
+**Date:** 2026-07-13 · **Produced by:** `workflows/soil_sensitivity_sweep.py` (NEW; VD site,
+operational m=0.40, inventory n=46, null n=5000 seed 20260606, buffer 2 km) · **Branch:**
+`aoi-vaishnodevi` · Canonical FS rasters backed up + byte-restored (checksum-verified).
+
+**The question (ERRC "Reduce", 2026-07-13):** if the operational product's back-test score barely
+moves across the §37-plausible soil bracket, the manual per-site soil pass (playbook M2) demotes to
+"global priors + uncertainty band". **It does not demote.**
+
+| combo | zones | AUC (full) | ΔAUC |
+|---|---|---|---|
+| **baseline** (config §37 values) | **21** | **0.707** | — |
+| φ=32° | 36 | 0.639 | −0.068 |
+| φ=40° | 11 | 0.752 | +0.045 |
+| φ=43° | 6 | 0.549 | −0.158 |
+| c_dry=4.9 kPa | 97 | 0.573 | −0.134 |
+| **c_dry=27.5 kPa** | **0** | — | product vanishes |
+| c_wet=4.5 kPa | 21 | 0.707 | ±0 (identical product) |
+| c_wet=7.9 kPa | 12 | 0.534 | −0.173 |
+| **z=1 m / z=2 m** | **0 / 0** | — | product vanishes |
+| γ=17 / γ=21 kN/m³ | 12 / 27 | 0.534 / 0.710 | −0.173 / +0.003 |
+| weakest corner | 125 | 0.624 | −0.083 |
+| strongest corner | 0 | — | product vanishes |
+
+- **Baseline sanity gate passed:** reproduces the canonical 21 operational zones and the §32
+  m-sweep plateau AUC.
+- **Headline: the union footprint swings 0–125 zones across the LITERATURE-PLAUSIBLE bracket**,
+  and four in-bracket combos (z=1, z=2, c_dry=27.5, strongest corner) **erase the alert product
+  entirely**. Max |ΔAUC| where scoreable: 0.173.
+- **Most load-bearing parameter: failure depth z** (thinning the soil mantle 3→2 m alone kills all
+  21 zones — the cohesion term scales as 1/z, so thin soils are computed strong). Then c_dry and φ.
+  Near-insensitive: c_wet 5→4.5 (identical product).
+- **The degeneracy caveat (why "just re-tune m" is not a rescue):** soil strength and assumed
+  saturation m both scale effective strength, so a per-site m-sweep (§32's method) could partly
+  absorb wrong soils *spatially* — but then m becomes a fitted dial and the physical rainfall→m→FS
+  coupling that calibrates the WHEN gate (§17/§19) loses its meaning. Priors + re-tuned m is a
+  curve-fit, not a substitute for the soil pass.
+- **Consequences:** (1) playbook M2 stays a REQUIRED manual step, now evidence-backed; (2) the
+  sweep itself (runs in seconds, non-destructive) becomes a standard per-site artifact — run it
+  after validation to show which parameters your site's product stands on; (3) the open §37/§39
+  items (overburden-depth primary source, Trikuta γ, lab c/φ) are *upgraded in priority*: depth is
+  the single most valuable number a field visit could bring back.
+
+**Artefacts:** `data/inventory/soil_sensitivity_report_vaishnodevi.{md,json}`,
+`soil_sensitivity_vaishnodevi.png`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -23,6 +23,13 @@
   `data/aoi_status.html`), **`NEW_AOI_PLAYBOOK.md`** (10-step onboarding, manual steps M1–M5 explicit),
   `tests/test_config_registry.py` 6/6 native + in-container. Ramban registry file carries
   `site_name: Ramban NH-44` — that deferred merge sub-item is DONE.
+- **★ NEW (§42) — the soil pass is LOAD-BEARING (measured):** `soil_sensitivity_sweep.py` (NEW;
+  seconds, non-destructive, checksum-restores FS rasters) swept the §37-plausible soil bracket at
+  the VD operational point — union footprint 0–125 zones, four in-bracket combos ERASE the product,
+  **failure depth z is the most load-bearing parameter**. The ERRC "reduce the soil pass to priors"
+  hypothesis is REJECTED; playbook M2 stays required (now evidence-backed) and the sweep is a
+  standard per-site artifact. Field/lab priority upgraded: depth is the most valuable number a
+  site visit can bring back (§42).
 - **The VD site is in WATCH (§35, §38 addendum):** monsoon onset flipped DORMANT → WATCH 07-04, all
   vulnerable zones active, 0 ALERT days. **Keep running `live_alarm.py` every 2–3 days** per
   `Research/Monsoon Watch Runbook (2026-07-11).md`. ⚠ `aoi_status` flagged **Ramban's live-season
@@ -107,7 +114,11 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   manifest-derived with a 183 floor (error log 2026-07-12; 10/10 in-container);
   `Research/Monsoon Watch Runbook (2026-07-11).md` — pointer/`INSAR_CONFIG` nuance + the
   `aoi_status.py` health-check step.
-- Git-ignored as usual: `session_journey.md` entry, `data/aoi_status.{html,json}`.
+- Soil-sensitivity batch (2026-07-13, §42): NEW `workflows/soil_sensitivity_sweep.py`;
+  `RESULTS_AND_KPIS.md` §42; playbook M2 verdict + sweep step; this LIVE block; `milestone.md`
+  (M40); primer (Part D soil-assumptions Q).
+- Git-ignored as usual: `session_journey.md` entries, `data/aoi_status.{html,json}`,
+  `data/inventory/soil_sensitivity_*`.
 
 ---
 
@@ -167,7 +178,8 @@ The core vision is fully built and scored above chance. Remaining work:
    **New-AOI replication readiness:** infra replicability HIGH (config-driven, Dockerized, multi-stack);
    scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1 acquisitions for a velocity
    baseline, (b) a site soil check (Ramban field-calibrated §20; VD literature-corroborated §37 — each
-   new site needs its own pass, now recorded in its registry file), (c) a local inventory for validation
+   new site needs its own pass, now recorded in its registry file; **measured to be load-bearing, §42 —
+   failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
 1. **Accuracy backlog:** nonlinear van-Genuchten suction curve; lab confirmation of c_dry/c_wet;
    per-stack ERA5 reference-pixel + unwrapping QC (rescue frame102/101, §22).
