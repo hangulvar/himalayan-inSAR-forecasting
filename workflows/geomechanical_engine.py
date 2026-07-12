@@ -25,15 +25,16 @@ DESIGN NOTES (MVP):
     "stable". Upgrading to the 12.5 m ALOS DEM is a documented production task.
   * InSAR velocity is a SEPARATE evidence layer, not a term inside FS (the
     physically honest reading of "active stress multiplier").
-  * Soil parameters are literature defaults for Himalayan colluvium, all
-    CLI-overridable. They are assumptions, not measurements.
+  * Soil parameters come from the per-AOI config's `soil:` block (registry
+    files under config/; defaults = the Ramban §20 calibration), CLI flags
+    override for one-off experiments. Site-corroborated, not measured on-site.
 
 Sign convention: LOS velocity negative = motion away from sensor
 (subsidence / downslope) = the "creep" direction we flag.
 
 Usage:
     python workflows/geomechanical_engine.py
-    python workflows/geomechanical_engine.py --phi 35 --cohesion-kpa 8 \
+    python workflows/geomechanical_engine.py --phi 35 --cohesion-dry-kpa 8 \
         --soil-depth-m 4 --vel-creep-thr -15
 """
 

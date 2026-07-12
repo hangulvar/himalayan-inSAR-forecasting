@@ -99,9 +99,14 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   `NEW_AOI_PLAYBOOK.md`, `tests/test_config_registry.py`.
 - MODIFIED: `config.yaml` (→ one-line pointer), `workflows/config.py` (pointer resolution +
   `INSAR_CONFIG` env override + `SoilConfig`), `workflows/geomechanical_engine.py` (soil defaults
-  from config; CLI still overrides), `README.md` (registry/dashboard/playbook wiring),
-  `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 0 fact update), `RESULTS_AND_KPIS.md` (§41),
-  `error_history_log.md` (2026-07-12 near-miss), `milestone.md` (M39), primer (Part D scaling Q).
+  from config; CLI still overrides; docstring de-staled), `README.md` (registry/dashboard/playbook
+  wiring), `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 0 fact update),
+  `RESULTS_AND_KPIS.md` (§41), `error_history_log.md` (two 2026-07-12 entries), `milestone.md`
+  (M39), primer (Part D scaling Q).
+- Regression batch (same session): `tests/test_plumbing.py` — stale hardcoded 183-product count →
+  manifest-derived with a 183 floor (error log 2026-07-12; 10/10 in-container);
+  `Research/Monsoon Watch Runbook (2026-07-11).md` — pointer/`INSAR_CONFIG` nuance + the
+  `aoi_status.py` health-check step.
 - Git-ignored as usual: `session_journey.md` entry, `data/aoi_status.{html,json}`.
 
 ---
