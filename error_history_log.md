@@ -23,6 +23,29 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-12] test_plumbing pinned the product count to 183 — stale since the VD pull (caught by the regression run)
+
+* **Symptom:** `tests/test_plumbing.py` in the insar container: 8/10 PASS but
+  `test_zip_count_matches_expected` and `test_audit_json_exists_and_parses` FAIL with "expected 183,
+  found 235". All cross-consistency tests (zips == product dirs == masked dirs == audit records)
+  passed — the *data* was coherent; the *expectation* was stale.
+
+* **Root Cause:** `EXPECTED_PRODUCT_COUNT = 183` was hardcoded in the single-AOI (Ramban SBAS N=3)
+  era. The radar library is shared and grows — VD's 49 pairs (§26) and the 2026-07-10 backfill
+  (§35) brought it to 235 — so any absolute count is guaranteed to go stale on every AOI pull or
+  radar-cadence cycle.
+
+* **Resolution:** expected count now READ FROM `data/qa_masks/_stack_manifest.json` (the
+  metadata-derived manifest every download updates — the pipeline's own belief about what exists),
+  with a `MIN_PRODUCT_COUNT = 183` floor so genuine data loss still fails. 10/10 PASS in-container.
+
+* **Lesson:** in a multi-AOI world, tests must assert *consistency between artifacts* (or derive
+  expectations from the pipeline's own metadata), never absolute counts of a growing shared
+  library. Same class as the grandfathered-suffix gotchas: single-site assumptions hide in
+  constants.
+
+---
+
 ### [2026-07-12] `--config` only exists on 4 scripts — most read config at IMPORT time (near-miss, caught pre-commit)
 
 * **Symptom:** while writing `NEW_AOI_PLAYBOOK.md`, the draft commands used

@@ -37,9 +37,15 @@ AUDIT_CSV = QA_MASKS / "_atmospheric_audit.csv"
 AUDIT_JSON = QA_MASKS / "audit_log.json"
 COH_CSV = QA_MASKS / "_coherence_mask_stats.csv"
 QUARANTINE_CSV = QA_MASKS / "_quarantine_list.csv"
+STACK_MANIFEST = QA_MASKS / "_stack_manifest.json"
 
-# Expected totals after SBAS N=3 expansion:
-EXPECTED_PRODUCT_COUNT = 183
+# The radar library is SHARED across AOIs and grows with every AOI pull and
+# radar-cadence cycle, so the expected product count is read from the stack
+# manifest (metadata-derived, updated by every download) instead of being
+# hardcoded. The old constant EXPECTED_PRODUCT_COUNT = 183 was the single-AOI
+# (Ramban SBAS N=3) era and went stale when Vaishno Devi's 49 pairs + the
+# 2026-07-10 backfill landed (235 products). The floor still catches data loss.
+MIN_PRODUCT_COUNT = 183  # the original Ramban library; the library only grows
 EXPECTED_PER_STACK_COUNTS = {
     # bucket prefix in product naming  -> expected number of products
     # (3 ASC stacks each have 14+13+12 = 39 pairs)
@@ -48,6 +54,16 @@ EXPECTED_PER_STACK_COUNTS = {
     "ASC_total": 39 * 3,   # 117
     "DESC_total": 33 * 2,  # 66
 }
+
+
+def _expected_product_count() -> int:
+    """Product count the pipeline itself believes in: the stack manifest."""
+    n = len(json.loads(STACK_MANIFEST.read_text(encoding="utf-8")))
+    assert n >= MIN_PRODUCT_COUNT, (
+        f"Stack manifest lists only {n} products (< {MIN_PRODUCT_COUNT}, the "
+        f"original Ramban library) — manifest truncated or data lost."
+    )
+    return n
 
 
 def _zip_count() -> int:
@@ -68,11 +84,13 @@ def _masked_dirs() -> list[Path]:
 # 1. Inventory assertions
 # ------------------------------------------------------------------------------
 def test_zip_count_matches_expected() -> None:
-    """We expect 183 zips after SBAS N=3 (was 10 in the original draft plan)."""
+    """Every product the stack manifest knows about must have its zip on disk."""
+    expected = _expected_product_count()
     n = _zip_count()
-    assert n == EXPECTED_PRODUCT_COUNT, (
-        f"Expected {EXPECTED_PRODUCT_COUNT} zips in {RAW_ZIPS}; found {n}. "
-        f"This means downloads are incomplete or extra products leaked in."
+    assert n == expected, (
+        f"Expected {expected} zips (per _stack_manifest.json) in {RAW_ZIPS}; "
+        f"found {n}. Downloads incomplete, extra products leaked in, or the "
+        f"manifest is out of date."
     )
 
 
@@ -149,9 +167,10 @@ def test_audit_json_exists_and_parses() -> None:
     text = AUDIT_JSON.read_text(encoding="utf-8")
     data = json.loads(text)  # raises on malformed
     assert isinstance(data, list), "audit_log.json must be a JSON array."
-    assert len(data) == EXPECTED_PRODUCT_COUNT, (
-        f"audit_log.json has {len(data)} records; expected "
-        f"{EXPECTED_PRODUCT_COUNT}."
+    expected = _expected_product_count()
+    assert len(data) == expected, (
+        f"audit_log.json has {len(data)} records; expected {expected} "
+        f"(per _stack_manifest.json)."
     )
 
 

@@ -22,6 +22,34 @@ That's it. Same script, different image, because the rainfall-fetch and the alar
 need different Python environments (`live_alarm.py` auto-detects which stage it can run and skips
 the other — see the `fetch=YES/no` / `alarm=YES/no` line in its own output).
 
+> **Which site do these commands act on? (changed 2026-07-12, §41)** The commands follow the
+> `active_config:` pointer in the root `config.yaml` — currently `config/vaishnodevi.yaml`, so the
+> plain commands above are correct for the VD watch. If the pointer is ever switched, pin the site
+> explicitly instead of trusting the pointer:
+>
+> ```powershell
+> docker compose run --rm -e INSAR_CONFIG=config/vaishnodevi.yaml mintpy python workflows/live_alarm.py
+> docker compose run --rm -e INSAR_CONFIG=config/vaishnodevi.yaml insar  python workflows/live_alarm.py
+> ```
+>
+> The same pair with `config/ramban.yaml` refreshes the Ramban site — worth doing when the status
+> board (below) shows its rainfall going stale.
+
+## The health check — one command for all sites
+
+Before or after the cycle, the status board shows every site's alarm level, how many days behind
+its rainfall is, and the exact next command if something needs running (it is read-only and safe
+any time; runs natively too):
+
+```powershell
+docker compose run --rm insar python workflows/aoi_status.py
+```
+
+Scan the card per site: `state: WATCH as-of <date> ...` and the rainfall `Nd behind` figure.
+After a successful Step 1+2 the as-of date should advance to ~5 days behind today (the ERA5-Land
+publication lag). If a stage shows unchecked, the card prints what to run. Browser version:
+`data/aoi_status.html`.
+
 ## What to look for in the output
 
 After Step 2, scan the terminal for these lines:
