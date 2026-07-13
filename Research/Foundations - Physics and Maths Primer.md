@@ -1111,6 +1111,41 @@ beating the baseline, not a proven jump in the score.
 🔗 **In our project: §45 / Milestone 42.** `kappa` config key; TWI-distributed m_i in the engine;
 swept via `rainfall_selectivity_backtest.py --kappas`; adopted at 0.06 for both sites.
 
+## CF13. The suction curve we built and didn't use — nonlinearity, identifiability, and saying no
+
+Damp soil is glued together by **matric suction** — the same capillary pull that makes a sandcastle
+stand. Our model had treated that glue as fading *linearly* from dry to soaked. Laboratory
+**soil-water retention curves** (van Genuchten's equation) say otherwise: the glue holds, holds…
+then collapses over a narrow wetness band. We built that curve in:
+
+  ψ(m) = (1/α)·(m^(−1/(1−1/n)) − 1)^(1/n)  → extra cohesion = min(c_dry − c_wet, ψ·m·tanφ′)
+
+Two safeguards made it honest. The **cap** (`min`) means suction can never claim more strength than
+the *measured* dry end-member; and ψ(1)=0 means fully-soaked strength is exactly the measured wet
+value. So the curve only reshapes the *journey* between two anchored facts — and because only
+cohesion changes, the whole thing rides on the existing maps as a correction term (no reprocessing).
+
+**Everyday analogy.** Wet sand is sticky across a wide range of dampness, then suddenly turns to
+soup. A straight line between "dry beach" and "soup" misses the cliff-edge. The question is *where*
+the cliff sits — that's what α and n encode, and they differ by soil type.
+
+**What the test said — and the concept that matters: identifiability.** We tried four published
+(α, n) pairs spanning our soil's plausible textures, each allowed to re-tune the wetness dial to its
+own best score. None beat the straight line at both mountains. Why? Scored against a *map* of past
+landslides, curve shape and dial setting are nearly interchangeable — moving one mimics the other, so
+the data **cannot identify** the curve's parameters. A parameter the data can't pin down is a
+liability, not physics. What would pin it down: a lab curve for *our* soil, or the *dates* individual
+slopes failed (the curve's real signature is timing, not placement).
+
+**The discipline.** The mechanism ships, verified bit-for-bit at the end-members and guarded by its
+own test file — switched off. Adopting it would have added two borrowed parameters for a gain our own
+error bars (CF11) call noise. Saying "not yet" to your own upgrade is the same muscle as publishing
+the slope-map tie.
+
+🔗 **In our project: §46 / Milestone 43.** `fs_real.py` (all wetness→FS physics in one module — an
+audit found two tools still on the old maths, CF12's layer now cannot drift), config `suction:`
+block (absent = linear), `tests/test_fs_real.py`.
+
 ---
 
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
@@ -1552,6 +1587,17 @@ the danger map at both sites and pushed VD past the slope-only baseline. I stay 
 score gain is inside the error bars — the solid wins are the tighter footprint and clearing the
 baseline, not a proven jump in the number.
 
+**Q: You spent a session building nonlinear suction physics and then didn't use it — wasn't that wasted?**
+A: It's the most informative negative result in the project (§46/CF13). The build cost was small —
+the curve rides on the existing maps as a cohesion correction, anchored bit-exactly to the measured
+dry and wet strengths — and the test was maximally generous: four published parameter pairs, each
+allowed to re-tune the wetness dial to its own best score, on two mountains. None beat the simple
+linear model at both. The finding is *why*: against a spatial landslide map, curve shape and dial
+setting trade off almost perfectly — the parameters aren't identifiable from our data. That told us
+something we didn't know: the next unit of validation value is a lab retention curve or dated
+per-zone failures, not more model complexity. And the mechanism isn't waste — it's one config line
+away the day that data exists. A pipeline that only ever adopts its own upgrades isn't testing them.
+
 **Q: Could this scale to ten sites? What's automated and what isn't?**
 A: The plumbing scales; the science must be earned per site — and we've made that split explicit
 (M39). Everything site-specific lives in one registry config per AOI; outputs are name-spaced so
@@ -1632,10 +1678,13 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   **φ=36°** (GSI-measured on these slopes, 36.4–39.1°, vs the old textbook 32°), and cohesion is now a
   **dry/wet matric-suction split** (c_dry≈18.5 / c_wet=5 kPa, M26 / C4) instead of one flat assumed value —
   so the dry-state strength is the GSI-measured number and the saturated state correctly loses the suction
-  "glue." *Remaining:* the suction-vs-wetness curve is taken as **linear** (a nonlinear van-Genuchten
-  retention curve is the refinement), the failure depth z is still assumed, and the GSI dry-cohesion **unit**
-  ("18.5 kg/cm²" — physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening
-  layer, but the two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
+  "glue." *Update (§46/CF13):* the nonlinear van-Genuchten refinement was **built, tested against four
+  published parameter sets, and deliberately NOT adopted** — its parameters are not identifiable from a
+  spatial inventory (curve shape trades off against the wetness dial), so the linear curve stands *on
+  evidence*, with the mechanism one config line away when a lab retention curve or dated failures exist.
+  *Remaining:* the failure depth z is still assumed, and the GSI dry-cohesion **unit** ("18.5 kg/cm²" —
+  physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening layer, but the
+  two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
 - **Slope sharpness — now upgraded (Milestone 27 / §21):** the hazard grid is 80 m (set by the
   InSAR velocity), but slope is now computed on the **12.5 m ALOS DEM** at native resolution and
   *averaged* onto each 80 m cell (mean-of-slopes > slope-of-mean), fixing the old under-estimate

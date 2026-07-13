@@ -1013,3 +1013,31 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   staleness can't see), call the orchestrator + `write_union_alerts` directly rather than
   `run_multistack --force`/touch — the latter also re-checks Phase 2/3 and can trip a fragile
   reference-pixel re-solve. A config-change-aware staleness signal would be the real fix.
+
+### [2026-07-13] kappa (§45) shipped with two silent non-consumers: hazard_timeline and watch_triage ignored the TWI layer
+
+* **Symptom:** none visible — found by a deliberate deep-verification grep for every site that
+  interpolates FS_real or computes m* manually. The season timeline (`agentic_orchestrator.py
+  hazard_timeline`, line ~525) still built each day's FS as `(1-m)*FS_dry + m*FS_sat` with the
+  scalar m, and `watch_triage.py` ranked by the intrinsic m* — both silently diverging from the
+  kappa=0.06 standing product and the per-zone gate's m*_eff firing order.
+
+* **Root Cause:** §45's first cut edited the FS_real construction in ONE consumer (the
+  MeteorologicalTrigger) and the m* shift in ONE consumer (per_zone_gate), but the "FS at wetness
+  m" math existed in four places. Copy-paste physics: each new layer must be hand-carried to every
+  copy, and two copies were missed.
+
+* **Resolution:** NEW `workflows/fs_real.py` — single source of truth for `m_field` /
+  `fs_field(fs_dry, fs_sat, m, twi, kappa)` / `critical_saturation` / `effective_mstar`. All four
+  consumers (MeteorologicalTrigger, hazard_timeline, per_zone_gate, watch_triage) now import it;
+  per_zone_gate re-exports `critical_saturation` for backward compatibility. Verified by a 22-check
+  battery on both sites: config load + default gate, zero-sum/clip quantification (operational m
+  exact; watch m: VD −0.0015 mean shift / 2.9% clipped, Ramban −0.0009 / 1.7%), kappa=0 bitwise
+  identity on all 5 stacks, fs_field cluster counts == standing per-stack alert counts, m*_eff
+  FS-crossing roots to ±2e-3, double-build determinism. Triage + VD route exposure regenerated
+  (CORE 0.80 km unchanged; WATCH 7.92→7.84 km).
+
+* **Lesson:** when adding a physics layer, FIRST grep for every consumer of the quantity being
+  changed and centralize before editing — the §45 review's "one point change" was only true of the
+  standing product path. Any future layer (van Genuchten suction is next) goes into fs_real.py, and
+  its consumers stay import-only.

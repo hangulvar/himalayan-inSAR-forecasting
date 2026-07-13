@@ -1440,6 +1440,39 @@ disagrees.
 
 ---
 
+## ✅ Milestone 43 — We built the fancier physics, tested it fairly, and said no  *(van Genuchten suction, 2026-07-13)*
+
+**What we set out to do:** two things. First, re-examine last milestone's wetness upgrade with fresh
+eyes — and that audit caught two corners of the system (the season timeline and the watch-list
+ranking) still quietly using the *old* uniform-wetness maths. We fixed that the durable way: all the
+"how wet makes this slope fail" arithmetic now lives in exactly one file that every tool imports, so
+the pieces can never drift apart again, and a 22-point check on both mountains confirmed everything
+agrees to the fourth decimal. Second, the last item on our science wish-list: real soil doesn't lose
+strength *linearly* as it wets — laboratory curves show the suction that glues damp soil together
+collapses suddenly over a narrow wetness range. We built that curve into the model (carefully: bone
+dry and fully soaked still give *exactly* the strengths we measured — the curve only reshapes the
+journey between them), with a switch that leaves everything unchanged until a site turns it on.
+
+**What we found:** we tested four published versions of the curve — spanning the plausible soil
+types for our mountains — and let each one re-tune the wetness dial to its own best score, the most
+generous test we could design. **None of them beat the simple straight line at both sites.** The
+best came within a whisker at one mountain and exactly tied the other — differences far smaller than
+our own error bars. The diagnosis is more interesting than the score: with only a *map* of past
+landslides to check against, the curve's shape and the wetness dial trade off against each other
+almost perfectly — the data literally cannot tell the curves apart. What *would* tell them apart is
+either a laboratory measurement of our actual soil's curve, or precise *dates* of when individual
+slopes gave way — both already on our field wish-list, now with one more reason.
+
+**Plain-language result:** the fancier physics is built, verified to the last bit, and one
+configuration line away from use — but it stays switched off, because the honest reading of our own
+statistics says it hasn't earned its two extra assumptions yet. Declining our own upgrade on
+evidence is the same discipline as reporting the slope-map tie in Milestone 41: the numbers decide,
+not the effort invested. The science plan's three upgrades are now all resolved: statistics
+(adopted), distributed wetness (adopted), suction curve (built, waiting for the data that can
+justify it).
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

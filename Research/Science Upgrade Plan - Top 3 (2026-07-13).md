@@ -92,7 +92,17 @@ ALERT days; if it does neither, record the negative and keep κ=0.
 
 ---
 
-## 3. Nonlinear matric suction — a van Genuchten curve instead of linear cohesion interpolation
+## 3. Nonlinear matric suction — a van Genuchten curve instead of linear cohesion interpolation ✅ DONE 2026-07-13 (§46) — **mechanism shipped, adoption REJECTED (negative result)**
+
+> **Outcome.** The curve is built exactly as sketched (Vanapalli ψ·S_e·tanφ′ capped so c(0)=c_dry
+> and c(1)=c_wet bit-exactly; FS via a cohesion-sensitivity correction — no engine re-run; m* by
+> grid-root; all in the new shared `fs_real.py`, pinned by `tests/test_fs_real.py`). Swept 4
+> Carsel & Parrish (α,n) classes with a full m-re-sweep per candidate at both sites: **no candidate
+> beats the linear model at both sites** (best: loam, +0.014 Ramban — inside the §44 CI — and an
+> exact AUC tie at VD). Root cause: with only a *spatial* inventory, (α,n) are not identifiable —
+> the curve shape re-parameterizes the m dial. The linear model STANDS; the mechanism is one config
+> line away when a lab retention curve or dated per-zone activations can identify the parameters.
+> The risk this section itself flagged ("most new-parameter risk") is exactly what the data said.
 
 **What is weak now.** The dry→wet strength loss is modeled as cohesion varying **linearly** in m
 between c_dry=18.5 and c_wet=5 kPa (§20). Real unsaturated soils lose matric suction *nonlinearly*:

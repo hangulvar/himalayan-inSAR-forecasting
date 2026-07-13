@@ -65,12 +65,23 @@ class SoilConfig:
 
 
 @dataclass(frozen=True)
+class SuctionConfig:
+    """Van Genuchten / Vanapalli nonlinear suction-cohesion curve (§46, Science Upgrade
+    Plan #3). alpha (1/kPa) and n are retention-curve parameters from published curves
+    for the site's soil texture (e.g. Carsel & Parrish 1988 USDA classes). Optional:
+    a config without a `suction:` block keeps the historical LINEAR cohesion model."""
+    alpha_kpa_inv: float
+    n: float
+
+
+@dataclass(frozen=True)
 class Config:
     aoi_path: Path
     site_name: str
     operational_m: float
     watch_m: float
     kappa: float
+    suction: SuctionConfig | None
     job_name_prefix: str
     search_start: datetime
     search_end: datetime
@@ -175,6 +186,11 @@ def load_config(path: str | Path | None = None) -> Config:
         # reproduces the uniform-m behavior (a built-in regression gate), so a config without
         # this key is numerically unchanged.
         kappa=float(raw.get("kappa", 0.0)),
+        # Nonlinear suction-cohesion curve (§46): absent = the linear model (regression
+        # gate). Requires n>1 (van Genuchten shape parameter) and alpha>0 (1/kPa).
+        suction=(SuctionConfig(alpha_kpa_inv=float(raw["suction"]["alpha_kpa_inv"]),
+                               n=float(raw["suction"]["n"]))
+                 if raw.get("suction") else None),
         job_name_prefix=str(raw["job_name_prefix"]),
         search_start=_to_utc(raw["search_start"]),
         search_end=_to_utc(raw["search_end"]),

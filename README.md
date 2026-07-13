@@ -386,7 +386,16 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) — wet convergent terrain saturates first — swept
   per site via `python workflows/rainfall_selectivity_backtest.py --kappas 0,0.03,0.06,0.10,0.15,0.20`
   (both AOIs peaked at 0.06). kappa REDISTRIBUTES saturation spatially while preserving the AOI-mean
-  wetness (= the rainfall proxy); kappa=0 reproduces the uniform-m footprint exactly.
+  wetness (= the rainfall proxy); kappa=0 reproduces the uniform-m footprint exactly. All
+  wetness→FS physics lives in `workflows/fs_real.py` (single source of truth for the standing
+  product, season timeline, per-zone gate, and triage; pinned by `tests/test_fs_real.py`).
+- **Van Genuchten suction curve (§46) — built, config-gated, deliberately NOT enabled:** a
+  `suction: {alpha_kpa_inv, n}` config block switches cohesion from the linear c_dry→c_wet ramp to
+  the Vanapalli/van Genuchten curve (end-members reproduce bit-exactly; no engine re-run — the
+  correction rides on the slope raster). Four published (α,n) candidates were swept with full
+  m-re-sweeps at both sites and none beat the linear model — the parameters are not identifiable
+  from a spatial inventory (§46, an honest negative). Enable per site only when lab retention data
+  or dated per-zone failures can justify it.
 - **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
   footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
   `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate

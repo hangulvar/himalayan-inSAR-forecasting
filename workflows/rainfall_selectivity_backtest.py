@@ -49,13 +49,18 @@ DEFAULT_INVENTORY = (INV_DIR / "gsi_inventory_aoi.geojson" if _CFG.aoi_slug == "
 DEFAULT_SATURATIONS = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0]
 
 
-def build_stack_alerts(stack: str, m: float, scen: str, kappa: float = 0.0) -> int:
+def build_stack_alerts(stack: str, m: float, scen: str, kappa: float = 0.0,
+                       suction: tuple[float, float] | None = None) -> int:
     """Build the per-stack alert zones at saturation m (optionally TWI-distributed by
-    kappa, §45) and write them where run_multistack.union_alerts expects them. Returns
-    the zone count."""
+    kappa §45, optionally under a van Genuchten suction candidate (alpha,n) §46) and
+    write them where run_multistack.union_alerts expects them. Returns the zone count."""
     auditor = orch.InSARAuditor(stack, use_vslope=False)
     cfg = {"name": scen, "rainfall_mm_72h": 0, "saturation": round(m, 3),
            "kappa": kappa, "fs_layer": "FS_real"}
+    if suction is not None:                       # explicit candidate (alpha<=0 = OFF);
+        cfg["suction_alpha"], cfg["suction_n"] = suction
+    # no keys -> the orchestrator falls back to the site config's suction block, so a
+    # plain m-sweep always scores the SAME physics the standing product ships with.
     met = orch.MeteorologicalTrigger(stack, scen, cfg)
     reasoner = orch.CascadingReasoner(stack, auditor)
     creep = auditor.creep_mask(orch.VEL_CREEP_THR)
@@ -83,6 +88,14 @@ def main() -> int:
                          "kappa=0 reproduces the uniform-m footprint.")
     ap.add_argument("--operational-m", type=float, default=None,
                     help="Fixed saturation for the --kappas sweep (default: config operational_m).")
+    ap.add_argument("--suction", default=None,
+                    help="Van Genuchten candidate 'alpha_kpa_inv,n' (§46) applied to every "
+                         "combo in this run ('0,0' forces the linear model). Default: the "
+                         "site config's suction block (absent = linear).")
+    ap.add_argument("--tag", default="",
+                    help="Suffix appended to scenario names and report stems so experiment "
+                         "runs (e.g. per-suction-candidate sweeps) never overwrite the "
+                         "standing sweep artifacts.")
     ap.add_argument("--buffer-km", type=float, default=2.0)
     ap.add_argument("--n-null", type=int, default=5000)
     ap.add_argument("--null-seed", type=int, default=20260606)
@@ -114,31 +127,40 @@ def main() -> int:
         return {"auc": round(auc, 3), "at_buf": at_buf, "roc": roc,
                 "peak_lift": peak["lift"], "peak_lift_km": peak["buffer_km"]}
 
-    # A combo is (scenario_name, saturation_m, kappa). The m-sweep varies m at kappa=0;
-    # the kappa-sweep (§45) varies kappa at a fixed operational m.
+    # A combo is (scenario_name, saturation_m, kappa). The m-sweep varies m at the SITE's
+    # adopted kappa (§45 — vary one dial, hold the others at config); the kappa-sweep
+    # varies kappa at a fixed operational m. The suction layer (§46) rides along from the
+    # config unless --suction pins a candidate for the whole run.
+    suction = None
+    if args.suction is not None:
+        a, n = (float(x) for x in args.suction.split(","))
+        suction = (a, n)
+    tag = args.tag
     if args.kappas is not None:
         op_m = args.operational_m if args.operational_m is not None else _CFG.operational_m
         kappas = [float(x) for x in args.kappas.split(",")]
-        combos = [(f"kap{int(round(k * 1000)):03d}", op_m, k) for k in kappas]
+        combos = [(f"kap{int(round(k * 1000)):03d}{tag}", op_m, k) for k in kappas]
         sweep = "kappa"
     else:
         sats = ([float(x) for x in args.saturations.split(",")] if args.saturations
                 else DEFAULT_SATURATIONS)
-        combos = [(f"sat{int(round(m * 100)):03d}", m, 0.0) for m in sats]
+        combos = [(f"sat{int(round(m * 100)):03d}{tag}", m, _CFG.kappa) for m in sats]
         sweep = "m"
 
     print(f"stacks: {stacks}")
     print(f"inventory: {len(inv)} pts | null: {len(null_pts)} pts (seed {args.null_seed})")
     print(f"sweep: {sweep}"
-          + (f" at m={combos[0][1]:.2f}" if sweep == "kappa" else ""))
+          + (f" at m={combos[0][1]:.2f}" if sweep == "kappa" else f" at kappa={_CFG.kappa:g}")
+          + (f" | suction override alpha,n={suction}" if suction else ""))
     rows = []
     for scen, m, kappa in combos:
         for s in stacks:
-            build_stack_alerts(s, m, scen, kappa)
+            build_stack_alerts(s, m, scen, kappa, suction)
         zones = multi.union_alerts(stacks, scen)
         MOSAIC_ALERTS_DIR.mkdir(parents=True, exist_ok=True)
         (MOSAIC_ALERTS_DIR / f"alerts_{scen}.json").write_text(
             json.dumps({"scenario": scen, "saturation": m, "kappa": kappa,
+                        "suction_alpha_n": suction,
                         "source_stacks": stacks, "zones": zones}, indent=1), encoding="utf-8")
         core = [z for z in zones if z.get("n_looks", 1) >= 2]
         full_s, core_s = score(zones), score(core)
@@ -191,14 +213,16 @@ def write_outputs(rows, args) -> None:
               "_The regional ID curve is a TEMPORAL gate (which days to issue) and cannot move "
               "this spatial score; the saturation level sets the spatial footprint. Lowering m "
               "concentrates the alert on the steepest/most-marginal slopes._"]
-    (INV_DIR / f"rainfall_selectivity_report{_SFX}.md").write_text(
+    tag = getattr(args, "tag", "")
+    (INV_DIR / f"rainfall_selectivity_report{_SFX}{tag}.md").write_text(
         "\n".join(lines) + "\n", encoding="utf-8")
-    (INV_DIR / f"rainfall_selectivity_report{_SFX}.json").write_text(
+    (INV_DIR / f"rainfall_selectivity_report{_SFX}{tag}.json").write_text(
         json.dumps({"buffer_km": args.buffer_km, "n_null": args.n_null,
-                    "null_seed": args.null_seed, "rows": rows}, indent=2), encoding="utf-8")
-    _plot(INV_DIR / f"rainfall_selectivity{_SFX}.png", rows, args.buffer_km)
-    print(f"-> {INV_DIR / f'rainfall_selectivity_report{_SFX}.md'} , .json , "
-          f"rainfall_selectivity{_SFX}.png")
+                    "null_seed": args.null_seed, "suction": args.suction,
+                    "rows": rows}, indent=2), encoding="utf-8")
+    _plot(INV_DIR / f"rainfall_selectivity{_SFX}{tag}.png", rows, args.buffer_km)
+    print(f"-> {INV_DIR / f'rainfall_selectivity_report{_SFX}{tag}.md'} , .json , "
+          f"rainfall_selectivity{_SFX}{tag}.png")
     print(f"   best full AUC {best['full']['auc']} @ m={best['m']:.2f} "
           f"(baseline m=1.0: {base[1]['full']['auc']})")
 
@@ -241,14 +265,16 @@ def write_kappa_outputs(rows, args) -> None:
               "later) while preserving the AOI-mean wetness = the rainfall proxy, so the "
               "temporal coupling is unchanged. Judge the winner with validation_stats.py "
               "(§44 CIs + ablation ladder) before adopting._"]
-    (INV_DIR / f"rainfall_kappa_report{_SFX}.md").write_text("\n".join(lines) + "\n",
-                                                             encoding="utf-8")
-    (INV_DIR / f"rainfall_kappa_report{_SFX}.json").write_text(
+    tag = getattr(args, "tag", "")
+    (INV_DIR / f"rainfall_kappa_report{_SFX}{tag}.md").write_text("\n".join(lines) + "\n",
+                                                                  encoding="utf-8")
+    (INV_DIR / f"rainfall_kappa_report{_SFX}{tag}.json").write_text(
         json.dumps({"buffer_km": args.buffer_km, "n_null": args.n_null,
                     "null_seed": args.null_seed, "operational_m": m0, "rows": rows}, indent=2),
         encoding="utf-8")
-    _plot_kappa(INV_DIR / f"rainfall_kappa{_SFX}.png", rows, args.buffer_km)
-    print(f"-> {INV_DIR / f'rainfall_kappa_report{_SFX}.md'} , .json , rainfall_kappa{_SFX}.png")
+    _plot_kappa(INV_DIR / f"rainfall_kappa{_SFX}{tag}.png", rows, args.buffer_km)
+    print(f"-> {INV_DIR / f'rainfall_kappa_report{_SFX}{tag}.md'} , .json , "
+          f"rainfall_kappa{_SFX}{tag}.png")
     print(f"   best full AUC {best['full']['auc']} @ kappa={best['kappa']:.3f} "
           f"(baseline kappa=0: {base['full']['auc'] if base and base['full'] else 'n/a'})")
 

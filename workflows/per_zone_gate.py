@@ -81,12 +81,11 @@ def load_daily(csv_path: Path):
     return dates, water, m
 
 
-def critical_saturation(fs_dry: float, fs_sat: float) -> float | None:
-    """m* solving FS_dry + m*(FS_sat - FS_dry) = 1, clipped to [0, 1]. None if degenerate."""
-    denom = fs_sat - fs_dry
-    if not np.isfinite(fs_dry) or not np.isfinite(fs_sat) or denom >= 0:
-        return None              # saturation must REDUCE FS for a valid m*
-    return float(np.clip((1.0 - fs_dry) / denom, 0.0, 1.0))
+# Shared FS-at-wetness physics (§45 kappa, §46 suction): m* (linear closed form or
+# suction grid-root via fs_real.mstar), kappa-shifted activation threshold m*_eff.
+# critical_saturation re-exported because watch_triage historically imports it here.
+import fs_real  # noqa: E402
+from fs_real import critical_saturation, effective_mstar  # noqa: E402,F401
 
 
 def collect_zones(stacks: list[str]) -> list[dict]:
@@ -110,24 +109,30 @@ def collect_zones(stacks: list[str]) -> list[dict]:
         # FS=1 at a LOWER AOI-mean wetness. We fold that into an EFFECTIVE threshold
         # m*_eff = clip(m* - kappa*(TWI_zone - TWI_mean), 0, 1) and gate on m*_eff. kappa=0
         # -> m*_eff == m* exactly (outputs byte-identical to the uniform-m gate).
-        twi = twi_mean = None
+        # With the §46 suction curve, m* itself comes from the nonlinear FS(m) root
+        # (fs_real.mstar dispatches; needs the slope raster for dFS/dc).
+        twi = twi_mean = slope = None
         twip = HAZ_DIR / f"{s}_twi.tif"
         if _KAPPA and twip.exists():
             with rasterio.open(twip) as d:
                 twi = d.read(1)
             twi_mean = float(np.nanmean(twi))
+        if _CFG.suction is not None:
+            with rasterio.open(HAZ_DIR / f"{s}_slope_deg.tif") as d:
+                slope = d.read(1)
         sigma_s = stack_noise(s)            # §24 per-stack velocity noise floor (mm/yr)
         for a in json.loads(af.read_text(encoding="utf-8")).get("alerts", []):
             r, c = a["pixel_rowcol"]
             if not (0 <= r < fs_dry.shape[0] and 0 <= c < fs_dry.shape[1]):
                 continue
-            mstar = critical_saturation(float(fs_dry[r, c]), float(fs_sat[r, c]))
+            mstar = fs_real.mstar(float(fs_dry[r, c]), float(fs_sat[r, c]),
+                                  _CFG.soil, _CFG.suction,
+                                  float(slope[r, c]) if slope is not None else None)
             if mstar is None:
                 continue
             twi_zone = (float(twi[r, c]) if twi is not None and np.isfinite(twi[r, c])
                         else None)
-            mstar_eff = (float(np.clip(mstar - _KAPPA * (twi_zone - twi_mean), 0.0, 1.0))
-                         if twi_zone is not None else mstar)
+            mstar_eff = effective_mstar(mstar, twi_zone, twi_mean, _KAPPA)
             lon, lat = a["centroid_lonlat"]
             creep = a.get("mean_velocity_mmyr")
             conf = (round(confidence(float(creep), sigma_s), 3)

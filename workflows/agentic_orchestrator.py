@@ -59,6 +59,7 @@ import rasterio
 from pyproj import Transformer
 from scipy import ndimage
 
+import fs_real
 from config import load_config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -195,24 +196,31 @@ class MeteorologicalTrigger:
                 fs_dry = s.read(1)
             with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
                 fs_sat = s.read(1)
-            # TWI-distributed saturation (§45): wet, convergent terrain (high TWI) saturates
-            # first, so give each pixel m_i = clip(m + kappa*(TWI_i - TWI_mean), 0, 1). The
-            # spatial MEAN of m_i is m (TWI centred on its own mean), so the AOI-mean wetness
-            # still equals the rainfall proxy — kappa only REDISTRIBUTES it spatially. FS is
-            # linear in the per-pixel m_i just as it was in the scalar m. kappa=0 (default)
-            # reproduces the uniform-m build byte-for-byte (the `else` branch is untouched).
+            # Physics layers via the shared fs_real module (single source of truth for
+            # every consumer of "FS at wetness m"): kappa TWI-distribution (§45, kappa=0 =
+            # uniform m, numerically identical to the historical scalar interpolation) and
+            # the optional van Genuchten suction-cohesion curve (§46, absent = linear).
+            # Both are cfg-overridable so the sweeps can test candidates without config edits.
             kappa = float(self.cfg.get("kappa", _CFG.kappa))
+            suction = _CFG.suction
+            if "suction_alpha" in self.cfg:      # sweep override; alpha<=0 disables
+                from config import SuctionConfig
+                a = float(self.cfg["suction_alpha"])
+                suction = (SuctionConfig(a, float(self.cfg["suction_n"])) if a > 0
+                           else None)
+            twi = slope_deg = None
             if kappa:
                 with rasterio.open(HAZ_DIR / f"{stack}_twi.tif") as s:
                     twi = s.read(1)
-                twi_mean = float(np.nanmean(twi))
-                m_field = np.clip(m + kappa * (twi - twi_mean), 0.0, 1.0)
-                m_field = np.where(np.isfinite(twi), m_field, m)  # scalar m where TWI absent
-                self.fs = (1.0 - m_field) * fs_dry + m_field * fs_sat
-                m_desc = f"m={m:.2f} +/- kappa={kappa:g}*(TWI-{twi_mean:.1f})"
+                m_desc = f"m={m:.2f} +/- kappa={kappa:g}*(TWI-{np.nanmean(twi):.1f})"
             else:
-                self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
                 m_desc = f"m={m:.2f}"
+            if suction is not None:
+                with rasterio.open(HAZ_DIR / f"{stack}_slope_deg.tif") as s:
+                    slope_deg = s.read(1)
+                m_desc += f" | vG suction(alpha={suction.alpha_kpa_inv:g},n={suction.n:g})"
+            self.fs = fs_real.fs_field(fs_dry, fs_sat, m, twi, kappa,
+                                       slope_deg, _CFG.soil, suction)
             logger.info(f"[Agent 2: Meteorological Trigger] REAL rainfall {scenario}: "
                         f"day {self.cfg.get('rain_day_mm')} mm, 72h {self.cfg['rainfall_mm_72h']} mm "
                         f"-> saturation {m_desc} -> FS_real=(1-m_i)*FS_dry+m_i*FS_saturated"
@@ -515,6 +523,15 @@ def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None
         fs_dry = s.read(1)
     with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
         fs_sat = s.read(1)
+    # Same physics layers as the standing product (§45 kappa, §46 suction) — the
+    # timeline must not diverge from the footprints it explains (error log 2026-07-13).
+    twi = slope_deg = None
+    if _CFG.kappa:
+        with rasterio.open(HAZ_DIR / f"{stack}_twi.tif") as s:
+            twi = s.read(1)
+    if _CFG.suction is not None:
+        with rasterio.open(HAZ_DIR / f"{stack}_slope_deg.tif") as s:
+            slope_deg = s.read(1)
     dates, rain, mwet = load_wetness()
     trig = trigger_days()
     px_km2 = (abs(auditor.transform.a) / 1000.0) ** 2
@@ -522,7 +539,8 @@ def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None
     rows = []
     for d in dates:
         m = mwet[d]
-        fs = (1.0 - m) * fs_dry + m * fs_sat
+        fs = fs_real.fs_field(fs_dry, fs_sat, m, twi, _CFG.kappa,
+                              slope_deg, _CFG.soil, _CFG.suction)
         labels, n = ndimage.label(creep & np.isfinite(fs) & (fs < FS_FAIL))
         if n:
             sizes = np.bincount(labels.ravel())[1:]

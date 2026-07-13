@@ -2040,12 +2040,14 @@ uniformity. TOPMODEL says wet, convergent terrain saturates first, and we alread
   m_i = clip( m + kappa·(TWI_i − TWI_mean), 0, 1 )     (kappa units 1/TWI)
 
 and FS_real = (1−m_i)·FS_dry + m_i·FS_sat as before (FS still linear in m_i). Because TWI is centred
-on its own mean, the **spatial mean of m_i is exactly m** — kappa only REDISTRIBUTES saturation
-(wet hollows earlier, dry ridges later); the AOI-mean wetness still equals the rainfall proxy, so the
-temporal coupling is untouched. `kappa=0` (default) reproduces the uniform-m footprint byte-for-byte
-(built-in regression gate; the orchestrator `else` branch is the original line verbatim). One new
-config key, swept per site like `operational_m` (§32). TWI is DEM-derived so it is identical across
-a site's stacks — the per-stack mean equals the site-global mean.
+on its own mean, the **spatial mean of m_i equals m up to the clip**: exact at the operational
+points (clip engages on ≤0.002% of pixels), and at the watch points the extreme-TWI tail clips
+(VD m=0.75: 2.9% of pixels, mean shift −0.0015; Ramban m=0.70: 1.7%, −0.0009 — *measured*, deep-verify
+2026-07-13). kappa REDISTRIBUTES saturation (wet hollows earlier, dry ridges later); the AOI-mean
+wetness still equals the rainfall proxy to within those measured slivers, so the temporal coupling is
+untouched. `kappa=0` (default) reproduces the uniform-m footprint byte-for-byte (verified bitwise on
+all 5 stack rasters). One new config key, swept per site like `operational_m` (§32). TWI is
+DEM-derived so it is identical across a site's stacks — the per-stack mean equals the site-global mean.
 
 **The sweep (kappa at each site's operational m, same null-control distance-ROC as §16d/§32).**
 Both AOIs, on independent inventories, peaked at **kappa=0.06** and degraded past ~0.10:
@@ -2099,6 +2101,73 @@ kappa-independent and unchanged. **Supersedes §44's κ=0 rows as the operating 
 the uniform-m record and the ablation ladder both tiers are still judged against.** Suites 10/10 +
 7/7. Artefacts: `rainfall_kappa_report{,_vaishnodevi}.{md,json,png}`, regenerated
 `validation_stats_*`, `backtest_*`, footprints, dashboards.
+
+---
+
+## 46. Van Genuchten suction curve — mechanism SHIPPED, adoption REJECTED (negative result)  `[REAL / MEASURED]`
+
+Source: `workflows/fs_real.py` (NEW shared physics module) + `config.py` (`suction:` block) +
+`rainfall_selectivity_backtest.py --suction/--tag` + `tests/test_fs_real.py` (NEW, 10 checks),
+Docker, 2026-07-13. Science Upgrade Plan #3. **Honest verdict: the nonlinear curve is built,
+verified, and config-gated — but on this data it does NOT beat the linear model, so no site
+enables it. The linear cohesion model stands.**
+
+**Deep-verification of §45 first (same session).** Before building #3, §45's kappa layer was
+re-audited: a grep for every consumer of "FS at wetness m" found **two silent non-consumers**
+(`hazard_timeline` and `watch_triage` still used the uniform-m/intrinsic-m* math — error log
+2026-07-13). Fixed by centralizing ALL of it in the new `fs_real.py`; a 22-check battery on both
+sites then verified: kappa=0 bitwise identity on all 5 stack rasters, the zero-sum property
+(operational m exact; watch m: VD −0.0015 mean shift / 2.9% clip tail, Ramban −0.0009 / 1.7% —
+§45 wording corrected), per-stack cluster counts == standing products, m*_eff FS-crossing roots
+to ±2e-3, and double-build determinism. VD route exposure re-read at the kappa footprint: CORE
+0.80 km unchanged, WATCH 7.92→7.84 km (deliverables stable).
+
+**The mechanism (§46).** Cohesion now *can* follow the van Genuchten / Vanapalli curve instead of
+the linear c_dry→c_wet ramp: ψ(m) = (1/α)·(m^(−1/(1−1/n)) − 1)^(1/n); c(m) = c_wet +
+min(c_dry−c_wet, ψ·m·tanφ′). The min() cap anchors **c(0)=c_dry exactly** (measured dry strength
+bounds what suction can claim) and ψ(1)=0 anchors **c(1)=c_wet exactly** — both engine end-member
+rasters reproduce bit-for-bit, verified. Only cohesion is nonlinear, so FS needs **no engine
+re-run**: FS(m) = linear + Δc(m)·K with K = ∂FS/∂c = 1/(γ·z·sinβ·cosβ) computed from the existing
+slope raster (K=0 on <2° ground, matching the engine's flat-FS=5 override). m* becomes a grid-scan
+root (semantics mirror the closed form: 0=fails dry, 1=never, None=degenerate). Config block
+`suction: {alpha_kpa_inv, n}`; absent = linear (regression gate, bitwise-verified); cfg-overridable
+for sweeps; `tests/test_fs_real.py` pins all invariants (10/10).
+
+**The sweep — 4 literature candidates × full m-re-sweep × 2 sites** (Carsel & Parrish 1988 USDA
+classes bracketing "silty colluvium, >75% fines"; α in 1/kPa; kappa held at the adopted 0.06;
+identical inventory/null protocol; best-over-m per model — each candidate got to re-tune its
+operating point, maximally generous):
+
+| c(m) model | Ramban best (m, zones) | VD best (m, zones) |
+|---|---|---|
+| **linear (standing)** | **0.676** (0.50, 8) | **0.757** (0.40, 14) |
+| vG silty clay loam (α=0.102, n=1.23) | 0.549 (0.70, 2) | 0.669 (0.85, 43) |
+| vG silt loam (α=0.204, n=1.41) | 0.652 (0.50, 3) | 0.745 (0.50, 5) |
+| vG loam (α=0.367, n=1.56) | 0.690 (0.35, 11) | 0.757 (0.25, 11) |
+| vG sandy loam (α=0.765, n=1.89) | 0.542 (0.35, 69) | 0.634 (0.25, 55) |
+
+**Why rejected (the reasoning is the finding):**
+1. **No candidate beats linear at both sites.** The best (loam) gains +0.014 at Ramban — far
+   inside the ±0.04 bootstrap CI (§44) — and exactly ties VD's AUC/spec/lift at a shifted
+   operating point (11 vs 14 zones, different footprint, same score).
+2. **(α,n) are not identifiable from a spatial inventory.** The retention-curve shape largely
+   re-parameterizes the m dial: sweeping m absorbs most of what the curve changes, so the data
+   cannot distinguish curve shapes — it can only re-label which m is "operational". Adopting
+   borrowed parameters would add the plan's own flagged "most new-parameter risk" for zero
+   measured gain.
+3. **Where the curve WOULD show:** the WHEN axis — m* placement vs dated activations — needs
+   per-zone event timing (we have 2 dated in-window events at VD) or an on-site lab retention
+   curve (the standing Part E / §42 field ask, now with one more reason).
+
+**What ships anyway:** the mechanism (config-gated, verified, one line to enable when lab/temporal
+data can identify α,n), the m-sweep upgrade (now defaults to the site's adopted kappa and suction
+— so §32-style re-sweeps always score the physics the standing product ships with), `--tag` so
+experiment sweeps never clobber standing artifacts, and the permanent `tests/test_fs_real.py`.
+**Bonus finding:** the linear-at-kappa=0.06 m-re-sweep independently confirms both sites' current
+operating points (Ramban m=0.50, VD m=0.40) remain AUC-optimal under kappa — the §45 adoption
+needed no operating-point shift. Standing products, configs, and dashboards are UNCHANGED by #3.
+Suites 10/10 + 7/7 + 10/10 (fs_real). Artefacts:
+`rainfall_selectivity_report{,_vaishnodevi}_{k06lin,vgscl,vgsil,vgloam,vgsand}.{json,md,png}`.
 
 ---
 

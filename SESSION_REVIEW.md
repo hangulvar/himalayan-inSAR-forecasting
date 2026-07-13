@@ -11,11 +11,22 @@
 
 ---
 
-# LIVE — Session 21 · branch `aoi-vaishnodevi` · updated 2026-07-13
+# LIVE — Session 22 · branch `aoi-vaishnodevi` · updated 2026-07-13
 
 ## Current state
 
-- **★ NEW (§45, M42) — TWI-distributed saturation, kappa=0.06 ADOPTED (Science Upgrade Plan #2 DONE):**
+- **★ NEW (§46, M43) — van Genuchten suction: mechanism SHIPPED, adoption REJECTED (plan #3 DONE
+  — the science plan's top 3 are now all resolved):** the nonlinear Vanapalli/vG cohesion curve is
+  built in the NEW shared `workflows/fs_real.py` (end-members bit-exact; FS correction rides on the
+  slope raster — no engine re-run; m* by grid-root; config `suction:` block, absent = linear;
+  `tests/test_fs_real.py` 10/10). Swept 4 Carsel & Parrish (α,n) classes × full m-re-sweep × both
+  sites: **none beats linear at both** (best +0.014 Ramban, inside the §44 CI; exact VD tie) —
+  (α,n) are NOT identifiable from a spatial inventory; needs a lab retention curve or dated
+  per-zone failures. Configs/products UNCHANGED. **Same session, the §45 deep-verify found 2 real
+  bugs** — `hazard_timeline` + `watch_triage` silently ignored kappa; fixed by centralizing all
+  wetness→FS physics in fs_real.py, verified by a 22-check battery (error log 2026-07-13). Bonus:
+  the linear κ=0.06 m-re-sweep confirms both operating points (0.50/0.40) remain AUC-optimal.
+- **★ (§45, M42) — TWI-distributed saturation, kappa=0.06 ADOPTED (Science Upgrade Plan #2 DONE):**
   each pixel now gets m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) in the FS_real build (config
   `kappa` key, default 0 = uniform/§44, byte-identical regression gate). Swept via
   `rainfall_selectivity_backtest.py --kappas`; **both AOIs independently peaked at kappa=0.06**.
@@ -61,9 +72,11 @@
 ## Recommended next steps — the product-improvement roadmap (2026-07-10)
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
-**Recommended next session: Science Upgrade Plan #3 — nonlinear van-Genuchten matric-suction curve**
-(`Research/Science Upgrade Plan - Top 3 (2026-07-13).md`; #1 ✅ §44, #2 ✅ §45 (kappa=0.06 adopted) —
-#3 is judged against the same §44 ladder + CIs, on top of the §45 kappa field).
+**The Science Upgrade Plan's top 3 are ALL RESOLVED** (#1 ✅ §44 statistics, #2 ✅ §45 kappa adopted,
+#3 ✅ §46 suction built-but-rejected — an evidence-based negative). Next value per the plan's own
+analysis: the items behind them — lab c_dry/c_wet + retention curve (now doubly motivated, §46),
+per-stack ERA5 reference-pixel QC (§22), and the roadmap items below (radar cadence when July
+passes land; failure-class gap; sub-daily IMERG).
 
 0. **Monsoon watch — now SCHEDULED (2026-07-13, was a manual runbook):** Windows task
    **"InSAR Monsoon Watch Cycle"** runs `workflows/monsoon_cycle.ps1` every 2 days at 08:00 —
@@ -106,24 +119,28 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 
 ## Uncommitted delta
 
-Sessions ≤20 are **all committed** through `0a5943f` (validation statistics §44, M41, plan #1).
+Sessions ≤21 are **all committed** through `4d8e8c7` (TWI-distributed saturation §45, M42, plan #2).
 
-Session 21 (this wrap) — **TWI-distributed saturation (§45, M42, plan #2 — kappa=0.06 adopted):**
-- NEW config key `kappa` (`config.py`, default 0.0 = uniform); `config/{ramban,vaishnodevi}.yaml`
-  set `kappa: 0.06`.
-- MODIFIED: `agentic_orchestrator.py` (FS_real build → per-pixel m_i from TWI when kappa≠0;
-  `else` branch = original line, byte-identical at kappa=0), `rainfall_selectivity_backtest.py`
-  (`--kappas`/`--operational-m` sweep + `write_kappa_outputs`/`_plot_kappa`), `per_zone_gate.py`
-  (m*_eff = clip(m* − kappa·(TWI−TWI_mean),0,1); TWI + m_star_eff columns; kappa in report),
-  `README.md` (headline AUCs + kappa mechanism bullet), `RESULTS_AND_KPIS.md` (§45), plan doc
-  (#2 ✅), `SESSION_REVIEW.md` (this block + roadmap), `error_history_log.md` (Phase-2 staleness
-  gotcha), `milestone.md` (M42), primer (CF12 + Part D Q + Part E update).
-- Verified: κ swept {0,.03,.06,.10,.15,.20}, both sites peak κ=0.06; standing operational+watch
-  footprints rebuilt at κ=0.06 (Phase 4 only — Phase 2/3 untouched); re-scored (backtest +
-  validation_stats) both sites both tiers; dashboards + per-zone regenerated (both WATCH as-of
-  07-07). Suites 10/10 + 7/7.
-- Git-ignored as usual: `session_journey.md` entries (S20+S21), regenerated `data/` artifacts
-  (`validation_stats_*`, `backtest_*`, `rainfall_kappa_*`, footprints, dashboards, per_zone_*).
+Session 22 (this wrap) — **kappa deep-verify + van Genuchten suction (§46, M43, plan #3 —
+mechanism shipped, adoption rejected):**
+- NEW: `workflows/fs_real.py` (ALL wetness→FS physics: m_field/fs_field/m*/m*_eff + the §46
+  suction curve; single source of truth), `tests/test_fs_real.py` (10 physics invariants).
+- MODIFIED: `agentic_orchestrator.py` (MeteorologicalTrigger + hazard_timeline → fs_real; the
+  timeline had silently ignored kappa — BUG, fixed), `watch_triage.py` (ranked by intrinsic m* —
+  BUG, fixed; now m*_eff via fs_real, suction-ready), `per_zone_gate.py` (imports fs_real; m*
+  dispatch), `config.py` (`SuctionConfig`, optional `suction:` block),
+  `rainfall_selectivity_backtest.py` (`--suction`, `--tag`; m-sweep now defaults to the site's
+  adopted kappa+suction so re-sweeps score the standing physics), `RESULTS_AND_KPIS.md` (§46 +
+  §45 zero-sum wording correction), plan doc (#3 ✅ rejected), `README.md` (fs_real + suction
+  bullets), `error_history_log.md` (kappa non-consumer bug class), `milestone.md` (M43), primer
+  (CF13 + Part D negative-result Q + Part E soil update), `SESSION_REVIEW.md` (this block).
+- Verified: 22-check kappa battery both sites (bitwise κ=0, zero-sum/clip quantified, cluster
+  counts == standing products, m*_eff roots, determinism); 28 suction unit checks + 10-test
+  permanent suite; 4 (α,n) candidates × full m-re-sweep × 2 sites → none beats linear at both →
+  configs/standing products UNCHANGED by #3; VD route exposure re-read (CORE 0.80 km unchanged).
+  Suites 10/10 + 7/7 + 10/10.
+- Git-ignored as usual: journey entries (S20–S22), tagged experiment artifacts
+  (`rainfall_selectivity_report*_{k06lin,vg*}`, `alerts_sat*_vg*`), regenerated triage/route files.
 
 ---
 
@@ -188,11 +205,12 @@ The core vision is fully built and scored above chance. Remaining work:
    new site needs its own pass, now recorded in its registry file; **measured to be load-bearing, §42 —
    failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
-1. **Accuracy backlog — now a ranked plan:** see `Research/Science Upgrade Plan - Top 3
+1. **Accuracy backlog — the ranked plan is COMPLETE:** see `Research/Science Upgrade Plan - Top 3
    (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE (§44,
    `validation_stats.py`), ~~(2) TWI-distributed saturation m_i~~ ✅ DONE (§45, kappa=0.06 adopted
-   both sites; broke VD's §44 slope-only tie), (3) nonlinear van-Genuchten suction curve (α,n; fixes
-   m\* placement, judged through #1's statistics on top of the §45 kappa field). Still behind those:
+   both sites; broke VD's §44 slope-only tie), ~~(3) nonlinear van-Genuchten suction curve~~ ✅
+   RESOLVED (§46 — mechanism shipped config-gated, adoption rejected: (α,n) not identifiable from a
+   spatial inventory; linear stands on evidence). Still behind those:
    lab confirmation of c_dry/c_wet; per-stack ERA5 reference-pixel + unwrapping QC (rescue
    frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
@@ -235,14 +253,15 @@ static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 - **Area 6 — Operationalize:** ✅ live rainfall ingestion (done — `live_alarm.py` + runbook); hybrid LLM,
   hosted + union 3-D dashboard.
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
-  #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve remains).
+  #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve BUILT + evaluated §46 —
+  rejected on identifiability, config-gated for when lab/temporal data exists).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
   decorrelation, our worst enemy); operational window from Jul 2026.
 
 **Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19); (2) ✅ physics/data
 upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) ✅ live rainfall
-(`live_alarm.py` + runbook); (5) NISAR ingestion as it matures; (6) susceptibility cross-check +
-nonlinear suction.
+(`live_alarm.py` + runbook); (5) NISAR ingestion as it matures; (6) susceptibility cross-check
+(~~nonlinear suction~~ ✅ resolved §46 — rejected on evidence).
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall, soil moisture, and a
 validated inventory — never trust a single sensor or a single physics assumption.
