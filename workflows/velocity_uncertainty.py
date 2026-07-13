@@ -146,7 +146,8 @@ def main() -> int:
     args = ap.parse_args()
 
     import run_multistack
-    stacks = args.stacks or run_multistack.connected_stacks()
+    from stacks import product_stacks
+    stacks = args.stacks or product_stacks(args.footprint)
     sigma = {s: stack_noise(s) for s in stacks}
     if all(v is None for v in sigma.values()):
         raise SystemExit("No high-passed velocity rasters found — run Phase 2 first.")

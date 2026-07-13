@@ -72,6 +72,35 @@ def _parts_from_label(label: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Standing-product stack lookup
+# ---------------------------------------------------------------------------
+def product_stacks(scenario: str = "operational") -> list[str]:
+    """Stacks behind a site's STANDING union product (its recorded source_stacks).
+
+    The live connectivity snapshot (run_multistack.connected_stacks) is per-run
+    scratch state: it is rewritten by whichever AOI's QA chain ran last, so under
+    multi-AOI operation it can stop listing the stacks THIS site's validated
+    product was built from (error log 2026-07-13: Ramban's per-zone gate found
+    zero zones because the snapshot listed only the VD stacks). Consumers that
+    operate on a standing product must take the stack list from the product
+    itself; only builders of NEW products (run_multistack, the m/soil sweeps)
+    should use the live snapshot. Falls back to the snapshot when no product
+    exists yet (a brand-new AOI).
+    """
+    from config import load_config  # lazy — keep this module import-light
+
+    union = (PROJECT_ROOT / "data" / f"alerts{load_config().data_suffix}"
+             / "mosaic_asc" / f"alerts_{scenario}.json")
+    if union.exists():
+        src = json.loads(union.read_text(encoding="utf-8")).get("source_stacks") or []
+        if src:
+            return list(src)
+    import run_multistack  # lazy — avoids a module-level import cycle
+
+    return run_multistack.connected_stacks()
+
+
+# ---------------------------------------------------------------------------
 # Manifest I/O + lookup
 # ---------------------------------------------------------------------------
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, dict]:

@@ -30,10 +30,11 @@
   hypothesis is REJECTED; playbook M2 stays required (now evidence-backed) and the sweep is a
   standard per-site artifact. Field/lab priority upgraded: depth is the most valuable number a
   site visit can bring back (§42).
-- **The VD site is in WATCH (§35, §38 addendum):** monsoon onset flipped DORMANT → WATCH 07-04, all
-  vulnerable zones active, 0 ALERT days. **Keep running `live_alarm.py` every 2–3 days** per
-  `Research/Monsoon Watch Runbook (2026-07-11).md`. ⚠ `aoi_status` flagged **Ramban's live-season
-  rainfall 15 d stale** (§41) — same two commands with `-e INSAR_CONFIG=config/ramban.yaml` refresh it.
+- **BOTH sites are in WATCH (as-of 2026-07-06):** VD since 07-04 (§35, §38 addendum; 21/21 zones,
+  0 ALERT days) and — surfaced when the broken chain was healed 2026-07-13 — **Ramban too**
+  (m=0.74, 12/12 zones active; 4 ALERT days back in April 2026). **Keep running `live_alarm.py`
+  every 2–3 days for each site** per `Research/Monsoon Watch Runbook (2026-07-11).md` (Ramban
+  variant: `-e INSAR_CONFIG=config/ramban.yaml`); the earlier Ramban 15-d staleness flag is cleared.
 - **Radar side (§35):** July S1 passes still not at ASF as of 07-10 (latest scenes 18–23 Jun) — the
   operational chains (f103/f105) can't extend yet; backfilled 2 Mar scene densified f101/f106 baseline;
   regenerated cascade reproduces §32 exactly; `coherence_watch` OK/quiet.
@@ -125,6 +126,13 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   `per_zone_gate.py` followed the live shared connectivity snapshot instead of the standing
   product's `source_stacks` — Ramban's live alarm had been silently broken since the 07-10 VD
   radar cycle; fixed with `product_stacks()` (VD unchanged).
+- Snapshot-consumer follow-up (2026-07-13): `product_stacks(scenario)` extracted to `stacks.py`
+  (shared, scenario-aware); all five standing-product consumers switched (`per_zone_gate`,
+  `coherence_watch`, `watch_triage`, `velocity_uncertainty`, `polygon_stats`; builders keep the
+  live snapshot by design). Verified in-container for BOTH sites — Ramban's live alarm chain runs
+  again end-to-end (§21b/§23/§25 values reproduced; dashboard regenerated as-of 07-06, now
+  **WATCH, 12/12 zones active** — it had sat on a stale June DORMANT while broken); VD outputs
+  unchanged (105 watch / 21 operational zones; coherence_watch OK; polygon_stats 2-track HIGH).
 - Git-ignored as usual: `session_journey.md` entries, `data/aoi_status.{html,json}`,
   `data/inventory/soil_sensitivity_*`.
 

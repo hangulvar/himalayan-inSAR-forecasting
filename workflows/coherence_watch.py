@@ -44,8 +44,7 @@ from pyproj import Transformer  # noqa: E402
 
 from config import load_config  # noqa: E402
 from polygon_stats import read_polygons  # noqa: E402
-from run_multistack import connected_stacks  # noqa: E402
-from stacks import load_manifest  # noqa: E402
+from stacks import load_manifest, product_stacks  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _CFG = load_config()
@@ -67,7 +66,7 @@ def stack_products(max_pair_days: int) -> dict[str, list[dict]]:
     """{stack: [{product, date1, date2}] date-sorted} for the connected stacks,
     keeping only shortest-baseline pairs whose corr.tif exists on disk."""
     manifest = load_manifest()
-    out: dict[str, list[dict]] = {s: [] for s in connected_stacks()}
+    out: dict[str, list[dict]] = {s: [] for s in product_stacks()}
     for product, entry in manifest.items():
         stack = entry.get("stack")
         if stack not in out:

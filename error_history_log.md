@@ -48,6 +48,15 @@ This log tracks major environment issues, package conflicts, system quirks, and 
   `source_stacks`) from the product itself. Same failure family as the hardcoded-183 test constant
   (2026-07-12): single-site assumptions hiding in shared state.
 
+* **Follow-up (same day):** the same exposure existed in the four other standing-product consumers —
+  `coherence_watch.py`, `watch_triage.py`, `velocity_uncertainty.py`, `polygon_stats.py` (all
+  correct for VD today, silently wrong after any other AOI's QA run). Fixed centrally: the helper
+  moved to `stacks.py` as the shared `product_stacks(scenario)` (scenario-aware — watch_triage and
+  velocity_uncertainty pass their `--footprint`), all five consumers now import it;
+  `run_multistack.py` and the m/soil sweeps intentionally keep the live snapshot (they BUILD new
+  products). Verified: helper returns each site's own stacks under both configs; both sites'
+  triage/uncertainty chains + Ramban's live_alarm run end-to-end in-container.
+
 ---
 
 ### [2026-07-12] test_plumbing pinned the product count to 183 — stale since the VD pull (caught by the regression run)

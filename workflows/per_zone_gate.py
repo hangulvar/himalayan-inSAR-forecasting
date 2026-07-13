@@ -65,28 +65,9 @@ def tier_of(mstar: float) -> str:
     return TIERS[-1][1]
 
 
-def connected_stacks() -> list[str]:
-    import run_multistack
-    return run_multistack.connected_stacks()
-
-
-def product_stacks() -> list[str]:
-    """Stacks behind the STANDING union operational product (its source_stacks).
-
-    The live connectivity snapshot (run_multistack.connected_stacks) tracks the
-    CURRENT shared qa_masks network state, which changes whenever another AOI's
-    radar cycle re-runs the QA chain — under multi-AOI operation it can stop
-    listing the stacks this site's validated product was built from (error log
-    2026-07-13: Ramban's gate found zero zones because the snapshot listed only
-    the VD stacks). Gating must follow the standing product, so read the stack
-    list off the union alerts file and fall back to the snapshot only when no
-    product exists yet."""
-    union = ALERTS_DIR / "mosaic_asc" / "alerts_operational.json"
-    if union.exists():
-        src = json.loads(union.read_text(encoding="utf-8")).get("source_stacks") or []
-        if src:
-            return src
-    return connected_stacks()
+# Standing-product stack list (NOT the live connectivity snapshot — see the
+# shared helper's docstring + error log 2026-07-13).
+from stacks import product_stacks  # noqa: E402
 
 
 def load_daily(csv_path: Path):

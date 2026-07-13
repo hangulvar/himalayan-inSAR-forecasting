@@ -39,7 +39,8 @@ import rasterio  # noqa: E402
 from config import load_config                                  # noqa: E402
 from per_zone_gate import critical_saturation, tier_of          # m* + vulnerability tier (§19)
 from velocity_uncertainty import stack_noise, confidence        # noise floor + P (§24)
-from run_multistack import MERGE_DEG, connected_stacks          # union-merge distance + stacks
+from run_multistack import MERGE_DEG                            # union-merge distance
+from stacks import product_stacks                               # standing-product stacks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
@@ -121,7 +122,7 @@ def main() -> int:
     ap.add_argument("--top", type=int, default=15, help="Rows to show in the .md report.")
     args = ap.parse_args()
 
-    stacks = args.stacks or connected_stacks()
+    stacks = args.stacks or product_stacks(args.footprint)
     rows = collect(stacks, args.footprint)
     if not rows:
         raise SystemExit(f"No '{args.footprint}' zones found — run run_multistack.py first.")

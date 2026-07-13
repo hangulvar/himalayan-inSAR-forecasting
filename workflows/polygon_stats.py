@@ -26,7 +26,7 @@ from rasterio.features import geometry_mask
 from pyproj import Transformer
 
 from config import load_config
-from run_multistack import connected_stacks
+from stacks import product_stacks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _CFG = load_config()
@@ -83,7 +83,7 @@ def main() -> int:
     polys = read_polygons(Path(args.polygons))
     if not polys:
         raise SystemExit(f"No polygons found in {args.polygons}")
-    stacks = connected_stacks()
+    stacks = product_stacks()
 
     with rasterio.open(MOSAIC_DIR / "MOSAIC_ASC_hazard_class.tif") as src:
         haz = src.read(1)
