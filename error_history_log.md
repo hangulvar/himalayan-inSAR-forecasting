@@ -23,6 +23,26 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-13] PowerShell 5.1 breaks on BOM-less UTF-8 .ps1 with em-dashes (monsoon_cycle.ps1 parser error)
+
+* **Symptom:** first run of the new `workflows/monsoon_cycle.ps1` died with
+  `ParserError: The string is missing the terminator: "` pointing at the last line — a line with
+  perfectly balanced quotes.
+
+* **Root Cause:** the file was written as UTF-8 **without BOM**. Windows PowerShell 5.1 reads
+  BOM-less scripts as ANSI/cp1252, so each em-dash (`—`, bytes E2 80 94) decodes to `â€`+**0x94 =
+  a cp1252 smart double-quote** — a QUOTE character to the parser. Every em-dash inside a string
+  toggled string state; the "missing terminator" surfaced at EOF, far from the real cause.
+
+* **Resolution:** script rewritten ASCII-only (em/en-dashes → `-`) AND saved with a UTF-8 BOM
+  (either alone fixes it; both = belt and braces). Runs clean.
+
+* **Lesson:** any `.ps1` this repo generates must be ASCII-clean or BOM'd — the prose habit of
+  em-dashes is a live syntax hazard in PowerShell 5.1 (this is the shell Task Scheduler invokes,
+  regardless of what wrote the file).
+
+---
+
 ### [2026-07-13] per_zone_gate followed the LIVE connectivity snapshot, not the standing product — Ramban's live alarm broke silently after VD's radar cycle
 
 * **Symptom:** `live_alarm.py` (insar stage) for Ramban aborted: `per_zone_gate.py` exited with

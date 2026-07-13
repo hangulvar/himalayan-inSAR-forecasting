@@ -63,10 +63,12 @@
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
 
-0. **Monsoon watch (user, minutes, every 2–3 days) — now a runbook:** site in WATCH, m=1.00 (§38
-   addendum). Follow `Research/Monsoon Watch Runbook (2026-07-11).md` (mintpy fetch → insar alarm;
-   watch the dashboard; escalate per the field briefs if ALERT fires or `coherence_watch` flags a
-   DROP after a storm).
+0. **Monsoon watch — now SCHEDULED (2026-07-13, was a manual runbook):** Windows task
+   **"InSAR Monsoon Watch Cycle"** runs `workflows/monsoon_cycle.ps1` every 2 days at 08:00 —
+   both sites, fetch → alarm → status board, toast ONLY on ALERT/state-change/failure; season-gated
+   Apr–Oct. User's job shrinks to: react to a toast (dashboard, then the runbook's escalation
+   section — field briefs / `coherence_watch` after storms). Manual commands in
+   `Research/Monsoon Watch Runbook (2026-07-11).md` stay valid as the fallback.
 1. **Radar cadence (agent, ~1 cmd/2 weeks):** cycle ran 2026-07-10 (§35) — July S1 passes still absent;
    when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack → route_exposure →
    live_alarm → coherence_watch. Every cycle lengthens the chains and drops the σ_v noise floor.
@@ -126,6 +128,10 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   `per_zone_gate.py` followed the live shared connectivity snapshot instead of the standing
   product's `source_stacks` — Ramban's live alarm had been silently broken since the 07-10 VD
   radar cycle; fixed with `product_stacks()` (VD unchanged).
+- Monsoon-cycle automation (2026-07-13, ERRC "Eliminate"): NEW `workflows/monsoon_cycle.ps1` +
+  Windows scheduled task "InSAR Monsoon Watch Cycle" (every 2 days 08:00; both sites; Docker
+  auto-start; toast only on ALERT/state-change/failure; Apr–Oct season gate; state memory in
+  git-ignored `logs/monsoon_state.json`); runbook + roadmap item 0 updated.
 - Snapshot-consumer follow-up (2026-07-13): `product_stacks(scenario)` extracted to `stacks.py`
   (shared, scenario-aware); all five standing-product consumers switched (`per_zone_gate`,
   `coherence_watch`, `watch_triage`, `velocity_uncertainty`, `polygon_stats`; builders keep the
