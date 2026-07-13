@@ -49,18 +49,25 @@ DEFAULT_INVENTORY = (INV_DIR / "gsi_inventory_aoi.geojson" if _CFG.aoi_slug == "
 DEFAULT_SATURATIONS = [0.25, 0.4, 0.55, 0.7, 0.85, 1.0]
 
 
-def build_stack_alerts(stack: str, m: float, scen: str, kappa: float = 0.0,
+def build_stack_alerts(stack: str, m: float, scen: str, kappa: float | None = None,
                        suction: tuple[float, float] | None = None) -> int:
     """Build the per-stack alert zones at saturation m (optionally TWI-distributed by
     kappa §45, optionally under a van Genuchten suction candidate (alpha,n) §46) and
-    write them where run_multistack.union_alerts expects them. Returns the zone count."""
+    write them where run_multistack.union_alerts expects them. Returns the zone count.
+
+    kappa=None / suction=None mean "the site config's adopted value" — callers that do
+    not explicitly sweep a layer ALWAYS build with the standing product's physics (the
+    §45 non-consumer bug class, error log 2026-07-13: the soil sweep silently built at
+    kappa=0 until this default). An explicit kappa (including 0.0) overrides."""
     auditor = orch.InSARAuditor(stack, use_vslope=False)
     cfg = {"name": scen, "rainfall_mm_72h": 0, "saturation": round(m, 3),
-           "kappa": kappa, "fs_layer": "FS_real"}
-    if suction is not None:                       # explicit candidate (alpha<=0 = OFF);
+           "fs_layer": "FS_real"}
+    if kappa is not None:                         # explicit sweep value (0.0 = OFF)
+        cfg["kappa"] = kappa
+    if suction is not None:                       # explicit candidate (alpha<=0 = OFF)
         cfg["suction_alpha"], cfg["suction_n"] = suction
-    # no keys -> the orchestrator falls back to the site config's suction block, so a
-    # plain m-sweep always scores the SAME physics the standing product ships with.
+    # absent keys -> the orchestrator falls back to the site config (kappa / suction),
+    # so a plain sweep always scores the SAME physics the standing product ships with.
     met = orch.MeteorologicalTrigger(stack, scen, cfg)
     reasoner = orch.CascadingReasoner(stack, auditor)
     creep = auditor.creep_mask(orch.VEL_CREEP_THR)

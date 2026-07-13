@@ -1550,9 +1550,10 @@ season saturates an AOI-wide gate); and lab-confirmed soil parameters — the se
 corroborated by published site studies (§37), but nothing has been measured on-site for this project.
 
 **Q: Your soil parameters come from literature, not measurement — how do you know they don't drive the result?**
-A: Because we measured exactly that (§42). We swept every soil parameter across its
+A: Because we measured exactly that (§42) — and re-measured it after upgrading the wetness physics
+(§47), where the verdict held and sharpened. We swept every soil parameter across its
 literature-plausible range and re-scored the operational alert map at each setting: the footprint
-swung from 125 zones to zero, and in-range values of soil depth alone can erase the product. So the
+swung from ~120 zones to zero, and in-range values of soil depth alone can erase the product. So the
 honest answer is: they DO drive the result — which is why the per-site soil pass is a required,
 documented step with provenance recorded in each site's config, why we ran this sensitivity sweep
 at all, and why a field-measured soil depth is our top-priority ground-truth item. The wrong answer

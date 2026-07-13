@@ -86,12 +86,15 @@ Step 1 green and the next command.
 
 The infinite-slope engine needs shear-strength parameters (`c_dry`, `c_wet`, φ,
 γ, depth). **Do not silently inherit another site's values** — and this is now
-**measured, not just principled** (§42): across the literature-plausible bracket
-the operational footprint swings 0–125 zones, and in-bracket depth/cohesion
-values can erase the alert product entirely. **Failure depth z is the single
-most load-bearing number** — prioritize pinning it. Re-tuning the operating
-point m cannot substitute (soil strength and m are degenerate spatially, but the
-rainfall→m→FS WHEN-gate calibration needs soils to be physically right, §42).
+**measured, not just principled** (§42, re-confirmed on the kappa=0.06 physics
+§47): across the literature-plausible bracket the operational footprint swings
+0–118 zones (0–125 pre-kappa), and in-bracket depth/cohesion values can erase
+the alert product entirely. **Failure depth z is the single most load-bearing
+number** — prioritize pinning it. Re-tuning the operating point m (or kappa)
+cannot substitute (soil strength and m are degenerate spatially, but the
+rainfall→m→FS WHEN-gate calibration needs soils to be physically right,
+§42/§47 — under kappa the config baseline is the envelope's best scorer, so the
+tuned operating point is calibrated to *these* soils specifically).
 
 Process (as done for VD, §37):
 

@@ -1041,3 +1041,28 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   changed and centralize before editing — the §45 review's "one point change" was only true of the
   standing product path. Any future layer (van Genuchten suction is next) goes into fs_real.py, and
   its consumers stay import-only.
+
+### [2026-07-13] Third kappa non-consumer: soil_sensitivity_sweep rebuilt alerts at kappa=0 through a default argument
+
+* **Symptom:** none visible until the §42 sweep would next run — found by reading the tool before
+  re-running it on the kappa=0.06 product. `soil_sensitivity_sweep.py` calls
+  `rainfall_selectivity_backtest.build_stack_alerts(s, m_op, scen)` whose `kappa` parameter
+  DEFAULTED to 0.0 and was written into the scenario cfg explicitly — so every soil combo (and its
+  baseline sanity gate) would have been built at kappa=0, silently mismatching the standing
+  product (the gate would flag 21 vs 14 zones at VD, but only at run time).
+
+* **Root Cause:** same bug class as the fs_real centralization entry above, one call level deeper:
+  the physics layer was threaded as an OPTIONAL ARGUMENT whose default ("0.0") encoded a physics
+  choice instead of "inherit the site's adopted value". Every caller that didn't know about the
+  new layer silently opted out of it.
+
+* **Resolution:** `build_stack_alerts` now takes `kappa=None` / `suction=None` meaning "the site
+  config's adopted value" — the cfg key is only set when a sweep explicitly overrides (0.0 remains
+  a valid explicit override). The soil sweep inherits the standing physics with no change to its
+  own code; its baseline gate then reproduces the canonical product exactly (VD: 14 zones,
+  AUC 0.757, verified 2026-07-13; FS rasters checksum-restored).
+
+* **Lesson:** a physics layer must never be an optional argument with a value-default. Defaults
+  encode "no opinion", so they must mean "whatever the site config says" (None-sentinel), not a
+  particular physics setting. When adding a layer, audit every CALLER of the build path, not just
+  every copy of the math.

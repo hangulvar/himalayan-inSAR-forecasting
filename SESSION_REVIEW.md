@@ -11,11 +11,22 @@
 
 ---
 
-# LIVE — Session 22 · branch `aoi-vaishnodevi` · updated 2026-07-13
+# LIVE — Session 23 · branch `aoi-vaishnodevi` · updated 2026-07-13
 
 ## Current state
 
-- **★ NEW (§46, M43) — van Genuchten suction: mechanism SHIPPED, adoption REJECTED (plan #3 DONE
+- **★ NEW (§47) — the §42 soil verdict re-measured on the kappa=0.06 product: HOLDS and SHARPENS,
+  now at BOTH sites.** VD: z=1/2 m still erase the product, φ=43° now does too, 0–118 zone swing,
+  and the config baseline is the envelope's BEST scorer (the κ-tuned operating point is calibrated
+  to these soils specifically). Ramban's FIRST soil sweep (2026-07-14) independently confirms —
+  even with GSI field-calibrated soils: z=1/2 m/φ=43°/c_dry=27.5 all erase it, 0–255 zone swing.
+  Playbook M2 stays required, cites §42/§47; both sites carry a standing sensitivity artifact.
+  Found+fixed a THIRD kappa non-consumer first: `build_stack_alerts`'s `kappa=0.0` default (the
+  soil sweep would have built at κ=0); `kappa=None`/`suction=None` now mean "site config's adopted
+  value" (error log 2026-07-13 — lesson: a physics layer must never be an optional arg with a
+  value-default). Both sweeps' baseline gates reproduce the canonical products exactly; FS rasters
+  checksum-restored; suites 10/10 + 7/7 + 10/10.
+- **★ (§46, M43) — van Genuchten suction: mechanism SHIPPED, adoption REJECTED (plan #3 DONE
   — the science plan's top 3 are now all resolved):** the nonlinear Vanapalli/vG cohesion curve is
   built in the NEW shared `workflows/fs_real.py` (end-members bit-exact; FS correction rides on the
   slope raster — no engine re-run; m* by grid-root; config `suction:` block, absent = linear;
@@ -119,9 +130,21 @@ passes land; failure-class gap; sub-daily IMERG).
 
 ## Uncommitted delta
 
-Sessions ≤21 are **all committed** through `4d8e8c7` (TWI-distributed saturation §45, M42, plan #2).
+Sessions ≤22 are **all committed** through `1ca8744` (van Genuchten §46, M43, plan #3).
 
-Session 22 (this wrap) — **kappa deep-verify + van Genuchten suction (§46, M43, plan #3 —
+Session 23 (this wrap) — **§42 soil verdict refreshed at kappa=0.06 (§47) + third non-consumer fix:**
+- MODIFIED: `workflows/rainfall_selectivity_backtest.py` (`build_stack_alerts` kappa/suction
+  None-defaults = inherit site config; explicit values incl. 0.0 override), `RESULTS_AND_KPIS.md`
+  (§47), `error_history_log.md` (value-default lesson), `NEW_AOI_PLAYBOOK.md` (M2 cites §42/§47),
+  primer (Part D soil Q cites §47), `SESSION_REVIEW.md` (this block).
+- Verified: BOTH sweeps' baseline gates reproduce the canonical products exactly (VD 14/0.757 —
+  pre-fix it would have built 21 at κ=0; Ramban 8/0.676); FS rasters checksum-restored both sites;
+  standing products untouched; suites re-run green 10/10 + 7/7 + 10/10. (A harness classifier
+  outage split the session across midnight — Ramban's sweep + the suite re-run completed 07-14.)
+- Git-ignored as usual: journey entry (S23), refreshed `soil_sensitivity_report_vaishnodevi.*`,
+  NEW `soil_sensitivity_report.*` (Ramban), sweep scratch `alerts_soil_*.json`.
+
+Session 22 (committed `1ca8744`) — **kappa deep-verify + van Genuchten suction (§46, M43, plan #3 —
 mechanism shipped, adoption rejected):**
 - NEW: `workflows/fs_real.py` (ALL wetness→FS physics: m_field/fs_field/m*/m*_eff + the §46
   suction curve; single source of truth), `tests/test_fs_real.py` (10 physics invariants).

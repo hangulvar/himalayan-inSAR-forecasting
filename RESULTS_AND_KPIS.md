@@ -2171,6 +2171,58 @@ Suites 10/10 + 7/7 + 10/10 (fs_real). Artefacts:
 
 ---
 
+## 47. Soil-sensitivity verdict re-measured on the kappa=0.06 product — still load-bearing  `[REAL / MEASURED]`
+
+Source: `workflows/soil_sensitivity_sweep.py` (unchanged tool) + a one-default fix in
+`rainfall_selectivity_backtest.build_stack_alerts`, Docker, 2026-07-13. **Why:** §42's headline
+("the soil pass is load-bearing; failure depth z can erase the product") was measured on the
+pre-kappa footprint (21 zones, AUC 0.707). §45 changed the physics and the footprint (14 zones,
+0.757) — a product-critical claim (playbook M2's justification) should not rest on a superseded
+build.
+
+**A third kappa non-consumer found first (error log 2026-07-13):** reading the tool before
+re-running it caught `build_stack_alerts`'s `kappa=0.0` DEFAULT — the soil sweep (and any future
+caller that didn't opt in) would have rebuilt alerts at kappa=0, silently mismatching the standing
+product. Fixed at the root: `kappa=None`/`suction=None` now mean "the site config's adopted value";
+an explicit value (including 0.0) overrides. The sweep's own baseline sanity gate then reproduces
+the canonical product exactly (14 zones, AUC 0.757) — which it would NOT have, pre-fix.
+
+**VD re-sweep at kappa=0.06 (same §37 envelope, n=46 inventory, null seed 20260606; FS rasters
+checksum-restored):**
+
+| combo | zones | AUC | ΔAUC | §42 (κ=0) zones |
+|---|---|---|---|---|
+| **baseline (config)** | **14** | **0.757** | — | 21 |
+| φ=32° | 24 | 0.696 | −0.061 | 36 |
+| φ=40° | 1 | 0.598 | −0.159 | 11 |
+| φ=43° / c_dry=27.5 / **z=1 m / z=2 m** / strongest | **0** | — | product vanishes | 0 (φ43: 6) |
+| c_dry=4.9 kPa | 90 | 0.609 | −0.148 | 97 |
+| c_wet=4.5 kPa | 14 | 0.757 | ±0 (identical) | 21 |
+| c_wet=7.9 kPa | 7 | 0.545 | −0.212 | 12 |
+| γ=17 / γ=21 kN/m³ | 2 / 16 | 0.457 / 0.720 | −0.300 / −0.037 | 12 / 27 |
+| weakest corner | 118 | 0.543 | −0.214 | 125 |
+
+**The §42 verdict HOLDS and SHARPENS under kappa:** footprint range 0–118 zones (was 0–125);
+**z=1 m and z=2 m still erase the product entirely**; φ=43° now erases it too (was 6 zones); max
+|ΔAUC| where scoreable grew 0.173 → **0.300**. One new fact: the config baseline is now the
+**best-scoring combo in the envelope** (in §42, φ=40° out-scored it 0.752 vs 0.707) — the
+kappa-tuned operating point is calibrated to *these* soils specifically, so the M2 verdict
+strengthens: the soil pass stays required, depth z remains the #1 field number, and re-tuning
+m/kappa cannot substitute for physically-right soils.
+
+**Ramban's FIRST soil sweep (2026-07-14, same envelope, n=138 GSI inventory) independently
+confirms it** — even at the site whose soils are GSI *field-calibrated* (§20): baseline gate
+reproduces the canonical product exactly (8 zones, AUC 0.676); **z=1 m / z=2 m / φ=43° /
+c_dry=27.5 / strongest all erase the product (0 zones)**; the weakest corner balloons it to 255
+zones (AUC 0.468); footprint range **0–255**, max |ΔAUC| where scoreable 0.208; γ=21 is the only
+combo to nudge above baseline (0.693, +0.017 — inside the §44 CI). Both sites now carry a
+standing `soil_sensitivity_report_<slug>.*` at the current physics.
+
+Playbook M2 updated to cite §42/§47. Standing products untouched at both sites (canonical zones
+verified before/after; checksum restores OK). Suites 10/10 + 7/7 + 10/10.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
