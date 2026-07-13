@@ -1,6 +1,20 @@
-# Monsoon Watch Runbook — re-run every 2–3 days
+# Monsoon Watch Runbook — now SCHEDULED (manual steps kept as the fallback)
 
-Quick reference for keeping the live alarm current while the Vaishno Devi site is in WATCH/ALERT
+> **⏰ Automated since 2026-07-13 (ERRC "Eliminate"):** the whole loop below runs by itself as the
+> Windows scheduled task **"InSAR Monsoon Watch Cycle"** — every 2 days at 08:00, both sites
+> (VD + Ramban), via `workflows/monsoon_cycle.ps1`. It starts Docker if needed, refreshes both
+> alarms + the status board (`data/aoi_status.html`), logs to `logs/monsoon_cycle_<date>.log`, and
+> **raises a Windows toast only when a human is needed** (a site enters ALERT, any state change, or
+> a failed chain). Season-gated Apr–Oct; off-season runs exit silently.
+>
+> - Check it: `Get-ScheduledTaskInfo -TaskName 'InSAR Monsoon Watch Cycle'`
+> - Run now: `Start-ScheduledTask -TaskName 'InSAR Monsoon Watch Cycle'`
+> - Disable (post-monsoon): `Disable-ScheduledTask -TaskName 'InSAR Monsoon Watch Cycle'`
+>
+> Your remaining job on a toast: open the dashboard, and if it's an ALERT follow the escalation
+> section below. The manual commands remain valid any time (everything is idempotent).
+
+Quick reference for keeping the live alarm current while a site is in WATCH/ALERT
 (§35/§38). Two steps: refresh rainfall, then check what changed. Takes under 2 minutes of your time
 (the commands do the work). Run from the project root; Docker Desktop must be running.
 

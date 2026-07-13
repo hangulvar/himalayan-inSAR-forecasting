@@ -80,6 +80,38 @@ def test_data_suffix_separation_rules() -> None:
         )
 
 
+def test_product_stacks_follow_each_sites_standing_product() -> None:
+    """stacks.product_stacks() must return the site's OWN product stacks — read
+    from its union alerts file — never the live shared connectivity snapshot
+    (the 2026-07-13 multi-AOI bug class: the snapshot follows whichever AOI's
+    QA chain ran last)."""
+    import json
+    import os
+
+    from stacks import product_stacks
+
+    prev = os.environ.get("INSAR_CONFIG")
+    try:
+        for p in _registry_paths():
+            cfg = load_config(p)
+            union = (PROJECT_ROOT / "data" / f"alerts{cfg.data_suffix}"
+                     / "mosaic_asc" / "alerts_operational.json")
+            if not union.exists():
+                continue  # brand-new AOI without a product yet: nothing to pin
+            expected = json.loads(union.read_text(encoding="utf-8"))["source_stacks"]
+            os.environ["INSAR_CONFIG"] = str(p)
+            got = product_stacks()
+            assert got == expected, (
+                f"{p.name}: product_stacks() returned {got}, but the site's "
+                f"standing product records {expected}"
+            )
+    finally:
+        if prev is None:
+            os.environ.pop("INSAR_CONFIG", None)
+        else:
+            os.environ["INSAR_CONFIG"] = prev
+
+
 def test_soil_defaults_are_the_ramban_calibration() -> None:
     """A config WITHOUT a soil: block must land exactly on the Ramban-calibrated
     engine values (§20) — the guarantee that adding SoilConfig changed nothing

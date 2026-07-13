@@ -131,7 +131,11 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
 - Monsoon-cycle automation (2026-07-13, ERRC "Eliminate"): NEW `workflows/monsoon_cycle.ps1` +
   Windows scheduled task "InSAR Monsoon Watch Cycle" (every 2 days 08:00; both sites; Docker
   auto-start; toast only on ALERT/state-change/failure; Apr–Oct season gate; state memory in
-  git-ignored `logs/monsoon_state.json`); runbook + roadmap item 0 updated.
+  git-ignored `logs/monsoon_state.json`); runbook + roadmap item 0 updated. Hardened same day:
+  stops Docker after the cycle if it started it (and nothing else is using it) so vmmem doesn't
+  sit resident between cycles; 60-day log pruning; full regression battery green (10/10 + 7/7
+  incl. new product_stacks test; engine byte-idempotent; VD AUC 0.707 = post-§39 inventory,
+  supersedes 0.696/n=41); all manual paths verified intact.
 - Snapshot-consumer follow-up (2026-07-13): `product_stacks(scenario)` extracted to `stacks.py`
   (shared, scenario-aware); all five standing-product consumers switched (`per_zone_gate`,
   `coherence_watch`, `watch_triage`, `velocity_uncertainty`, `polygon_stats`; builders keep the
