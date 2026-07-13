@@ -138,6 +138,9 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   sit resident between cycles; 60-day log pruning; full regression battery green (10/10 + 7/7
   incl. new product_stacks test; engine byte-idempotent; VD AUC 0.707 = post-§39 inventory,
   supersedes 0.696/n=41); all manual paths verified intact.
+- Science-upgrade plan (2026-07-13): NEW `Research/Science Upgrade Plan - Top 3 (2026-07-13).md`
+  (validation statistics → distributed saturation → van Genuchten suction; each with math,
+  acceptance criteria, and the considered-and-rejected list); STABLE §3 item 1 now points at it.
 - Bperp-gate batch (2026-07-13, §43): `sbas_network_graph.py` — `max_perp_baseline_m` enforced as
   the 4th rescue-gate criterion (offline via the Bperp cache; unknown → flagged); registry-config
   comments updated; f106 151 m bridge swap QUEUED (not applied) for the next radar rebuild.
@@ -214,8 +217,12 @@ The core vision is fully built and scored above chance. Remaining work:
    new site needs its own pass, now recorded in its registry file; **measured to be load-bearing, §42 —
    failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
-1. **Accuracy backlog:** nonlinear van-Genuchten suction curve; lab confirmation of c_dry/c_wet;
-   per-stack ERA5 reference-pixel + unwrapping QC (rescue frame102/101, §22).
+1. **Accuracy backlog — now a ranked plan:** see `Research/Science Upgrade Plan - Top 3
+   (2026-07-13).md` — (1) bootstrap CIs + ablation-baseline ladder for every skill claim,
+   (2) TWI-distributed saturation m_i (one swept κ; κ=0 = today), (3) nonlinear van-Genuchten
+   suction curve (α,n; fixes m\* placement, judged through #1's statistics). Still behind those:
+   lab confirmation of c_dry/c_wet; per-stack ERA5 reference-pixel + unwrapping QC (rescue
+   frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
    decomposition (DEFERRED — needs better DESC: longer connected series / PS / phase-linking).
 3. **Make it live / smarter:** ✅ live rainfall ingestion DONE (`live_alarm.py` incremental ERA5-Land
