@@ -21,6 +21,12 @@ site_name: Ramban NH-44
 # Warning-tier operating points: Ramban uses the calibrated defaults
 # (operational_m 0.50, watch_m 0.70 — §21b/§23), so the keys are omitted.
 
+# TWI-distributed saturation slope (§45, Science Upgrade Plan #2): m_i = clip(m +
+# kappa*(TWI_i - TWI_mean), 0, 1) — wet convergent terrain saturates first. Swept vs the GSI
+# inventory like m; both AOIs independently peaked at kappa=0.06 (Ramban ALERT AUC
+# 0.640->0.676; WATCH held). kappa=0 reproduces the uniform-m footprint exactly.
+kappa: 0.06
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix.

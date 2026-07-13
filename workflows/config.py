@@ -70,6 +70,7 @@ class Config:
     site_name: str
     operational_m: float
     watch_m: float
+    kappa: float
     job_name_prefix: str
     search_start: datetime
     search_end: datetime
@@ -168,6 +169,12 @@ def load_config(path: str | Path | None = None) -> Config:
         # ramban-calibrated values, so configs without these keys are unchanged.
         operational_m=float(raw.get("operational_m", 0.50)),
         watch_m=float(raw.get("watch_m", 0.70)),
+        # TWI-distributed saturation slope (Science Upgrade Plan #2, §45): each pixel's
+        # saturation is m_i = clip(m + kappa*(TWI_i - TWI_mean), 0, 1) instead of a uniform
+        # m. kappa (units 1/TWI) is swept per site like operational_m; DEFAULT 0.0 exactly
+        # reproduces the uniform-m behavior (a built-in regression gate), so a config without
+        # this key is numerically unchanged.
+        kappa=float(raw.get("kappa", 0.0)),
         job_name_prefix=str(raw["job_name_prefix"]),
         search_start=_to_utc(raw["search_start"]),
         search_end=_to_utc(raw["search_end"]),

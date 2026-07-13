@@ -195,10 +195,27 @@ class MeteorologicalTrigger:
                 fs_dry = s.read(1)
             with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
                 fs_sat = s.read(1)
-            self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
+            # TWI-distributed saturation (§45): wet, convergent terrain (high TWI) saturates
+            # first, so give each pixel m_i = clip(m + kappa*(TWI_i - TWI_mean), 0, 1). The
+            # spatial MEAN of m_i is m (TWI centred on its own mean), so the AOI-mean wetness
+            # still equals the rainfall proxy — kappa only REDISTRIBUTES it spatially. FS is
+            # linear in the per-pixel m_i just as it was in the scalar m. kappa=0 (default)
+            # reproduces the uniform-m build byte-for-byte (the `else` branch is untouched).
+            kappa = float(self.cfg.get("kappa", _CFG.kappa))
+            if kappa:
+                with rasterio.open(HAZ_DIR / f"{stack}_twi.tif") as s:
+                    twi = s.read(1)
+                twi_mean = float(np.nanmean(twi))
+                m_field = np.clip(m + kappa * (twi - twi_mean), 0.0, 1.0)
+                m_field = np.where(np.isfinite(twi), m_field, m)  # scalar m where TWI absent
+                self.fs = (1.0 - m_field) * fs_dry + m_field * fs_sat
+                m_desc = f"m={m:.2f} +/- kappa={kappa:g}*(TWI-{twi_mean:.1f})"
+            else:
+                self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
+                m_desc = f"m={m:.2f}"
             logger.info(f"[Agent 2: Meteorological Trigger] REAL rainfall {scenario}: "
                         f"day {self.cfg.get('rain_day_mm')} mm, 72h {self.cfg['rainfall_mm_72h']} mm "
-                        f"-> saturation m={m:.2f} -> FS_real=(1-m)*FS_dry+m*FS_saturated"
+                        f"-> saturation {m_desc} -> FS_real=(1-m_i)*FS_dry+m_i*FS_saturated"
                         f"{'  [ID-THRESHOLD TRIGGER]' if self.cfg.get('is_trigger') else ''}.")
         else:
             with rasterio.open(HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif") as s:

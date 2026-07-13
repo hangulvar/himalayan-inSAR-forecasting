@@ -1411,6 +1411,35 @@ beat it — measurably — or they don't ship.
 
 ---
 
+## ✅ Milestone 42 — We stopped pretending the whole mountain gets wet at once  *(TWI-distributed saturation, 2026-07-13)*
+
+**What we set out to do:** our danger model had a hidden oversimplification. On a rainy day it treated
+*every* slope as equally soaked — one "wetness" number for the whole mountain. But rain doesn't work
+that way: water runs downhill and collects in valley hollows, while ridges shed it and stay drier. We
+already measure exactly where water tends to collect (a "wetness index" computed from the shape of the
+land). So we let each patch of ground have its own wetness — hollows a bit wetter, ridges a bit drier
+than the mountain's average — controlled by a single new dial. Crucially, the *average* stays exactly
+what the rain says, so this only moves wetness around; it doesn't secretly make everything wetter.
+
+**What we found:** two things, one expected and one genuinely reassuring. Expected: concentrating the
+"wet" onto the hollows made the danger map **sharper and smaller** — it stopped painting dry ridges as
+hazardous. Reassuring: we tuned that one dial separately on two different mountains with two different
+landslide records, and **both mountains independently landed on the exact same setting**. A number
+that transfers between sites like that is measuring something real about how mountains wet up, not just
+fitting one dataset. At Vaishno Devi it made the concrete difference we'd been chasing: last session's
+scorecard showed our map merely *tying* a dumb "just flag every steep slope" map; with this upgrade our
+map pulled ahead of it — same coverage, a tenth as many alert zones.
+
+**The honest part:** we kept the same error bars and significance tests from last session pointed at
+this result. The raw improvement in the score is real but small enough to sit inside the uncertainty,
+so we don't oversell it — the trustworthy wins are the tighter, more precise map and finally beating
+the "dumb baseline," not a dramatic jump in the number. And it sharpens *where* the danger is, not
+*when*: on the very wettest days the whole slope is soaked and everything lights up regardless. We
+adopted the setting for both sites, and it's one line away from being switched off if a future site
+disagrees.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

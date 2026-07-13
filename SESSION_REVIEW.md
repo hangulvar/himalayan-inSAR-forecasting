@@ -11,24 +11,32 @@
 
 ---
 
-# LIVE — Session 20 · branch `aoi-vaishnodevi` · updated 2026-07-13
+# LIVE — Session 21 · branch `aoi-vaishnodevi` · updated 2026-07-13
 
 ## Current state
 
-- **★ NEW (§44, M41) — validation statistics (Science Upgrade Plan #1 DONE):**
+- **★ NEW (§45, M42) — TWI-distributed saturation, kappa=0.06 ADOPTED (Science Upgrade Plan #2 DONE):**
+  each pixel now gets m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) in the FS_real build (config
+  `kappa` key, default 0 = uniform/§44, byte-identical regression gate). Swept via
+  `rainfall_selectivity_backtest.py --kappas`; **both AOIs independently peaked at kappa=0.06**.
+  **VD operational 0.707→0.757 — now BEATS its §44 slope-only ablation tie** (14 zones vs 155);
+  Ramban 0.640→0.676; both WATCH tiers held/improved (VD watch recall 0.913→0.957). Honest limits
+  (§45): ALERT-AUC CIs overlap (win = footprint economy + breaking the tie, not a decisive jump);
+  ALERT recall trades down (WATCH carries recall); kappa is spatial, can't change the §17 ALERT-day
+  count. Adopted in both configs; dashboards/per-zone/validation_stats regenerated at 0.06.
+- **★ (§44, M41) — validation statistics (Science Upgrade Plan #1 DONE):**
   `workflows/validation_stats.py` — bootstrap 95% CIs (B=10k), permutation p for "beats chance"
   (B=10k), and a dumb-baseline **ablation ladder** (slope / logistic slope+TWI / physics-only /
   creep-only) scored with the identical zone-centroid distance-ROC protocol, every rung tuned to
   its own best score. Both ALERT maps beat chance at p=0.0001; both WATCH tiers ≈chance (recall
   nets, as always stated). **Ramban: the fusion beats every rung** (its two ingredients are each
-  ≈chance alone). **VD, the honest tie:** slope≥40° matches the raw AUC on the corridor n=46
-  inventory — the earned VD claims are footprint economy (21 vs 155 zones at higher precision),
-  the Δ=0 temporal catches, and per-zone ranking (§44). The ladder is now the fixed bar for
-  plan #2/#3. Dashboards + README cite intervals live; a stale VD dashboard AUC (0.696/n=41 vs
-  the current 0.707/n=46) was found and structurally fixed (error log 2026-07-13).
-- **BOTH sites are in WATCH (as-of 2026-07-07, chains regenerated this session via
-  `live_alarm.py`):** VD 29/29 per-zone active, 0 ALERT days; Ramban 12/12 active, 4 April ALERT
-  days. The scheduled monsoon cycle (roadmap item 0) covers the cadence; manual fallback per
+  ≈chance alone). At κ=0 VD **tied** slope≥40° on the corridor n=46 inventory — the §45 kappa
+  upgrade (above) later broke that tie. The ladder is the fixed bar every upgrade is judged against;
+  a stale VD dashboard AUC (0.696/n=41) was found and structurally fixed (error log 2026-07-13).
+- **BOTH sites are in WATCH (as-of 2026-07-07, chains regenerated this session at κ=0.06 via
+  `live_alarm.py`):** VD 18/18 per-stack active (was 29 at κ=0 — tighter footprint), 0 ALERT days;
+  Ramban 8/8 active, 4 April ALERT days. The scheduled monsoon cycle (roadmap item 0) covers the
+  cadence; manual fallback per
   `Research/Monsoon Watch Runbook (2026-07-11).md`.
 - **Multi-AOI productization (§41, M39) + soil pass load-bearing (§42, M40):** config registry +
   `INSAR_CONFIG` override + `aoi_status.py` + playbook; the §42 sweep proved soil (especially
@@ -53,8 +61,9 @@
 ## Recommended next steps — the product-improvement roadmap (2026-07-10)
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
-**Recommended next session: Science Upgrade Plan #2 — TWI-distributed saturation m_i** (`Research/Science
-Upgrade Plan - Top 3 (2026-07-13).md`; #1 ✅ DONE §44 — #2 and #3 are now judged against the §44 ladder + CIs).
+**Recommended next session: Science Upgrade Plan #3 — nonlinear van-Genuchten matric-suction curve**
+(`Research/Science Upgrade Plan - Top 3 (2026-07-13).md`; #1 ✅ §44, #2 ✅ §45 (kappa=0.06 adopted) —
+#3 is judged against the same §44 ladder + CIs, on top of the §45 kappa field).
 
 0. **Monsoon watch — now SCHEDULED (2026-07-13, was a manual runbook):** Windows task
    **"InSAR Monsoon Watch Cycle"** runs `workflows/monsoon_cycle.ps1` every 2 days at 08:00 —
@@ -97,24 +106,24 @@ Upgrade Plan - Top 3 (2026-07-13).md`; #1 ✅ DONE §44 — #2 and #3 are now ju
 
 ## Uncommitted delta
 
-Sessions ≤19 are **all committed** through `e30ca60` (science upgrade plan).
+Sessions ≤20 are **all committed** through `0a5943f` (validation statistics §44, M41, plan #1).
 
-Session 20 (this wrap), one logical batch — **validation statistics (§44, M41, plan #1)**:
-- NEW: `workflows/validation_stats.py` (bootstrap CIs B=10k, permutation p B=10k, ablation
-  ladder scored with the identical zone/centroid/distance-ROC protocol; plain-numpy IRLS for the
-  LR rung — no new dependency).
-- MODIFIED: `workflows/operational_alarm.py` (`load_tier` prefers `validation_stats_*.json` —
-  displayed AUC/recall + 95% CI + p come from one run; fixes the stale VD 0.696/n=41 display),
-  `README.md` (headline cites interval + p; new validation-statistics bullet),
-  `RESULTS_AND_KPIS.md` (§44), `Research/Science Upgrade Plan - Top 3 (2026-07-13).md` (#1 ✅ +
-  outcome note), `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 1 fact update),
-  `error_history_log.md` (stale-AUC entry), `milestone.md` (M41), primer (CF11 + Part D
-  statistics Q + Part E error-bars/slope-tie limitation).
-- Verified: suites 10/10 + 7/7 in-container; Ramban op AUC reproduces §21b (0.640≈0.641,
-  float-path rounding); VD op reproduces §42 (0.707 exact); both sites' live dashboards
-  regenerated as-of 2026-07-07 (both WATCH) and show `AUC x.xx [lo–hi] (beats chance, p=…)`.
-- Git-ignored as usual: `session_journey.md` entry (Session 20), regenerated `data/` artifacts,
-  `data/inventory/validation_stats_*`.
+Session 21 (this wrap) — **TWI-distributed saturation (§45, M42, plan #2 — kappa=0.06 adopted):**
+- NEW config key `kappa` (`config.py`, default 0.0 = uniform); `config/{ramban,vaishnodevi}.yaml`
+  set `kappa: 0.06`.
+- MODIFIED: `agentic_orchestrator.py` (FS_real build → per-pixel m_i from TWI when kappa≠0;
+  `else` branch = original line, byte-identical at kappa=0), `rainfall_selectivity_backtest.py`
+  (`--kappas`/`--operational-m` sweep + `write_kappa_outputs`/`_plot_kappa`), `per_zone_gate.py`
+  (m*_eff = clip(m* − kappa·(TWI−TWI_mean),0,1); TWI + m_star_eff columns; kappa in report),
+  `README.md` (headline AUCs + kappa mechanism bullet), `RESULTS_AND_KPIS.md` (§45), plan doc
+  (#2 ✅), `SESSION_REVIEW.md` (this block + roadmap), `error_history_log.md` (Phase-2 staleness
+  gotcha), `milestone.md` (M42), primer (CF12 + Part D Q + Part E update).
+- Verified: κ swept {0,.03,.06,.10,.15,.20}, both sites peak κ=0.06; standing operational+watch
+  footprints rebuilt at κ=0.06 (Phase 4 only — Phase 2/3 untouched); re-scored (backtest +
+  validation_stats) both sites both tiers; dashboards + per-zone regenerated (both WATCH as-of
+  07-07). Suites 10/10 + 7/7.
+- Git-ignored as usual: `session_journey.md` entries (S20+S21), regenerated `data/` artifacts
+  (`validation_stats_*`, `backtest_*`, `rainfall_kappa_*`, footprints, dashboards, per_zone_*).
 
 ---
 
@@ -180,10 +189,10 @@ The core vision is fully built and scored above chance. Remaining work:
    failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
 1. **Accuracy backlog — now a ranked plan:** see `Research/Science Upgrade Plan - Top 3
-   (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE 2026-07-13 (§44,
-   `validation_stats.py`; VD raw-AUC tie vs slope≥40° is the standing yardstick),
-   (2) TWI-distributed saturation m_i (one swept κ; κ=0 = today), (3) nonlinear van-Genuchten
-   suction curve (α,n; fixes m\* placement, judged through #1's statistics). Still behind those:
+   (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE (§44,
+   `validation_stats.py`), ~~(2) TWI-distributed saturation m_i~~ ✅ DONE (§45, kappa=0.06 adopted
+   both sites; broke VD's §44 slope-only tie), (3) nonlinear van-Genuchten suction curve (α,n; fixes
+   m\* placement, judged through #1's statistics on top of the §45 kappa field). Still behind those:
    lab confirmation of c_dry/c_wet; per-stack ERA5 reference-pixel + unwrapping QC (rescue
    frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
@@ -217,7 +226,8 @@ static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 - **Area 2 — Signal strengthening:** ASC/DESC → vertical+EW (needs better DESC), PS points on rock/infra,
   longer series → seasonal vs steady-creep split.
 - **Area 3 — Map → FORECAST:** inverse-velocity TTF (built), regional ID thresholds (built/verified),
-  calibrated spatially-varying soil + distributed saturation, real flow-routing for LLOF.
+  TWI-distributed saturation ✅ DONE (§45, kappa=0.06); still: calibrated spatially-varying soil,
+  real flow-routing for LLOF.
 - **Area 4 — Validation & uncertainty:** scored back-test DONE (§16); uncertainty quantification DONE (§24);
   next = a susceptibility model (LR/RF) cross-check + a verified-date temporal test.
 - **Area 5 — Multi-sensor corroboration (GEE):** CHIRPS/IMERG/ERA5-Land rainfall, SMAP/ASCAT soil moisture,

@@ -2026,6 +2026,82 @@ README cites intervals. Artefacts: `data/inventory/validation_stats_{operational
 
 ---
 
+## 45. TWI-distributed saturation — kappa adopted at 0.06 both sites  `[REAL / MEASURED]`
+
+Source: `agentic_orchestrator.py` (FS_real build) + `config.py` (`kappa` key) +
+`rainfall_selectivity_backtest.py --kappas` (sweep) + `per_zone_gate.py` (m*_eff) +
+`validation_stats.py` (§44 CI + ablation ladder), Docker, 2026-07-13. Science Upgrade Plan #2.
+**Positive result — adopted.**
+
+**The change.** The WHEN gate applied ONE saturation to the whole AOI; §17's over-firing is that
+uniformity. TOPMODEL says wet, convergent terrain saturates first, and we already compute that index
+(TWI). So each pixel now gets
+
+  m_i = clip( m + kappa·(TWI_i − TWI_mean), 0, 1 )     (kappa units 1/TWI)
+
+and FS_real = (1−m_i)·FS_dry + m_i·FS_sat as before (FS still linear in m_i). Because TWI is centred
+on its own mean, the **spatial mean of m_i is exactly m** — kappa only REDISTRIBUTES saturation
+(wet hollows earlier, dry ridges later); the AOI-mean wetness still equals the rainfall proxy, so the
+temporal coupling is untouched. `kappa=0` (default) reproduces the uniform-m footprint byte-for-byte
+(built-in regression gate; the orchestrator `else` branch is the original line verbatim). One new
+config key, swept per site like `operational_m` (§32). TWI is DEM-derived so it is identical across
+a site's stacks — the per-stack mean equals the site-global mean.
+
+**The sweep (kappa at each site's operational m, same null-control distance-ROC as §16d/§32).**
+Both AOIs, on independent inventories, peaked at **kappa=0.06** and degraded past ~0.10:
+
+| kappa | Ramban AUC (n=138) | VD AUC (n=46) |
+|---|---|---|
+| 0.00 | 0.640 | 0.707 |
+| 0.03 | 0.663 | 0.720 |
+| **0.06** | **0.676** | **0.757** |
+| 0.10 | 0.639 | 0.732 |
+| 0.15 | 0.622 | 0.634 |
+| 0.20 | 0.582 | 0.692 |
+
+That two unrelated inventories select the same kappa is the robustness argument for adoption.
+
+**Re-scored standing footprints at kappa=0.06 (validation_stats.py, §44 machinery; CI = 95%
+bootstrap, p = permutation vs chance):**
+
+| site / tier | AUC κ=0 → κ=0.06 | recall@2 km κ=0 → κ=0.06 | zones κ=0 → κ=0.06 | p (κ=0.06) |
+|---|---|---|---|---|
+| **VD operational** | 0.707 [.66–.75] → **0.757 [.72–.79]** | 0.739 → 0.696 [.57–.83] | 21 → **14** | 0.0001 |
+| VD watch | 0.555 → **0.586 [.52–.65]** | 0.913 → **0.957 [.89–1.0]** | 105 → 102 | 0.097 → **0.022** |
+| **Ramban operational** | 0.640 [.60–.68] → **0.676 [.64–.72]** | 0.254 → 0.203 [.14–.27] | 12 → **8** | 0.0001 |
+| Ramban watch | 0.504 → **0.516 [.46–.57]** | 0.630 → 0.616 [.54–.70] | 132 → **106** | 0.44 → 0.26 |
+
+**The headline win — VD breaks its §44 ablation tie.** At kappa=0 VD operational (0.707) merely
+*tied* the tuned slope≥40° baseline (0.730). At kappa=0.06 the model is **0.757, now above both the
+best slope rung (0.730) and the best logistic slope+TWI rung (0.742)** as point estimates — and it
+does so with **14 zones vs 155/218**. The ablation ladder (§44, kappa-independent) is unchanged; the
+model moved above it. Ramban already beat its ladder (best rung 0.571); kappa widens the margin
+(0.640 → 0.676).
+
+**Honest caveats (as always, load-bearing):**
+1. **The ALERT-tier AUC gain is a better point estimate, not a statistically decisive jump** — at
+   n=46/138 the κ=0 and κ=0.06 CIs overlap (VD [.66–.75] vs [.72–.79] barely; Ramban more). The
+   defensible claims are *footprint economy* (fewer zones, higher lift/specificity) and *breaking the
+   ablation tie*, both robust across two sites, not a proven AUC step-change.
+2. **ALERT recall dips** (VD 0.739→0.696, Ramban 0.254→0.203) as the footprint tightens — the
+   precision/recall trade. It is confined to the precise ALERT tier; the recall-net WATCH tier holds
+   or improves (VD watch recall **rose** 0.913→0.957 and now beats chance, p=0.022).
+3. **kappa is a SPATIAL redistribution — it cannot change the regional E-gate ALERT-*day* count
+   (§17).** The "extreme-season over-firing" it addresses is spatial: the per-zone active set is
+   tighter (VD per-stack peak 29→18 zones) and, via m*_eff = clip(m* − kappa·(TWI−TWI_mean), 0, 1),
+   dry-ridge zones activate later on *moderate* days. On the wettest days m(t)≈0.9 still saturates
+   everything — kappa sharpens the moderate-day differentiation, not the peak.
+
+**Adopted:** `kappa: 0.06` written to both registry configs (reversible in one line; kappa=0 = §44).
+Standing operational + watch footprints, per-zone gate, both dashboards, and the validation_stats /
+backtest reports all regenerated at kappa=0.06. Monsoon/extreme (m=1) and dry (m=0) scenarios are
+kappa-independent and unchanged. **Supersedes §44's κ=0 rows as the operating point; §44 stands as
+the uniform-m record and the ablation ladder both tiers are still judged against.** Suites 10/10 +
+7/7. Artefacts: `rainfall_kappa_report{,_vaishnodevi}.{md,json,png}`, regenerated
+`validation_stats_*`, `backtest_*`, footprints, dashboards.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

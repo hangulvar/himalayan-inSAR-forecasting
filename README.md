@@ -318,8 +318,9 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
   `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
   standing product** (saturation **m=0.50** under the matric-suction FS physics §20 + the 12.5 m ALOS DEM
-  §21) that scores **AUC 0.64 [0.60–0.68], p=0.0001 — the project's best** in the back-test
-  (`RESULTS_AND_KPIS.md` §16d/§20/§21; interval + permutation p from §44).
+  §21 + **TWI-distributed saturation** kappa=0.06 §45) that scores **AUC 0.68 [0.64–0.72], p=0.0001**
+  at Ramban (VD **0.76 [0.72–0.79]**, the project best) in the back-test
+  (`RESULTS_AND_KPIS.md` §16d/§20/§21/§45; interval + permutation p + ablation ladder from §44).
   Add `--use-vslope`
   for the parallel downslope-projected product (`data/mosaic_vslope/`).
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
@@ -376,10 +377,16 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   AUC/recall (inventory resampled, B=10,000), a permutation p-value for "beats chance", and a
   dumb-baseline **ablation ladder** (slope-only, logistic slope+TWI, physics-only, creep-only)
   scored with the identical zone/centroid/distance-ROC protocol. Headline claims cite the
-  interval, not the point: Ramban operational **AUC 0.64 [0.60–0.68], p=0.0001, beats every
-  ladder rung**; Vaishno Devi operational **0.71 [0.66–0.75], p=0.0001**, beats every
-  physics/InSAR rung but is statistically indistinguishable from a tuned slope-only map on its
-  corridor inventory — the honest limits are in the ledger. Dashboards read the intervals live.
+  interval, not the point. After the §45 TWI-distributed-saturation upgrade (kappa=0.06): Ramban
+  operational **AUC 0.68 [0.64–0.72], p=0.0001, beats every ladder rung**; Vaishno Devi operational
+  **0.76 [0.72–0.79], p=0.0001** — kappa lifted VD from a §44 *tie* with a tuned slope-only map to a
+  point-estimate lead over it (and the best logistic rung), with 14 zones vs 155/218. Dashboards read
+  the intervals live.
+- **TWI-distributed saturation (§45):** the `kappa` config key gives each pixel
+  m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) — wet convergent terrain saturates first — swept
+  per site via `python workflows/rainfall_selectivity_backtest.py --kappas 0,0.03,0.06,0.10,0.15,0.20`
+  (both AOIs peaked at 0.06). kappa REDISTRIBUTES saturation spatially while preserving the AOI-mean
+  wetness (= the rainfall proxy); kappa=0 reproduces the uniform-m footprint exactly.
 - **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
   footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
   `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate

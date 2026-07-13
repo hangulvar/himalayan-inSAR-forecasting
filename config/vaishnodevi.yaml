@@ -22,6 +22,13 @@ site_name: Vaishno Devi — Trikuta shrine corridor
 operational_m: 0.40
 watch_m: 0.75
 
+# TWI-distributed saturation slope kappa (§45, Science Upgrade Plan #2): each pixel's
+# saturation is m_i = clip(m + kappa*(TWI_i - TWI_mean), 0, 1) — wet convergent terrain
+# saturates first. Swept vs the route inventory like m: both AOIs independently peaked at
+# kappa=0.06 (VD ALERT AUC 0.707->0.757, now beats the §44 slope-only ablation; WATCH recall
+# 0.913->0.957). kappa=0 reproduces the uniform-m footprint exactly.
+kappa: 0.06
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix. Use a short, unique slug per AOI.

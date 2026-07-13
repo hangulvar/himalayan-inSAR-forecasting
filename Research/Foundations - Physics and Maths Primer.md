@@ -1080,6 +1080,37 @@ is the credential.
 🔗 **In our project: §44 / Milestone 41.** `validation_stats.py`; dashboards now read the interval
 and p-value live; the ladder is the permanent bar the next science upgrades must clear.
 
+## CF12. Where the ground gets wet first — TWI-distributed saturation
+
+Until now the "wetness dial" (CF6) turned the *whole* mountain equally wet on a given day: one
+saturation number `m` for every slope. But water doesn't wet a hillside uniformly — it runs downhill
+and pools where the land converges. We already measure exactly that tendency: the **Topographic
+Wetness Index** (TWI, CF/Part C), high in valley hollows, low on dry ridges. So we let each pixel
+have its own saturation:
+
+  m_i = clip( m + κ·(TWI_i − TWI_mean), 0, 1 )
+
+The average is still `m` (TWI is measured from its own mean), so the day's *overall* wetness — set by
+the rainfall — is unchanged; **κ just redistributes it**, giving convergent hollows a head start and
+ridges a lag. One new knob, κ ("how strongly TWI tilts the wetness"), tuned per site against the
+landslide record exactly like every other dial. κ=0 is the old uniform behaviour.
+
+**Everyday analogy.** Same rain falls on a car park, but the puddles form in the dips, not on the
+crown. Painting the whole lot "equally wet" misses where you'd actually slip.
+
+**Why it helped.** Both mountains, on separate landslide records, independently preferred the *same*
+gentle tilt (κ=0.06) — and it concentrated the alert on the wet, failure-prone hollows: the danger
+map got sharper and smaller. At Vaishno Devi this was the difference that finally pushed the model
+*past* the "dumb steep-slope map" it had merely tied in CF11 — same skill, a tenth the zones.
+
+**The honest caveat.** It sharpens *where*, not *when*: on the wettest days the whole slope is soaked
+(`m`≈0.9) and everything lights up regardless of κ; the tilt matters most on moderate days. And the
+raw skill gain sits inside the error bars (CF11) — the trustworthy wins are the tighter footprint and
+beating the baseline, not a proven jump in the score.
+
+🔗 **In our project: §45 / Milestone 42.** `kappa` config key; TWI-distributed m_i in the engine;
+swept via `rainfall_selectivity_backtest.py --kappas`; adopted at 0.06 for both sites.
+
 ---
 
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
@@ -1502,11 +1533,24 @@ plausibly 0.66–0.75", never the bare third decimal. The slope-map question is 
 answer differs by site — which is exactly what makes it credible. At Ramban the fusion beats
 every dumb baseline we could build, *including* letting each one tune itself to its best score;
 satellite-alone and physics-alone are each ≈chance there, so the skill is provably in the
-combination. At Vaishno Devi a bare "steeper than 40°" map ties our raw AUC on the corridor
-inventory — so there I claim what we've earned instead: the same coverage with 7× fewer zones at
-higher precision, the two fatal events caught at Δ=0 (a static slope map has no *when*), and
-per-zone fragility ranking. Volunteering that tie unprompted is the point: the ladder is now the
-permanent bar any upgrade must clear.
+combination. At Vaishno Devi a bare "steeper than 40°" map *tied* our raw AUC in the first pass —
+and I'd volunteer that unprompted. What I'd add now is what we did about it: the TWI-saturation
+upgrade (next question) lifted VD to 0.757, a point-estimate lead over that slope map, with a tenth
+the zones — while the other earned advantages (7× fewer zones at higher precision, the two fatal
+events caught at Δ=0 that no static map times, per-zone fragility ranking) stand regardless.
+
+**Q: You said one upgrade broke that tie — what was it, and are you sure it isn't just curve-fitting?**
+A: We stopped pretending the whole mountain gets equally wet. Water pools in hollows and drains off
+ridges, and we already measure that tendency (the wetness index, TWI). So each pixel's saturation
+became m + κ·(TWI − mean) instead of a flat m — one new knob κ, tuned against the landslide record
+like every other dial (§45/CF12). Two things guard against curve-fitting. First, κ *redistributes*
+wetness but keeps the day's average fixed at the rainfall value, so it can't quietly crank the whole
+map wetter — it's a physically-constrained tilt, not a free parameter. Second, and this is the real
+check: **both mountains, on completely separate landslide records, independently picked the same
+κ=0.06.** A curve-fit to one inventory wouldn't transfer; a real physical effect does. It sharpened
+the danger map at both sites and pushed VD past the slope-only baseline. I stay honest that the raw
+score gain is inside the error bars — the solid wins are the tighter footprint and clearing the
+baseline, not a proven jump in the number.
 
 **Q: Could this scale to ten sites? What's automated and what isn't?**
 A: The plumbing scales; the science must be earned per site — and we've made that split explicit
@@ -1617,12 +1661,15 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   every headline AUC now ships with a bootstrap 95% interval (n=46 gives ±0.05; n=138 gives ±0.04 —
   quote the range, never a bare third decimal) and a permutation p-value (both ALERT maps beat
   chance at p=0.0001; both WATCH tiers are honestly ≈chance as spatial rankers — they are recall
-  nets). The ablation ladder adds the limitation that matters most when presenting: at **Vaishno
-  Devi a tuned slope≥40° map ties our raw spatial AUC** on the corridor inventory (needing 155
-  zones vs our 21, at lower precision) — so the earned claims there are footprint economy, the Δ=0
-  temporal catches, and per-zone ranking, *not* raw spatial superiority. At Ramban the fusion
-  beats every rung and both single ingredients are ≈chance alone. These ladders are the fixed bar
-  the next science upgrades (TWI-distributed saturation, van-Genuchten suction) must clear.
+  nets). The ablation ladder is the fixed bar each science upgrade must clear. In §44 a tuned
+  slope≥40° map *tied* our raw spatial AUC at **Vaishno Devi** (needing 155 zones vs our 21); the
+  **§45 TWI-saturation upgrade (kappa=0.06) cleared it** — VD operational rose 0.707→0.757, a
+  point-estimate lead over both the slope and logistic baselines, with 14 zones. Honest still: that
+  gain sits inside the error bars (κ=0 and κ=0.06 CIs overlap at n≤138), so the durable wins are
+  footprint economy and *beating the baseline*, plus the Δ=0 temporal catches and per-zone ranking —
+  not a proven AUC step-change. At Ramban the fusion already beat every rung (both single ingredients
+  ≈chance alone); kappa widened the margin. The next upgrade (van-Genuchten suction) faces the same
+  ladder + CIs.
 - **Fast-failure instruments are new and unproven-in-anger (Milestone 38 / CV5 / §34):** the coherence
   tripwire has never yet seen a real failure (its first timelines are 4 epochs — the minimum it can even
   flag on is 3); a storm exactly coincident with a collapse could mask the local drop; and steep-face

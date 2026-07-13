@@ -44,7 +44,9 @@ from velocity_uncertainty import stack_noise, confidence  # noqa: E402  (§24 de
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
-_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+_CFG = load_config()
+_SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
+_KAPPA = _CFG.kappa                # §45 TWI-distributed saturation slope (0 = uniform m)
 HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 
@@ -103,6 +105,17 @@ def collect_zones(stacks: list[str]) -> list[dict]:
             fs_dry = d.read(1)
         with rasterio.open(fsat) as d:
             fs_sat = d.read(1)
+        # TWI-distributed saturation (§45): a zone in wet, convergent terrain (high TWI)
+        # experiences an effective saturation m + kappa*(TWI - TWI_mean), so it crosses
+        # FS=1 at a LOWER AOI-mean wetness. We fold that into an EFFECTIVE threshold
+        # m*_eff = clip(m* - kappa*(TWI_zone - TWI_mean), 0, 1) and gate on m*_eff. kappa=0
+        # -> m*_eff == m* exactly (outputs byte-identical to the uniform-m gate).
+        twi = twi_mean = None
+        twip = HAZ_DIR / f"{s}_twi.tif"
+        if _KAPPA and twip.exists():
+            with rasterio.open(twip) as d:
+                twi = d.read(1)
+            twi_mean = float(np.nanmean(twi))
         sigma_s = stack_noise(s)            # §24 per-stack velocity noise floor (mm/yr)
         for a in json.loads(af.read_text(encoding="utf-8")).get("alerts", []):
             r, c = a["pixel_rowcol"]
@@ -111,6 +124,10 @@ def collect_zones(stacks: list[str]) -> list[dict]:
             mstar = critical_saturation(float(fs_dry[r, c]), float(fs_sat[r, c]))
             if mstar is None:
                 continue
+            twi_zone = (float(twi[r, c]) if twi is not None and np.isfinite(twi[r, c])
+                        else None)
+            mstar_eff = (float(np.clip(mstar - _KAPPA * (twi_zone - twi_mean), 0.0, 1.0))
+                         if twi_zone is not None else mstar)
             lon, lat = a["centroid_lonlat"]
             creep = a.get("mean_velocity_mmyr")
             conf = (round(confidence(float(creep), sigma_s), 3)
@@ -119,10 +136,12 @@ def collect_zones(stacks: list[str]) -> list[dict]:
                 "stack": s, "id": a["id"], "lon": round(lon, 5), "lat": round(lat, 5),
                 "severity": a["severity"], "fs_dry": round(float(fs_dry[r, c]), 3),
                 "fs_sat": round(float(fs_sat[r, c]), 3), "fs_0p40": a.get("mean_fs"),
-                "m_star": round(mstar, 3), "tier": tier_of(mstar),
-                "creep_mmyr": creep, "detection_confidence": conf, "n_pixels": a.get("n_pixels"),
+                "m_star": round(mstar, 3), "m_star_eff": round(mstar_eff, 3),
+                "twi": round(twi_zone, 2) if twi_zone is not None else None,
+                "tier": tier_of(mstar_eff), "creep_mmyr": creep,
+                "detection_confidence": conf, "n_pixels": a.get("n_pixels"),
             })
-    zones.sort(key=lambda z: z["m_star"])         # most vulnerable (lowest m*) first
+    zones.sort(key=lambda z: z["m_star_eff"])     # activation order (== m* when kappa=0)
     return zones
 
 
@@ -144,17 +163,19 @@ def main() -> int:
     zones = collect_zones(stacks)
     if not zones:
         raise SystemExit("No operational zones found — run run_multistack.py first.")
-    mstars = np.array([z["m_star"] for z in zones])
+    mstars = np.array([z["m_star"] for z in zones])          # intrinsic vulnerability spread
+    mstars_eff = np.array([z["m_star_eff"] for z in zones])  # activation thresholds (§45 kappa)
 
     thr = THRESHOLDS[args.threshold]
     dates, water, m = load_daily(Path(args.csv))
     E, _ = peak_exceedance(water, thr["a"], thr["b"])
     levels = regional_levels(E)
 
-    # Per-day active-zone count: regional gate ON (WATCH+) AND zone's m* reached by today's m(t).
+    # Per-day active-zone count: regional gate ON (WATCH+) AND the zone's effective critical
+    # saturation m*_eff reached by today's AOI-mean m(t) (m*_eff == m* when kappa=0).
     timeline = []
     for d, lv, mi, ei in zip(dates, levels, m, E):
-        active = int(np.sum(mstars <= mi)) if lv in ("WATCH", "ALERT") else 0
+        active = int(np.sum(mstars_eff <= mi)) if lv in ("WATCH", "ALERT") else 0
         timeline.append({"date": d.isoformat(), "saturation_m": round(float(mi), 3),
                          "exceedance_E": round(float(ei), 3), "regional_level": lv,
                          "n_active_zones": active})
@@ -164,13 +185,15 @@ def main() -> int:
                else int(np.argmax(E)))
     as_of = dates[as_of_i]
     m_now, lv_now = float(m[as_of_i]), levels[as_of_i]
-    active_now = [z for z in zones if z["m_star"] <= m_now] if lv_now in ("WATCH", "ALERT") else []
+    active_now = ([z for z in zones if z["m_star_eff"] <= m_now]
+                  if lv_now in ("WATCH", "ALERT") else [])
 
     from collections import Counter
     tier_counts = Counter(z["tier"] for z in zones)
     report = {
         "n_operational_zones": len(zones), "stacks": stacks,
-        "m_operational_baseline": M_OPERATIONAL, "threshold_id": args.threshold,
+        "m_operational_baseline": M_OPERATIONAL, "kappa": _KAPPA,
+        "threshold_id": args.threshold,
         "m_star_min": round(float(mstars.min()), 3), "m_star_median": round(float(np.median(mstars)), 3),
         "m_star_max": round(float(mstars.max()), 3),
         "tier_counts": dict(tier_counts),
@@ -186,9 +209,12 @@ def main() -> int:
     write_md(ALERTS_DIR / "per_zone_vulnerability.md", report, zones)
     make_figure(ALERTS_DIR / "per_zone_gate.png", mstars, timeline, dates, m, as_of_i)
 
-    print(f"operational zones: {len(zones)} across {stacks}")
+    print(f"operational zones: {len(zones)} across {stacks}  (kappa={_KAPPA:g})")
     print(f"critical saturation m*: min={mstars.min():.3f} median={np.median(mstars):.3f} "
           f"max={mstars.max():.3f}  (operational baseline m={M_OPERATIONAL})")
+    if _KAPPA:
+        print(f"m*_eff (kappa-shifted) : min={mstars_eff.min():.3f} "
+              f"median={np.median(mstars_eff):.3f} max={mstars_eff.max():.3f}")
     print("vulnerability tiers:", dict(tier_counts))
     print(f"as-of {as_of} (m={m_now:.2f}, regional {lv_now}): {len(active_now)} zones ACTIVE "
           f"(m* <= today's saturation)")
@@ -204,7 +230,8 @@ def main() -> int:
 
 def write_zone_table(path: Path, zones: list[dict]) -> None:
     cols = ["stack", "id", "lon", "lat", "severity", "fs_dry", "fs_sat", "fs_0p40",
-            "m_star", "tier", "creep_mmyr", "detection_confidence", "n_pixels"]
+            "m_star", "m_star_eff", "twi", "tier", "creep_mmyr", "detection_confidence",
+            "n_pixels"]
     with path.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -233,14 +260,15 @@ def write_md(path: Path, r: dict, zones: list[dict]) -> None:
         f"- as of **{r['as_of']}** (saturation m={r['as_of_saturation_m']}, regional "
         f"**{r['as_of_regional_level']}**): **{r['as_of_n_active']} zones ACTIVE**; season peak "
         f"**{r['peak_active_zones']}** active.", "",
-        "## Top-10 most vulnerable zones (lowest m* = fail when barely wet)", "",
-        "| rank | stack | zone | m* | FS@0.40 | creep mm/yr | conf (§24) | severity | tier |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "## Top-10 most vulnerable zones (lowest m*_eff = fire first)", "",
+        "| rank | stack | zone | m* | m*_eff (§45) | FS@0.40 | creep mm/yr | conf (§24) | "
+        "severity | tier |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for i, z in enumerate(zones[:10], 1):
         lines.append(f"| {i} | {z['stack'].replace('ASC_','')} | {z['id']} | {z['m_star']} | "
-                     f"{z['fs_0p40']} | {z['creep_mmyr']} | {z.get('detection_confidence', '—')} | "
-                     f"{z['severity']} | {z['tier']} |")
+                     f"{z['m_star_eff']} | {z['fs_0p40']} | {z['creep_mmyr']} | "
+                     f"{z.get('detection_confidence', '—')} | {z['severity']} | {z['tier']} |")
     lines += ["",
               "_Honest scope: per-zone differentiation is by intrinsic VULNERABILITY (m*), not per-zone "
               "rainfall — rain is ~uniform at ~10 km over the ~22 km AOI, so the WHEN gate stays regional. "

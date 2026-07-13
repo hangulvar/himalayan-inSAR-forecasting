@@ -989,3 +989,27 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** any user-facing surface that reads a *scored* artifact inherits that artifact's
   staleness. When a validation input (inventory) changes, re-run the scorers the same session — or
   better, make the surface read the newest-protocol report, as done here.
+
+### [2026-07-13] run_multistack --force / touch triggered a Ramban Phase-2 rerun that FAILS ("No solvable reference candidate")
+
+* **Symptom:** rebuilding Phase-4 alerts at the new kappa (§45) by touching the hazard rasters and
+  running `run_multistack.py` made Ramban re-enter **Phase 2 (SBAS inversion)**, which died with
+  `No solvable reference candidate in AOI — relax --min-pairs` (exit 1). VD rebuilt fine.
+
+* **Root Cause:** two things. (1) `run_multistack._stale(vel, QUARANTINE_CSV)` had gone true for
+  Ramban independently of the kappa work — the quarantine CSV's mtime was newer than the velocity
+  rasters, a false-positive staleness (velocity content is correct and kappa-independent). (2) The
+  current Ramban reference-pixel search can't re-solve from scratch in this container state, so the
+  rerun fails rather than reproducing the existing (good) velocity. The touch of `hazard_class.tif`
+  correctly staled Phase 4, but run_multistack re-checks Phase 2/3 for the same stack in one pass.
+
+* **Resolution:** did NOT let Phase 2 rerun. Drove Phase 4 + union DIRECTLY at the new kappa via a
+  throwaway script calling `agentic_orchestrator.run_scenario(stack, sc, ...)` for operational/watch
+  then `run_multistack.write_union_alerts(stacks)` — reads the unchanged FS/TWI rasters + config
+  kappa, never touches Phase 2/3. The failed SBAS attempt wrote nothing (it dies before output), so
+  the standing Ramban velocity is intact.
+
+* **Lesson:** to rebuild ONLY Phase 4 (e.g. after a config-only change like kappa that the mtime
+  staleness can't see), call the orchestrator + `write_union_alerts` directly rather than
+  `run_multistack --force`/touch — the latter also re-checks Phase 2/3 and can trip a fragile
+  reference-pixel re-solve. A config-change-aware staleness signal would be the real fix.

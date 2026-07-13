@@ -50,7 +50,16 @@ ablation AUCs for both sites in the ledger; README/dashboards cite intervals, no
 
 ---
 
-## 2. Distributed saturation — replace the single AOI-wide m with a TWI-conditioned field
+## 2. Distributed saturation — replace the single AOI-wide m with a TWI-conditioned field ✅ DONE 2026-07-13 (§45)
+
+> **Outcome — POSITIVE, adopted.** `kappa` config key + TWI-distributed m_i in the orchestrator;
+> swept via `rainfall_selectivity_backtest.py --kappas`; both AOIs independently peaked at
+> **kappa=0.06** (VD operational AUC 0.707→0.757 — **now beats the §44 slope-only ablation**;
+> Ramban 0.640→0.676; both WATCH tiers held/improved, VD watch recall 0.913→0.957). Adopted in both
+> registry configs (kappa=0 = §44, reversible). Honest caveats in §45: ALERT-AUC CIs overlap (gain is
+> footprint economy + breaking the ablation tie, not a decisive AUC jump), ALERT recall trades down as
+> the footprint tightens, and kappa is a spatial redistribution (it cannot change the §17 regional
+> ALERT-day count). Acceptance met on the discrimination arm; recorded transparently.
 
 **What is weak now.** The WHEN gate applies **one saturation value to the whole AOI**
 (§17/§19): every zone sees the same m(t), so on a wet day the per-zone gate activates zones purely
