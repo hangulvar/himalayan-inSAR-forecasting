@@ -1957,6 +1957,75 @@ redundancy can't average noise out) are now excluded automatically, at every sit
 
 ---
 
+## 44. Validation statistics — bootstrap CIs, permutation tests, ablation ladder  `[REAL / MEASURED]`
+
+Source: `workflows/validation_stats.py` (NEW — Science Upgrade Plan #1, zero engine changes, zero
+new physics parameters), Docker, 2026-07-13. Protocol: the standing distance-ROC back-test
+(§16/§21b/§32 machinery reused verbatim for point estimates) + **bootstrap 95% CIs** (inventory
+resampled with replacement, B=10,000; null set fixed at n=5,000, seed 20260606) + **one-sided
+permutation p** for "beats chance" (labels reshuffled over the pooled inventory+null points,
+B=10,000; p floor = 1e-4) + an **ablation ladder** of deliberately dumb baselines scored with the
+IDENTICAL protocol (per-stack mask → cluster ≥3 px → centroid → cross-stack union merge →
+distance-ROC vs the same inventory and null set). Every rung is swept over its threshold and
+reports its BEST AUC; the logistic-regression rung is fit in-sample — both choices are optimistic
+FOR the baseline, so surviving them is the conservative direction. Stat seed 20260713.
+
+### Headline numbers, now with uncertainty (supersede the bare points where cited)
+
+| site / tier | zones | AUC [95% CI] | recall@2 km [95% CI] | precision | p (beats chance) |
+|---|---|---|---|---|---|
+| **Ramban operational** (n=138 GSI) | 12 | **0.640 [0.595–0.682]** | 0.254 [0.181–0.326] | 0.645 | **0.0001** |
+| Ramban watch | 132 | 0.504 [0.451–0.557] | 0.630 [0.551–0.710] | 0.471 | 0.442 |
+| **VD operational** (n=46, §39 refresh) | 21 | **0.707 [0.660–0.752]** | 0.739 [0.609–0.870] | 0.681 | **0.0001** |
+| VD watch | 105 | 0.555 [0.483–0.626] | 0.913 [0.826–0.978] | 0.564 | 0.097 |
+
+Both ALERT tiers beat chance at the permutation-test floor. Both WATCH tiers are honestly
+≈chance as spatial rankers (as §23/§32 already said) — they are recall nets, not maps. The VD
+0.707 confirms the §42 n=46 baseline; the VD dashboard previously displayed the stale 0.696
+(n=41) — now reads the refreshed value + CI from this report.
+
+### Ablation ladder — best rung per family (full sweeps in `validation_stats_*.json`)
+
+**Ramban (operational AUC 0.640):**
+| rung | best variant | zones | AUC [95% CI] | ΔAUC (model − rung) |
+|---|---|---|---|---|
+| slope-only | ≥25° | 186 | 0.523 [0.473–0.573] | **+0.117** |
+| logistic slope+TWI | top 0.5% | 32 | 0.571 [0.531–0.611] | **+0.069** |
+| physics-only | FS_sat<1.3 | 53 | 0.569 [0.513–0.623] | **+0.071** |
+| creep-only (InSAR) | <−25 mm/yr | 303 | 0.402 [0.347–0.457] | **+0.238** |
+
+**The Ramban incremental-skill claim SURVIVES:** the fused product beats every rung, including
+the best-tuned, in-sample-fit baselines; only the LR rung's CI upper edge (0.611) grazes the
+model's lower edge (0.595). Creep alone and physics alone are each ≈/below chance — the value is
+demonstrably in the FUSION, not in either input.
+
+**Vaishno Devi (operational AUC 0.707):**
+| rung | best variant | zones | AUC [95% CI] | ΔAUC (model − rung) |
+|---|---|---|---|---|
+| slope-only | ≥40° | 155 | 0.730 [0.676–0.783] | **−0.023** |
+| logistic slope+TWI | top 10% | 218 | 0.742 [0.695–0.785] | **−0.035** |
+| physics-only | FS_real(m=0.40)<1 | 108 | 0.599 [0.533–0.668] | +0.108 |
+| creep-only (InSAR) | <−15 mm/yr | 341 | 0.533 [0.461–0.604] | +0.174 |
+
+**The honest VD finding:** the model beats its own components decisively (physics +0.11, InSAR
++0.17) but is **statistically indistinguishable from a tuned slope-only map** (CIs overlap
+heavily) on this corridor inventory — a steep-slope-biased n=46 sample rewards any dense
+steep-terrain mask (slope≥40° needs 155 zones and precision 0.56 to match what the model does
+with 21 zones at precision 0.68). The model's earned differentiators at VD are **footprint economy
+(7× fewer zones at higher precision), the temporal arm (§31/§38: 2/2 fatal events at Δ=0, which no
+static slope map has), and per-zone fragility ranking** — not raw spatial AUC. This is the
+plan's anticipated "unwelcome answer", reported as found; it sharpens the pitch rather than
+inflating it, and it is exactly what the upcoming TWI-saturation (#2) and suction-curve (#3)
+upgrades will be judged against.
+
+**Wide CIs are themselves a finding:** at n=46, ±0.05; at n=138, ±0.04 — quote intervals, not
+third decimals. **Surfaces updated:** dashboards read AUC + CI + p live from
+`validation_stats_<scenario><sfx>.json` (point value and interval always from the same run);
+README cites intervals. Artefacts: `data/inventory/validation_stats_{operational,watch}{,_vaishnodevi}.{json,md,png}`
+(the PNG is a forest plot, model vs ladder).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

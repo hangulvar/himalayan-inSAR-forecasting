@@ -1376,6 +1376,41 @@ most valuable single number a site visit could bring back**.
 
 ---
 
+## ✅ Milestone 41 — Putting error bars on our own report card (and daring a dumb map to beat us)  *(validation statistics, 2026-07-13)*
+
+**What we set out to do:** every score we'd ever quoted — "our map beats chance, AUC 0.64" — was a
+single number computed from a small list of known landslides. A skeptical reviewer would ask two
+fair questions we couldn't answer: *"with only ~40–140 landslides on record, how sure are you that
+number isn't luck?"* and *"would a much dumber map — say, just painting every steep slope red — score
+the same?"* So we built the statistical machinery to answer both, without changing the science at
+all: error bars (resampling our landslide list ten thousand times to see how much the score wobbles),
+a formal "is this better than random?" test, and a **ladder of deliberately dumb rival maps** —
+steepness alone, a simple statistical blend of steepness and wetness-of-terrain, physics without the
+satellite, satellite without the physics — each scored by exactly the same rules as our product, and
+each allowed to tune itself to its best possible score. We stacked the deck *against* ourselves on
+purpose: beating a rival that got every advantage is the claim no one can argue with.
+
+**What we found at Ramban:** the full system beats every rung of the ladder. Most tellingly, the
+satellite measurements alone score *worse than random guessing*, and the physics alone barely
+better — but fused together they beat everything. The whole really is more than its parts, and now
+that's a measured fact with error bars, not a slogan.
+
+**What we found at Vaishno Devi — the honest surprise:** our map beats its own ingredients easily,
+but a dumb "paint everything steeper than 40° red" map ties it on the raw score. The catch: that
+dumb map needs **155 zones** to do what ours does with **21**, and it can never say *when* danger
+rises — it's red forever. Our system's real advantages there are its short, precise list, its
+proven timing (it flagged the two deadly events on the exact day), and its ability to rank zones by
+fragility. But on the pure "where are the landslides?" score, on this small corridor-biased record,
+we cannot claim to beat simple steepness — so we don't. It's in the ledger, stated plainly.
+
+**Plain-language result:** every headline number now comes with an honest range ("0.71,
+plausibly 0.66–0.75") and a proof it beats randomness (99.99% confidence at both sites for the
+alert maps). The dashboards now show these ranges automatically. And the dumb-map ladder is now the
+permanent bar to clear: the next two science upgrades (smarter wetness, smarter soil physics) must
+beat it — measurably — or they don't ship.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

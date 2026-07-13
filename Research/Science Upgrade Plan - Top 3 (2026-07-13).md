@@ -11,7 +11,12 @@ value per unit effort, given the data we already have* — each one attacks a we
 
 ---
 
-## 1. Statistical rigor of the validation — bootstrap CIs + a dumb-baseline model
+## 1. Statistical rigor of the validation — bootstrap CIs + a dumb-baseline model ✅ DONE 2026-07-13 (§44)
+
+> **Outcome:** `workflows/validation_stats.py`; both sites' CIs/p-values/ladders in §44; dashboards
+> + README cite intervals. Acceptance met. The anticipated "unwelcome answer" arrived at VD: the
+> model beats its components but not a tuned slope-only map on the corridor inventory — recorded
+> honestly in §44, and it is the yardstick #2 and #3 will be judged against.
 
 **What is weak now.** Every headline skill number is a *point estimate* on a small sample:
 AUC 0.64 (Ramban, §16d/§21b), AUC 0.71 (VD, §32/§42-baseline) on n=41–46 inventory features vs

@@ -1048,6 +1048,38 @@ confidence (operational median 0.77, monitoring-tier median 0.85), with multi-lo
 to ~1.0. Filtering by it doesn't change the inventory grade (AUC 0.50 → 0.51 → 0.48) — confirming it is a
 distinct, complementary trust axis, not a spatial ranker.
 
+## CF11. Error bars, permutation tests, and the dumb-baseline ladder — grading the grade itself
+
+CF6 taught us to grade the map honestly (null control, ROC/AUC). But an AUC from ~40–140 known
+landslides is itself a *measurement* — it has noise. Two tools put honesty on the honesty:
+
+**Bootstrap confidence interval — "how much would the score wobble?"** Re-draw the landslide list
+from itself, with replacement, 10,000 times; recompute the AUC each time; the middle 95% of those
+scores is the interval. Quote **"AUC 0.71 [0.66–0.75]"**, never a naked third decimal. *Analogy:*
+instead of weighing yourself once, you weigh yourself 10,000 mornings and report the range — a
+one-off 0.707 vs 0.696 difference stops looking meaningful the moment you see the spread.
+
+**Permutation test — "could random luck do this?"** Pool the real landslides with the 5,000 random
+control points, shuffle which labels are "real" 10,000 times, and ask how often shuffled labels
+score as well as ours. If (almost) never, the map genuinely knows something: **p = 0.0001** — the
+smallest value 10,000 shuffles can resolve — at both sites' alert maps.
+
+**The ablation ladder — "would a dumber map do the same?"** A score means little without a rival. So
+we score, *by the identical rules*, a ladder of deliberately dumb maps: steepness alone; a textbook
+statistical blend of steepness + terrain-wetness; our physics without the satellite; our satellite
+without the physics. Each rung even gets to cheat — it tunes its threshold to its own best score.
+The claim worth making is **incremental skill**: what the fusion adds *over each rung*.
+
+**What the ladder said.** At Ramban: the fusion beats every rung; satellite-alone is *below* chance
+and physics-alone barely above — the value is provably in the combination. At Vaishno Devi: the
+fusion beats its own ingredients, but a bare "steeper than 40°" map **ties it** on raw AUC (needing
+155 zones and lower precision to match our 21) — so there we claim footprint economy, timing (the
+two Δ=0 disaster catches), and per-zone ranking, *not* raw spatial superiority. Reporting the tie
+is the credential.
+
+🔗 **In our project: §44 / Milestone 41.** `validation_stats.py`; dashboards now read the interval
+and p-value live; the ladder is the permanent bar the next science upgrades must clear.
+
 ---
 
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
@@ -1462,6 +1494,20 @@ would have been to hide the sensitivity; instead it's a chart in the repo. And n
 saturation dial can't substitute — soil strength and wetness are degenerate spatially, but the
 rainfall-to-wetness physics that times the warning only stays meaningful if the soils are right.
 
+**Q: Your AUC is 0.71 on 46 landslides — how do I know that isn't luck, or something a slope map gets for free?**
+A: Because we tested both, formally (§44/CF11). Luck: a permutation test — shuffle which points are
+"real landslides" 10,000 times — says chance matches our score about one time in ten thousand
+(p=0.0001, both sites). And every number now carries a bootstrap interval, so I'd say "0.71,
+plausibly 0.66–0.75", never the bare third decimal. The slope-map question is sharper, and the
+answer differs by site — which is exactly what makes it credible. At Ramban the fusion beats
+every dumb baseline we could build, *including* letting each one tune itself to its best score;
+satellite-alone and physics-alone are each ≈chance there, so the skill is provably in the
+combination. At Vaishno Devi a bare "steeper than 40°" map ties our raw AUC on the corridor
+inventory — so there I claim what we've earned instead: the same coverage with 7× fewer zones at
+higher precision, the two fatal events caught at Δ=0 (a static slope map has no *when*), and
+per-zone fragility ranking. Volunteering that tie unprompted is the point: the ladder is now the
+permanent bar any upgrade must clear.
+
 **Q: Could this scale to ten sites? What's automated and what isn't?**
 A: The plumbing scales; the science must be earned per site — and we've made that split explicit
 (M39). Everything site-specific lives in one registry config per AOI; outputs are name-spaced so
@@ -1567,6 +1613,16 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   target); (d) in an **extreme monsoon the AOI-wide gate saturates** (59 ALERT days in 2025) — per-zone
   sub-daily rain is the fix. *(Update M37: operating points are now site-earned — ALERT m=0.40 / WATCH
   m=0.75 from the local sweep, §32 — so the "Ramban-tuned dials" caveat is retired; the other four stand.)*
+- **Validation statistics — the scores now carry error bars, and one honest tie (§44 / CF11 / M41):**
+  every headline AUC now ships with a bootstrap 95% interval (n=46 gives ±0.05; n=138 gives ±0.04 —
+  quote the range, never a bare third decimal) and a permutation p-value (both ALERT maps beat
+  chance at p=0.0001; both WATCH tiers are honestly ≈chance as spatial rankers — they are recall
+  nets). The ablation ladder adds the limitation that matters most when presenting: at **Vaishno
+  Devi a tuned slope≥40° map ties our raw spatial AUC** on the corridor inventory (needing 155
+  zones vs our 21, at lower precision) — so the earned claims there are footprint economy, the Δ=0
+  temporal catches, and per-zone ranking, *not* raw spatial superiority. At Ramban the fusion
+  beats every rung and both single ingredients are ≈chance alone. These ladders are the fixed bar
+  the next science upgrades (TWI-distributed saturation, van-Genuchten suction) must clear.
 - **Fast-failure instruments are new and unproven-in-anger (Milestone 38 / CV5 / §34):** the coherence
   tripwire has never yet seen a real failure (its first timelines are 4 epochs — the minimum it can even
   flag on is 3); a storm exactly coincident with a collapse could mask the local drop; and steep-face

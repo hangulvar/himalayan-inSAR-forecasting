@@ -318,7 +318,8 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
   `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
   standing product** (saturation **m=0.50** under the matric-suction FS physics §20 + the 12.5 m ALOS DEM
-  §21) that scores **AUC 0.64 — the project's best** in the back-test (`RESULTS_AND_KPIS.md` §16d/§20/§21).
+  §21) that scores **AUC 0.64 [0.60–0.68], p=0.0001 — the project's best** in the back-test
+  (`RESULTS_AND_KPIS.md` §16d/§20/§21; interval + permutation p from §44).
   Add `--use-vslope`
   for the parallel downslope-projected product (`data/mosaic_vslope/`).
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
@@ -370,6 +371,15 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   P=1−Π(1−p). Writes confidence-filtered `alerts_<scenario>_conf{,70,90}.json` (scoreable by
   `backtest_inventory.py`). Honest finding: this measurement confidence is orthogonal to inventory AUC — a
   triage axis, not a spatial ranker.
+- **Validation statistics — CIs, significance, and the ablation ladder (§44):**
+  `python workflows/validation_stats.py [--scenario operational|watch]` — bootstrap 95% CIs on
+  AUC/recall (inventory resampled, B=10,000), a permutation p-value for "beats chance", and a
+  dumb-baseline **ablation ladder** (slope-only, logistic slope+TWI, physics-only, creep-only)
+  scored with the identical zone/centroid/distance-ROC protocol. Headline claims cite the
+  interval, not the point: Ramban operational **AUC 0.64 [0.60–0.68], p=0.0001, beats every
+  ladder rung**; Vaishno Devi operational **0.71 [0.66–0.75], p=0.0001**, beats every
+  physics/InSAR rung but is statistically indistinguishable from a tuned slope-only map on its
+  corridor inventory — the honest limits are in the ledger. Dashboards read the intervals live.
 - **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
   footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
   `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate

@@ -105,6 +105,15 @@ def load_tier(path: Path, required: bool = False):
         ab = sc.get("at_buffer_km", {})
         tier.update(auc=sc.get("auc"), recall=ab.get("tpr"), spec=ab.get("specificity"),
                     lift250=_lift_at(sc.get("roc", []), 0.25))
+    # Statistical-rigor overlay (§44, validation_stats.py): bootstrap CI + permutation p.
+    # When present it also supplies the AUC/recall point values (same protocol, refreshed
+    # inventory), so the displayed number and its interval always come from one run.
+    vs = INV_DIR / f"validation_stats_{scenario}{_SFX}.json"
+    if vs.exists():
+        vm = json.loads(vs.read_text(encoding="utf-8")).get("model", {})
+        tier.update(auc=vm.get("auc", tier["auc"]),
+                    recall=vm.get("recall_at_buffer", tier["recall"]),
+                    auc_ci=vm.get("auc_ci95"), p_perm=vm.get("p_perm_beats_chance"))
     core = INV_DIR / f"backtest_{scenario}{_SFX}_2look_report.json"
     if core.exists():
         c = json.loads(core.read_text(encoding="utf-8"))
@@ -370,6 +379,9 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     rec = tier.get("recall")
     rec_txt = f"{rec:.2f}" if isinstance(rec, (int, float)) else "n/a"
     auc_txt = _auc_txt(tier.get("auc"))
+    ci = tier.get("auc_ci")
+    if isinstance(ci, (list, tuple)) and len(ci) == 2:
+        auc_txt += f" [{ci[0]:.2f}–{ci[1]:.2f}]"  # 95% bootstrap CI (§44)
     triage = ""
     unscored = not isinstance(tier.get("auc"), (int, float))
     if role == "ALERT":
@@ -388,8 +400,10 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
             lift250 = tier.get("lift250")
             lift_txt = (f", <b>{lift250:.0f}× better than luck @250 m</b>"
                         if isinstance(lift250, (int, float)) else "")
+            p = tier.get("p_perm")
+            p_txt = (f", p={p:.4f}" if isinstance(p, (int, float)) else "")
             scored = (f"Scored vs the GSI field-validated inventory (random-luck control): "
-                      f"<b>AUC {auc_txt}</b> (beats chance), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
+                      f"<b>AUC {auc_txt}</b> (beats chance{p_txt}), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
                       f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
     else:
         title = "WHERE — WATCH footprint (monitor wider · higher recall)"

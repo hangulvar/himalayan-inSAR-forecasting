@@ -970,3 +970,22 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   Standard Windows terminals do not expose the `conda` command by default. Always use `conda init <shell>` to integrate conda with your default shells, or rely on VS Code's native Python interpreter selector to automate environment activation.
 
 ---
+
+### [2026-07-13] VD dashboard displayed a stale back-test AUC (0.696/n=41) after the inventory grew to n=46
+
+* **Symptom:** the ledger's current VD operational baseline was AUC 0.707 (n=46 inventory, §42),
+  but the live VD dashboard still showed 0.696 — the value from the superseded n=41 inventory.
+
+* **Root Cause:** the dashboard's `load_tier()` reads `backtest_<scenario>_report.json`, a
+  one-shot artifact that is NOT regenerated when the inventory grows. The §39 inventory refresh
+  updated the ledger (via the soil-sweep baseline) but nobody re-ran `backtest_inventory.py`, so
+  the report file — and every dashboard regeneration reading it — silently carried the stale point.
+
+* **Resolution:** `validation_stats.py` (§44) writes `validation_stats_<scenario><sfx>.json`;
+  `load_tier()` now prefers it when present, taking the AUC/recall point AND the 95% CI + permutation
+  p from the SAME run — the displayed number and its interval can no longer come from different
+  inventories. Both sites' dashboards regenerated and verified.
+
+* **Lesson:** any user-facing surface that reads a *scored* artifact inherits that artifact's
+  staleness. When a validation input (inventory) changes, re-run the scorers the same session — or
+  better, make the surface read the newest-protocol report, as done here.

@@ -11,57 +11,50 @@
 
 ---
 
-# LIVE — Session 19 · branch `aoi-vaishnodevi` · updated 2026-07-12
+# LIVE — Session 20 · branch `aoi-vaishnodevi` · updated 2026-07-13
 
 ## Current state
 
-- **★ NEW (§41, M39) — multi-AOI productization:** per-AOI config registry (`config/*.yaml`; root
-  `config.yaml` = one-line `active_config` pointer), **`INSAR_CONFIG` env override** (per-command AOI
-  targeting for EVERY script — the old "`--config` everywhere" assumption was false for most of the
-  chain, error log 2026-07-12), **soil parameters now config keys** (test-pinned, numerically
-  zero-change), **`workflows/aoi_status.py`** (per-site stage checklist + alarm state + next command →
-  `data/aoi_status.html`), **`NEW_AOI_PLAYBOOK.md`** (10-step onboarding, manual steps M1–M5 explicit),
-  `tests/test_config_registry.py` 6/6 native + in-container. Ramban registry file carries
-  `site_name: Ramban NH-44` — that deferred merge sub-item is DONE.
-- **★ NEW (§42) — the soil pass is LOAD-BEARING (measured):** `soil_sensitivity_sweep.py` (NEW;
-  seconds, non-destructive, checksum-restores FS rasters) swept the §37-plausible soil bracket at
-  the VD operational point — union footprint 0–125 zones, four in-bracket combos ERASE the product,
-  **failure depth z is the most load-bearing parameter**. The ERRC "reduce the soil pass to priors"
-  hypothesis is REJECTED; playbook M2 stays required (now evidence-backed) and the sweep is a
-  standard per-site artifact. Field/lab priority upgraded: depth is the most valuable number a
-  site visit can bring back (§42).
-- **BOTH sites are in WATCH (as-of 2026-07-06):** VD since 07-04 (§35, §38 addendum; 21/21 zones,
-  0 ALERT days) and — surfaced when the broken chain was healed 2026-07-13 — **Ramban too**
-  (m=0.74, 12/12 zones active; 4 ALERT days back in April 2026). **Keep running `live_alarm.py`
-  every 2–3 days for each site** per `Research/Monsoon Watch Runbook (2026-07-11).md` (Ramban
-  variant: `-e INSAR_CONFIG=config/ramban.yaml`); the earlier Ramban 15-d staleness flag is cleared.
-- **Radar side (§35):** July S1 passes still not at ASF as of 07-10 (latest scenes 18–23 Jun) — the
-  operational chains (f103/f105) can't extend yet; backfilled 2 Mar scene densified f101/f106 baseline;
-  regenerated cascade reproduces §32 exactly; `coherence_watch` OK/quiet.
-- **Ramban: COMPLETE, scored, LIVE** — two-tier ALERT/WATCH (§23) + per-zone confidence (§24) + triage
-  (§25) + temporal gate (§17), project-best operating point (§21b). Merge `aoi-vaishnodevi` → `master`
-  is the user's call (the branch contains mvp-expansion + everything since).
-- **Vaishno Devi: full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37): 12.5 m ALOS DEM,
-  disaster-validated (§31), operating points from the local m-sweep (§32) in its registry file.
-- **Deliverables:** route exposure + NE-flank creep target (2-track-confirmed §30, abuts a settlement
-  §33; field brief + KML shipped) and the Bhavan-overhang fast-failure toolkit (§34, M38 —
-  coherence tripwire, runout cone, records cross-check).
-- **Validation fronts (§38–§40):** temporal test 2/2 in-window fatal events at Δ=0 (§38); inventory 46
-  features, 2016 Bhawan event primary-verified (§39); GACOS cross-check mixed first result (§40 — one
-  flagged pair corroborated, one not; second pull would sharpen).
-- **Honest limits carried:** creep core scores 0 vs the corridor inventory (CV3); disaster site 598 m
-  from nearest zone (§31 addendum) — still the calibration target; VD φ/c literature-corroborated
-  (§37; lab + γ + overburden primary source still open, §39); fast-failure tools unproven-in-anger
-  (Part E); §40 discrepancy pair (0611–0623) open; §41 is infra only — each new AOI still owes its
-  soil pass, verified inventory, and m-sweep.
-- **NISAR (§33):** real L-band products over the AOI but too few for a chain — recheck ~early Aug.
-- ⭐ **Demos:** VD `data/alerts_vaishnodevi/mosaic_asc/operational_alarm_dashboard_vaishnodevi_2026.html`
-  (WATCH as-of 05 Jul); Ramban `data/alerts/mosaic_asc/operational_alarm_dashboard.html` (+ `_2026`);
-  **NEW `data/aoi_status.html`** — the all-sites control-room view (§41).
+- **★ NEW (§44, M41) — validation statistics (Science Upgrade Plan #1 DONE):**
+  `workflows/validation_stats.py` — bootstrap 95% CIs (B=10k), permutation p for "beats chance"
+  (B=10k), and a dumb-baseline **ablation ladder** (slope / logistic slope+TWI / physics-only /
+  creep-only) scored with the identical zone-centroid distance-ROC protocol, every rung tuned to
+  its own best score. Both ALERT maps beat chance at p=0.0001; both WATCH tiers ≈chance (recall
+  nets, as always stated). **Ramban: the fusion beats every rung** (its two ingredients are each
+  ≈chance alone). **VD, the honest tie:** slope≥40° matches the raw AUC on the corridor n=46
+  inventory — the earned VD claims are footprint economy (21 vs 155 zones at higher precision),
+  the Δ=0 temporal catches, and per-zone ranking (§44). The ladder is now the fixed bar for
+  plan #2/#3. Dashboards + README cite intervals live; a stale VD dashboard AUC (0.696/n=41 vs
+  the current 0.707/n=46) was found and structurally fixed (error log 2026-07-13).
+- **BOTH sites are in WATCH (as-of 2026-07-07, chains regenerated this session via
+  `live_alarm.py`):** VD 29/29 per-zone active, 0 ALERT days; Ramban 12/12 active, 4 April ALERT
+  days. The scheduled monsoon cycle (roadmap item 0) covers the cadence; manual fallback per
+  `Research/Monsoon Watch Runbook (2026-07-11).md`.
+- **Multi-AOI productization (§41, M39) + soil pass load-bearing (§42, M40):** config registry +
+  `INSAR_CONFIG` override + `aoi_status.py` + playbook; the §42 sweep proved soil (especially
+  failure depth z) can erase the product — M2 stays required, depth is the #1 field-visit number.
+- **Radar side (§35):** July S1 passes still not at ASF as of 07-10 — operational chains (f103/f105)
+  can't extend yet; §43 f106 bridge swap (151 m → 102 m/24 d) queued for the next rebuild.
+- **Ramban: COMPLETE, scored, LIVE** — two-tier + confidence + triage + temporal gate, project-best
+  operating point (§21b, now with CI §44). Merge `aoi-vaishnodevi` → `master` is the user's call.
+- **Vaishno Devi: full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37; §44 caveat above),
+  12.5 m ALOS DEM, disaster-validated (§31), site-swept operating points (§32).
+- **Deliverables:** route exposure + NE-flank creep target (§30/§33; field brief + KML shipped) and
+  the Bhavan-overhang fast-failure toolkit (§34, M38).
+- **Validation fronts (§38–§40, §44):** temporal 2/2 fatal events at Δ=0 (§38); inventory n=46
+  primary-verified (§39); GACOS mixed first result (§40); statistics + ladder now standing (§44).
+- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); disaster site 598 m from
+  nearest zone (§31 addendum — the calibration target); VD raw spatial AUC tied by a tuned slope
+  map (§44); soils literature-corroborated not lab-measured (§37/§39/§42); fast-failure tools
+  unproven-in-anger (Part E); §40 discrepancy pair open.
+- **NISAR (§33):** too few products for a chain — recheck ~early Aug. ⭐ **Demos:** VD + Ramban
+  `operational_alarm_dashboard*_2026.html` (now showing AUC [CI], p) and `data/aoi_status.html`.
 
 ## Recommended next steps — the product-improvement roadmap (2026-07-10)
 
 Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
+**Recommended next session: Science Upgrade Plan #2 — TWI-distributed saturation m_i** (`Research/Science
+Upgrade Plan - Top 3 (2026-07-13).md`; #1 ✅ DONE §44 — #2 and #3 are now judged against the §44 ladder + CIs).
 
 0. **Monsoon watch — now SCHEDULED (2026-07-13, was a manual runbook):** Windows task
    **"InSAR Monsoon Watch Cycle"** runs `workflows/monsoon_cycle.ps1` every 2 days at 08:00 —
@@ -104,55 +97,24 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 
 ## Uncommitted delta
 
-Sessions ≤18 are **all committed** through `b447c38` (GACOS §40).
+Sessions ≤19 are **all committed** through `e30ca60` (science upgrade plan).
 
-Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, M39)**:
-- NEW: `config/ramban.yaml`, `config/vaishnodevi.yaml` (the registry), `workflows/aoi_status.py`,
-  `NEW_AOI_PLAYBOOK.md`, `tests/test_config_registry.py`.
-- MODIFIED: `config.yaml` (→ one-line pointer), `workflows/config.py` (pointer resolution +
-  `INSAR_CONFIG` env override + `SoilConfig`), `workflows/geomechanical_engine.py` (soil defaults
-  from config; CLI still overrides; docstring de-staled), `README.md` (registry/dashboard/playbook
-  wiring), `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 0 fact update),
-  `RESULTS_AND_KPIS.md` (§41), `error_history_log.md` (two 2026-07-12 entries), `milestone.md`
-  (M39), primer (Part D scaling Q).
-- Regression batch (same session): `tests/test_plumbing.py` — stale hardcoded 183-product count →
-  manifest-derived with a 183 floor (error log 2026-07-12; 10/10 in-container);
-  `Research/Monsoon Watch Runbook (2026-07-11).md` — pointer/`INSAR_CONFIG` nuance + the
-  `aoi_status.py` health-check step.
-- Soil-sensitivity batch (2026-07-13, §42): NEW `workflows/soil_sensitivity_sweep.py`;
-  `RESULTS_AND_KPIS.md` §42; playbook M2 verdict + sweep step; this LIVE block; `milestone.md`
-  (M40); primer (Part D soil-assumptions Q).
-- Claim-repositioning batch (2026-07-13, ERRC "Eliminate"): all user-facing surfaces now claim
-  **"decision-support prioritization prototype — not a warning system"** — `operational_alarm.py`
-  (title/meta/disclaimer/Guide/footer), `aoi_status.py`, `README.md` (status + claim block),
-  playbook intro, primer Part D canonical answer; both sites' dashboards regenerated with the new
-  claim + rainfall refreshed. **Plus a real bug the regen surfaced** (error log 2026-07-13):
-  `per_zone_gate.py` followed the live shared connectivity snapshot instead of the standing
-  product's `source_stacks` — Ramban's live alarm had been silently broken since the 07-10 VD
-  radar cycle; fixed with `product_stacks()` (VD unchanged).
-- Monsoon-cycle automation (2026-07-13, ERRC "Eliminate"): NEW `workflows/monsoon_cycle.ps1` +
-  Windows scheduled task "InSAR Monsoon Watch Cycle" (every 2 days 08:00; both sites; Docker
-  auto-start; toast only on ALERT/state-change/failure; Apr–Oct season gate; state memory in
-  git-ignored `logs/monsoon_state.json`); runbook + roadmap item 0 updated. Hardened same day:
-  stops Docker after the cycle if it started it (and nothing else is using it) so vmmem doesn't
-  sit resident between cycles; 60-day log pruning; full regression battery green (10/10 + 7/7
-  incl. new product_stacks test; engine byte-idempotent; VD AUC 0.707 = post-§39 inventory,
-  supersedes 0.696/n=41); all manual paths verified intact.
-- Science-upgrade plan (2026-07-13): NEW `Research/Science Upgrade Plan - Top 3 (2026-07-13).md`
-  (validation statistics → distributed saturation → van Genuchten suction; each with math,
-  acceptance criteria, and the considered-and-rejected list); STABLE §3 item 1 now points at it.
-- Bperp-gate batch (2026-07-13, §43): `sbas_network_graph.py` — `max_perp_baseline_m` enforced as
-  the 4th rescue-gate criterion (offline via the Bperp cache; unknown → flagged); registry-config
-  comments updated; f106 151 m bridge swap QUEUED (not applied) for the next radar rebuild.
-- Snapshot-consumer follow-up (2026-07-13): `product_stacks(scenario)` extracted to `stacks.py`
-  (shared, scenario-aware); all five standing-product consumers switched (`per_zone_gate`,
-  `coherence_watch`, `watch_triage`, `velocity_uncertainty`, `polygon_stats`; builders keep the
-  live snapshot by design). Verified in-container for BOTH sites — Ramban's live alarm chain runs
-  again end-to-end (§21b/§23/§25 values reproduced; dashboard regenerated as-of 07-06, now
-  **WATCH, 12/12 zones active** — it had sat on a stale June DORMANT while broken); VD outputs
-  unchanged (105 watch / 21 operational zones; coherence_watch OK; polygon_stats 2-track HIGH).
-- Git-ignored as usual: `session_journey.md` entries, `data/aoi_status.{html,json}`,
-  `data/inventory/soil_sensitivity_*`.
+Session 20 (this wrap), one logical batch — **validation statistics (§44, M41, plan #1)**:
+- NEW: `workflows/validation_stats.py` (bootstrap CIs B=10k, permutation p B=10k, ablation
+  ladder scored with the identical zone/centroid/distance-ROC protocol; plain-numpy IRLS for the
+  LR rung — no new dependency).
+- MODIFIED: `workflows/operational_alarm.py` (`load_tier` prefers `validation_stats_*.json` —
+  displayed AUC/recall + 95% CI + p come from one run; fixes the stale VD 0.696/n=41 display),
+  `README.md` (headline cites interval + p; new validation-statistics bullet),
+  `RESULTS_AND_KPIS.md` (§44), `Research/Science Upgrade Plan - Top 3 (2026-07-13).md` (#1 ✅ +
+  outcome note), `SESSION_REVIEW.md` (this LIVE block + STABLE §3 item 1 fact update),
+  `error_history_log.md` (stale-AUC entry), `milestone.md` (M41), primer (CF11 + Part D
+  statistics Q + Part E error-bars/slope-tie limitation).
+- Verified: suites 10/10 + 7/7 in-container; Ramban op AUC reproduces §21b (0.640≈0.641,
+  float-path rounding); VD op reproduces §42 (0.707 exact); both sites' live dashboards
+  regenerated as-of 2026-07-07 (both WATCH) and show `AUC x.xx [lo–hi] (beats chance, p=…)`.
+- Git-ignored as usual: `session_journey.md` entry (Session 20), regenerated `data/` artifacts,
+  `data/inventory/validation_stats_*`.
 
 ---
 
@@ -218,7 +180,8 @@ The core vision is fully built and scored above chance. Remaining work:
    failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
 1. **Accuracy backlog — now a ranked plan:** see `Research/Science Upgrade Plan - Top 3
-   (2026-07-13).md` — (1) bootstrap CIs + ablation-baseline ladder for every skill claim,
+   (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE 2026-07-13 (§44,
+   `validation_stats.py`; VD raw-AUC tie vs slope≥40° is the standing yardstick),
    (2) TWI-distributed saturation m_i (one swept κ; κ=0 = today), (3) nonlinear van-Genuchten
    suction curve (α,n; fixes m\* placement, judged through #1's statistics). Still behind those:
    lab confirmation of c_dry/c_wet; per-stack ERA5 reference-pixel + unwrapping QC (rescue
