@@ -6,6 +6,11 @@ its command, container image, and the artifact that proves it ran; every **manua
 step (M1–M5)** says exactly what a human must fetch or decide, and why it cannot
 be automated.
 
+**What you are building (the claim to carry):** a **decision-support
+prioritization prototype** for the new site — it ranks WHERE slopes deserve
+inspection and WHEN vigilance should rise, validated against a local inventory.
+It is not a warning system and must never be presented as one.
+
 **Companion tools:**
 
 - `python workflows/aoi_status.py` — the multi-AOI dashboard: shows every site's

@@ -1,19 +1,21 @@
 # 🏔️ Geospatial Analysis & Hazard Monitoring in the Western Himalayas
 
-A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into an automated, explainable hazard warning. Two live case studies in Jammu & Kashmir: the **NH-44 corridor through Ramban** (the original build) and the **Vaishno Devi pilgrimage corridor on the Trikuta massif** (the point-anywhere replication — disaster-validated, and in live WATCH through the 2026 monsoon).
+A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into ranked, explainable **decision support**: which slopes deserve inspection, and when vigilance should rise. Two live case studies in Jammu & Kashmir: the **NH-44 corridor through Ramban** (the original build) and the **Vaishno Devi pilgrimage corridor on the Trikuta massif** (the point-anywhere replication — disaster-validated, and in live WATCH through the 2026 monsoon).
 
-### 🎉 Status: an operational, validated two-site warning system
+### 🎉 Status: a validated two-site decision-support prioritization prototype
+
+**The claim, precisely:** this product **ranks WHERE to inspect and WHEN to heighten vigilance**, scored against verified landslide inventories. It is **not a warning system** — it does not predict individual landslides, and no safety, travel, or evacuation decision should rest on it. That smaller claim is the honest one, and every number behind it is validated and committed.
 
 The full chain — built and hardened on Ramban, then re-pointed at a second AOI by editing one config file:
 
-> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → automated, explainable rainfall-gated warning + browser dashboard (with a plain-language Guide tab).**
+> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → explainable, rainfall-gated prioritization (two-tier ALERT/WATCH) + browser dashboard (with a plain-language Guide tab).**
 
 | Phase | What it does | Status |
 |---|---|---|
 | **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Both sites |
 | **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Multi-stack union |
 | **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Site-calibrated soils |
-| **4A — Agentic warning system** | Two-tier ALERT/WATCH footprints × rainfall gate × per-zone ranking | ✅ Live at both sites |
+| **4A — Agentic decision support** | Two-tier ALERT/WATCH footprints × rainfall gate × per-zone ranking | ✅ Live at both sites |
 | **4B — Interactive UIs** | 3-D hazard explorer + publish-ready operational dashboard | ✅ Complete |
 
 #### Beyond the MVP — the validation and operations arc
@@ -27,7 +29,7 @@ Full detail + every headline number lives in the **committed** [RESULTS_AND_KPIS
 - **Soil parameters site-corroborated (§36–§38):** site literature (incl. a pathway back-analysis paper) brackets every strength value in use — the "borrowed soils" caveat is retired; temporal validation now rests on **two independent fatal events, both caught on the day** (Ardhkuwari §31 + the 21 Jul 2025 Banganga landslide §38).
 - **Live operations (§35):** a routine radar-cadence cycle (resubmit → QA → invert → re-score) plus a rainfall-refresh loop; the monsoon onset flipped the VD site **DORMANT → WATCH** on 2026-07-04, with all vulnerable zones active — the per-zone gate doing exactly what it was built for.
 
-This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** — is the project's scientific posture. The operational dashboard is a **research prototype, not an official warning system**, and says so prominently.
+This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** — is the project's scientific posture. The dashboard is a **decision-support prioritization prototype — not a warning system**: it ranks where to inspect and when vigilance should rise, does not predict individual landslides, and says so prominently.
 
 **New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
@@ -444,7 +446,7 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 1. **Atmospheric Forensics** ✅ — phase-elevation correlation + coherence masking to keep only real ground motion (Phase 1).
 2. **InSAR time-series velocity** ✅ — Sentinel-1 SBAS over Ramban; landslide creep at mm/yr precision (Phase 2, pathfinder stack).
 3. **Geomechanical Modelling** ✅ — LOS velocity + DEM-derived slope/TWI → Infinite-Slope Factor of Safety + hazard fusion (Phase 3).
-4. **Agentic warning system** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable alerts (Phase 4A).
+4. **Agentic decision support** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable, ranked alerts (Phase 4A).
 5. **Meteorological Triggers (live)** ✅ — real ERA5-Land rainfall auto-fetched per season (`live_alarm.py`), graded by a verified regional intensity–duration curve into DORMANT/WATCH/ALERT (§17, §35); remaining hardening = sub-daily per-zone rain (IMERG).
 
 ---

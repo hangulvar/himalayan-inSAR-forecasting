@@ -117,6 +117,14 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
 - Soil-sensitivity batch (2026-07-13, §42): NEW `workflows/soil_sensitivity_sweep.py`;
   `RESULTS_AND_KPIS.md` §42; playbook M2 verdict + sweep step; this LIVE block; `milestone.md`
   (M40); primer (Part D soil-assumptions Q).
+- Claim-repositioning batch (2026-07-13, ERRC "Eliminate"): all user-facing surfaces now claim
+  **"decision-support prioritization prototype — not a warning system"** — `operational_alarm.py`
+  (title/meta/disclaimer/Guide/footer), `aoi_status.py`, `README.md` (status + claim block),
+  playbook intro, primer Part D canonical answer; both sites' dashboards regenerated with the new
+  claim + rainfall refreshed. **Plus a real bug the regen surfaced** (error log 2026-07-13):
+  `per_zone_gate.py` followed the live shared connectivity snapshot instead of the standing
+  product's `source_stacks` — Ramban's live alarm had been silently broken since the 07-10 VD
+  radar cycle; fixed with `product_stacks()` (VD unchanged).
 - Git-ignored as usual: `session_journey.md` entries, `data/aoi_status.{html,json}`,
   `data/inventory/soil_sensitivity_*`.
 

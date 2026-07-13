@@ -1285,6 +1285,17 @@ A: Not yet — Phases 1–2 measure *movement* and Phase 3 turns it into a rough
 yet the reality. Movement + slope physics is an ingredient of prediction, not the
 prediction itself.
 
+**Q: So is the finished product an early-warning system?**
+A: No, and I claim less on purpose. It's a **decision-support prioritization
+prototype**: it ranks WHERE slopes deserve inspection (scored above chance
+against verified landslide inventories at two sites) and WHEN regional rainfall
+warrants heightened vigilance (both in-window fatal events caught on the day).
+It does not predict individual landslides, and no evacuation or closure decision
+should rest on it — that authority and that burden of proof belong to agencies
+like GSI and the district administration. The smaller claim is the one every
+number in the repo actually supports, and it's the difference between a
+defensible research product and an overclaimed one.
+
 **Q: How do you decide a slope is dangerous?**
 A: Two independent checks must agree. First, physics: the Infinite-Slope Factor
 of Safety, from the slope's steepness and soil strength, must say it's unstable

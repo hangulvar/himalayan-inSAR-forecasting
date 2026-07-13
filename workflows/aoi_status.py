@@ -314,7 +314,8 @@ def write_html(statuses: list[AoiStatus], out: Path) -> None:
 <div class="gsub">Generated {date.today().isoformat()} by workflows/aoi_status.py &middot;
 registry: config/*.yaml &middot; switch the active AOI by editing the one-line
 <code>active_config</code> pointer in config.yaml &middot; onboarding: NEW_AOI_PLAYBOOK.md
-&middot; research prototype, not an official warning system</div>
+&middot; decision-support prioritization prototype — not a warning system; no safety decision should
+rest on it</div>
 <div class="grid">{''.join(cards)}</div>
 <div class="foot">Stage semantics: AUTO = verified from on-disk artifacts &middot; MANUAL =
 user-side step detected by its artifact/config footprint &middot; AGENT = scripted sweep whose

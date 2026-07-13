@@ -519,12 +519,13 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{SITE} — Operational Landslide Alarm</title>
+<title>{SITE} — Landslide Decision Support (research prototype)</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="{SITE} — InSAR Landslide Monitoring (research prototype)">
-<meta property="og:description" content="Research demo: satellite-radar-measured slope creep × slope
- physics × a rainfall gate, fused into an explainable landslide warning view. Static snapshot as of
- {as_of}. Not an official warning system.">
+<meta property="og:title" content="{SITE} — InSAR Landslide Decision Support (research prototype)">
+<meta property="og:description" content="Decision-support prioritization prototype: satellite-radar
+ slope creep × slope physics × a rainfall gate rank WHERE slopes deserve inspection and WHEN
+ vigilance should rise. Static snapshot as of {as_of}. Not a warning system — it does not predict
+ individual landslides, and no safety decision should rest on it.">
 <meta name="twitter:card" content="summary">
 <!-- After hosting, add absolute URLs: <meta property="og:url" content="..."> and
      <meta property="og:image" content="..."> (og:image cannot be a data: URI). -->
@@ -558,7 +559,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  .guide h2{{font-size:15px}}
 </style></head><body>
 <header>
-  <h1>🏔️ {SITE} — Operational Landslide Alarm</h1>
+  <h1>🏔️ {SITE} — Landslide Decision Support <span style="font-size:13px;font-weight:400;
+   opacity:.8">(prioritization prototype)</span></h1>
   <div class="sub"><b>WHERE</b> (two-tier hazard footprint: ALERT + WATCH) × <b>WHEN</b> (regional rainfall
    gate) × <b>WHICH ZONES</b> (per-zone vulnerability) · season {r['season']['start']} → {r['season']['end']} ·
    generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
@@ -567,10 +569,12 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <button id="btn-dash" class="tab active" onclick="showTab('dash')">Dashboard</button>
   <button id="btn-guide" class="tab" onclick="showTab('guide')">📖 Guide — how to read this page</button>
 </nav>
-<div class="disclaimer">⚠️ <b>RESEARCH PROTOTYPE.</b> This is an independent satellite-radar (InSAR)
- research project and a <b>static snapshot</b> (rainfall data lags ~5 days). It is <b>NOT an official
- warning system</b> and is not affiliated with SMVDSB, GSI, NDMA or any authority. Do not use it for
- safety or travel decisions — always follow official advisories.</div>
+<div class="disclaimer">⚠️ <b>RESEARCH PROTOTYPE — DECISION SUPPORT, NOT A WARNING SYSTEM.</b> This
+ independent satellite-radar (InSAR) research product <b>ranks</b> WHERE slopes deserve inspection and
+ WHEN vigilance should rise; it does <b>not predict individual landslides</b>. It is a <b>static
+ snapshot</b> (rainfall data lags ~5 days) and is not affiliated with SMVDSB, GSI, NDMA or any
+ authority. No safety, travel, or evacuation decision should rest on it — always follow official
+ advisories.</div>
 
 <div id="tab-dash">
 <div class="banner">
@@ -617,7 +621,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 <div class="wrap">
   <div class="card" style="flex:1 1 100%">
     <h2>What is this dashboard?</h2>
-    <p>It is an automated landslide early-warning view for <b>{SITE}</b>, built from two independent
+    <p>It is a <b>decision-support prioritization view</b> for <b>{SITE}</b> — it ranks where to look
+      and when to look harder; it does <b>not</b> predict individual landslides. It is built from two independent
       measurements: <b>satellite radar</b> (InSAR — millimetre-scale ground-motion mapping from orbit,
       which finds slopes that are <i>already creeping</i>) and <b>slope physics</b> (a Factor-of-Safety
       model on the terrain, which finds slopes that are <i>fragile when wet</i>). Where both agree, we
@@ -660,7 +665,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   </div>
   <div class="card">
     <h2>Why two maps (ALERT vs WATCH)?</h2>
-    <p>Any warning system trades misses against false alarms — so we publish both ends of the dial.
+    <p>Any alert product trades misses against false alarms — so we publish both ends of the dial.
       The <b>ALERT footprint</b> is the precise, act-now list. The <b>WATCH footprint</b> is a wider net
       that catches more of the true failures at the cost of more false positives — right for planning
       patrols, wrong for sirens.</p>
@@ -700,7 +705,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <div class="card">
     <h2>About this project &amp; data credits</h2>
     <p>An independent, end-to-end research prototype: free public satellite data → ground-motion
-      measurement → physics-based hazard mapping → an explainable rainfall-gated warning view. It is a
+      measurement → physics-based hazard mapping → explainable, rainfall-gated <b>decision-support
+      prioritization</b>. It is a
       <b>portfolio/research demonstration</b>, not an operational service: this page is a static
       snapshot generated on the date in the header, and it is not affiliated with or endorsed by any
       authority responsible for this site.</p>
@@ -715,8 +721,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 
 <footer>Operational MVP · the WHEN gate uses one AOI rainfall value/day; per-zone differentiation is by each
  zone's critical saturation m* (§19), capped at the validated footprint. {site_notes}<br><br>
- <b>Research prototype — not an official warning system.</b> Static snapshot; always follow official
- advisories.<br>
+ <b>Decision-support prioritization prototype — not a warning system.</b> It ranks where to inspect
+ and when vigilance should rise; it does not predict individual landslides. Static snapshot; always
+ follow official advisories.<br>
  <b>Data &amp; credits:</b> Contains modified Copernicus Sentinel-1 data (2025–26), processed by
  ASF HyP3 (Alaska Satellite Facility) · rainfall: Copernicus Climate Change Service (C3S) ERA5-Land ·
  DEM: ALOS PALSAR RTC © JAXA/METI, via ASF · landslide records: Geological Survey of India (GSI) ·

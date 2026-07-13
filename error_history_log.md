@@ -23,6 +23,33 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-13] per_zone_gate followed the LIVE connectivity snapshot, not the standing product — Ramban's live alarm broke silently after VD's radar cycle
+
+* **Symptom:** `live_alarm.py` (insar stage) for Ramban aborted: `per_zone_gate.py` exited with
+  "No operational zones found — run run_multistack.py first", even though Ramban's canonical union
+  product (12 zones) and per-stack alerts all exist on disk. VD's identical chain ran fine minutes
+  earlier.
+
+* **Root Cause:** `per_zone_gate.py` derived its stack list from `run_multistack.connected_stacks()`
+  — the **current shared qa_masks network snapshot**, which the session-18 VD radar cycle had
+  rewritten to list only the VD stacks (f103/f105) as connected. Ramban's per-stack alert files
+  exist for its own three ASC stacks, so the intersection was empty → zero zones. A latent
+  multi-AOI failure class: **any consumer of the live connectivity snapshot silently follows the
+  last AOI whose QA chain ran.** Ramban's live alarm had actually been broken since 2026-07-10; the
+  claim-repositioning dashboard regen was simply the first Ramban run to hit it.
+
+* **Resolution:** new `product_stacks()` in `per_zone_gate.py` — read the stack list off the
+  standing union product's own `source_stacks` (in `alerts_operational.json`), falling back to the
+  live snapshot only when no product exists yet. VD behavior unchanged (its union stacks == the
+  snapshot). Gating now follows the validated product, not the mutable shared state.
+
+* **Lesson:** in a multi-AOI world, the shared connectivity state is a *per-run scratch value*, not
+  a site property — anything operating on a site's standing product must take provenance (like
+  `source_stacks`) from the product itself. Same failure family as the hardcoded-183 test constant
+  (2026-07-12): single-site assumptions hiding in shared state.
+
+---
+
 ### [2026-07-12] test_plumbing pinned the product count to 183 — stale since the VD pull (caught by the regression run)
 
 * **Symptom:** `tests/test_plumbing.py` in the insar container: 8/10 PASS but
