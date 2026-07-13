@@ -49,6 +49,7 @@ soil:
 baseline:
   max_temporal_baseline_days: 24
   sbas_neighbors: 1
+  # Enforced in the rescue gate since 2026-07-13 (§43) — see config/vaishnodevi.yaml.
   max_perp_baseline_m: 150
 
 # --- Connectivity-rescue policy ---------------------------------------------

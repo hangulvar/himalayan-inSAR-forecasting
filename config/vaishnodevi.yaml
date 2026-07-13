@@ -55,8 +55,10 @@ baseline:
   # SBAS forward neighbours per scene (1 = consecutive chain; 3 = SBAS N=3).
   sbas_neighbors: 1
   # Max perpendicular baseline (m). Pairs above this risk layover / volume
-  # decorrelation. NOTE: declared here for the upcoming baseline-enforcement
-  # step (roadmap 0b) but not yet applied by the submitter.
+  # decorrelation. ENFORCED in the connectivity-rescue gate since 2026-07-13
+  # (§43): a CONCERN pair cannot become a bridge if its |Bperp| exceeds this
+  # (Bperp read from the network graph's ASF cache; unknown Bperp is flagged,
+  # not rejected). The submitter itself still queues all SBAS pairs.
   max_perp_baseline_m: 150
 
 # --- Connectivity-rescue policy ---------------------------------------------

@@ -1928,6 +1928,35 @@ moves across the §37-plausible soil bracket, the manual per-site soil pass (pla
 
 ---
 
+## 43. Perpendicular-baseline gate folded into rescues — one validated bridge was 1 m over the rule  `[REAL / MEASURED]`
+
+**Date:** 2026-07-13 · **Produced by:** `workflows/sbas_network_graph.py` (gate extension) ·
+**Branch:** `aoi-vaishnodevi` · Closes the roadmap-0b leftover ("declared but not yet applied").
+
+The config's `baseline.max_perp_baseline_m: 150` is now a fourth criterion in the connectivity-rescue
+gate: a CONCERN pair cannot become an (unredundant) bridge if its pair |Bperp| exceeds it. Bperp
+comes from the network graph's on-disk ASF cache, so the offline `--recommend-only` path keeps
+working; unknown Bperp is *flagged* (`missing_metrics:bperp`), never rejected — consistent with the
+gate's gate-on-available-data philosophy.
+
+- **Audit of the 10 standing bridges:** 8 measure 1–123 m (comfortably in-rule), 1 has no cached
+  Bperp (DESC f479 — flagged), and **1 fails: the f106 bridge 20250506→20250611 at Bperp 151 m** —
+  literally 1 m over the round-number rule.
+- **The recommender found a better bridge for the same gap:** 20250506→20250530 — same island merge
+  (f106 stays 6→4 islands), *shorter* temporal baseline (24 d vs 36 d), Bperp 102 m, R² 0.382
+  (within the 0.45 ceiling). Selection is deterministic (two runs byte-identical).
+- **Deliberately NOT applied today:** the standing quarantine list and every downstream product are
+  untouched (verified: `_quarantine_list.csv` unmodified; plumbing 10/10, registry 7/7). The swap
+  takes effect at the **next radar-cadence rebuild**, which re-runs apply→invert→score and
+  re-validates as part of its loop — expect a small f106/Ramban-union product shift there, to be
+  re-scored and ledgered then.
+
+**Honest framing:** 150 m is a rule of thumb, not a measured cliff — a 151 m bridge was not
+producing bad science. The value of the gate is prospective: future long-baseline bridges (where
+redundancy can't average noise out) are now excluded automatically, at every site, from config.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

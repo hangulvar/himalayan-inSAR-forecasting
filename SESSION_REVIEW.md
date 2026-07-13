@@ -72,6 +72,8 @@ Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site*
 1. **Radar cadence (agent, ~1 cmd/2 weeks):** cycle ran 2026-07-10 (§35) — July S1 passes still absent;
    when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack → route_exposure →
    live_alarm → coherence_watch. Every cycle lengthens the chains and drops the σ_v noise floor.
+   **⚠ Next rebuild also applies the §43 f106 bridge swap** (151 m bridge → the 102 m/24-day
+   replacement) — expect a small f106/Ramban-union shift; re-score and ledger it as part of the cycle.
    **NISAR:** 8 GSLC/RSLC/GCOV + 3 GUNW over the AOI (checked 2026-07-07); too few for a chain — recheck
    monthly, build the GUNW adapter when ~8+ same-track pairs exist.
 2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** per-site `operational_m`/`watch_m`
@@ -136,6 +138,9 @@ Session 19 (this wrap), one logical batch — **multi-AOI productization (§41, 
   sit resident between cycles; 60-day log pruning; full regression battery green (10/10 + 7/7
   incl. new product_stacks test; engine byte-idempotent; VD AUC 0.707 = post-§39 inventory,
   supersedes 0.696/n=41); all manual paths verified intact.
+- Bperp-gate batch (2026-07-13, §43): `sbas_network_graph.py` — `max_perp_baseline_m` enforced as
+  the 4th rescue-gate criterion (offline via the Bperp cache; unknown → flagged); registry-config
+  comments updated; f106 151 m bridge swap QUEUED (not applied) for the next radar rebuild.
 - Snapshot-consumer follow-up (2026-07-13): `product_stacks(scenario)` extracted to `stacks.py`
   (shared, scenario-aware); all five standing-product consumers switched (`per_zone_gate`,
   `coherence_watch`, `watch_triage`, `velocity_uncertainty`, `polygon_stats`; builders keep the
@@ -199,8 +204,10 @@ The core vision is fully built and scored above chance. Remaining work:
    `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
    config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
    (multi-AOI stage/alarm dashboard + deterministic next step), `NEW_AOI_PLAYBOOK.md` (onboarding
-   runbook), `tests/test_config_registry.py`. Still: fold the <150 m perpendicular-baseline
-   gate into rescues; AOI guidance (a better polygon improves *targeting*, not the noise floor).
+   runbook), `tests/test_config_registry.py`. ~~Fold the <150 m perpendicular-baseline gate into
+   rescues~~ ✅ DONE 2026-07-13 (§43 — one standing f106 bridge measured 151 m; a better
+   replacement is queued and applies at the next radar-cadence rebuild). Still: AOI guidance
+   (a better polygon improves *targeting*, not the noise floor).
    **New-AOI replication readiness:** infra replicability HIGH (config-driven, Dockerized, multi-stack);
    scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1 acquisitions for a velocity
    baseline, (b) a site soil check (Ramban field-calibrated §20; VD literature-corroborated §37 — each

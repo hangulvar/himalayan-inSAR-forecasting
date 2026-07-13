@@ -445,7 +445,8 @@ def _safe_float(value) -> float | None:
         return None
 
 
-def _gate_failure(it: dict, max_r2: float, min_coh: float, min_surv: float) -> str | None:
+def _gate_failure(it: dict, max_r2: float, min_coh: float, min_surv: float,
+                  max_bperp: float | None = None) -> str | None:
     """Return None if the candidate clears every PRESENT quality metric, else a
     short string naming the first failing metric. Missing metrics are not failed
     (gate on available data) so a clean pair is never rejected for merely lacking
@@ -456,7 +457,34 @@ def _gate_failure(it: dict, max_r2: float, min_coh: float, min_surv: float) -> s
         return f"coherence={it['coh']:.3f}<{min_coh}"
     if it["surv"] is not None and it["surv"] < min_surv:
         return f"surviving_pct={it['surv']:.1f}<{min_surv}"
+    # Perpendicular-baseline rule (config baseline.max_perp_baseline_m, roadmap 0b —
+    # folded into the rescue gate 2026-07-13): a long-baseline bridge risks
+    # geometric/volume decorrelation exactly where redundancy cannot average it out.
+    if (max_bperp is not None and it.get("bperp") is not None
+            and it["bperp"] > max_bperp):
+        return f"bperp={it['bperp']:.0f}m>{max_bperp:.0f}m"
     return None
+
+
+def bperp_date_maps_from_cache() -> dict[str, dict[datetime, float]]:
+    """{stack: {acquisition datetime: bperp}} from the on-disk Bperp cache — OFFLINE.
+
+    The cache is written by the full (ASF-online) run; the offline
+    --recommend-only path reuses it so the Bperp gate works without network. On a
+    brand-new dataset with no cache yet the gate simply has no Bperp data (pairs
+    are then flagged missing_metrics:bperp, not rejected)."""
+    if not BPERP_CACHE.exists():
+        return {}
+    out: dict[str, dict[datetime, float]] = {}
+    for stack, bperp_map in json.loads(BPERP_CACHE.read_text()).items():
+        date_map: dict[datetime, float] = {}
+        for granule, bp in bperp_map.items():
+            m = re.search(r"_(\d{8})T(\d{6})_", granule)
+            if m:
+                d = datetime.strptime(m.group(1) + "T" + m.group(2), "%Y%m%dT%H%M%S")
+                date_map[d] = bp
+        out[stack] = date_map
+    return out
 
 
 def recommend_rescues(
@@ -465,6 +493,8 @@ def recommend_rescues(
     min_coherence: float = 0.6,
     min_surviving_pct: float = 15.0,
     exclude_stacks: tuple[str, ...] = (),
+    max_perp_baseline_m: float | None = None,
+    bperp_maps: dict[str, dict[datetime, float]] | None = None,
 ) -> dict:
     """Auto-select the minimum set of CONCERN pairs that bridge each stack's
     KEEP-only islands — but only pairs that clear a quality GATE.
@@ -517,6 +547,12 @@ def recommend_rescues(
     diagnostics: dict[str, dict] = {}
     for stack in sorted(by_stack):
         items = by_stack[stack]
+        # Pair Bperp = |bperp(secondary) - bperp(reference)| where both scenes are
+        # in the (cache-derived) map; None otherwise — gate on available data.
+        bmap = (bperp_maps or {}).get(stack) or {}
+        for it in items:
+            b1, b2 = bmap.get(it["ref_date"]), bmap.get(it["sec_date"])
+            it["bperp"] = abs(b2 - b1) if (b1 is not None and b2 is not None) else None
         nodes: set[datetime] = set()
         for it in items:
             nodes.add(it["ref_date"])
@@ -554,18 +590,21 @@ def recommend_rescues(
         for it in candidates:
             if uf.find(it["ref_date"]) == uf.find(it["sec_date"]):
                 continue  # not (or no longer) a bridge — internal / redundant
-            failure = _gate_failure(it, max_atmos_r2, min_coherence, min_surviving_pct)
+            failure = _gate_failure(it, max_atmos_r2, min_coherence, min_surviving_pct,
+                                    max_perp_baseline_m)
             if failure:
                 rejected.append({
                     "product": it["product"],
                     "atmos_r2": it["atmos_r2"],
                     "coherence": it["coh"],
                     "surviving_pct": it["surv"],
+                    "bperp_m": it["bperp"],
                     "reason": failure,
                 })
                 continue
             uf.union(it["ref_date"], it["sec_date"])
-            missing = [m for m, v in (("coherence", it["coh"]), ("surviving_pct", it["surv"])) if v is None]
+            missing = [m for m, v in (("coherence", it["coh"]), ("surviving_pct", it["surv"]),
+                                      ("bperp", it["bperp"])) if v is None]
             rescues.append({
                 "product": it["product"],
                 "stack": stack,
@@ -576,6 +615,7 @@ def recommend_rescues(
                 "atmos_r2": it["atmos_r2"],
                 "coherence": it["coh"],
                 "surviving_pct": it["surv"],
+                "bperp_m": it["bperp"],
                 "flags": [f"missing_metrics:{'+'.join(missing)}"] if missing else [],
             })
             selected.append(it["product"])
@@ -594,6 +634,8 @@ def recommend_rescues(
             "max_atmos_r2": max_atmos_r2,
             "min_coherence": min_coherence,
             "min_surviving_pct": min_surviving_pct,
+            "max_perp_baseline_m": max_perp_baseline_m,
+            "bperp_source": "cache" if bperp_maps else "unavailable (not gated)",
         },
         "rescues": rescues,
         "stacks": diagnostics,
@@ -715,12 +757,21 @@ def main() -> int:
 
     # Rescue recommendations are computed offline (no ASF) and written first, so
     # they are available even if the ASF-dependent baseline plots below cannot run.
+    # Bperp for the <max_perp_baseline_m gate comes from the on-disk cache (written
+    # by previous full runs) — still offline; without a cache the gate is inactive
+    # and candidates carry a missing_metrics:bperp flag instead.
+    bperp_maps = bperp_date_maps_from_cache()
+    if not bperp_maps:
+        logger.warning("No Bperp cache — the perpendicular-baseline gate is "
+                       "inactive this run (do a full ASF run to populate it).")
     payload = recommend_rescues(
         rows,
         max_atmos_r2=cfg.rescue_gate.max_atmos_r2,
         min_coherence=cfg.rescue_gate.min_coherence,
         min_surviving_pct=cfg.rescue_gate.min_surviving_pct,
         exclude_stacks=cfg.exclude_from_rescue,
+        max_perp_baseline_m=cfg.baseline.max_perp_baseline_m,
+        bperp_maps=bperp_maps,
     )
     RESCUE_RECOMMENDATIONS.write_text(
         json.dumps(payload, indent=2) + "\n", encoding="utf-8"
@@ -728,7 +779,9 @@ def main() -> int:
     logger.info(
         f"Wrote {len(payload['rescues'])} rescue recommendation(s) -> "
         f"{RESCUE_RECOMMENDATIONS.name} (gate: R2<={cfg.rescue_gate.max_atmos_r2}, "
-        f"coh>={cfg.rescue_gate.min_coherence}, surv>={cfg.rescue_gate.min_surviving_pct}%)"
+        f"coh>={cfg.rescue_gate.min_coherence}, surv>={cfg.rescue_gate.min_surviving_pct}%, "
+        f"Bperp<={cfg.baseline.max_perp_baseline_m}m"
+        f"{'' if bperp_maps else ' [INACTIVE - no cache]'})"
     )
     for label, d in payload["stacks"].items():
         note = ""
