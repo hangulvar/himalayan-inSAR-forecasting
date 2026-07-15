@@ -66,10 +66,6 @@ def _expected_product_count() -> int:
     return n
 
 
-def _zip_count() -> int:
-    return sum(1 for p in RAW_ZIPS.glob("*.zip"))
-
-
 def _product_dirs() -> list[Path]:
     return sorted(d for d in PROCESSED.iterdir() if d.is_dir())
 
@@ -82,25 +78,58 @@ def _masked_dirs() -> list[Path]:
 
 # ------------------------------------------------------------------------------
 # 1. Inventory assertions
+#
+# Since 2026-07-15 the raw HyP3 zips are DISPOSABLE staging artifacts (archived
+# off-machine; data/raw_zips is a junction to C:\InSAR_data\raw_zips). The
+# on-disk source of truth is data/processed_tiffs/<product>/ — the 6 extracted
+# GeoTIFF layers plus the HyP3 metadata <product>.txt (which prep_mintpy.py
+# reads from there instead of from the zip).
 # ------------------------------------------------------------------------------
-def test_zip_count_matches_expected() -> None:
-    """Every product the stack manifest knows about must have its zip on disk."""
+def test_extracted_products_match_manifest() -> None:
+    """Every product the stack manifest knows about must have its extracted dir."""
     expected = _expected_product_count()
-    n = _zip_count()
-    assert n == expected, (
-        f"Expected {expected} zips (per _stack_manifest.json) in {RAW_ZIPS}; "
-        f"found {n}. Downloads incomplete, extra products leaked in, or the "
-        f"manifest is out of date."
+    n_dirs = len(_product_dirs())
+    assert n_dirs == expected, (
+        f"Expected {expected} extracted product dirs (per _stack_manifest.json) "
+        f"in {PROCESSED}; found {n_dirs}. Extraction incomplete, extra products "
+        f"leaked in, or the manifest is out of date."
     )
 
 
-def test_product_dir_count_matches_zips() -> None:
-    """Every zip should have produced an extracted product folder."""
-    n_zips = _zip_count()
-    n_dirs = len(_product_dirs())
-    assert n_dirs == n_zips, (
-        f"Mismatch: {n_zips} zips on disk, {n_dirs} extracted dirs. "
-        f"Re-run downloader with --extract."
+def test_zips_are_staging_only() -> None:
+    """Any zip still sitting in raw_zips must already have its extracted dir.
+
+    Zero zips is the normal state (they are deleted/archived after extraction);
+    a zip WITHOUT an extracted dir means --extract was never run on it."""
+    dirs = {d.name for d in _product_dirs()}
+    unextracted = sorted(
+        p.stem for p in RAW_ZIPS.glob("*.zip") if p.stem not in dirs
+    )
+    assert not unextracted, (
+        f"{len(unextracted)} zip(s) in {RAW_ZIPS} with no extracted product dir "
+        f"(run downloader with --extract): {unextracted[:5]}"
+    )
+
+
+def test_product_dirs_carry_all_layers_and_metadata() -> None:
+    """Each product dir must hold the 6 extracted layers + the HyP3 metadata txt.
+
+    The metadata txt is what makes the raw zip disposable — prep_mintpy.py
+    reads it from here. A dir missing it would silently force the (deleted)
+    zip fallback on the next MintPy prep."""
+    layer_suffixes = (
+        "_unw_phase.tif", "_corr.tif", "_dem.tif",
+        "_lv_theta.tif", "_lv_phi.tif", "_water_mask.tif",
+    )
+    problems = []
+    for d in _product_dirs():
+        missing = [s for s in layer_suffixes if not (d / f"{d.name}{s}").exists()]
+        if not (d / f"{d.name}.txt").exists():
+            missing.append(".txt (HyP3 metadata)")
+        if missing:
+            problems.append(f"{d.name}: missing {missing}")
+    assert not problems, (
+        f"{len(problems)} product dir(s) incomplete:\n  " + "\n  ".join(problems[:5])
     )
 
 

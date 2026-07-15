@@ -2223,6 +2223,43 @@ verified before/after; checksum restores OK). Suites 10/10 + 7/7 + 10/10.
 
 ---
 
+## 48. Storage & automation overhaul — raw zips disposable, monsoon cycle capped and re-timed  `[MEASURED]`
+*(2026-07-15, session 24 — `monsoon_cycle.ps1` re-test, `diskpart`, `download_hyp3_products.py` / `prep_mintpy.py` patches, `tests/test_plumbing.py` v2)*
+
+**Ops question answered: the scheduled monsoon cycle downloads NO radar/ASF data** — its 07-15 run
+fetched four ERA5-Land GRIBs totalling **~4 KB** and exited 0 (both sites WATCH, quiet cycle). It ran
+at 14:06 not 08:00 because the missed 08:00 slot fired on logon (`StartWhenAvailable`) — that, plus an
+**uncapped WSL2 VM** (no `.wslconfig` → up to ~8 GB / 12 CPUs of the 16 GB machine) and a **stale
+Docker-Desktop autostart registry entry** (contradicting the app's own `AutoStart: False`), was the
+system-slowdown root cause. Both fixed system-side (`C:\Users\varun\.wslconfig` = 6 GB / 6 CPU +
+`autoMemoryReclaim`; Run-key entry removed).
+
+**Monsoon cycle re-measured end-to-end after hardening** (backend-inclusive Docker shutdown, one-shot
+start retry, duration logging): **4:46 wall time** (was ~8 min), **peak vmmem 1.92 GB** (uncapped
+ceiling was ~8 GB), exit 0, Docker verified fully closed after — states byte-consistent with the
+morning's scheduled run.
+
+**Disk recovered: ~56 GB (C: free 85 → 150 GB).** All 235 raw HyP3 zips (47.4 GB) deleted after the
+user archived them to Google Drive — they are re-creatable only by paying HyP3 credits (ASF copies
+expired), so the Drive folder is the archival source now. Docker build cache pruned (7.76 GB) and
+`docker_data.vhdx` compacted **19.16 → 10.56 GB**. `data/` is now ~46 GB (was ~94 GB).
+
+**Architecture: raw zips are now disposable staging.** Phase-1 extract keeps the HyP3 metadata
+`<product>.txt` in `processed_tiffs/` (the only thing any downstream step still needed from a zip);
+`prep_mintpy.py` reads it from there, zip = legacy fallback. `data/raw_zips` is an **NTFS junction →
+`C:\InSAR_data\raw_zips`**; Docker bind mounts do NOT resolve junctions (found by test), so
+`docker-compose.yml` nested-binds the real folder over `/app/data/raw_zips` in both services.
+
+**Verified in depth (all PASS):** synthetic-zip unit test of the extract filter (6 layers + metadata
+txt in, 4 decoys out, idempotent); sandboxed `prep_mintpy` end-to-end with **zero zips** (12/12 clips,
+2/2 txt byte-identical from `processed_tiffs`) and via the **zip-fallback** branch (byte-identical),
+plus an idempotent re-run; junction write-through both directions natively AND from both container
+images; `test_plumbing.py` rewritten to the new inventory invariant (**11 tests**, was 10 — extracted
+dirs == manifest; zips staging-only; every product dir carries 6 layers + metadata txt). Suites
+**11/11 + 7/7 + 10/10** green.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -20,6 +20,10 @@ services:
       # The whole project: code, data/, logs/, ramban_aoi.geojson.
       # PROJECT_ROOT in every script resolves to /app, so data/ lands at /app/data.
       - .:/app
+      # data/raw_zips is an NTFS junction to C:\InSAR_data\raw_zips (2026-07-15,
+      # keeps the zips outside the OneDrive tree). Docker's file sharing does NOT
+      # resolve junctions, so mount the real folder explicitly over that path.
+      - C:/InSAR_data/raw_zips:/app/data/raw_zips
       # Phase-1 ASF credentials (read-only). Phases 2-4 do NOT need this.
       # NETRC_PATH comes from .env (git-ignored); falls back to the committable
       # template so non-Phase-1 scripts still run without real creds.
@@ -43,6 +47,8 @@ services:
     working_dir: /app
     volumes:
       - .:/app
+      # Same junction workaround as the insar service (see above).
+      - C:/InSAR_data/raw_zips:/app/data/raw_zips
       # CDS/ERA5 credentials (read-only) for pyaps3 tropospheric correction.
       # Tracked via CDSAPI_RC in .env (git-ignored) so it mounts automatically;
       # falls back to the placeholder template so non-ERA5 MintPy steps still run

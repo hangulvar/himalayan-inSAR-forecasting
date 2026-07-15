@@ -1473,6 +1473,36 @@ justify it).
 
 ---
 
+## ✅ Milestone 44 — We found out why the computer crawled, then put the data warehouse on a diet  *(storage & automation overhaul, 2026-07-15)*
+
+**What we set out to do:** the automatic monsoon-watch job seemed to be downloading huge batches of
+radar data and grinding the computer to a halt at 100% disk. Find out what it was really doing, stop
+the slowdowns, and free up disk space.
+
+**What we found:** the job was innocent — its whole download was about 4 KB of rainfall numbers (the
+size of a short email), and it finished cleanly. The real culprits were three quiet
+misconfigurations: the virtual machine that Docker runs in had no memory limit (it could grab half
+the computer's RAM and every CPU core the moment it woke up), a leftover registry entry was starting
+Docker at every login even though its own setting said "don't", and the job's missed 8 AM slot was
+firing the moment the user logged in — exactly when they wanted to use the machine.
+
+**What we changed:** capped the virtual machine (it now peaks under 2 GB instead of 8), removed the
+stale autostart, and taught the job to shut Docker down properly (it turns out killing just the
+visible window leaves a background service running that can quietly restart everything). Then the
+big one: the 47 GB of original radar zip files were backed up to Google Drive and deleted — we
+proved the pipeline only ever needed one tiny text file from inside each zip, so those text files
+now live with the extracted data, and the zips became disposable. Future downloads land on a plain
+folder outside the cloud-synced documents tree.
+
+**Plain-language result:** ~56 GB of disk came back (the drive went from 85 to 150 GB free), the
+2-day watch cycle now runs in under 5 minutes using a fraction of the memory, and the machine stays
+responsive while it does. Every change was tested the hard way — including a rehearsal of the
+MintPy preparation step with zero zips on disk (byte-for-byte identical output) — and the testing
+itself caught a real bug nobody would have seen otherwise: Docker containers can't see through
+Windows folder shortcuts (junctions), so the container view needed its own explicit mapping.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),

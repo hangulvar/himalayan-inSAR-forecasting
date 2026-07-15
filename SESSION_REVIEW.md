@@ -11,159 +11,63 @@
 
 ---
 
-# LIVE — Session 23 · branch `aoi-vaishnodevi` · updated 2026-07-13
+# LIVE — Session 24 · branch `aoi-vaishnodevi` · updated 2026-07-15
 
 ## Current state
 
-- **★ NEW (§47) — the §42 soil verdict re-measured on the kappa=0.06 product: HOLDS and SHARPENS,
-  now at BOTH sites.** VD: z=1/2 m still erase the product, φ=43° now does too, 0–118 zone swing,
-  and the config baseline is the envelope's BEST scorer (the κ-tuned operating point is calibrated
-  to these soils specifically). Ramban's FIRST soil sweep (2026-07-14) independently confirms —
-  even with GSI field-calibrated soils: z=1/2 m/φ=43°/c_dry=27.5 all erase it, 0–255 zone swing.
-  Playbook M2 stays required, cites §42/§47; both sites carry a standing sensitivity artifact.
-  Found+fixed a THIRD kappa non-consumer first: `build_stack_alerts`'s `kappa=0.0` default (the
-  soil sweep would have built at κ=0); `kappa=None`/`suction=None` now mean "site config's adopted
-  value" (error log 2026-07-13 — lesson: a physics layer must never be an optional arg with a
-  value-default). Both sweeps' baseline gates reproduce the canonical products exactly; FS rasters
-  checksum-restored; suites 10/10 + 7/7 + 10/10.
-- **★ (§46, M43) — van Genuchten suction: mechanism SHIPPED, adoption REJECTED (plan #3 DONE
-  — the science plan's top 3 are now all resolved):** the nonlinear Vanapalli/vG cohesion curve is
-  built in the NEW shared `workflows/fs_real.py` (end-members bit-exact; FS correction rides on the
-  slope raster — no engine re-run; m* by grid-root; config `suction:` block, absent = linear;
-  `tests/test_fs_real.py` 10/10). Swept 4 Carsel & Parrish (α,n) classes × full m-re-sweep × both
-  sites: **none beats linear at both** (best +0.014 Ramban, inside the §44 CI; exact VD tie) —
-  (α,n) are NOT identifiable from a spatial inventory; needs a lab retention curve or dated
-  per-zone failures. Configs/products UNCHANGED. **Same session, the §45 deep-verify found 2 real
-  bugs** — `hazard_timeline` + `watch_triage` silently ignored kappa; fixed by centralizing all
-  wetness→FS physics in fs_real.py, verified by a 22-check battery (error log 2026-07-13). Bonus:
-  the linear κ=0.06 m-re-sweep confirms both operating points (0.50/0.40) remain AUC-optimal.
-- **★ (§45, M42) — TWI-distributed saturation, kappa=0.06 ADOPTED (Science Upgrade Plan #2 DONE):**
-  each pixel now gets m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) in the FS_real build (config
-  `kappa` key, default 0 = uniform/§44, byte-identical regression gate). Swept via
-  `rainfall_selectivity_backtest.py --kappas`; **both AOIs independently peaked at kappa=0.06**.
-  **VD operational 0.707→0.757 — now BEATS its §44 slope-only ablation tie** (14 zones vs 155);
-  Ramban 0.640→0.676; both WATCH tiers held/improved (VD watch recall 0.913→0.957). Honest limits
-  (§45): ALERT-AUC CIs overlap (win = footprint economy + breaking the tie, not a decisive jump);
-  ALERT recall trades down (WATCH carries recall); kappa is spatial, can't change the §17 ALERT-day
-  count. Adopted in both configs; dashboards/per-zone/validation_stats regenerated at 0.06.
-- **★ (§44, M41) — validation statistics (Science Upgrade Plan #1 DONE):**
-  `workflows/validation_stats.py` — bootstrap 95% CIs (B=10k), permutation p for "beats chance"
-  (B=10k), and a dumb-baseline **ablation ladder** (slope / logistic slope+TWI / physics-only /
-  creep-only) scored with the identical zone-centroid distance-ROC protocol, every rung tuned to
-  its own best score. Both ALERT maps beat chance at p=0.0001; both WATCH tiers ≈chance (recall
-  nets, as always stated). **Ramban: the fusion beats every rung** (its two ingredients are each
-  ≈chance alone). At κ=0 VD **tied** slope≥40° on the corridor n=46 inventory — the §45 kappa
-  upgrade (above) later broke that tie. The ladder is the fixed bar every upgrade is judged against;
-  a stale VD dashboard AUC (0.696/n=41) was found and structurally fixed (error log 2026-07-13).
-- **BOTH sites are in WATCH (as-of 2026-07-07, chains regenerated this session at κ=0.06 via
-  `live_alarm.py`):** VD 18/18 per-stack active (was 29 at κ=0 — tighter footprint), 0 ALERT days;
-  Ramban 8/8 active, 4 April ALERT days. The scheduled monsoon cycle (roadmap item 0) covers the
-  cadence; manual fallback per
-  `Research/Monsoon Watch Runbook (2026-07-11).md`.
-- **Multi-AOI productization (§41, M39) + soil pass load-bearing (§42, M40):** config registry +
-  `INSAR_CONFIG` override + `aoi_status.py` + playbook; the §42 sweep proved soil (especially
-  failure depth z) can erase the product — M2 stays required, depth is the #1 field-visit number.
-- **Radar side (§35):** July S1 passes still not at ASF as of 07-10 — operational chains (f103/f105)
-  can't extend yet; §43 f106 bridge swap (151 m → 102 m/24 d) queued for the next rebuild.
-- **Ramban: COMPLETE, scored, LIVE** — two-tier + confidence + triage + temporal gate, project-best
-  operating point (§21b, now with CI §44). Merge `aoi-vaishnodevi` → `master` is the user's call.
-- **Vaishno Devi: full second AOI, VALIDATED and site-tuned** (§26–§32, M31–M37; §44 caveat above),
-  12.5 m ALOS DEM, disaster-validated (§31), site-swept operating points (§32).
-- **Deliverables:** route exposure + NE-flank creep target (§30/§33; field brief + KML shipped) and
-  the Bhavan-overhang fast-failure toolkit (§34, M38).
-- **Validation fronts (§38–§40, §44):** temporal 2/2 fatal events at Δ=0 (§38); inventory n=46
-  primary-verified (§39); GACOS mixed first result (§40); statistics + ladder now standing (§44).
-- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); disaster site 598 m from
-  nearest zone (§31 addendum — the calibration target); VD raw spatial AUC tied by a tuned slope
-  map (§44); soils literature-corroborated not lab-measured (§37/§39/§42); fast-failure tools
-  unproven-in-anger (Part E); §40 discrepancy pair open.
-- **NISAR (§33):** too few products for a chain — recheck ~early Aug. ⭐ **Demos:** VD + Ramban
-  `operational_alarm_dashboard*_2026.html` (now showing AUC [CI], p) and `data/aoi_status.html`.
+- **★ NEW (§48, M44) — storage & automation overhaul:** the scheduled monsoon cycle was cleared of
+  the "huge ASF download" suspicion (its whole fetch is ~KB of ERA5; the slowdown was an uncapped
+  WSL2 VM + a stale Docker autostart + the missed-08:00 catch-up firing on logon — all fixed).
+  Cycle re-measured end-to-end after hardening; ~56 GB of disk recovered. **Raw HyP3 zips are now
+  DISPOSABLE staging** (Drive-archived by the user, deleted locally): the HyP3 metadata txt lives in
+  `processed_tiffs/`, `prep_mintpy` reads it there (zip = fallback), and `data\raw_zips` is an NTFS
+  junction to `C:\InSAR_data\raw_zips` with an explicit compose bind for containers (Docker does NOT
+  resolve junctions — found by test). `test_plumbing` rewritten to the new invariant; suites
+  **11/11 + 7/7 + 10/10**. Two new ops bug classes in the error log (2026-07-15).
+- **§47 (M-carried) — soil verdict re-measured at kappa=0.06: HOLDS + SHARPENS at BOTH sites;**
+  playbook M2 stays required (depth z is the #1 field number); both sites carry a standing
+  sensitivity artifact. Third kappa non-consumer fixed at the root (None-default = site config).
+- **§46 (M43) — van Genuchten suction: mechanism SHIPPED config-gated, adoption REJECTED** ((α,n)
+  not identifiable from a spatial inventory); all wetness→FS physics centralized in
+  `workflows/fs_real.py`. **§45 (M42) — kappa=0.06 ADOPTED both sites** (VD beat its §44 slope-only
+  tie). **§44 (M41) — bootstrap CIs + permutation p + ablation ladder standing**
+  (`validation_stats.py`). The Science Upgrade Plan's top 3 are ALL RESOLVED.
+- **BOTH sites in WATCH** (as-of 2026-07-09 data, cycle run 2026-07-15): VD 14 live zones, 0 ALERT
+  days; Ramban 8 live zones, 4 April ALERT days. Next scheduled cycle **17 Jul 08:00** (runs on
+  logon if the slot is missed — by design, now cheap: §48).
+- **Radar side (§35/§43):** July S1 passes still not at ASF as of 07-10 — chains can't extend yet;
+  the §43 f106 bridge swap (151 m → 102 m/24 d) applies at the next rebuild. **NISAR:** too few
+  products (§33); recheck ~early Aug.
+- **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: full second AOI, validated
+  and site-tuned** (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
+- **Deliverables:** route exposure + NE-flank creep target (§30/§33), Bhavan-overhang fast-failure
+  toolkit (§34), multi-AOI registry + status board + playbook (§41).
+- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
+  site (§31 addendum — the calibration target); soils literature-corroborated not lab-measured
+  (§37/§39/§42/§47); fast-failure tools unproven-in-anger; §40 GACOS discrepancy pair open.
+- **⚠ Archival note (§48):** the Google Drive copy of the 235 raw zips is now the ONLY archival
+  source (ASF server copies expired; re-creation costs HyP3 credits ≈7,460 remaining).
 
-## Recommended next steps — the product-improvement roadmap (2026-07-10)
+## Recommended next step
 
-Ranked by value-per-effort; the §31-addendum **598 m miss at the disaster site** is the calibration target.
-**The Science Upgrade Plan's top 3 are ALL RESOLVED** (#1 ✅ §44 statistics, #2 ✅ §45 kappa adopted,
-#3 ✅ §46 suction built-but-rejected — an evidence-based negative). Next value per the plan's own
-analysis: the items behind them — lab c_dry/c_wet + retention curve (now doubly motivated, §46),
-per-stack ERA5 reference-pixel QC (§22), and the roadmap items below (radar cadence when July
-passes land; failure-class gap; sub-daily IMERG).
-
-0. **Monsoon watch — now SCHEDULED (2026-07-13, was a manual runbook):** Windows task
-   **"InSAR Monsoon Watch Cycle"** runs `workflows/monsoon_cycle.ps1` every 2 days at 08:00 —
-   both sites, fetch → alarm → status board, toast ONLY on ALERT/state-change/failure; season-gated
-   Apr–Oct. User's job shrinks to: react to a toast (dashboard, then the runbook's escalation
-   section — field briefs / `coherence_watch` after storms). Manual commands in
-   `Research/Monsoon Watch Runbook (2026-07-11).md` stay valid as the fallback.
-1. **Radar cadence (agent, ~1 cmd/2 weeks):** cycle ran 2026-07-10 (§35) — July S1 passes still absent;
-   when they land: resubmit (dedupe+park handle the rest) → download → QA → multistack → route_exposure →
-   live_alarm → coherence_watch. Every cycle lengthens the chains and drops the σ_v noise floor.
-   **⚠ Next rebuild also applies the §43 f106 bridge swap** (151 m bridge → the 102 m/24-day
-   replacement) — expect a small f106/Ramban-union shift; re-score and ledger it as part of the cycle.
-   **NISAR:** 8 GSLC/RSLC/GCOV + 3 GUNW over the AOI (checked 2026-07-07); too few for a chain — recheck
-   monthly, build the GUNW adapter when ~8+ same-track pairs exist.
-2. ✅ **DONE (2026-07-07) — VD operating-point sweep (§32, M37):** per-site `operational_m`/`watch_m`
-   config keys wired; re-sweep when the inventory grows or chains lengthen.
-3. ✅ **LARGELY DONE (2026-07-11) — site-specific soil pass (§37):** Kumar & Anbalagan 2013 (in hand) +
-   GSI-derived overburden ranges bracket every engine value → values kept, provenance upgraded, no
-   re-run needed. Remaining: primary-source confirmation of the soil ranges, Trikuta γ, on-site lab.
-4. **Failure-class gap (research, larger):** corridor rockfall ≠ SBAS creep. ✅ coherence-drop detection
-   BUILT (§34) — remaining candidates: Sentinel-2 optical change (the DROP-flag follow-up; could also run
-   post-storm proactively) and a steep-cut-slope proxy layer in the reasoner. This axis is what closes the
-   598 m miss, not more creep tuning.
-5. **Per-zone WHEN (agent, medium):** sub-daily/point IMERG so ALERT varies per zone — the extreme-season
-   over-firing (59 ALERT days in VD-2025) is the §17 limitation writ large.
-6. ✅ **DONE (2026-07-07) — Docs debt:** primer covers M31–M38 (CV1–CV5, Part D/E refreshed).
-7. **User-side:** field check of the NE-flank CORE target (brief: `Research/Field Brief - Bhairon NE flank
-   creep target (2026-07-07).md` + `bhairon_core_creep.kml`; overhang step zero = request SMVDSB/THDCIL
-   as-builts); merge `aoi-vaishnodevi` → `master`; publish the dashboard (user-side steps in the
-   Publishing Checklist); soil primary sources (GSI Kumar FSP report / EGCON-2022, §39).
-
-> **⏸ Deferred user-side manual setups (audited 2026-07-11):** ~~(1) GACOS tropo cross-check~~ ✅
-> **DONE, first result (§40)** — mixed: 1 of 2 audit-flagged pairs strongly corroborated (R²=0.59),
-> 1 not; a second pull (more epochs / a monsoon pair) would sharpen the trend. (2) soil parameters:
-> **primary-source confirmation of the §37 overburden ranges + on-site lab** (literature
-> second-source ✅ DONE §37; GSI Kumar FSP report / EGCON-2022 are the last live leads, §39); (3) merge
-> **`aoi-vaishnodevi` → `master`** (supersedes the stale "merge mvp-expansion" item — mvp-expansion is
-> fully contained in this branch; ~~snapshot a `config_ramban.yaml`~~ ✅ DONE 2026-07-12 as
-> `config/ramban.yaml` with `site_name: Ramban NH-44`, §41). ~~(4) ALOS 12.5 m tile for Trikuta~~ ✅ DONE (§30).
+The product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
+download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
+gap (Sentinel-2 optical change) and sub-daily IMERG. User-side: field check of the NE-flank CORE
+target; merge to `master`; publish the dashboard. Ops is now hands-off: react to toasts only.
 
 ## Uncommitted delta
 
-Sessions ≤22 are **all committed** through `1ca8744` (van Genuchten §46, M43, plan #3).
+Sessions ≤23 committed through `5aee42a`; session 24's first batch committed by the user as
+`6289282` (prep_mintpy txt fallback, downloader txt extract, monsoon_cycle hardening).
 
-Session 23 (this wrap) — **§42 soil verdict refreshed at kappa=0.06 (§47) + third non-consumer fix:**
-- MODIFIED: `workflows/rainfall_selectivity_backtest.py` (`build_stack_alerts` kappa/suction
-  None-defaults = inherit site config; explicit values incl. 0.0 override), `RESULTS_AND_KPIS.md`
-  (§47), `error_history_log.md` (value-default lesson), `NEW_AOI_PLAYBOOK.md` (M2 cites §42/§47),
-  primer (Part D soil Q cites §47), `SESSION_REVIEW.md` (this block).
-- Verified: BOTH sweeps' baseline gates reproduce the canonical products exactly (VD 14/0.757 —
-  pre-fix it would have built 21 at κ=0; Ramban 8/0.676); FS rasters checksum-restored both sites;
-  standing products untouched; suites re-run green 10/10 + 7/7 + 10/10. (A harness classifier
-  outage split the session across midnight — Ramban's sweep + the suite re-run completed 07-14.)
-- Git-ignored as usual: journey entry (S23), refreshed `soil_sensitivity_report_vaishnodevi.*`,
-  NEW `soil_sensitivity_report.*` (Ramban), sweep scratch `alerts_soil_*.json`.
-
-Session 22 (committed `1ca8744`) — **kappa deep-verify + van Genuchten suction (§46, M43, plan #3 —
-mechanism shipped, adoption rejected):**
-- NEW: `workflows/fs_real.py` (ALL wetness→FS physics: m_field/fs_field/m*/m*_eff + the §46
-  suction curve; single source of truth), `tests/test_fs_real.py` (10 physics invariants).
-- MODIFIED: `agentic_orchestrator.py` (MeteorologicalTrigger + hazard_timeline → fs_real; the
-  timeline had silently ignored kappa — BUG, fixed), `watch_triage.py` (ranked by intrinsic m* —
-  BUG, fixed; now m*_eff via fs_real, suction-ready), `per_zone_gate.py` (imports fs_real; m*
-  dispatch), `config.py` (`SuctionConfig`, optional `suction:` block),
-  `rainfall_selectivity_backtest.py` (`--suction`, `--tag`; m-sweep now defaults to the site's
-  adopted kappa+suction so re-sweeps score the standing physics), `RESULTS_AND_KPIS.md` (§46 +
-  §45 zero-sum wording correction), plan doc (#3 ✅ rejected), `README.md` (fs_real + suction
-  bullets), `error_history_log.md` (kappa non-consumer bug class), `milestone.md` (M43), primer
-  (CF13 + Part D negative-result Q + Part E soil update), `SESSION_REVIEW.md` (this block).
-- Verified: 22-check kappa battery both sites (bitwise κ=0, zero-sum/clip quantified, cluster
-  counts == standing products, m*_eff roots, determinism); 28 suction unit checks + 10-test
-  permanent suite; 4 (α,n) candidates × full m-re-sweep × 2 sites → none beats linear at both →
-  configs/standing products UNCHANGED by #3; VD route exposure re-read (CORE 0.80 km unchanged).
-  Suites 10/10 + 7/7 + 10/10.
-- Git-ignored as usual: journey entries (S20–S22), tagged experiment artifacts
-  (`rainfall_selectivity_report*_{k06lin,vg*}`, `alerts_sat*_vg*`), regenerated triage/route files.
+Still uncommitted (this wrap):
+- MODIFIED: `docker-compose.yml` (junction workaround: nested `C:/InSAR_data/raw_zips` bind, both
+  services), `tests/test_plumbing.py` (disposable-zip invariant: 2 tests rewritten + 1 added = 11),
+  `RESULTS_AND_KPIS.md` (§48), `error_history_log.md` (2 entries), `milestone.md` (M44),
+  `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entry (S24).
+- System-side (not in repo): `C:\Users\varun\.wslconfig` (WSL2 caps), Docker autostart Run-key
+  removed, vhdx compacted, `data\raw_zips` junction created, 235 zips deleted (Drive-archived).
 
 ---
 
@@ -203,11 +107,18 @@ mechanism shipped, adoption rejected):**
 - **Native Windows (legacy):** run compute scripts with the **conda env activated**, or rely on the
   in-script DLL bootstrap. Launching `python.exe` by full path *without* activation → numpy can't find
   its BLAS DLLs → **`0xC06D007F`** (DLL-load failure, not a numerical bug). Keep `logging` ASCII.
+  Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: ~7,460 as of 2026-07-10 (§35; ≈ enough for one more AOI's full Phase-1 pull). Disk: ~74 GB in `data/`.
+- HyP3 credits: ~7,460 as of 2026-07-10 (§35; ≈ enough for one more AOI's full Phase-1 pull). Disk: ~46 GB in `data/` (§48 — raw zips Drive-archived + deleted 2026-07-15).
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
+- **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —
+  raise temporarily for heavy MintPy sessions, then `wsl --shutdown`.
+- **`data\raw_zips` is an NTFS junction → `C:\InSAR_data\raw_zips`.** Containers can't see through
+  junctions — compose nested-binds the real folder (both services). Never force-kill Docker: stale
+  unix-socket files in `%LOCALAPPDATA%\Docker\run\` can brick the next start (fix: rename that `run`
+  dir; error log 2026-07-15).
 
 ## 3. Open questions — "deepen trust" or "scale/deploy"
 

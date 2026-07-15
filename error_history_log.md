@@ -1066,3 +1066,57 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   encode "no opinion", so they must mean "whatever the site config says" (None-sentinel), not a
   particular physics setting. When adding a layer, audit every CALLER of the build path, not just
   every copy of the math.
+
+---
+
+### [2026-07-15] Docker Desktop killed abruptly leaves stale unix-socket files that CRASH the next start (and a GUI-only kill lets the VM restart itself)
+
+* **Symptom:** three intertwined failure modes found while hardening the monsoon cycle. (1) After
+  `Stop-Process 'Docker Desktop'`, the engine reappeared minutes later — `com.docker.backend`
+  survives a GUI-only kill and can restart the WSL2 VM. (2) The FIRST `Docker Desktop.exe` launch
+  right after an abrupt teardown dies silently (observed twice; the monsoon cycle's 5-min wait
+  expired and it toasted "cycle SKIPPED"); an immediate relaunch succeeds in ~20 s. (3) Worst case:
+  Docker Desktop showed "unexpected error … initializing Inference manager: remove
+  C:/Users/varun/AppData/Local/Docker/run/dockerInference: The file cannot be accessed by the
+  system" and refused to start AT ALL — stale unix-socket **reparse points** in
+  `%LOCALAPPDATA%\Docker\run\` cannot be deleted by `del`, `Remove-Item`, or `[IO.File]::Delete`.
+
+* **Root Cause:** force-killing Docker's processes skips its socket/teardown cleanup. Unix-socket
+  files on Windows are reparse points that normal file APIs refuse to touch, so Docker's own
+  startup `remove()` fails too and it aborts.
+
+* **Resolution:** (1) `monsoon_cycle.ps1` shutdown now kills `Docker Desktop` + `com.docker.backend`
+  + `com.docker.build` before `wsl -t docker-desktop`, then VERIFIES `docker info` fails and logs a
+  warning otherwise. (2) The start wait-loop relaunches once at the 150 s mark if the GUI process
+  vanished. (3) For the stale-socket crash: **rename the whole `run` dir**
+  (`run` → `run_stale_<date>`) — Docker recreates it clean on next start; the renamed dir's socket
+  files stay undeletable but are 0 bytes and inert.
+
+* **Lesson:** never assume killing a GUI killed the service behind it — enumerate the process tree.
+  And when Windows refuses to delete a file "the system cannot access", stop fighting the file and
+  rename its PARENT directory; the recreating app neither knows nor cares.
+
+---
+
+### [2026-07-15] Docker bind mounts silently do NOT resolve NTFS junctions — container saw an empty project subdir
+
+* **Symptom:** after relocating the raw-zip store (`data\raw_zips` → NTFS junction →
+  `C:\InSAR_data\raw_zips`), everything worked natively (reads, writes, git, the plumbing suite) —
+  but `docker compose run insar python -c "Path('/app/data/raw_zips').exists()"` returned **False**:
+  inside the container the junction is not followed, the path simply doesn't exist. Any
+  containerized Phase-1 `--download`/`--extract` or `prep_mintpy` zip-fallback would have failed.
+  Found only because the junction test battery included a container-side check.
+
+* **Root Cause:** Docker Desktop's Windows file-sharing (gRPC-FUSE/virtiofs) serves directory
+  entries but does not traverse NTFS reparse points that lead outside the shared subtree being
+  bind-mounted; the junction shows up as nothing at all in the container.
+
+* **Resolution:** explicit nested bind in `docker-compose.yml` for BOTH services —
+  `C:/InSAR_data/raw_zips:/app/data/raw_zips` mounts the real folder over the junction's path in
+  the container. Verified: both images see the dir, and a container-side write appears at
+  `C:\InSAR_data\raw_zips` on the host.
+
+* **Lesson:** an NTFS junction is a host-side illusion — every non-native consumer (containers, WSL,
+  some backup tools) must be tested against it explicitly. When a junction sits inside a
+  bind-mounted tree, add a nested bind for the junction target; the container path then works no
+  matter what the host-side link does.
