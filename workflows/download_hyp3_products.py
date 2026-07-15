@@ -249,6 +249,9 @@ def extract_tiffs(zip_paths: list[Path]) -> None:
                 wanted = [
                     n for n in zf.namelist()
                     if n.lower().endswith(WANTED_TIFF_SUFFIXES)
+                    # the HyP3 metadata txt: prep_mintpy.py needs it, and keeping it
+                    # extracted makes the raw zip disposable after this step
+                    or n == f"{zip_path.stem}/{zip_path.stem}.txt"
                 ]
                 if not wanted:
                     logger.warning(f"[NO TIFFs] {zip_path.name}")

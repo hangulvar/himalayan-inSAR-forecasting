@@ -187,8 +187,14 @@ def main() -> int:
             n_warp += 1
         txt_dst = out / f"{p}.txt"
         if not txt_dst.exists():
-            with zipfile.ZipFile(RAW / f"{p}.zip") as z:
-                txt_dst.write_bytes(z.read(f"{p}/{p}.txt"))
+            # Prefer the copy extracted into processed_tiffs (Phase 1 keeps it there
+            # since 2026-07-15, so the raw zips are disposable); zip = legacy fallback.
+            txt_src = PROCESSED / p / f"{p}.txt"
+            if txt_src.exists():
+                txt_dst.write_bytes(txt_src.read_bytes())
+            else:
+                with zipfile.ZipFile(RAW / f"{p}.zip") as z:
+                    txt_dst.write_bytes(z.read(f"{p}/{p}.txt"))
             n_txt += 1
 
     print(f"warped={n_warp} skipped={n_skip} txt_extracted={n_txt} missing_src={n_missing}")

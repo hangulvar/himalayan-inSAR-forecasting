@@ -38,6 +38,7 @@ function Toast($title, $msg) {
     } catch { Log "toast failed: $_" }
 }
 
+$cycleStart = Get-Date
 Log "=== monsoon cycle start ==="
 
 # Housekeeping: prune cycle logs older than 60 days (keeps logs/ from growing unbounded).
@@ -68,7 +69,16 @@ if ($LASTEXITCODE -ne 0) {
     $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
     if (Test-Path $dd) { Start-Process $dd }
     $tries = 0
-    do { Start-Sleep 10; docker info *> $null; $tries++ } while ($LASTEXITCODE -ne 0 -and $tries -lt 30)
+    do {
+        Start-Sleep 10; docker info *> $null; $tries++
+        # Observed 2026-07-15: a launch during a not-yet-finished Docker teardown can
+        # abort silently. If the GUI process vanished mid-wait, relaunch once.
+        if ($LASTEXITCODE -ne 0 -and $tries -eq 15 -and
+            -not (Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+            Log "Docker Desktop process gone mid-start - relaunching once"
+            if (Test-Path $dd) { Start-Process $dd }
+        }
+    } while ($LASTEXITCODE -ne 0 -and $tries -lt 30)
     if ($LASTEXITCODE -ne 0) {
         Log "Docker unavailable after wait - cycle SKIPPED"
         Toast 'Monsoon Watch: cycle skipped' 'Docker Desktop did not start; run the cycle manually.'
@@ -157,12 +167,19 @@ if (-not $dockerWasRunning) {
         Log "Docker started by this cycle but containers are now running - leaving it up"
     } else {
         Log "stopping Docker Desktop (this cycle started it) to release WSL2 memory"
-        try { Stop-Process -Name 'Docker Desktop' -Force -ErrorAction SilentlyContinue } catch {}
+        # Kill the GUI AND the backend service - com.docker.backend survives a GUI-only
+        # kill and can silently restart the WSL2 VM minutes later (observed 2026-07-15).
+        foreach ($p in 'Docker Desktop', 'com.docker.backend', 'com.docker.build') {
+            try { Stop-Process -Name $p -Force -ErrorAction SilentlyContinue } catch {}
+        }
         Start-Sleep 5
         wsl -t docker-desktop 2>$null
         wsl -t docker-desktop-data 2>$null
-        Log "Docker stopped; vmmem released"
+        docker info *> $null
+        if ($LASTEXITCODE -ne 0) { Log "Docker stopped; vmmem released" }
+        else { Log "WARNING: Docker engine still responding after shutdown attempt" }
     }
 }
-Log "=== monsoon cycle done ==="
+$elapsed = (Get-Date) - $cycleStart
+Log ("=== monsoon cycle done (took {0:mm\:ss}) ===" -f $elapsed)
 exit 0
