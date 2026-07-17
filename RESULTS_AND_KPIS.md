@@ -2260,6 +2260,46 @@ dirs == manifest; zips staging-only; every product dir carries 6 layers + metada
 
 ---
 
+## 49. Full-product audit — physics pixel-exact, data internally consistent, zero bugs found  `[MEASURED]`
+*(2026-07-17, session 25 — three-axis systematic verification; made permanent as `tests/test_science_verification.py`, 12 tests)*
+
+**Axis 1 (math/science):** the standing FS_dry/FS_saturated rasters reproduce an INDEPENDENTLY
+re-written infinite-slope formula **pixel-exact (max |diff| 9.5×10⁻⁷, float32 epsilon)** at both
+sites with matching NaN patterns; FS_saturated ≤ FS_dry at all ~143k pixels (0 violations); FS(m)
+monotone non-increasing; the closed-form m* satisfies FS(m*)=1 to 2×10⁻¹⁶; kappa redistribution
+preserves the AOI-mean exactly and clips correctly; suction anchors c(0)=c_dry / c(1)=c_wet exact
+with ψ(m) strictly decreasing; the ID-threshold trigger set recomputed from raw window sums
+matches the standing report exactly; the wavelength constant is the HyP3-community standard
+(3 nm from exact c/f — negligible at mm scale).
+
+**Axis 2 (scripts/structure):** all 53 Python files compile; `monsoon_cycle.ps1` parses clean;
+all suites green; both configs load with the documented operating values.
+
+**Axis 3 (data/references):** 31 hazard rasters CRS'd, physically ranged, and grid-identical to
+their stack's velocity master; coherence ∈ [0,1]; inventories exactly as documented (VD **46**,
+Ramban **138**, all valid and in-AOI); season CSVs/calendars gap-free; alarm reports, per-zone
+products and validation-stats artifacts mutually consistent AND matching the ledger (AUC
+0.757/0.676 present); all 29 §-references in SESSION_REVIEW resolve.
+
+**Live regression bonus:** the 2026-07-17 scheduled cycle ran **fully unattended** (logon
+catch-up, headless CLI Docker start+stop, no dialogs — the reboot cleared the socket brick):
+**4:12**, quiet cycle, both sites WATCH as-of 2026-07-11 (VD 23 WATCH+/0 ALERT days; Ramban 28
+WATCH+/4 April ALERT days — supersedes the 21/26 of §48's 07-15 run; same 4 Ramban ALERT dates).
+
+**Two documented observations (not bugs):** (1) frame103's velocity tail is heavy (p99 = 300
+mm/yr; 2.6% of px > 200) — its chain is 4 pairs and §24's confidence layer already measures
+(σ_v = 26.9 mm/yr) and gates it; lengthening chains is the fix (roadmap #1). (2) The standing
+kappa artifact holds only the adopted κ=0.06 row — the full sweep evidence lives in §45's text
+(sweep scratch was deliberately git-ignored); re-verification of the sweep = a rerun.
+
+**Permanent guard:** `tests/test_science_verification.py` (12 tests — pixel-exact FS regression,
+FS ordering/monotonicity/root, ψ monotone, ID-threshold recompute-vs-report, raster
+integrity/ranges/grid-identity, coherence sample, inventory growth-floors + AOI containment,
+season/calendar well-formedness, calendar↔report↔per-zone cross-consistency incl. product-kappa
+== config-kappa, §-reference completeness). Suites now **7/7 + 10/10 + 11/11 + 12/12**.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

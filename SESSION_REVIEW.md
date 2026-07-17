@@ -11,11 +11,20 @@
 
 ---
 
-# LIVE — Session 24 · branch `aoi-vaishnodevi` · updated 2026-07-15
+# LIVE — Session 25 · branch `aoi-vaishnodevi` · updated 2026-07-17
 
 ## Current state
 
-- **★ NEW (§48, M44) — storage & automation overhaul:** the scheduled monsoon cycle was cleared of
+- **★ NEW (§49, M45) — full-product audit: ZERO bugs.** Three axes (math/science,
+  scripts/structure, data/references), 60+ checks: the standing FS rasters reproduce an
+  independently re-written infinite-slope formula **pixel-exact** at both sites; ID-threshold
+  trigger days recomputed from raw sums match the product; all rasters/inventories/season
+  artifacts internally consistent and matching this ledger. Made permanent as
+  `tests/test_science_verification.py` — suites now FOUR: **7/7 + 10/10 + 11/11 + 12/12**.
+  Two documented observations (§49): frame103's noisy 4-pair chain (already σ_v-gated, §24) and
+  the kappa artifact holding only the adopted point. **Bonus: the 07-17 scheduled cycle was the
+  first fully-unattended clean run** (headless start/stop, 4:12, quiet).
+- **(§48, M44) — storage & automation overhaul:** the scheduled monsoon cycle was cleared of
   the "huge ASF download" suspicion (its whole fetch is ~KB of ERA5; the slowdown was an uncapped
   WSL2 VM + a stale Docker autostart + the missed-08:00 catch-up firing on logon — all fixed).
   Cycle re-measured end-to-end after hardening; ~56 GB of disk recovered. **Raw HyP3 zips are now
@@ -32,11 +41,11 @@
   `workflows/fs_real.py`. **§45 (M42) — kappa=0.06 ADOPTED both sites** (VD beat its §44 slope-only
   tie). **§44 (M41) — bootstrap CIs + permutation p + ablation ladder standing**
   (`validation_stats.py`). The Science Upgrade Plan's top 3 are ALL RESOLVED.
-- **BOTH sites in WATCH** (as-of 2026-07-09 data, cycle run 2026-07-15): VD 14 live zones, 0 ALERT
-  days; Ramban 8 live zones, 4 April ALERT days. Next scheduled cycle **17 Jul 08:00**.
-  **The cycle no longer starts/stops Docker (user decision 2026-07-16):** it requires Docker
-  already running, waits up to 10 min (toast) for the user to start it, then skips quietly —
-  start Docker Desktop at logon and the cycle takes care of itself.
+- **BOTH sites in WATCH** (as-of 2026-07-11 data; cycle ran unattended 2026-07-17, §49): VD 18/18
+  zones active, 0 ALERT days (23 WATCH+); Ramban 8/8 active, 4 April ALERT days (28 WATCH+).
+  Next scheduled cycle **19 Jul 08:00**. **The cycle no longer starts/stops Docker (user decision
+  2026-07-16):** it checks Docker is running, waits up to 10 min (toast) for the user to start
+  it, then skips quietly — start Docker Desktop at logon and the cycle takes care of itself.
 - **★ NEW (2026-07-16) — GACOS request-helper + tarball-ingest pair** (`workflows/gacos_request.py`
   stdlib-only + `workflows/gacos_ingest.py`): the §40 "second pull" manual step is now
   copy-paste-form → email → one ingest command. Verified against the real 2026-07-11 delivery
@@ -63,17 +72,15 @@ target; merge to `master`; publish the dashboard. Ops is now hands-off: react to
 
 ## Uncommitted delta
 
-Sessions ≤23 committed through `5aee42a`; session 24's first batch committed by the user as
-`6289282` (prep_mintpy txt fallback, downloader txt extract, monsoon_cycle hardening).
+Sessions ≤24 committed through `95b2d79`; session 25's first batch committed by the user as
+`a290ae9` (monsoon cycle no longer manages Docker; GACOS request/ingest pair, gold-tested).
 
 Still uncommitted (this wrap):
-- MODIFIED: `docker-compose.yml` (junction workaround: nested `C:/InSAR_data/raw_zips` bind, both
-  services), `tests/test_plumbing.py` (disposable-zip invariant: 2 tests rewritten + 1 added = 11),
-  `RESULTS_AND_KPIS.md` (§48), `error_history_log.md` (2 entries), `milestone.md` (M44),
+- NEW: `tests/test_science_verification.py` (the §49 audit made permanent — 12 tests).
+- MODIFIED: `RESULTS_AND_KPIS.md` (§49), `milestone.md` (M45), primer (Part D verification Q),
   `SESSION_REVIEW.md` (this block).
-- Git-ignored as usual: journey entry (S24).
-- System-side (not in repo): `C:\Users\varun\.wslconfig` (WSL2 caps), Docker autostart Run-key
-  removed, vhdx compacted, `data\raw_zips` junction created, 235 zips deleted (Drive-archived).
+- Git-ignored as usual: journey entry (S25); audit scratch scripts live in the session scratchpad.
+- System-side carried from S24: `.wslconfig` caps, `data\raw_zips` junction, Drive-archived zips.
 
 ---
 

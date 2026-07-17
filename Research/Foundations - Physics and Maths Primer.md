@@ -1356,6 +1356,15 @@ A: A pixel covered in moving vegetation gives random phase — noise that would 
 like a huge fake landslide. We'd rather have fewer, trustworthy pixels than many
 lying ones.
 
+**Q: How do you know your code actually computes the physics you claim?**
+A: We audited it like an outside reviewer (2026-07-17): re-wrote the Factor-of-Safety
+formula independently from the textbook and compared it against our published hazard
+rasters at *every pixel* — agreement to the smallest float difference — and re-derived
+the rainfall thresholds from raw daily sums, reproducing the product's warning days
+exactly. That audit is now a permanent 12-test suite that re-runs the comparison, so
+the claim "the maps implement the stated equations" is continuously machine-checked,
+not taken on faith (RESULTS_AND_KPIS.md §49).
+
 **Q: What does "LOS velocity" mean — is that up/down motion?**
 A: It's motion along the radar's *slanted* line of sight, a mix of vertical and
 horizontal. Separating pure vertical needs combining ascending and descending
