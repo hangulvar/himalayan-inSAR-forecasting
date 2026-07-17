@@ -276,6 +276,11 @@ def aoi_artifacts(slug: str) -> list[tuple[str, Path]]:
     """(label, path) for this AOI's linkable artifacts, existing files only."""
     sfx = data_suffix(slug)
     out: list[tuple[str, Path]] = []
+    # The main live product first: the per-AOI operational alarm HTML dashboard
+    # (written by operational_alarm.py under alerts<sfx>/mosaic_asc/).
+    live_dir = DATA / f"alerts{sfx}" / "mosaic_asc"
+    for p in sorted(live_dir.glob("operational_alarm_dashboard*.html"), reverse=True)[:1]:
+        out.append(("★ Live operational alarm dashboard (HTML)", p))
     year_pat = re.compile(rf"^operational_alarm{re.escape(sfx)}_(\d{{4}})\.png$")
     pngs = sorted((p for p in RAIN_DIR.glob("operational_alarm*.png")
                    if year_pat.match(p.name)), reverse=True)

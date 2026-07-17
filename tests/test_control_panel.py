@@ -217,6 +217,21 @@ def test_artifacts_exist_and_are_within_data():
             p.resolve().relative_to(cp.DATA.resolve())  # raises if outside data/
 
 
+def test_live_operational_dashboard_listed_first_when_present():
+    for slug in cp.list_aois():
+        live_dir = cp.DATA / f"alerts{cp.data_suffix(slug)}" / "mosaic_asc"
+        if not list(live_dir.glob("operational_alarm_dashboard*.html")):
+            continue
+        arts = cp.aoi_artifacts(slug)
+        assert arts, slug
+        label, p = arts[0]
+        assert "Live operational alarm dashboard" in label
+        assert p.parent == live_dir
+        # per-AOI scoping: another slug's suffixed file must never leak in
+        if slug == "ramban":
+            assert "vaishnodevi" not in p.name
+
+
 # ------------------------------------------------------------------------------
 # Plain-python runner (mirrors the other suites)
 # ------------------------------------------------------------------------------
