@@ -134,7 +134,7 @@ def assess(cfg_path: Path) -> AoiStatus:
         "polygon", "AOI polygon (GeoJSON, EPSG:4326)", "manual",
         cfg.aoi_path.exists(), detail=cfg.aoi_path.name,
         next_cmd="Draw the AOI (Google Earth Pro -> KML -> GeoJSON) and set aoi_path "
-                 "in the registry file (NEW_AOI_PLAYBOOK.md M1)"))
+                 "in the registry file (docs/runbooks/NEW_AOI_PLAYBOOK.md M1)"))
 
     # 2. Soil pass (manual M2) — an explicit soil: block records the site's own pass;
     #    without it the engine runs on the Ramban-calibrated defaults.
@@ -144,7 +144,7 @@ def assess(cfg_path: Path) -> AoiStatus:
         detail="site-corroborated values in config" if raw.get("soil")
                else "RUNNING ON RAMBAN DEFAULTS",
         next_cmd="Do the site soil literature/field pass and add the soil: block "
-                 "(NEW_AOI_PLAYBOOK.md M2) — do not silently inherit another site's soils"))
+                 "(docs/runbooks/NEW_AOI_PLAYBOOK.md M2) — do not silently inherit another site's soils"))
 
     # 3. Phase 1 radar+QA — the radar library is SHARED across AOIs on the same frames,
     #    so per-AOI completion is proxied by the first per-AOI compute product (velocity).
@@ -163,7 +163,7 @@ def assess(cfg_path: Path) -> AoiStatus:
         "dem", "12.5 m ALOS DEM tile (optional upgrade)", "manual",
         bool(dem), detail=dem[0].name if dem else "falls back to 30 m HyP3 DEM",
         next_cmd=f"Fetch the ALOS PALSAR RTC 12.5 m tile from ASF Vertex into "
-                 f"data/dem_alos_12m{sfx}/ (NEW_AOI_PLAYBOOK.md M3)"))
+                 f"data/dem_alos_12m{sfx}/ (docs/runbooks/NEW_AOI_PLAYBOOK.md M3)"))
 
     # 5. Phases 2-4 multistack (velocity -> hazard -> union alerts, one driver)
     haz = sorted((DATA / f"hazard{sfx}").glob("*_hazard_class.tif"))
@@ -192,7 +192,7 @@ def assess(cfg_path: Path) -> AoiStatus:
         "inventory", "Verified landslide inventory", "manual",
         inv is not None, detail=inv.name if inv else inv_candidates[-1].name + " missing",
         next_cmd="Build the verified inventory (GSI Bhukosh/NGDR + primary-source press "
-                 "verification, NEW_AOI_PLAYBOOK.md M4) -> data/inventory/"))
+                 "verification, docs/runbooks/NEW_AOI_PLAYBOOK.md M4) -> data/inventory/"))
 
     # 7. Scored validation back-test
     bt = INV_DIR / f"backtest_operational{sfx}_report.json"
@@ -313,7 +313,7 @@ def write_html(statuses: list[AoiStatus], out: Path) -> None:
 <h1>Multi-AOI status</h1>
 <div class="gsub">Generated {date.today().isoformat()} by workflows/aoi_status.py &middot;
 registry: config/*.yaml &middot; switch the active AOI by editing the one-line
-<code>active_config</code> pointer in config.yaml &middot; onboarding: NEW_AOI_PLAYBOOK.md
+<code>active_config</code> pointer in config.yaml &middot; onboarding: docs/runbooks/NEW_AOI_PLAYBOOK.md
 &middot; decision-support prioritization prototype — not a warning system; no safety decision should
 rest on it</div>
 <div class="grid">{''.join(cards)}</div>

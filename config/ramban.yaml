@@ -9,11 +9,11 @@
 # NOTE: Ramban is the "grandfathered" AOI — its outputs live in the UNSUFFIXED
 # data dirs (data/velocity, data/hazard, data/alerts, data/mosaic*), and its
 # live-alarm artifacts use the plain "_<year>" suffix. That mapping comes from
-# the slug ('ramban'), so keep aoi_path pointing at ramban_aoi.geojson.
+# the slug ('ramban'), so keep aoi_path pointing at config/aoi/ramban_aoi.geojson.
 # ============================================================================
 
 # --- Area of Interest -------------------------------------------------------
-aoi_path: ramban_aoi.geojson
+aoi_path: config/aoi/ramban_aoi.geojson
 
 # Human-readable site label used in dashboard titles.
 site_name: Ramban NH-44

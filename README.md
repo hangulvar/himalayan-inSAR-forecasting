@@ -31,7 +31,7 @@ Full detail + every headline number lives in the **committed** [RESULTS_AND_KPIS
 
 This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** — is the project's scientific posture. The dashboard is a **decision-support prioritization prototype — not a warning system**: it ranks where to inspect and when vigilance should rise, does not predict individual landslides, and says so prominently.
 
-**New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
+**New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [docs/guides/Foundations - Physics and Maths Primer.md](docs/guides/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
 ---
 
@@ -41,20 +41,26 @@ This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negati
 Geospatial Analysis Himalayas/
 │
 ├── README.md                       # This file
-├── NEW_AOI_PLAYBOOK.md             # Deterministic recipe for onboarding a new AOI
 ├── CLAUDE.md                       # Behavioural rules for AI-assisted dev
 ├── SESSION_REVIEW.md               # 🚦 "Start here" living dashboard (read first)
 ├── milestone.md                    # Plain-language story of each milestone (for humans)
 ├── session_journey.md              # Session-by-session decisions and reasoning
 ├── error_history_log.md            # Every bug + root cause + fix from this project
-├── InSAR_hazard_forecasting_Context.md  # Original project vision + roadmap
+├── RESULTS_AND_KPIS.md             # Committed ledger of every headline KPI/finding
 │
 ├── .gitignore                      # Blocks credentials and large rasters from Git
-├── .netrc.template                 # NASA Earthdata + CDSE + USGS credential setup
-├── .env.template                   # Optional API keys (Mapbox, GEE, etc.)
 ├── environment.yml                 # Conda-forge environment spec (insar_qa_env)
 ├── requirements.txt                # Pip fallback (NOT recommended for geospatial)
-├── ramban_aoi.geojson              # Area-of-Interest polygon (Ramban / NH-44)
+├── config.yaml                     # ★ ACTIVE-SITE pointer (one line into config/)
+├── control_panel.bat               # Double-click launcher: local control panel + results hub
+│
+├── docs/                           # 📚 ALL reading material (see docs/INDEX.md)
+│   ├── INDEX.md                        # What to read, in which order, for what purpose
+│   ├── guides/                         # Primer, project vision, pipeline guide
+│   ├── runbooks/                       # NEW_AOI_PLAYBOOK, publishing checklist
+│   ├── briefs/                         # Field briefs, VD watchlist, landslide inventory notes
+│   ├── references/                     # Literature PDFs
+│   └── archive/                        # Superseded docs (+ local/ = git-ignored notes)
 │
 ├── workflows/                      # Pipeline scripts (by phase)
 │   ├── submit_hyp3_jobs.py             # P1: ASF HyP3 InSAR submission (SBAS N=3)
@@ -71,7 +77,7 @@ Geospatial Analysis Himalayas/
 │   ├── agentic_orchestrator.py         # P4A: 3-agent warning system → alerts + dashboard
 │   ├── build_3d_dashboard.py           # P4B: interactive 3-D hazard explorer (HTML)
 │   ├── aoi_status.py                   # Multi-AOI status dashboard + next-step guide
-│   ├── proj_pipeline_AOI.md            # Future AOI shortlist
+│   ├── control_panel.py                # Local one-click control panel + results hub
 │   └── .gitkeep
 │
 ├── tests/
@@ -91,14 +97,12 @@ Geospatial Analysis Himalayas/
 │
 ├── logs/                           # Run logs from every workflow script
 │
-├── Research/                       # Background literature + the science primer
-│   ├── Foundations - Physics and Maths Primer.md   # Beginner science base (Phases 1–4A)
-│   ├── Joshimath InSAR.pdf  ·  Meteorology.md  ·  ...
-│
 ├── src/                            # Reserved for reusable modules (currently empty)
 └── config/                         # ★ Per-AOI config REGISTRY (one YAML per site)
     ├── ramban.yaml                     # Ramban NH-44 (the original build)
-    └── vaishnodevi.yaml                # Vaishno Devi — Trikuta corridor
+    ├── vaishnodevi.yaml                # Vaishno Devi — Trikuta corridor
+    ├── aoi/                            # AOI polygons + route lines (GeoJSON, EPSG:4326)
+    └── templates/                      # Committable credential templates (.env/.netrc/.cdsapirc)
 ```
 
 ---
@@ -303,7 +307,7 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   `active_config:` pointer** selecting the default site; target any other site
   per-command with `-e INSAR_CONFIG=config/<aoi>.yaml` (works for every script) or
   `--config` where exposed. Point the pipeline at a new valley with **zero code
-  edits** — full recipe incl. the manual steps: **[NEW_AOI_PLAYBOOK.md](NEW_AOI_PLAYBOOK.md)**.
+  edits** — full recipe incl. the manual steps: **[NEW_AOI_PLAYBOOK.md](docs/runbooks/NEW_AOI_PLAYBOOK.md)**.
 - **Multi-AOI status dashboard:** `python workflows/aoi_status.py` — one card per
   registry site: stage checklist (incl. manual steps), current alarm level / live
   zones / rainfall freshness, and the exact next command. Writes
@@ -490,11 +494,11 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 ## 📚 Where To Read More
 
 - [SESSION_REVIEW.md](SESSION_REVIEW.md) — 🚦 the "start here" living dashboard (read first each session)
-- [NEW_AOI_PLAYBOOK.md](NEW_AOI_PLAYBOOK.md) — onboarding a new AOI, step by step (automated + manual)
+- [NEW_AOI_PLAYBOOK.md](docs/runbooks/NEW_AOI_PLAYBOOK.md) — onboarding a new AOI, step by step (automated + manual)
 - [milestone.md](milestone.md) — plain-language story of each milestone (for humans, no jargon)
-- [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
+- [docs/guides/Foundations - Physics and Maths Primer.md](docs/guides/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
 - [InSAR_hazard_forecasting_Context.md](InSAR_hazard_forecasting_Context.md) — original vision + full roadmap
 - [session_journey.md](session_journey.md) — what decisions were made, when, and why
 - [error_history_log.md](error_history_log.md) — every bug we've hit, with root cause + fix
 - [CLAUDE.md](CLAUDE.md) — behavioural rules for AI-assisted development on this repo
-- [Research/](Research/) — background literature and meteorological notes
+- [docs/](docs/) — all reading material: guides, runbooks, field briefs, references, archive (see [docs/INDEX.md](docs/INDEX.md))

@@ -59,10 +59,10 @@ reference; see SESSION_REVIEW §2 for the current balance).
 1. Draw the polygon in Google Earth Pro (or QGIS) around the corridor/slope of
    interest. Keep it tight: a better polygon improves *targeting*, not the noise
    floor. Save as KML → convert to GeoJSON (EPSG:4326).
-2. Name it `<slug>_aoi.geojson` at the project root (e.g. `chashoti_aoi.geojson`
+2. Name it `config/aoi/<slug>_aoi.geojson` (e.g. `config/aoi/chashoti_aoi.geojson`
    — the filename defines the slug).
 3. If the deliverable is route safety, also save the route/track as
-   `<slug>_route.geojson` (used by `route_exposure.py`).
+   `config/aoi/<slug>_route.geojson` (used by `route_exposure.py`).
 
 **Verify:** the file loads in geojson.io and sits where you think it does.
 
@@ -70,7 +70,7 @@ reference; see SESSION_REVIEW §2 for the current balance).
 
 Copy `config/vaishnodevi.yaml` → `config/<slug>.yaml` and edit:
 
-- `aoi_path: <slug>_aoi.geojson`, `site_name`, a unique `job_name_prefix`
+- `aoi_path: config/aoi/<slug>_aoi.geojson`, `site_name`, a unique `job_name_prefix`
 - `search_start`/`search_end`: ~6 months of pre-monsoon baseline through the
   season of interest (a new AOI needs **~2–3 months of acquisitions minimum**
   for a velocity baseline; longer = lower noise floor)
@@ -220,7 +220,7 @@ docker compose run --rm -e INSAR_CONFIG=config/<slug>.yaml insar  python workflo
 (Drop the `-e INSAR_CONFIG=...` when the site is already the `active_config`
 pointer's target.)
 
-Then follow `Research/Monsoon Watch Runbook (2026-07-11).md` (escalation
+Then follow the control panel (`control_panel.bat`) or scheduled cycle; manual fallback: `docs/archive/Monsoon Watch Runbook (2026-07-11).md` (escalation
 triggers, coherence_watch after storms). The radar-cadence cycle (~every 2
 weeks; SESSION_REVIEW roadmap #1) keeps chains growing: resubmit → download →
 QA → `run_multistack` → `route_exposure` → `live_alarm` → `coherence_watch`.
@@ -240,7 +240,7 @@ QA → `run_multistack` → `route_exposure` → `live_alarm` → `coherence_wat
   commands (each with its own `INSAR_CONFIG`); they're independent and
   idempotent — safe to script sequentially.
 - **Docs discipline per site:** headline KPIs go in `RESULTS_AND_KPIS.md`
-  (append-only, tagged, cite §), field briefs in `Research/`, and the site's
+  (append-only, tagged, cite §), field briefs in `docs/briefs/`, and the site's
   operating points + soils live ONLY in its registry file.
 
 ## Scaling architecture (where this design is headed)

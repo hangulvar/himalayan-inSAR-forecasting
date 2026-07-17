@@ -11,7 +11,7 @@
 # Path (relative to the project root, or absolute) to the AOI polygon.
 # Must be GeoJSON in EPSG:4326. Draw it in Google Earth Pro -> Save As .kml ->
 # convert to GeoJSON (geopandas/QGIS). See InSAR_hazard_forecasting_Context.md.
-aoi_path: vaishnodevi_aoi.geojson
+aoi_path: config/aoi/vaishnodevi_aoi.geojson
 
 # Human-readable site label used in dashboard titles.
 site_name: Vaishno Devi — Trikuta shrine corridor

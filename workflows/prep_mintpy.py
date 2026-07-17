@@ -144,7 +144,7 @@ def target_grid(stack: str, products: list[str], aoi_path: Path, buffer_km: floa
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
-    ap.add_argument("--aoi", default=str(PROJECT_ROOT / "ramban_aoi.geojson"),
+    ap.add_argument("--aoi", default=str(PROJECT_ROOT / "config" / "aoi" / "ramban_aoi.geojson"),
                     help="AOI polygon (EPSG:4326); used only when the stack has no "
                          "custom velocity raster (e.g. disconnected DESC stacks).")
     ap.add_argument("--buffer-km", type=float, default=3.0,

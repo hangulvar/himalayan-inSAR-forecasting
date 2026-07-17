@@ -7,7 +7,7 @@
 
 **House rule: no headline KPI/score is restated in this file.** Every number lives once, in
 `RESULTS_AND_KPIS.md` — this file cites the § only. (Pre-streamline verbose version archived at
-`Research/Archive/SESSION_REVIEW_pre-streamline_2026-07-03.md` and in git history.)
+`docs/archive/local/SESSION_REVIEW_pre-streamline_2026-07-03.md` and in git history.)
 
 ---
 
@@ -97,7 +97,7 @@ Still uncommitted (this wrap):
 | 5 | `session_journey.md` | Slim per-session bullets (what/why/dead-ends); older entries are long-form | Newest 1–2 entries |
 | 6 | `error_history_log.md` | Every bug + root cause + fix — **check before debugging anything** | Scan headings |
 | 7 | `docker/README.md` | How to build/run the pipeline in the Linux container | As needed |
-| 8 | `Research/Foundations - Physics and Maths Primer.md` | The science (Phases 1–4 + forecasting/rainfall/validation) | As needed |
+| 8 | `docs/guides/Foundations - Physics and Maths Primer.md` | The science (Phases 1–4 + forecasting/rainfall/validation) | As needed |
 | 9 | `InSAR_hazard_forecasting_Context.md` | Original vision / full expansion roadmap | Reference |
 
 **Also re-read `CLAUDE.md`** — behavioural rules + the documentation ritual (§5: run `/wrap-session` before stopping).
@@ -143,7 +143,7 @@ The core vision is fully built and scored above chance. Remaining work:
    per-AOI config registry (`config/*.yaml`, root `config.yaml` = one-line `active_config` pointer),
    `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
    config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
-   (multi-AOI stage/alarm dashboard + deterministic next step), `NEW_AOI_PLAYBOOK.md` (onboarding
+   (multi-AOI stage/alarm dashboard + deterministic next step), `docs/runbooks/NEW_AOI_PLAYBOOK.md` (onboarding
    runbook), `tests/test_config_registry.py`. ~~Fold the <150 m perpendicular-baseline gate into
    rescues~~ ✅ DONE 2026-07-13 (§43 — one standing f106 bridge measured 151 m; a better
    replacement is queued and applies at the next radar-cadence rebuild). Still: AOI guidance
@@ -158,7 +158,7 @@ The core vision is fully built and scored above chance. Remaining work:
    exact form values (bbox, per-track UTC time, missing dates only); `workflows/gacos_ingest.py`
    turns the email tarball into cross-check-ready tifs + the STACKS snippet. The remaining §40
    work is: submit the form, wait for the email, run ingest, run `_gacos_crosscheck.py`.
-1. **Accuracy backlog — the ranked plan is COMPLETE:** see `Research/Science Upgrade Plan - Top 3
+1. **Accuracy backlog — the ranked plan is COMPLETE:** see `docs/archive/Science Upgrade Plan - Top 3
    (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE (§44,
    `validation_stats.py`), ~~(2) TWI-distributed saturation m_i~~ ✅ DONE (§45, kappa=0.06 adopted
    both sites; broke VD's §44 slope-only tie), ~~(3) nonlinear van-Genuchten suction curve~~ ✅

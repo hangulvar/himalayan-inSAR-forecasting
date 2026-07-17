@@ -54,7 +54,7 @@ class SoilConfig:
     Defaults = the Ramban GSI-calibrated values (RESULTS_AND_KPIS.md §20), which the
     Vaishno Devi literature pass (§37) also brackets. A NEW AOI must do its own soil
     literature/field pass and set these in its config — do not silently inherit them
-    (see NEW_AOI_PLAYBOOK.md, manual step M2). CLI flags on geomechanical_engine.py
+    (see docs/runbooks/NEW_AOI_PLAYBOOK.md, manual step M2). CLI flags on geomechanical_engine.py
     still override.
     """
     cohesion_dry_kpa: float

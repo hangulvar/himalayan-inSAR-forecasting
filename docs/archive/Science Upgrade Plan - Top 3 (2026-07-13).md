@@ -1,5 +1,10 @@
 # Science Upgrade Plan — Top 3 (2026-07-13)
 
+> **📦 ARCHIVED 2026-07-17 — ALL THREE COMPLETE:** #1 bootstrap CIs + ablation ladder (§44),
+> #2 TWI-distributed saturation (§45, kappa=0.06 adopted both sites), #3 van Genuchten suction
+> (§46 — built, adoption rejected on identifiability). Kept for the reasoning record;
+> outcomes live in `RESULTS_AND_KPIS.md` §44–§46.
+
 The three highest-value improvements to the **science and mathematics** of the pipeline, chosen
 after the multi-AOI productization (§41) froze the plumbing. Selection criterion: *scientific
 value per unit effort, given the data we already have* — each one attacks a weakness we have

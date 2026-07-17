@@ -114,7 +114,7 @@ dmypy.json
 !*_aoi.geojson
 !*_route.geojson
 # Keep the user-drawn field watchlist targets (KML is otherwise ignored):
-!Research/*_Watchlist/*.kml
+!docs/briefs/*_Watchlist/*.kml
 *.csv
 *.xlsx
 *.parquet
@@ -155,5 +155,5 @@ data/inventory/*
 CLAUDE.md
 session_journey.md
 
-#hiding some unnecessary research notes and scratch files
-Research/Archive/*
+#hiding some unnecessary research notes and scratch files (local-only doc archive)
+docs/archive/local/*

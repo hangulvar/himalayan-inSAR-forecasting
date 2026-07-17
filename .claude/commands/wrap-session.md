@@ -12,7 +12,7 @@ Run the end-of-session documentation ritual for this repo. Work through the step
 
 4. **`session_journey.md` — append ONE slim entry:** heading `## Session N — YYYY-MM-DD (branch)`, then **5–10 bullets max**: what was done, why, and any dead-ends or abandoned approaches (dead-ends are this file's unique value — always record them). No KPI numbers — cite the `RESULTS_AND_KPIS.md` § instead.
 
-5. **Only on a completed phase / major milestone:** append a plain-language, beginner-friendly entry to `milestone.md` (what we set out to do, what we found, the plain result), and update `Research/Foundations - Physics and Maths Primer.md` (new concepts in the house style + refresh Part D interview questions and Part E limitations).
+5. **Only on a completed phase / major milestone:** append a plain-language, beginner-friendly entry to `milestone.md` (what we set out to do, what we found, the plain result), and update `docs/guides/Foundations - Physics and Maths Primer.md` (new concepts in the house style + refresh Part D interview questions and Part E limitations).
 
 6. **`SESSION_REVIEW.md` — regenerate ONLY the LIVE block** at the top: current state in ≤10 bullets citing KPI §s, recommended next step, uncommitted delta. Leave the STABLE block untouched unless a fact in it actually changed (environment gotcha, read order, roadmap).
 

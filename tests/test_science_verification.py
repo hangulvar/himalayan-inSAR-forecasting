@@ -231,8 +231,8 @@ def _geojson_lonlat(path: Path) -> tuple[int, list[tuple[float, float]]]:
 
 
 def test_inventories_valid_and_not_shrunk() -> None:
-    aoi_of = {"vaishnodevi_documented_landslides.geojson": "vaishnodevi_aoi.geojson",
-              "gsi_inventory_aoi.geojson": "ramban_aoi.geojson"}
+    aoi_of = {"vaishnodevi_documented_landslides.geojson": "config/aoi/vaishnodevi_aoi.geojson",
+              "gsi_inventory_aoi.geojson": "config/aoi/ramban_aoi.geojson"}
     for inv_name, floor in MIN_INVENTORY.items():
         n, pts = _geojson_lonlat(PROJECT_ROOT / "data/inventory" / inv_name)
         assert n >= floor, (

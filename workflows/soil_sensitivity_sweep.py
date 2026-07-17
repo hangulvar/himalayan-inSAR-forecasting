@@ -2,7 +2,7 @@
 """soil_sensitivity_sweep.py — how much do the soil parameters actually matter?
 
 The question this answers (ERRC "Reduce" decision, 2026-07-13): the hand-curated
-per-site soil pass (NEW_AOI_PLAYBOOK.md step 3 / M2) is the most laborious manual
+per-site soil pass (docs/runbooks/NEW_AOI_PLAYBOOK.md step 3 / M2) is the most laborious manual
 step for a new AOI. If the back-test score of the operational alert product barely
 moves across the PLAUSIBLE literature range of soil parameters (§37 bracket:
 φ 32–43°, c_dry 4.9–27.5 kPa, c_wet 4.5–7.9 kPa, weathering depth 1–3 m; γ ±2

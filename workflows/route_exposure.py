@@ -105,7 +105,7 @@ def classify(d_core: float, dists: dict[str, float]) -> str:
 def main() -> int:
     global TO_GRID
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--route", default=str(PROJECT_ROOT / f"{SLUG}_route.geojson"))
+    ap.add_argument("--route", default=str(PROJECT_ROOT / "config" / "aoi" / f"{SLUG}_route.geojson"))
     args = ap.parse_args()
 
     route_path = Path(args.route)

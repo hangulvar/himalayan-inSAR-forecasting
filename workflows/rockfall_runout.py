@@ -19,7 +19,7 @@ block size, no barriers/forest). It answers "could a rock physically get
 there", not "will one".
 
   docker compose run --rm insar python workflows/rockfall_runout.py \
-      --polygons "Research/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml"
+      --polygons "docs/briefs/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml"
 """
 
 from __future__ import annotations

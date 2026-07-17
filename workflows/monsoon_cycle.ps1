@@ -1,6 +1,6 @@
 ﻿# monsoon_cycle.ps1 - the scheduled monsoon-watch cycle (ERRC "Eliminate", 2026-07-13).
 #
-# Replaces the manual 2-3-day runbook loop (Research/Monsoon Watch Runbook (2026-07-11).md):
+# Replaces the manual 2-3-day runbook loop (docs/archive/Monsoon Watch Runbook (2026-07-11).md):
 # for EACH registry site it runs live_alarm's fetch stage (mintpy image) then its alarm
 # stage (insar image), refreshes the multi-AOI status board, and compares each site's
 # alarm state against the previous run - raising a Windows toast ONLY when a human is

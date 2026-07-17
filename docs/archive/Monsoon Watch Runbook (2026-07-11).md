@@ -1,5 +1,10 @@
 # Monsoon Watch Runbook — now SCHEDULED (manual steps kept as the fallback)
 
+> **📦 ARCHIVED 2026-07-17:** superseded twice over — by the scheduled cycle
+> (`workflows/monsoon_cycle.ps1`) and by the one-click local control panel
+> (`control_panel.bat` → `workflows/control_panel.py`). Kept as the manual fallback
+> recipe; the automation notes below predate the 2026-07-16 "user owns Docker" decision.
+
 > **⏰ Automated since 2026-07-13 (ERRC "Eliminate"):** the whole loop below runs by itself as the
 > Windows scheduled task **"InSAR Monsoon Watch Cycle"** — every 2 days at 08:00, both sites
 > (VD + Ramban), via `workflows/monsoon_cycle.ps1`. It starts Docker if needed, refreshes both

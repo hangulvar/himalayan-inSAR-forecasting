@@ -23,7 +23,7 @@ A flagged drop is a *tell*, not a confirmation — follow with a Sentinel-2
 before/after look (fresh scars are bright at 10 m) and the field protocol.
 
   docker compose run --rm insar python workflows/coherence_watch.py \
-      --polygons "Research/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml"
+      --polygons "docs/briefs/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml"
 """
 
 from __future__ import annotations

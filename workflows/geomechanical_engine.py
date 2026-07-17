@@ -240,7 +240,7 @@ def main() -> int:
     # --- Soil shear-strength parameters -------------------------------------------------
     # CALIBRATED (2026-06-03) from the GSI meso-scale (1:10,000) landslide-susceptibility
     # field study of the NH-244 Batote(Chakwa Nala)->Ganpat Bridge corridor, Ramban/Doda,
-    # J&K (GSI 2024-25 field season; brief in Research/LandslideInventory/). That study
+    # J&K (GSI 2024-25 field season; brief in docs/briefs/LandslideInventory/). That study
     # measured a friction angle of phi = 36.4-39.1 deg on site overburden (silty colluvium/
     # scree/RBM, 0.5-20 m thick, >75% fines, moisture-sensitive) -> we adopt phi=36 deg
     # (conservative end), replacing the generic literature 32 deg. gamma=19 and z=3 m sit
