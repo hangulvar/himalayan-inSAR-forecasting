@@ -56,34 +56,23 @@ if ($month -lt 4 -or $month -gt 10) {
     exit 0
 }
 
-# Docker must be up; try to start Docker Desktop and wait up to ~5 min.
-# MEMORY RULE: if THIS SCRIPT starts Docker, it also shuts Docker down at the end -
-# otherwise the WSL2 VM (vmmem, up to 50% of RAM without a .wslconfig cap) would sit
-# resident for days between cycles. If Docker was already running, we leave it alone
-# (the user is working with it).
-$dockerWasRunning = $true
+# Docker must already be RUNNING - this script never starts or stops it (user decision
+# 2026-07-16: the user starts Docker themselves at logon; headless lifecycle management
+# of Docker Desktop caused far more trouble than it saved - error log 2026-07-15/16).
+# Grace window: a missed-schedule catch-up fires right at logon, so give the user up to
+# 10 minutes to start Docker before skipping quietly until the next cycle.
 docker info *> $null
 if ($LASTEXITCODE -ne 0) {
-    $dockerWasRunning = $false
-    Log "Docker not running - starting Docker Desktop"
-    $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-    if (Test-Path $dd) { Start-Process $dd }
+    Log "Docker not running - waiting up to 10 min for the user to start it"
+    Toast 'Monsoon Watch: waiting for Docker' 'Start Docker Desktop within 10 min and this cycle will run.'
     $tries = 0
-    do {
-        Start-Sleep 10; docker info *> $null; $tries++
-        # Observed 2026-07-15: a launch during a not-yet-finished Docker teardown can
-        # abort silently. If the GUI process vanished mid-wait, relaunch once.
-        if ($LASTEXITCODE -ne 0 -and $tries -eq 15 -and
-            -not (Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue)) {
-            Log "Docker Desktop process gone mid-start - relaunching once"
-            if (Test-Path $dd) { Start-Process $dd }
-        }
-    } while ($LASTEXITCODE -ne 0 -and $tries -lt 30)
+    do { Start-Sleep 30; docker info *> $null; $tries++ } while ($LASTEXITCODE -ne 0 -and $tries -lt 20)
     if ($LASTEXITCODE -ne 0) {
-        Log "Docker unavailable after wait - cycle SKIPPED"
-        Toast 'Monsoon Watch: cycle skipped' 'Docker Desktop did not start; run the cycle manually.'
-        exit 1
+        Log "Docker still not running - cycle SKIPPED (start Docker, then re-run this script or wait for the next cycle)"
+        Toast 'Monsoon Watch: cycle skipped' 'Docker was not started. Run workflows/monsoon_cycle.ps1 manually after starting Docker.'
+        exit 0
     }
+    Log "Docker is up - continuing"
 }
 
 # The registry sites on monsoon watch. Calendar files follow live_alarm's suffix rule
@@ -157,29 +146,9 @@ if ($attention.Count -gt 0) {
     Log "quiet cycle - no state change, no ALERT"
 }
 
-# Release the memory we claimed: if this script started Docker, stop it again -
-# UNLESS someone is now using it (any container still running). Terminates ONLY
-# Docker's own WSL distros (never `wsl --shutdown`, which would kill the user's
-# other WSL sessions).
-if (-not $dockerWasRunning) {
-    $busy = (docker ps -q) -join ''
-    if ($busy) {
-        Log "Docker started by this cycle but containers are now running - leaving it up"
-    } else {
-        Log "stopping Docker Desktop (this cycle started it) to release WSL2 memory"
-        # Kill the GUI AND the backend service - com.docker.backend survives a GUI-only
-        # kill and can silently restart the WSL2 VM minutes later (observed 2026-07-15).
-        foreach ($p in 'Docker Desktop', 'com.docker.backend', 'com.docker.build') {
-            try { Stop-Process -Name $p -Force -ErrorAction SilentlyContinue } catch {}
-        }
-        Start-Sleep 5
-        wsl -t docker-desktop 2>$null
-        wsl -t docker-desktop-data 2>$null
-        docker info *> $null
-        if ($LASTEXITCODE -ne 0) { Log "Docker stopped; vmmem released" }
-        else { Log "WARNING: Docker engine still responding after shutdown attempt" }
-    }
-}
+# Docker is left exactly as we found it: running. The user owns its lifecycle
+# (stop it with `docker desktop stop` when done - never force-kill, error log
+# 2026-07-15/16). The .wslconfig cap keeps the idle VM cost low regardless.
 $elapsed = (Get-Date) - $cycleStart
 Log ("=== monsoon cycle done (took {0:mm\:ss}) ===" -f $elapsed)
 exit 0

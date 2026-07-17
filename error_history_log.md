@@ -1096,6 +1096,15 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   And when Windows refuses to delete a file "the system cannot access", stop fighting the file and
   rename its PARENT directory; the recreating app neither knows nor cares.
 
+* **ROOT FIX (2026-07-16, supersedes the process-kill approach entirely):** the crash is
+  DETERMINISTIC — every force-kill strands the socket and every next start hits the error dialog
+  (confirmed by the user's screenshot; it also explains the "silent death" starts — the app was
+  sitting on a dialog that headless polling can't see). Docker Desktop 4.37+ ships a CLI:
+  **`docker desktop stop`** (clean teardown, no stranded sockets) and **`docker desktop start`**
+  (headless start). `monsoon_cycle.ps1` now uses ONLY these; `Stop-Process`/`Start-Process` on
+  Docker are banned in this repo. If a brick already happened: quit the dialog, rename
+  `%LOCALAPPDATA%\Docker\run`, then `docker desktop start`.
+
 ---
 
 ### [2026-07-15] Docker bind mounts silently do NOT resolve NTFS junctions — container saw an empty project subdir

@@ -33,8 +33,14 @@
   tie). **§44 (M41) — bootstrap CIs + permutation p + ablation ladder standing**
   (`validation_stats.py`). The Science Upgrade Plan's top 3 are ALL RESOLVED.
 - **BOTH sites in WATCH** (as-of 2026-07-09 data, cycle run 2026-07-15): VD 14 live zones, 0 ALERT
-  days; Ramban 8 live zones, 4 April ALERT days. Next scheduled cycle **17 Jul 08:00** (runs on
-  logon if the slot is missed — by design, now cheap: §48).
+  days; Ramban 8 live zones, 4 April ALERT days. Next scheduled cycle **17 Jul 08:00**.
+  **The cycle no longer starts/stops Docker (user decision 2026-07-16):** it requires Docker
+  already running, waits up to 10 min (toast) for the user to start it, then skips quietly —
+  start Docker Desktop at logon and the cycle takes care of itself.
+- **★ NEW (2026-07-16) — GACOS request-helper + tarball-ingest pair** (`workflows/gacos_request.py`
+  stdlib-only + `workflows/gacos_ingest.py`): the §40 "second pull" manual step is now
+  copy-paste-form → email → one ingest command. Verified against the real 2026-07-11 delivery
+  (byte-identical to the §40 files; classic .ztd+.rsc fallback also tested).
 - **Radar side (§35/§43):** July S1 passes still not at ASF as of 07-10 — chains can't extend yet;
   the §43 f106 bridge swap (151 m → 102 m/24 d) applies at the next rebuild. **NISAR:** too few
   products (§33); recheck ~early Aug.
@@ -116,9 +122,11 @@ Still uncommitted (this wrap):
 - **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —
   raise temporarily for heavy MintPy sessions, then `wsl --shutdown`.
 - **`data\raw_zips` is an NTFS junction → `C:\InSAR_data\raw_zips`.** Containers can't see through
-  junctions — compose nested-binds the real folder (both services). Never force-kill Docker: stale
-  unix-socket files in `%LOCALAPPDATA%\Docker\run\` can brick the next start (fix: rename that `run`
-  dir; error log 2026-07-15).
+  junctions — compose nested-binds the real folder (both services).
+- **Start/stop Docker ONLY via `docker desktop start` / `docker desktop stop` (CLI, 4.37+).**
+  Force-killing the processes DETERMINISTICALLY bricks the next start (stale unix socket in
+  `%LOCALAPPDATA%\Docker\run\` → error dialog). If already bricked: quit the dialog, rename that
+  `run` dir, `docker desktop start` (error log 2026-07-15/16).
 
 ## 3. Open questions — "deepen trust" or "scale/deploy"
 
@@ -139,6 +147,10 @@ The core vision is fully built and scored above chance. Remaining work:
    new site needs its own pass, now recorded in its registry file; **measured to be load-bearing, §42 —
    failure depth especially**), (c) a local inventory for validation
    — the three manual steps the playbook and status dashboard track explicitly.
+0b. **GACOS second pull — tooling ready (2026-07-16):** `workflows/gacos_request.py` prints the
+   exact form values (bbox, per-track UTC time, missing dates only); `workflows/gacos_ingest.py`
+   turns the email tarball into cross-check-ready tifs + the STACKS snippet. The remaining §40
+   work is: submit the form, wait for the email, run ingest, run `_gacos_crosscheck.py`.
 1. **Accuracy backlog — the ranked plan is COMPLETE:** see `Research/Science Upgrade Plan - Top 3
    (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE (§44,
    `validation_stats.py`), ~~(2) TWI-distributed saturation m_i~~ ✅ DONE (§45, kappa=0.06 adopted
