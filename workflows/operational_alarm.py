@@ -359,6 +359,57 @@ def _gmaps(lat, lon, decimals: int = 4) -> str:
             f'title="Open this location in Google Maps">{lat:.{decimals}f}, {lon:.{decimals}f}</a>')
 
 
+def _aoi_tabs(dash_name: str) -> str:
+    """Site-switcher tabs (one per registry AOI, sorted) with each site's latest alarm
+    level collated from its season alarm calendar. The current site is highlighted;
+    a sibling site gets a RELATIVE link (../../alerts<sfx>/mosaic_asc/…) only when its
+    same-season dashboard actually exists — otherwise the tab renders greyed with a
+    hint, so there are never dead links."""
+    import csv as _csv
+    import re as _re
+    import yaml as _yaml
+    sfx_now = dash_name[len("operational_alarm_dashboard"):-len(".html")]
+    m = _re.search(r"_(\d{4})$", sfx_now)
+    year = m.group(1) if m else None
+    tabs = []
+    for cfg_path in sorted((PROJECT_ROOT / "config").glob("*.yaml")):
+        slug = cfg_path.stem
+        sfx = "" if slug == "ramban" else f"_{slug}"
+        try:
+            site = str(_yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+                       .get("site_name") or slug.title())
+        except Exception:  # noqa: BLE001 — a bad registry file must not break the dashboard
+            site = slug.title()
+        cal = RAIN_DIR / (f"operational_alarm_calendar{sfx}_{year}.csv" if year
+                          else f"operational_alarm_calendar{sfx}.csv")
+        level = None
+        if cal.exists():
+            rows = list(_csv.DictReader(cal.open(encoding="utf-8")))
+            if rows:
+                level = rows[-1].get("alarm_level")
+        dot = (f'<span style="display:inline-block;width:9px;height:9px;border-radius:50%;'
+               f'background:{LEVEL_COLOR.get(level, "#9aa0a6")};margin-right:6px" '
+               f'title="latest alarm level: {level or "unknown"}"></span>')
+        label = f"{dot}{site}" + (
+            f' <span style="opacity:.75;font-size:11px">{level}</span>' if level else "")
+        if slug == SLUG:
+            tabs.append(f'<span class="tab active" style="cursor:default">{label}</span>')
+            continue
+        target_name = (f"operational_alarm_dashboard{sfx}_{year}.html" if year
+                       else f"operational_alarm_dashboard{sfx}.html")
+        target = PROJECT_ROOT / "data" / f"alerts{sfx}" / "mosaic_asc" / target_name
+        if target.exists():
+            tabs.append(f'<a class="tab" style="text-decoration:none" '
+                        f'href="../../alerts{sfx}/mosaic_asc/{target_name}" '
+                        f'title="Open the {site} dashboard for this season">{label}</a>')
+        else:
+            tabs.append(f'<span class="tab" style="opacity:.45;cursor:default" '
+                        f'title="No {site} dashboard generated for this season yet">{label}</span>')
+    return ('<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+            '<span style="color:rgba(255,255,255,.7);font-size:12px">Sites:</span>'
+            + "".join(tabs) + "</span>")
+
+
 def _stack_links(scenario: str) -> str:
     """Per-stack map links for a tier's scenario (operational -> dashboard_operational.html, etc.).
     Links whichever per-stack dashboards actually exist for THIS site (the stack set differs
@@ -444,7 +495,8 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     <div class="sub2">{subtitle}</div>
     <div class="big">{tier['n_zones']} zones</div>
     <div style="font-size:13px;color:#444">{tier['n_crit']} critical · {tier['n_multi']} multi-look-confirmed · {m_txt}</div>
-    <p style="font-size:13px">{scored}</p>
+    <p style="font-size:13px">{scored} <a href="#" onclick="showTab('guide');return false"
+      style="font-size:12px;white-space:nowrap">what do these scores mean? →</a></p>
     {links_html}
     {triage}
   </div>"""
@@ -507,9 +559,14 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
                 f"<td>{'<b style=color:#aa0000>CRITICAL</b>' if z['severity']=='CRITICAL' else 'HIGH'}</td>"
                 f"<td><span class='pill' style='background:{tier_badge.get(z['tier'],'#999')}'>{z['tier']}</span></td></tr>"
                 for i, z in enumerate(per_zone["zones"], 1))
-            body = (f"<table><tr><th>#</th><th>location (lat, lon)</th><th>m* (fails at)</th>"
-                    f"<th>FS@0.40</th><th>creep mm/yr</th><th>confidence</th><th>severity</th>"
-                    f"<th>vulnerability</th></tr>"
+            body = (f"<table><tr><th>#</th>"
+                    f"<th title='Click a coordinate to open the exact spot in Google Maps'>location (lat, lon)</th>"
+                    f"<th title='Soil wetness at which THIS zone crosses its failure line (0 = bone dry, 1 = fully soaked). Lower = more fragile.'>m* (fails at)</th>"
+                    f"<th title='Factor of Safety at moderate wetness (0.40): resisting forces ÷ driving forces. Below 1.0 = the physics says unstable.'>FS@0.40</th>"
+                    f"<th title='Measured ground-motion speed from satellite radar (along its line of sight). These slopes are moving today, rain or not.'>creep mm/yr</th>"
+                    f"<th title='Probability the measured creep is real motion rather than radar noise (green ≥ 0.9, amber ≥ 0.7).'>confidence</th>"
+                    f"<th title='CRITICAL = worst physics combined with fastest creep.'>severity</th>"
+                    f"<th title='How wet a day it takes to tip this zone (from its m*).'>vulnerability</th></tr>"
                     f"{zrows}</table>"
                     f"<div style='font-size:12px;color:#666;margin-top:6px'>m* = soil saturation at which the "
                     f"zone crosses failure (lower = fails when barely wet); <b>confidence</b> = P the creep is "
@@ -526,7 +583,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
       ({per_zone['n_active']} of {per_zone['total']} operational zones active, ranked by vulnerability)</span></h2>
     <div class="sub2">Today's working checklist: a zone is "live" when the soil is estimated to be wet
       enough to reach ITS OWN tipping point (m* ≤ today's saturation). Most fragile first — click any
-      coordinate to open the exact spot in Google Maps.</div>
+      coordinate to open the exact spot in Google Maps, and hover any column header for what it means.</div>
     {body}
   </div>
 </div>"""
@@ -547,7 +604,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
  header h1{{margin:0;font-size:20px}} header .sub{{opacity:.85;font-size:13px;margin-top:4px}}
- .tabs{{background:#13263a;padding:8px 24px;display:flex;gap:8px}}
+ .tabs{{background:#13263a;padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}}
  .tab{{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 14px;
    border-radius:6px;font-size:13px;cursor:pointer}}
  .tab.active{{background:#fff;color:#0d1b2a;font-weight:600}}
@@ -582,6 +639,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 <nav class="tabs">
   <button id="btn-dash" class="tab active" onclick="showTab('dash')">Dashboard</button>
   <button id="btn-guide" class="tab" onclick="showTab('guide')">📖 Guide — how to read this page</button>
+  {_aoi_tabs(path.name)}
 </nav>
 <div class="disclaimer">⚠️ <b>RESEARCH PROTOTYPE — DECISION SUPPORT, NOT A WARNING SYSTEM.</b> This
  independent satellite-radar (InSAR) research product <b>ranks</b> WHERE slopes deserve inspection and
@@ -644,6 +702,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     <p>The page answers three questions, in order: <b>WHERE</b> could slopes fail (the two map cards) ·
       <b>WHEN</b> is the danger real (the rainfall gate card + the banner) · <b>WHICH ZONES</b> matter
       most right now (the ranked live-zone table).</p>
+    <p>Monitoring more than one area? The <b>Sites</b> tabs in the top bar switch between the monitored
+      areas — each tab's coloured dot shows that site's latest alarm level at a glance, so you can see
+      the state of every site without leaving this page.</p>
   </div>
 </div>
 <div class="wrap">
@@ -704,6 +765,37 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
       <li><b>severity / vulnerability</b> — CRITICAL combines the worst physics with the fastest creep;
         the vulnerability pill says how wet a day it takes to tip the zone.</li>
     </ul>
+  </div>
+  <div class="card">
+    <h2>Terms at a glance</h2>
+    <table>
+      <tr><th>Term</th><th>Plain meaning</th></tr>
+      <tr><td><b>InSAR</b></td><td>Measuring ground motion down to millimetres by comparing satellite
+        radar images taken over the same spot at different times.</td></tr>
+      <tr><td><b>creep</b></td><td>Slow, steady downhill movement of a slope (mm per year). A slope
+        that creeps is telling you it is already unstable.</td></tr>
+      <tr><td><b>hazard zone / footprint</b></td><td>A patch of slope flagged because radar says it is
+        <i>already moving</i> AND physics says it is <i>fragile when wet</i>. The "footprint" is the
+        full set of zones drawn on the map.</td></tr>
+      <tr><td><b>saturation (m)</b></td><td>How wet the soil is assumed to be, from 0 (bone dry) to
+        1 (fully soaked).</td></tr>
+      <tr><td><b>m*</b></td><td>The wetness at which one specific zone crosses its failure line.
+        Lower = touchier: an m* of 0.2 fails on a barely-wet day.</td></tr>
+      <tr><td><b>exceedance (E)</b></td><td>Today's rain compared to the historical
+        landslide-triggering line: 1 = exactly on the line, 2 = twice it.</td></tr>
+      <tr><td><b>multi-look (≥2-look)</b></td><td>The same motion was seen independently from two
+        different satellite viewing angles — much harder for noise to fake.</td></tr>
+      <tr><td><b>AUC</b></td><td>How well the map separates real landslide locations from random
+        spots: 0.5 = a coin flip, 1.0 = perfect.</td></tr>
+      <tr><td><b>recall @2 km</b></td><td>Of the documented landslides, the share that had a flagged
+        zone within 2 km.</td></tr>
+      <tr><td><b>lift</b></td><td>How many times more often the map is near a real landslide than
+        pure luck would be, at a given distance.</td></tr>
+      <tr><td><b>p (permutation)</b></td><td>The chance a randomly-drawn map would score this well.
+        The smaller it is, the harder the result is to explain away as luck.</td></tr>
+      <tr><td><b>Factor of Safety (FS)</b></td><td>A slope's resisting forces ÷ driving forces.
+        Above 1.0 the slope holds; below 1.0 the physics says it fails.</td></tr>
+    </table>
   </div>
   <div class="card">
     <h2>Honest limitations</h2>
