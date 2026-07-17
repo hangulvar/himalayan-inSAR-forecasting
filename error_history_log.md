@@ -1129,3 +1129,56 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   some backup tools) must be tested against it explicitly. When a junction sits inside a
   bind-mounted tree, add a nested bind for the junction target; the container path then works no
   matter what the host-side link does.
+
+### [2026-07-17] Results hub missed the real live dashboards (glob one level too shallow)
+
+* **Symptom:** the new control panel's results hub listed only `data/alerts*/` top-level HTML
+  (old scenario dashboards) — the actual per-AOI LIVE operational dashboards never appeared.
+
+* **Root Cause:** `operational_alarm.py` writes its dashboard one level deeper, under
+  `alerts<sfx>/mosaic_asc/operational_alarm_dashboard_*.html`; the hub's `glob("*.html")` on the
+  alerts dir can't see subdirectories. Found only when a REAL refresh-cycle run printed the
+  output path into the panel's own log.
+
+* **Resolution:** hub now globs `alerts<sfx>/mosaic_asc/operational_alarm_dashboard*.html` and
+  lists it FIRST ("★ Live operational alarm dashboard"); regression test added
+  (`test_live_operational_dashboard_listed_first_when_present`).
+
+* **Lesson:** when building a UI over existing artifacts, derive the artifact list from what the
+  producers WRITE (read their output paths/logs), not from what a directory listing happens to
+  show — and always run the real producer once before declaring the consumer done.
+
+### [2026-07-17] Restructure landmines: path-anchored .gitignore rules invert silently on `git mv`
+
+* **Symptom (pre-empted, not hit):** moving `Research/` → `docs/` would have (a) broken the
+  `!Research/*_Watchlist/*.kml` re-include (future KMLs silently ignored) and (b) moved the
+  untracked `Research/Archive/*` stash OUT of its ignore rule — `git add -A` would then have
+  committed old LLM-synthesis research notes that were deliberately excluded from the repo.
+
+* **Root Cause:** `.gitignore` rules that embed directory paths are coupled to the tree layout;
+  a restructure changes rule semantics without touching the rules.
+
+* **Resolution:** grepped `.gitignore` for every path-anchored rule BEFORE moving; updated both
+  (`!docs/briefs/*_Watchlist/*.kml`, `docs/archive/local/*`) in the same change; verified with
+  `git check-ignore` (probe files) that re-includes work and the local archive stays ignored.
+
+* **Lesson:** a repo restructure is also a `.gitignore` migration. Before any `git mv`, grep the
+  ignore file for the old paths, and verify the NEW layout with `git check-ignore` probes both
+  ways (tracked stays tracked, excluded stays excluded).
+
+### [2026-07-17] Verification grep's own exclusion filter hid a whole directory of stale refs
+
+* **Symptom:** a repo-wide sweep for stale `Research/` references came back clean, but files
+  under `docs/` still contained stale paths (runnable commands in briefs, the context doc's
+  primer link).
+
+* **Root Cause:** the sweep piped `grep -rn` through `grep -v 'docs/guides|docs/briefs|…'` to
+  drop already-correct NEW paths — but `grep -rn` prefixes every hit with its file path, so ANY
+  hit inside `docs/` matched the exclusion by virtue of its filename prefix and was dropped.
+
+* **Resolution:** re-ran the docs/ sweep separately with the path prefix stripped (`sed
+  's|^docs/||'`) before filtering; found and fixed 8 more stale references.
+
+* **Lesson:** when filtering `grep -rn` output, remember the match line CONTAINS the file path —
+  exclusion patterns meant for line content will also match paths. Strip or split the path field
+  first, or use `--include`/`--exclude-dir` instead of post-filtering.

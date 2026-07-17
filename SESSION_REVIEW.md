@@ -11,56 +11,47 @@
 
 ---
 
-# LIVE — Session 25 · branch `aoi-vaishnodevi` · updated 2026-07-17
+# LIVE — Session 26 · branch `aoi-vaishnodevi` · updated 2026-07-17
 
 ## Current state
 
-- **★ NEW (§49, M45) — full-product audit: ZERO bugs.** Three axes (math/science,
-  scripts/structure, data/references), 60+ checks: the standing FS rasters reproduce an
-  independently re-written infinite-slope formula **pixel-exact** at both sites; ID-threshold
-  trigger days recomputed from raw sums match the product; all rasters/inventories/season
-  artifacts internally consistent and matching this ledger. Made permanent as
-  `tests/test_science_verification.py` — suites now FOUR: **7/7 + 10/10 + 11/11 + 12/12**.
-  Two documented observations (§49): frame103's noisy 4-pair chain (already σ_v-gated, §24) and
-  the kappa artifact holding only the adopted point. **Bonus: the 07-17 scheduled cycle was the
-  first fully-unattended clean run** (headless start/stop, 4:12, quiet).
-- **(§48, M44) — storage & automation overhaul:** the scheduled monsoon cycle was cleared of
-  the "huge ASF download" suspicion (its whole fetch is ~KB of ERA5; the slowdown was an uncapped
-  WSL2 VM + a stale Docker autostart + the missed-08:00 catch-up firing on logon — all fixed).
-  Cycle re-measured end-to-end after hardening; ~56 GB of disk recovered. **Raw HyP3 zips are now
-  DISPOSABLE staging** (Drive-archived by the user, deleted locally): the HyP3 metadata txt lives in
-  `processed_tiffs/`, `prep_mintpy` reads it there (zip = fallback), and `data\raw_zips` is an NTFS
-  junction to `C:\InSAR_data\raw_zips` with an explicit compose bind for containers (Docker does NOT
-  resolve junctions — found by test). `test_plumbing` rewritten to the new invariant; suites
-  **11/11 + 7/7 + 10/10**. Two new ops bug classes in the error log (2026-07-15).
-- **§47 (M-carried) — soil verdict re-measured at kappa=0.06: HOLDS + SHARPENS at BOTH sites;**
-  playbook M2 stays required (depth z is the #1 field number); both sites carry a standing
-  sensitivity artifact. Third kappa non-consumer fixed at the root (None-default = site config).
-- **§46 (M43) — van Genuchten suction: mechanism SHIPPED config-gated, adoption REJECTED** ((α,n)
-  not identifiable from a spatial inventory); all wetness→FS physics centralized in
-  `workflows/fs_real.py`. **§45 (M42) — kappa=0.06 ADOPTED both sites** (VD beat its §44 slope-only
-  tie). **§44 (M41) — bootstrap CIs + permutation p + ablation ladder standing**
-  (`validation_stats.py`). The Science Upgrade Plan's top 3 are ALL RESOLVED.
-- **BOTH sites in WATCH** (as-of 2026-07-11 data; cycle ran unattended 2026-07-17, §49): VD 18/18
-  zones active, 0 ALERT days (23 WATCH+); Ramban 8/8 active, 4 April ALERT days (28 WATCH+).
-  Next scheduled cycle **19 Jul 08:00**. **The cycle no longer starts/stops Docker (user decision
-  2026-07-16):** it checks Docker is running, waits up to 10 min (toast) for the user to start
-  it, then skips quietly — start Docker Desktop at logon and the cycle takes care of itself.
-- **★ NEW (2026-07-16) — GACOS request-helper + tarball-ingest pair** (`workflows/gacos_request.py`
-  stdlib-only + `workflows/gacos_ingest.py`): the §40 "second pull" manual step is now
-  copy-paste-form → email → one ingest command. Verified against the real 2026-07-11 delivery
-  (byte-identical to the §40 files; classic .ztd+.rsc fallback also tested).
-- **Radar side (§35/§43):** July S1 passes still not at ASF as of 07-10 — chains can't extend yet;
-  the §43 f106 bridge swap (151 m → 102 m/24 d) applies at the next rebuild. **NISAR:** too few
-  products (§33); recheck ~early Aug.
-- **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: full second AOI, validated
-  and site-tuned** (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
-- **Deliverables:** route exposure + NE-flank creep target (§30/§33), Bhavan-overhang fast-failure
-  toolkit (§34), multi-AOI registry + status board + playbook (§41).
+- **★ NEW (§50, M46) — one-click ops: local control panel + results hub, verified LIVE.**
+  `control_panel.bat` → `workflows/control_panel.py` (stdlib-only local server, zero new deps):
+  buttons for the refresh cycle / status board / 3-D rebuild that shell out to the SAME commands
+  `monsoon_cycle.ps1` uses (asserted by test), live log streaming, and a results hub that links
+  the existing dashboards with freshness stamps (the live `mosaic_asc/` operational dashboards
+  listed first — a real cycle run exposed that the first version missed them, error log 07-17).
+  Proven with real button-presses: full cycle clean both sites (~3 min), real 3-D rebuild
+  reproduced the §5 scenario counts, Docker-down gate + busy-409 exercised. The panel checks
+  Docker but NEVER starts/stops it. New suite `tests/test_control_panel.py` (12 tests).
+- **★ NEW (§50) — repo restructured, nothing broke.** All reading docs → `docs/{guides,runbooks,
+  briefs,references,archive}` with `docs/INDEX.md` (read order + old→new path map); AOI/route
+  geojsons → `config/aoi/`; credential templates → `config/templates/`; 29 `git mv` renames.
+  Functional root docs (this file, ledger, milestone, error log, journey) untouched by design;
+  root `config.yaml` deliberately stays (active-site switch). Verified: slugs/data-suffixes
+  unchanged, all SIX suites green (**7/7 + 12/12 + 10/10 + 11/11 + 12/12 + compose valid**),
+  live `aoi_status.py` all-green at new paths. Historical ledger §§ keep old paths (append-only);
+  translate via `docs/INDEX.md`. Three new bug-class entries in the error log (2026-07-17).
+- **(§49, M45) — full-product audit: ZERO bugs.** FS rasters pixel-exact vs an independently
+  re-written formula at both sites; all artifacts internally consistent and matching the ledger;
+  permanent as `tests/test_science_verification.py`. Two documented observations (§49): frame103's
+  noisy 4-pair chain (σ_v-gated, §24) and the kappa artifact holding only the adopted point.
+- **(§48/§47/§46–§44 carried):** zips disposable + junction bind (§48); soil verdict holds at
+  kappa=0.06, playbook M2 required (§47); van Genuchten shipped config-gated / adoption rejected,
+  kappa=0.06 adopted, CIs + ablation ladder standing — Science Upgrade Plan top 3 ALL RESOLVED.
+- **BOTH sites in WATCH** (as-of 2026-07-11 data; re-confirmed by the §50 panel-driven cycle
+  2026-07-17): VD 18/18 zones active, 0 ALERT days; Ramban 8/8 active, 4 April ALERT days.
+  Next scheduled cycle **19 Jul 08:00**; the cycle checks Docker (10-min grace), never manages it.
+- **GACOS pair ready (§0b):** `gacos_request.py` prints the form values, `gacos_ingest.py` turns
+  the email tarball into crosscheck-ready tifs (gold-tested). Remaining: submit → ingest → crosscheck.
+- **Radar side (§35/§43):** July S1 passes still not at ASF as of 07-10; the §43 f106 bridge swap
+  applies at the next rebuild. **NISAR:** too few products (§33); recheck ~early Aug.
+- **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: validated + site-tuned**
+  (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
-  site (§31 addendum — the calibration target); soils literature-corroborated not lab-measured
-  (§37/§39/§42/§47); fast-failure tools unproven-in-anger; §40 GACOS discrepancy pair open.
-- **⚠ Archival note (§48):** the Google Drive copy of the 235 raw zips is now the ONLY archival
+  site (§31 addendum); soils literature-corroborated not lab-measured (§37/§39/§42/§47);
+  fast-failure tools unproven-in-anger; §40 GACOS discrepancy pair open.
+- **⚠ Archival note (§48):** the Google Drive copy of the 235 raw zips is the ONLY archival
   source (ASF server copies expired; re-creation costs HyP3 credits ≈7,460 remaining).
 
 ## Recommended next step
@@ -68,19 +59,19 @@
 The product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
 download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
 gap (Sentinel-2 optical change) and sub-daily IMERG. User-side: field check of the NE-flank CORE
-target; merge to `master`; publish the dashboard. Ops is now hands-off: react to toasts only.
+target; merge to `master`; publish the dashboard. Day-to-day ops: start Docker at logon, then
+either let the scheduled cycle run or double-click `control_panel.bat` and press the button.
 
 ## Uncommitted delta
 
-Sessions ≤24 committed through `95b2d79`; session 25's first batch committed by the user as
-`a290ae9` (monsoon cycle no longer manages Docker; GACOS request/ingest pair, gold-tested).
+Session 26's two work batches are already committed by the user: `53e640c`+`fbeafb6` (control
+panel + results hub + 12-test suite + launcher) and `d174a66` (repo restructure, fully verified).
 
-Still uncommitted (this wrap):
-- NEW: `tests/test_science_verification.py` (the §49 audit made permanent — 12 tests).
-- MODIFIED: `RESULTS_AND_KPIS.md` (§49), `milestone.md` (M45), primer (Part D verification Q),
-  `SESSION_REVIEW.md` (this block).
-- Git-ignored as usual: journey entry (S25); audit scratch scripts live in the session scratchpad.
-- System-side carried from S24: `.wslconfig` caps, `data\raw_zips` junction, Drive-archived zips.
+Still uncommitted (this wrap only):
+- MODIFIED: `RESULTS_AND_KPIS.md` (§50), `milestone.md` (M46), `error_history_log.md` (3 entries,
+  2026-07-17), `SESSION_REVIEW.md` (this block + one STABLE read-order note).
+- Git-ignored as usual: journey entry (S26). Primer unchanged — no new science concepts this
+  session (ops + structure only).
 
 ---
 
@@ -101,6 +92,10 @@ Still uncommitted (this wrap):
 | 9 | `InSAR_hazard_forecasting_Context.md` | Original vision / full expansion roadmap | Reference |
 
 **Also re-read `CLAUDE.md`** — behavioural rules + the documentation ritual (§5: run `/wrap-session` before stopping).
+
+> **Docs restructured 2026-07-17:** all reading material (guides, runbooks, field briefs,
+> references, archive) now lives under `docs/` — start at `docs/INDEX.md`, which also maps every
+> old path to its new home. The functional docs in the table above stay at the project root.
 
 > **Committed vs local-only (verified 2026-06-07 via `git ls-files`):** `CLAUDE.md` and
 > `session_journey.md` are **git-ignored / untracked** (local-only working notes), as is most of `data/`.

@@ -2300,6 +2300,38 @@ season/calendar well-formedness, calendar↔report↔per-zone cross-consistency 
 
 ---
 
+## 50. One-click ops (local control panel + results hub) and repo restructure — verified live  `[MEASURED]`
+*(2026-07-17, session 26 — `workflows/control_panel.py` + `control_panel.bat`; restructure verified by all suites)*
+
+**Control panel (stdlib-only local web server, no new deps):** buttons shell out to the SAME
+`docker compose` commands `monsoon_cycle.ps1` uses (asserted byte-for-byte by test); the panel
+checks Docker but never starts/stops it (per the 2026-07-16 decision). Verified with REAL runs:
+
+- **Full refresh cycle (all sites) via the button: clean, ~3 min** — Ramban fetch→alarm,
+  VD fetch→alarm, status board; every step exit 0; both sites regenerated **as-of 2026-07-11**
+  (states unchanged from §49's cycle — a correct "quiet" run inside ERA5-Land's ~5-day lag).
+- **Real 3-D dashboard rebuild via the button** (previous build 2026-05-30): scenario alert
+  counts came out **identical to the standing mock-cascade numbers (§5: dry 29 / monsoon 222 /
+  extreme 222)** — an unplanned regression check on the whole Phase-4A cascade, passed.
+- **Docker-down gate verified live:** with the daemon stopped, a run fails in <1 s with the
+  "start Docker Desktop yourself" message; second-run-while-busy correctly rejected (HTTP 409).
+- **Results hub** links the EXISTING artifacts with freshness stamps; the real cycle run exposed
+  that the *main* live dashboards live under `alerts*/mosaic_asc/` (the hub's first version
+  missed them) — fixed + regression-tested. New suite: `tests/test_control_panel.py`
+  (**12 tests** — command mirroring, action/AOI whitelists, single-job 409, path-traversal
+  guard, incremental log streaming, calendar parsing, live-dashboard discovery).
+
+**Repo restructure (same session):** all reading docs → `docs/{guides,runbooks,briefs,references,
+archive}` + `docs/INDEX.md` (old→new mapping); AOI/route geojsons → `config/aoi/`; credential
+templates → `config/templates/`; 29 `git mv` renames (history preserved), functional root docs
+untouched. **Verified nothing broke:** `load_config` resolves both AOIs with **unchanged slugs +
+data suffixes** (no artifact-naming drift); suites now SIX and all green —
+**7/7 (config) + 12/12 (control panel) + 10/10 (fs_real) + 11/11 (plumbing) + 12/12 (science) +
+compose config valid**; live `aoi_status.py` run all-stages-green at the new paths. Historical
+ledger entries deliberately keep old paths (append-only); `docs/INDEX.md` carries the mapping.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

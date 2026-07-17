@@ -1568,3 +1568,37 @@ multi-track**. Everything ahead is deepening trust (the pro tool, finer data, th
 remaining tracks) and going live, not inventing new pieces.
 
 ---
+
+## ✅ Milestone 46 — One button instead of five commands, and a tidy house  *(control panel + repo restructure, 2026-07-17)*
+
+**What we set out to do:** two quality-of-life upgrades. First, make refreshing the analysis as
+easy as clicking a button — until now, updating the rainfall, regenerating the alarms, and
+rebuilding the dashboards meant typing several Docker commands in the right order. Second, tidy
+the project folder: reading material (guides, runbooks, field briefs, old plans) had piled up in
+the open next to the working files, and it was getting hard to know what to read.
+
+**What we built:** a small **local control panel** — you double-click `control_panel.bat`, a page
+opens in your browser, and three buttons do the work: *Refresh cycle* (fetch the latest rainfall
+and update every site's warning state), *Refresh status board*, and *Rebuild 3-D dashboard*. You
+watch the progress live, and when it finishes, a **results hub** page lists every dashboard with
+"updated X minutes ago" stamps — one click opens them. Under the hood the buttons run exactly the
+same commands the scheduled watcher runs, so there is one way of doing things, not two. The panel
+deliberately never starts or stops Docker — that stays your job, by your own earlier decision.
+
+**Did it work?** Yes, proven the honest way: we pressed the real buttons against the real
+pipeline. The full refresh ran clean for both sites in about 3 minutes; the rebuilt 3-D dashboard
+came out with exactly the same alert numbers as always (a free extra check that the whole physics
+cascade still behaves); and with Docker off, the panel says plainly "start Docker Desktop
+yourself" instead of failing mysteriously.
+
+**The tidy-up:** all reading material now lives in one `docs/` folder — guides (the science
+primer, the project vision), runbooks (how to onboard a new site), field briefs, reference
+papers, and an archive for superseded plans (each marked with *why* it's archived). A single
+`docs/INDEX.md` page answers "what should I read, in what order?" and maps every old location to
+the new one. The map polygons and credential templates moved into `config/`. The working files
+the rituals depend on (this file, the KPI ledger, the bug log, the session review) stayed exactly
+where they were, untouched. And we re-ran every test suite afterwards — all six, all green — to
+prove the move broke nothing.
+
+**Bottom line:** day-to-day operation is now *start Docker, click a button, read the dashboard* —
+and a newcomer opening the project sees a clean front door instead of thirty files.
