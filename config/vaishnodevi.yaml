@@ -4,7 +4,7 @@
 # One file per AOI lives in config/. The root config.yaml is a one-line pointer
 # (`active_config: config/<aoi>.yaml`) selecting which AOI the pipeline targets;
 # any script also accepts `--config config/<aoi>.yaml` directly.
-# New AOI? Copy this file, then follow NEW_AOI_PLAYBOOK.md.
+# New AOI? Copy this file, then follow docs/runbooks/NEW_AOI_PLAYBOOK.md.
 # ============================================================================
 
 # --- Area of Interest -------------------------------------------------------

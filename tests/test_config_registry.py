@@ -118,7 +118,7 @@ def test_soil_defaults_are_the_ramban_calibration() -> None:
     numerically for existing sites."""
     import yaml
 
-    minimal = {"aoi_path": "ramban_aoi.geojson", "job_name_prefix": "X",
+    minimal = {"aoi_path": "config/aoi/ramban_aoi.geojson", "job_name_prefix": "X",
                "search_start": "2025-01-01", "search_end": "2025-02-01"}
     tmp = PROJECT_ROOT / "data" / "_test_minimal_config.yaml"
     tmp.parent.mkdir(exist_ok=True)

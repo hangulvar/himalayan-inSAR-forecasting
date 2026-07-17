@@ -10,7 +10,7 @@
 # InSAR_hazard_forecasting_Context.md (Roadmap 0a) and error_history_log.md.
 #
 # SCOPE: reproduces the CURRENT Phase 1-4 pipeline. The image carries the conda
-# environment ONLY; the project (code + the ~73 GB data/ dir + ramban_aoi.geojson)
+# environment ONLY; the project (code + the ~73 GB data/ dir + config/)
 # is BIND-MOUNTED at /app at run time (see ../docker-compose.yml), so nothing
 # large or machine-specific is baked into the image.
 # ─────────────────────────────────────────────────────────────────────────────

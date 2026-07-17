@@ -6,7 +6,7 @@ End-to-end ASF HyP3 submission pipeline for landslide monitoring over the
 Ramban (Jammu & Kashmir) NH-44 corridor.
 
 Pipeline:
-    1. Parse the AOI polygon from ramban_aoi.geojson with geopandas.
+    1. Parse the configured AOI polygon (config/aoi/<slug>_aoi.geojson) with geopandas.
     2. Query the ASF catalog (asf_search) for Sentinel-1 SLC IW scenes
        intersecting the AOI between May 1 2025 and Oct 31 2025
        (covers the heavy monsoon and immediate post-monsoon window).

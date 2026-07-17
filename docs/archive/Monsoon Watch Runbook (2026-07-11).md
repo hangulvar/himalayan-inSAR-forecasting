@@ -91,13 +91,13 @@ you need a refresher.
 ## When to escalate beyond "just look at it"
 
 - **If the state reads ALERT** (not just WATCH): re-read the relevant field brief —
-  `Research/Field Brief - Bhairon NE flank creep target (2026-07-07).md` or
-  `Research/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang (2026-07-08).md` — and consider
+  `docs/briefs/Field Brief - Bhairon NE flank creep target (2026-07-07).md` or
+  `docs/briefs/Vaishno_Devi_Watchlist/Field Brief - Bhavan overhang (2026-07-08).md` — and consider
   whether the field-check step (roadmap item) is now timely.
 - **After any heavy rain/storm event:** also run the fast-failure tripwire, which checks for a
   sudden radar-coherence drop (a possible fresh rockfall/collapse signature):
   ```powershell
-  docker compose run --rm insar python workflows/coherence_watch.py --polygons "Research/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml" --out-name coherence_watch_bhavan_overhang
+  docker compose run --rm insar python workflows/coherence_watch.py --polygons "docs/briefs/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml" --out-name coherence_watch_bhavan_overhang
   docker compose run --rm insar python workflows/coherence_watch.py --polygons "data/alerts_vaishnodevi/mosaic_asc/bhairon_core_creep.kml" --out-name coherence_watch_bhairon_creep
   ```
   Look for `DROP-CONFIRMED` or `DROP-SINGLE-TRACK` in the output (vs the routine `OK`) —

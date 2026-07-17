@@ -5,7 +5,7 @@ current radar+physics product with:
 
 ```
 docker compose run --rm insar python workflows/polygon_stats.py \
-    --polygons "Research/Vaishno_Devi_Watchlist/<file>.kml" --out-name <name>
+    --polygons "docs/briefs/Vaishno_Devi_Watchlist/<file>.kml" --out-name <name>
 ```
 
 Reports land in `data/alerts_vaishnodevi/mosaic_asc/<name>.{md,json}`. To add several polygons at

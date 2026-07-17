@@ -30,7 +30,7 @@ every radar cycle:
 
 ```
 docker compose run --rm insar python workflows/coherence_watch.py \
-    --polygons "Research/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml" \
+    --polygons "docs/briefs/Vaishno_Devi_Watchlist/Vaishno_Devi_Bhavan_Overhang.kml" \
     --out-name coherence_watch_bhavan_overhang
 ```
 
