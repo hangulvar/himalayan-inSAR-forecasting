@@ -302,7 +302,7 @@ def main() -> int:
                    dates, water, E, win_D, levels, n_zones)
     write_md(RAIN_DIR / f"operational_alarm_report{sfx}.md", report)
     fig_path = RAIN_DIR / f"operational_alarm{sfx}.png"
-    make_figure(fig_path, dates, water, E, levels, events, args.watch_k, args.alert_k, n_zones)
+    make_figure(fig_path, dates, E, levels, events, args.watch_k, args.alert_k)
 
     # "Current state" as-of a date: default to the season peak-E day (the strongest alarm).
     if args.as_of:
@@ -851,11 +851,20 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 {per_zone_html}
 
 <div class="calendar">
-  <h2 style="margin:0 24px 6px 0;font-size:15px">Season alarm calendar &amp; rainfall exceedance</h2>
-  <div class="sub2" style="margin:0 0 8px">One column per day of the season, coloured by alarm state
-    (grey DORMANT · amber WATCH · red ALERT); the curve is the exceedance E. Use it to see at a glance
-    how active this season has been and whether wet spells are clustering.</div>
-  <img src="data:image/png;base64,{png_b64}" alt="season alarm calendar"/>
+  <h2 style="margin:0 24px 6px 0;font-size:15px">Season at a glance — how dangerous was the rain,
+    and what did the alarm say?</h2>
+  <div class="sub2" style="margin:0 0 8px"><b>Top chart:</b> each blue bar is one day of the season.
+    Its height is <b>E</b> — that day's recent rainfall compared with the amount of rain that has
+    historically been enough to trigger landslides in this region (<b>E&nbsp;=&nbsp;1</b> means
+    exactly at that historical danger line, <b>E&nbsp;=&nbsp;2</b> means twice it). Note this grades
+    the <i>rain itself</i> against a proven danger threshold — it is not soil wetness/saturation
+    (that is a separate quantity used for the hazard zones). The alarm simply follows E: below the
+    line the system stays <b>quiet</b> (grey), above it the hazard maps are <b>armed — WATCH</b>
+    (amber), and at E&nbsp;≥&nbsp;2 it raises the <b>ALERT</b> (red). Black vertical lines mark
+    documented landslides at this site, so you can see whether they fell on flagged days.
+    <b>Bottom strip:</b> the same season as a calendar — one coloured cell per day showing the alarm
+    state that day; wide amber or red patches are the dangerous wet spells.</div>
+  <img src="data:image/png;base64,{png_b64}" alt="season chart: daily rainfall danger level E and the alarm state calendar"/>
 </div>
 </div><!-- /tab-dash -->
 {hist_div}
@@ -1043,27 +1052,42 @@ function showTab(t){{
     path.write_text(html, encoding="utf-8")
 
 
-def make_figure(path: Path, dates, water, E, levels, events, watch_k, alert_k, n_zones) -> None:
+def make_figure(path: Path, dates, E, levels, events, watch_k, alert_k) -> None:
+    """The season-at-a-glance figure, written for a LAY reader (2026-07-18 readability pass —
+    the jargon title/labels confused users into reading E as soil saturation). Panel 1: each
+    day's rainfall graded against the region's historical landslide-triggering line; panel 2:
+    the resulting alarm-state calendar strip with day counts."""
     x = np.arange(len(dates))
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 7), height_ratios=[3, 1])
+    box = dict(facecolor="white", alpha=0.75, edgecolor="none", pad=1.5)
 
-    # Panel 1: exceedance E with WATCH/ALERT bands + documented events.
+    top = max(E.max() * 1.1, alert_k + 0.6)
     ax1.axhspan(watch_k, alert_k, color="#f0b428", alpha=0.15, lw=0)
-    ax1.axhspan(alert_k, max(E.max() * 1.05, alert_k + 0.5), color="#dc2828", alpha=0.12, lw=0)
+    ax1.axhspan(alert_k, top, color="#dc2828", alpha=0.12, lw=0)
     ax1.fill_between(x, 0, E, color="#4477aa", step="mid", lw=0)
-    ax1.axhline(watch_k, color="#b8860b", lw=1.0, ls="--")
-    ax1.axhline(alert_k, color="#aa0000", lw=1.0, ls="--")
-    ax1.text(len(dates) - 1, watch_k, " WATCH", va="bottom", ha="right", fontsize=8, color="#8a6500")
-    ax1.text(len(dates) - 1, alert_k, " ALERT", va="bottom", ha="right", fontsize=8, color="#aa0000")
+    ax1.axhline(watch_k, color="#b8860b", lw=1.2, ls="--")
+    ax1.axhline(alert_k, color="#aa0000", lw=1.2, ls="--")
+    ax1.set_ylim(0, top)
+    # Plain-language band labels (y in data units, x as axes fraction).
+    tf = ax1.get_yaxis_transform()
+    ax1.text(0.99, (alert_k + top) / 2, "ALERT — rain well above the danger line (E ≥ 2)",
+             transform=tf, ha="right", va="center", fontsize=8.5, color="#aa0000", bbox=box)
+    ax1.text(0.99, (watch_k + alert_k) / 2, "WATCH — danger line crossed, hazard maps armed (1 ≤ E < 2)",
+             transform=tf, ha="right", va="center", fontsize=8.5, color="#8a6500", bbox=box)
+    ax1.text(0.99, watch_k * 0.45, "quiet — rain below the danger line",
+             transform=tf, ha="right", va="center", fontsize=8.5, color="#666", bbox=box)
+    ax1.text(0.01, watch_k, "historical danger line: rain that has triggered landslides in this region before (E = 1)",
+             transform=tf, ha="left", va="bottom", fontsize=7.5, color="#8a6500", bbox=box)
     for name, ev in events:
         if ev in dates:
             i = dates.index(ev)
             ax1.axvline(i, color="#222", lw=1.0, alpha=0.7)
-            ax1.text(i, ax1.get_ylim()[1] * 0.96, f" {ev.isoformat()}", rotation=90,
+            short = name if len(name) <= 26 else name[:26].rsplit(" ", 1)[0] + "…"
+            ax1.text(i, top * 0.97, f" {ev.isoformat()} — {short}", rotation=90,
                      fontsize=7, va="top", ha="left", color="#222")
-    ax1.set_ylabel("peak I-D exceedance E(t)")
-    ax1.set_title(f"Operational alarm: regional curve gates the {n_zones}-zone validated footprint "
-                  f"(WHEN x WHERE)")
+    ax1.set_ylabel("rainfall danger level E\n(recent rain ÷ landslide-triggering rain)")
+    ax1.set_title(f"Was the rain dangerous? Each day's rainfall vs the region's historical "
+                  f"landslide-triggering threshold ({dates[0].year} season)")
     ax1.grid(alpha=0.3)
 
     # Panel 2: the season alarm calendar strip (one cell per day, coloured by level).
@@ -1077,7 +1101,9 @@ def make_figure(path: Path, dates, water, E, levels, events, watch_k, alert_k, n
         ax.set_xlim(0, len(dates))
     ax1.set_xticklabels([])
     ax2.set_xticklabels([dates[i].strftime("%b %d") for i in tick])
-    ax2.set_xlabel("season alarm calendar (grey=dormant, amber=watch, red=alert)")
+    n_d, n_w, n_a = (levels.count(lv) for lv in LEVELS)
+    ax2.set_xlabel(f"what the alarm showed each day — grey quiet ({n_d} days) · "
+                   f"amber WATCH ({n_w} days) · red ALERT ({n_a} days)")
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
 
 
