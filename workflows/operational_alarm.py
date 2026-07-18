@@ -148,6 +148,58 @@ def load_watch_triage(scenario: str, n: int = 5):
     return top or None
 
 
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    p1, p2 = np.radians(lat1), np.radians(lat2)
+    dp, dl = np.radians(lat2 - lat1), np.radians(lon2 - lon1)
+    a = np.sin(dp / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
+    return float(2 * R * np.arcsin(np.sqrt(a)))
+
+
+def load_historical_events(footprint_path: Path):
+    """The curated per-AOI historical-damage record (data/inventory/<slug>_historical_events.json,
+    source-verified per the CLAUDE.md date/provenance rules), ranked by damage (deaths desc, then
+    injured, then the editorial damage_score tie-breaker for non-fatal events). Each event is
+    annotated with its CURRENT standing in the alert system: distance to the nearest hazard zone
+    and that zone's live parameters — from per_zone_vulnerability.csv (the same source as the
+    WHICH ZONES table) when present, else the operational-footprint centroids. Returns None when
+    the record is absent (the Past-events tab is simply skipped — never another site's history)."""
+    import csv as _csv
+    f = INV_DIR / f"{SLUG}_historical_events.json"
+    if not f.exists():
+        return None
+    payload = json.loads(f.read_text(encoding="utf-8"))
+    events = payload.get("events", [])
+    if not events:
+        return None
+    events.sort(key=lambda e: (-(e.get("deaths") or 0), -(e.get("injured") or 0),
+                               -(e.get("damage_score") or 0)))
+    zones = []
+    vf = ALERTS_DIR / "per_zone_vulnerability.csv"
+    if vf.exists():
+        for r in _csv.DictReader(vf.open(encoding="utf-8")):
+            zones.append({"lat": float(r["lat"]), "lon": float(r["lon"]),
+                          "severity": r.get("severity"), "m_star": r.get("m_star"),
+                          "fs_0p40": r.get("fs_0p40"), "creep_mmyr": r.get("creep_mmyr"),
+                          "confidence": r.get("detection_confidence")})
+    elif footprint_path.exists():
+        for z in json.loads(footprint_path.read_text(encoding="utf-8")).get("zones", []):
+            lon, lat = z["centroid_lonlat"]
+            zones.append({"lat": lat, "lon": lon, "severity": z.get("severity"),
+                          "m_star": None, "fs_0p40": z.get("min_fs_any_look"),
+                          "creep_mmyr": z.get("strongest_creep_mmyr"), "confidence": None})
+    for e in events:
+        best = None
+        for z in zones:
+            d = _haversine_km(e["lat"], e["lon"], z["lat"], z["lon"])
+            if best is None or d < best[0]:
+                best = (d, z)
+        e["nearest_zone_km"] = round(best[0], 2) if best else None
+        e["nearest_zone"] = best[1] if best else None
+    return {"note": payload.get("note", ""), "updated": payload.get("updated", ""),
+            "events": events}
+
+
 def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
     out = []
     for e in E:
@@ -259,8 +311,15 @@ def main() -> int:
         as_of_i = int(np.argmax(E))
     # Per-zone ranking (§19) — render the live ranked zone list if per_zone_gate.py has run.
     per_zone = per_zone_live(ALERTS_DIR, dates[as_of_i].isoformat())
+    # Curated historical-damage record — the Past-events tab (skipped when the site has none).
+    hist = load_historical_events(Path(args.footprint))
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
-                    report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone)
+                    report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
+                    hist)
+    if hist:
+        n_rev = sum(1 for e in hist["events"] if e.get("review_needed"))
+        print(f"PAST EVENTS tab: {len(hist['events'])} documented events "
+              f"({n_rev} flagged pending review)")
 
     print(f"WHERE — ALERT ({alert_tier['scenario']} m={alert_tier['m']}): {n_zones} zones "
           f"({n_crit} critical, {n_multi} >=2-look, AUC {_auc_txt(alert_tier['auc'])})")
@@ -502,8 +561,106 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
   </div>"""
 
 
+HIST_CONF_COLOR = {"VERIFIED": "#1a8a4a", "HIGH": "#1a5fb4", "MEDIUM": "#b8860b", "LOW": "#dc2828"}
+
+
+def _hist_today_cell(e) -> str:
+    """One event's CURRENT standing vs the alert system: distance to the nearest hazard zone and
+    that zone's live parameters (m*, FS@0.40, creep, detection confidence — whichever exist)."""
+    z, km = e.get("nearest_zone"), e.get("nearest_zone_km")
+    if z is None:
+        return "<td><span style='color:#888'>no zone data at this site yet</span></td>"
+    d_txt = f"{km * 1000:.0f} m" if km < 1 else f"{km:.1f} km"
+    parts = []
+    if z.get("m_star"):
+        parts.append(f"m* {z['m_star']}")
+    if z.get("fs_0p40") not in (None, ""):
+        try:
+            parts.append(f"FS@0.40 {float(z['fs_0p40']):.2f}")
+        except (TypeError, ValueError):
+            pass
+    if z.get("creep_mmyr") not in (None, ""):
+        parts.append(f"creep {z['creep_mmyr']} mm/yr")
+    if z.get("confidence"):
+        parts.append(f"P {z['confidence']}")
+    sev = z.get("severity") or "zone"
+    sev_html = f"<b style='color:#aa0000'>CRITICAL</b>" if sev == "CRITICAL" else sev
+    if km <= 2.0:
+        return (f"<td><b>{d_txt}</b> to nearest hazard zone ({sev_html})"
+                f"<br><span style='color:#666'>{' · '.join(parts)}</span></td>")
+    return (f"<td><span style='color:#888'>outside today's mapped footprint "
+            f"(nearest zone {d_txt} away)</span></td>")
+
+
+def _hist_panel(hist, lvl, as_of) -> str:
+    """The Past-events tab body: the site's documented landslide-damage history ranked by damage,
+    each row source-cited with a confidence badge (LOW = pending review, never settled fact) and
+    its current standing against the live alert system."""
+    rows = []
+    n_review = sum(1 for e in hist["events"] if e.get("review_needed"))
+    for i, e in enumerate(hist["events"], 1):
+        deaths, injured = e.get("deaths"), e.get("injured")
+        if deaths is None and injured is None:
+            cas = "<span style='color:#888' title='the source records casualties but not a count'>not stated</span>"
+        else:
+            bits = []
+            if deaths is not None:
+                bits.append(f"<b>{deaths}</b> dead" if deaths else "0 dead")
+            if injured:
+                bits.append(f"{injured} injured")
+            cas = " · ".join(bits)
+        date_txt = e.get("date") or f"<span style='color:#888'>{e.get('date_note', 'date unknown')}</span>"
+        conf = e.get("confidence", "LOW")
+        badge = (f"<span class='pill' style='background:{HIST_CONF_COLOR.get(conf, '#999')}' "
+                 f"title=\"{e.get('confidence_reason', '')}\">{conf}</span>")
+        if e.get("review_needed"):
+            badge += "<br><span style='font-size:11px;color:#dc2828'>pending review</span>"
+        srcs = []
+        for j, s in enumerate(e.get("sources", []), 1):
+            if s.get("url"):
+                srcs.append(f"<a href=\"{s['url']}\" target=\"_blank\" title=\"{s['label']}\">[{j}]</a>")
+            else:
+                srcs.append(f"<span title=\"{s['label']}\" style='cursor:help;color:#666'>[{j}]</span>")
+        rows.append(
+            f"<tr><td>{i}</td><td><b>{e['name']}</b></td><td>{date_txt}</td>"
+            f"<td>{_gmaps(e['lat'], e['lon'])}</td><td>{cas}</td>"
+            f"<td style='max-width:340px'>{e['damage']}</td>"
+            f"{_hist_today_cell(e)}<td>{badge}</td><td>{' '.join(srcs)}</td></tr>")
+    review_note = (f" <b>{n_review} row(s) are LOW/flagged confidence and pending review</b> — "
+                   f"treat them as leads, not settled fact." if n_review else "")
+    return f"""
+<div class="wrap">
+  <div class="card" style="flex:1 1 100%">
+    <h2>Past landslide events at this site — ranked by damage caused</h2>
+    <div class="sub2">Documented history, worst first (deaths, then injuries, then infrastructure
+      damage). Every row is source-verified — hover a confidence badge for how solid the record is,
+      and the numbered brackets for the sources (linked where the source is online).{review_note}
+      The <b>today at this location</b> column places each historical site against the CURRENT
+      alert system (alarm <b>{lvl}</b> as of {as_of}): how far it sits from the nearest mapped
+      hazard zone and that zone's live parameters. Click any coordinate to open the exact spot in
+      Google Maps.</div>
+    <table><tr><th>#</th><th>event</th><th>date</th>
+      <th title='Click to open the exact spot in Google Maps'>location (lat, lon)</th>
+      <th>casualties</th><th>damage</th>
+      <th title='Distance from this historical location to the nearest zone in the CURRENT hazard footprint, with that zone&#39;s live parameters (m* = wetness at which it fails, FS = factor of safety, creep = measured motion, P = detection confidence)'>today at this location</th>
+      <th title='How solid the historical record is: VERIFIED = primary source (GSI/peer-reviewed), HIGH = 2+ independent outlets or primary-corroborated, MEDIUM = single outlet or a flagged inconsistency, LOW = pending user review'>confidence</th>
+      <th>sources</th></tr>
+{chr(10).join(rows)}</table>
+    <div style='font-size:12px;color:#666;margin-top:6px'>A historical location sitting
+      <i>outside</i> today's footprint is NOT evidence it is safe — the footprint only covers
+      slopes where radar kept coherence AND physics says fragile (an unmeasured slope is not a
+      safe slope). Conversely, a nearby zone does not mean the old failure will repeat there.</div>
+    <details style='font-size:12px;color:#666;margin-top:8px'>
+      <summary style='cursor:pointer'>Provenance &amp; verification rules for this record
+        (updated {hist['updated']})</summary>
+      <p style='margin:6px 0 0'>{hist['note']}</p>
+    </details>
+  </div>
+</div>"""
+
+
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
-                    alert_tier: dict, watch_tier=None, per_zone=None) -> None:
+                    alert_tier: dict, watch_tier=None, per_zone=None, hist=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -546,6 +703,11 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     where_cards = _tier_card(alert_tier, "ALERT")
     if watch_tier:
         where_cards += "\n" + _tier_card(watch_tier, "WATCH", compare_recall=alert_tier.get("recall"))
+
+    hist_btn = ('<button id="btn-hist" class="tab" onclick="showTab(\'hist\')">'
+                '🕰 Past events</button>' if hist else "")
+    hist_div = (f'<div id="tab-hist" style="display:none">{_hist_panel(hist, lvl, as_of)}</div>'
+                if hist else "")
 
     per_zone_html = ""
     if per_zone is not None:
@@ -638,6 +800,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 </header>
 <nav class="tabs">
   <button id="btn-dash" class="tab active" onclick="showTab('dash')">Dashboard</button>
+  {hist_btn}
   <button id="btn-guide" class="tab" onclick="showTab('guide')">📖 Guide — how to read this page</button>
   {_aoi_tabs(path.name)}
 </nav>
@@ -688,7 +851,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <img src="data:image/png;base64,{png_b64}" alt="season alarm calendar"/>
 </div>
 </div><!-- /tab-dash -->
-
+{hist_div}
 <div id="tab-guide" class="guide" style="display:none">
 <div class="wrap">
   <div class="card" style="flex:1 1 100%">
@@ -836,10 +999,11 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  route &amp; buildings context: © OpenStreetMap contributors (ODbL) · map links: Google Maps.</footer>
 <script>
 function showTab(t){{
-  document.getElementById('tab-dash').style.display = (t==='dash') ? '' : 'none';
-  document.getElementById('tab-guide').style.display = (t==='guide') ? '' : 'none';
-  document.getElementById('btn-dash').classList.toggle('active', t==='dash');
-  document.getElementById('btn-guide').classList.toggle('active', t==='guide');
+  for (const k of ['dash', 'hist', 'guide']) {{
+    const tab = document.getElementById('tab-' + k), btn = document.getElementById('btn-' + k);
+    if (tab) tab.style.display = (t === k) ? '' : 'none';
+    if (btn) btn.classList.toggle('active', t === k);
+  }}
   window.scrollTo(0, 0);
 }}
 </script>

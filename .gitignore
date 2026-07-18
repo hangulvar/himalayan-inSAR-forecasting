@@ -145,11 +145,14 @@ data/processed_tiffs/*
 data/qa_masks/*
 !data/qa_masks/.gitkeep
 
-# Track ONLY the small curated landslide inventories (back-test ground truth); ignore
+# Track ONLY the small curated landslide inventories (back-test ground truth) and the
+# curated historical-damage records (the dashboard Past-events tab); ignore
 # the rest of data/inventory/ (generated reports/figures).
 data/inventory/*
 !data/inventory/ramban_documented_landslides.geojson
 !data/inventory/vaishnodevi_documented_landslides.geojson
+!data/inventory/ramban_historical_events.json
+!data/inventory/vaishnodevi_historical_events.json
 
 #CLAUDE-2.0-2024-06-11
 CLAUDE.md

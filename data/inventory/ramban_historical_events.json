@@ -1,0 +1,94 @@
+{
+  "site": "ramban",
+  "updated": "2026-07-18",
+  "note": "Curated HISTORICAL DAMAGE record for the dashboard's Past-events view — SEPARATE from ramban_documented_landslides.geojson (the validated back-test inventory), which is deliberately untouched. Verification rule (CLAUDE.md / ledger §12g, §36-§38): every event is checked against a primary source (peer-reviewed paper or GSI) or 2+ independent press outlets; publication date != event date; LOW-confidence rows are flagged review_needed for the user and rendered as pending review, never as settled fact. Ranking = deaths desc, then injured, then damage_score (0-10 editorial judgment of infrastructure/livelihood damage, used only to break ties among non-fatal events). Coordinates are approximate place centroids (same convention as the back-test inventory), NOT field-mapped scarps.",
+  "events": [
+    {
+      "name": "Khooni Nallah T3 tunnel-portal collapse (Digdol–Panthyal four-laning)",
+      "date": "2022-05-19",
+      "lat": 33.278, "lon": 75.205,
+      "coord_confidence": "approximate_place_centroid (Khooni Nallah locality)",
+      "deaths": 10, "injured": null,
+      "damage": "Landslide + shooting stones during portal-support work collapsed the false steel portal onto the under-construction tunnel; 10 workers killed; contractor fined Rs 8.46 crore and barred from central projects for 6 months",
+      "trigger": "Slope failure / rock-mass fall during construction (night ~22:30 IST; not reported as rainfall-triggered)",
+      "damage_score": 6,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Multiple independent national outlets consistent on date, location and toll; central-government probe and contractor fine on public record",
+      "review_needed": false,
+      "sources": [
+        {"label": "The Quint, 22 May 2022 (3-member central probe)", "url": "https://www.thequint.com/news/india/ramban-district-tunnel-collapse-landslide-workers-death-jammu-ministry-statement"},
+        {"label": "India TV, 21 May 2022 (all 10 bodies recovered)", "url": "https://www.indiatvnews.com/news/india/ramban-tunnel-collapse-rescue-operation-to-search-missing-labourers-resumes-latest-national-news-updates-jammu-khooni-nallah-2022-05-21-778179"},
+        {"label": "Business Standard, 12 Oct 2022 (Rs 8.5 cr fine for collapse that killed 10)", "url": "https://www.business-standard.com/article/companies/govt-fines-ramban-tunnel-contractor-rs-8-5-cr-for-collapse-that-killed-10-122101200210_1.html"}
+      ]
+    },
+    {
+      "name": "20 April 2025 Ramban cloudburst (Seri Bagna / Kela Morh / Battery Chashma)",
+      "date": "2025-04-20",
+      "lat": 33.247, "lon": 75.25,
+      "coord_confidence": "approximate_place_centroid (Seri Bagna, where the deaths occurred)",
+      "deaths": 3, "injured": null,
+      "damage": "NH-44 washed away at ~5 locations over a 10 km Karol→Marog stretch (incl. Kela Morh/T-2 approach and Battery Chashma, vehicles swept into gorges); 3 deaths at Seri Bagna; schools closed district-wide",
+      "trigger": "Verified deadly cloudburst, night of 19–20 Apr (~100 mm/1 hr localized, 40 mm/3 hr, 60–140 mm/day) — the ledger §12g corrected-date event",
+      "damage_score": 9,
+      "confidence": "VERIFIED", "confidence_score": 0.95,
+      "confidence_reason": "Peer-reviewed (Springer Landslides 2025; ScienceDirect 2026) + multi-outlet press; the date itself was re-verified in the §12g correction exercise",
+      "review_needed": false,
+      "sources": [
+        {"label": "Springer Landslides 2025 (peer-reviewed event study)", "url": "https://link.springer.com/article/10.1007/s10346-025-02580-1"},
+        {"label": "ScienceDirect 2026 (hydro-meteorological damage analysis)", "url": "https://www.sciencedirect.com/science/article/pii/S221242092600138X"},
+        {"label": "Down To Earth, 20 Apr 2025", "url": "https://www.downtoearth.org.in/natural-disasters/massive-flash-floods-in-jammu-and-kashmirs-ramban-wash-away-nh-44-at-5-locations-three-people-killed"}
+      ]
+    },
+    {
+      "name": "Pernote land subsidence (Ramban–Gool road)",
+      "date": "2024-04-25",
+      "lat": 33.256, "lon": 75.218,
+      "coord_confidence": "approximate_place_centroid (~3 km from Ramban town on the Gool road; LOW spatial precision)",
+      "deaths": 0, "injured": null,
+      "damage": "Slow-moving subsidence/slope deformation destroyed or damaged ~60 houses, roads and power infrastructure in Neemnar/Telka wards; ~500 people affected and displaced to relief camps; agricultural land lost",
+      "trigger": "Land subsidence over days (attributed in reporting to slope conditions, unplanned construction and wastewater seepage); no single storm trigger",
+      "damage_score": 7,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Multiple independent outlets consistent on date, wards, ~60 houses and ~500 affected; long-running rehabilitation coverage corroborates scale",
+      "review_needed": false,
+      "sources": [
+        {"label": "Zee News, Apr 2024 (houses damaged, roads cracked)", "url": "https://zeenews.india.com/india/ramban-land-subsidence-several-houses-damaged-cracked-roads-snap-connectivity-what-we-know-so-far-2744543.html"},
+        {"label": "Down To Earth (Chenab Valley subsidence causes)", "url": "https://www.downtoearth.org.in/urbanisation/unplanned-constructions-wastewater-seepage-causing-land-subsidence-in-chenab-valley-95986"},
+        {"label": "Greater Kashmir, 2025 (18 months on — rehabilitation)", "url": "https://www.greaterkashmir.com/jammu/administrative-inertia-18-months-on-pernote-land-subsidence-victims-await-permanent-rehabilitation/"}
+      ]
+    },
+    {
+      "name": "Chamba Seri mudslide (NH-44 closure)",
+      "date": "2025-05-08",
+      "lat": 33.3, "lon": 75.19,
+      "coord_confidence": "approximate_place_centroid",
+      "deaths": 0, "injured": null,
+      "damage": "Heavy-rain mudslides blocked NH-44; Jammu–Srinagar traffic suspended; no casualties reported",
+      "trigger": "Heavy rain",
+      "damage_score": 2,
+      "confidence": "MEDIUM", "confidence_score": 0.6,
+      "confidence_reason": "Single-outlet news report of a smaller event (same grading as the back-test inventory entry); no independent corroboration collected",
+      "review_needed": false,
+      "sources": [
+        {"label": "India TV, 8 May 2025", "url": "https://www.indiatvnews.com/jammu-and-kashmir/heavy-rain-triggers-mudslides-in-ramban-traffic-disrupted-as-jammu-srinagar-nh-44-closed-commuters-advised-to-stay-indoors-2025-05-08-989228"}
+      ]
+    },
+    {
+      "name": "Digdol–Khooni Nallah slide (reported 27 Apr 2025)",
+      "date": "2025-04-27",
+      "lat": 33.274, "lon": 75.207,
+      "coord_confidence": "approximate_place_centroid",
+      "deaths": 0, "injured": null,
+      "damage": "NH-44 shut by a heavy landslide near Digdol/Khooni Nallah (per the 27 Apr report)",
+      "trigger": "Unclear — very likely follow-up reporting on the 20 Apr cloudburst damage rather than a distinct new failure (ledger §12g date-correction finding)",
+      "damage_score": 2,
+      "confidence": "LOW", "confidence_score": 0.3,
+      "confidence_reason": "PENDING USER REVIEW — single outlet dated 27 Apr; the §12g literature review concluded this is most plausibly the 20 Apr event reported a week later (publication date != event date). Kept for transparency, flagged as a possible duplicate.",
+      "review_needed": true,
+      "sources": [
+        {"label": "Kashmir Vision, 27 Apr 2025", "url": "https://kashmirvision.in/2025/04/27/the-nh-44-landslide-in-ramban/"},
+        {"label": "Greater Kashmir (NH-44 shut near Digdol, Khooni Nallah)", "url": "https://www.greaterkashmir.com/latest-news/nh-44-shut-after-heavy-landslide-near-digdol-khooni-nallah-ssp-traffic/"}
+      ]
+    }
+  ]
+}
