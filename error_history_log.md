@@ -1182,3 +1182,48 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** when filtering `grep -rn` output, remember the match line CONTAINS the file path —
   exclusion patterns meant for line content will also match paths. Strip or split the path field
   first, or use `--include`/`--exclude-dir` instead of post-filtering.
+
+### [2026-07-18] New committable data files silently swallowed by the data/inventory/* blanket ignore
+
+* **Symptom:** the two new curated historical-events JSONs (`data/inventory/*_historical_events.json`)
+  did not appear in `git status` at all — they would have shipped as local-only files, making the
+  dashboard's Past-events record non-robust (same failure class as headline numbers living only in
+  git-ignored journals).
+
+* **Root Cause:** `.gitignore` ignores `data/inventory/*` wholesale and re-includes ONLY the two
+  back-test inventory geojsons by exact name; any new file in that directory is ignored by default.
+
+* **Resolution:** added explicit `!data/inventory/*_historical_events.json` re-includes (both
+  sites), verified with `git check-ignore` + `git status`.
+
+* **Lesson:** third instance of the gitignore bug class (see 2026-07-17 entries): whenever a NEW
+  file is meant to be committed from under `data/`, run `git check-ignore -v <path>` immediately
+  after creating it — the blanket rules win silently.
+
+### [2026-07-18] Test counted a phrase in prose, not the marker it meant
+
+* **Symptom:** `test_hist_panel_html` failed: `html.count("pending review")` exceeded the number
+  of review-flagged events.
+
+* **Root Cause:** the panel's intro sentence legitimately contains the words "pending review", so
+  counting the raw phrase counted prose + badges together.
+
+* **Resolution:** count the exact structural badge marker (`>pending review</span>`) instead.
+
+* **Lesson:** when asserting counts against rendered HTML, count unambiguous structural markers,
+  never phrases that can also occur in prose.
+
+### [2026-07-18] Browser preview pane pinned to the first file:// snapshot — JS checks ran against a stale page
+
+* **Symptom:** after `navigate` to the Ramban dashboard file, in-page JS still reported the
+  Vaishno Devi page (title unchanged) — even with a forced reload.
+
+* **Root Cause:** files outside the preview's project root render as one-shot static snapshots;
+  navigating the pane to a different file:// path does not actually load it.
+
+* **Resolution:** asserted `document.title` before trusting any in-page check (which is how the
+  staleness was caught), then verified the second dashboard by parsing its HTML on disk instead.
+
+* **Lesson:** when driving the preview browser across multiple file:// artifacts, verify document
+  identity (title) first; fall back to on-disk HTML parsing — the rendered behavior is identical
+  generated code, so one live page + N parsed pages is sufficient coverage.

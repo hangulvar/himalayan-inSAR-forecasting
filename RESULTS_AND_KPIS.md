@@ -2332,6 +2332,65 @@ ledger entries deliberately keep old paths (append-only); `docs/INDEX.md` carrie
 
 ---
 
+## 51. Past-events dashboard tab + curated historical-damage records (both AOIs) — verified live  `[REAL]`
+*(2026-07-18, session 27 — `workflows/operational_alarm.py` (Past-events tab), `data/inventory/{ramban,vaishnodevi}_historical_events.json`, `tests/test_historical_events.py`)*
+
+**Feature:** a third dashboard tab, **🕰 Past events** — each site's documented landslide history
+**ranked by damage** (deaths → injuries → infrastructure tie-breaker), every row carrying a
+click-to-open Google Maps link, a confidence badge (hover = why), numbered source links, and its
+**current standing vs the live alert system** (haversine distance to the nearest hazard zone +
+that zone's m\*/FS@0.40/creep/detection-P from `per_zone_vulnerability.csv`, falling back to the
+operational-footprint centroids where per-zone hasn't run; >2 km renders honestly as "outside
+today's mapped footprint" with an unmeasured≠safe caveat). Tab is skipped when a site has no
+record — a site can never wear another's history. The curated records are **separate from the
+back-test inventories** (deliberately untouched — validated scores stay earned) and **committed**
+(caught + fixed: `data/inventory/*` blanket-ignored them; re-includes added, error log 07-18).
+
+**The curated record `[REAL]`, verified per the §36–§38 rules (primary source or 2+ independent
+outlets; publication ≠ event date; LOW ⇒ flagged `review_needed` for the user):**
+
+- **Ramban (5 events):**
+  - **19 May 2022 Khooni Nallah T3 tunnel-portal collapse — 10 dead** (HIGH; landslide/shooting
+    stones onto the false portal during construction; The Quint + India TV + Business Standard;
+    central 3-member probe; contractor fined Rs 8.46 cr) — *new to the repo this session*.
+  - **20 Apr 2025 cloudburst — 3 dead** (VERIFIED; the §12g corrected-date event; NH-44 washed
+    out at ~5 locations over 10 km).
+  - **25 Apr 2024 Pernote land subsidence — 0 dead, ~60 houses damaged, ~500 people affected**
+    (HIGH; Zee/DTE/Greater Kashmir; coordinates are a LOW-precision place centroid ~3 km from
+    Ramban on the Gool road) — *new to the repo this session*.
+  - 8 May 2025 Chamba Seri mudslide (MEDIUM, single-outlet); **27 Apr 2025 "Digdol slide" (LOW —
+    most plausibly the 20 Apr event re-reported a week later; PENDING USER REVIEW)**.
+- **Vaishno Devi (5 events):**
+  - **26 Aug 2025 Ardhkuwari — toll refined 32 → 34** (VERIFIED; GSI's 29-Aug preliminary note
+    said 32, the settled press toll is 34 — both recorded, difference explained by the note's
+    3-days-after timing; AGU Landslide Blog corroborates 34; 20 injured; 629.4 mm/24 h at Katra).
+  - 21 Jul 2025 Banganga — 1 dead / 9 injured (HIGH); 12 Mar 2016 Bhawan complex failure (HIGH);
+    **30 Aug 2008 Bhawan rockfall — 1 dead / 6 injured (MEDIUM — GSI Spl.Pub.107's Aug-vs-Dec
+    internal date discrepancy; PENDING USER REVIEW)**; **undated pre-2017 Himkoti RD 0/850
+    casualty rockfall (LOW; PENDING USER REVIEW)**.
+  - The §38 fabricated "2 Sep 2025" event **stays excluded — now test-enforced** (no event may
+    fall in the verified 27 Aug–14 Sep 2025 yatra-closure window).
+
+**Current-standing readout (from today's products):** VD's Ardhkuwari disaster site sits
+**1.6 km from a mapped HIGH zone** (m\* 0.279) and the two Bhawan events 1.7 km; Banganga
+(3.2 km) and Himkoti (2.4 km) fall outside. Ramban is the honest mirror of the corridor-coverage
+limitation: **4/5 historical damage sites sit outside today's 6-zone operational footprint**
+(only Chamba Seri is within 2 km) — consistent with the known NH-44 corridor-vs-coverage gap
+(§16/§24 caveats), not evidence those sites are safe.
+
+**Verification (two rounds):** new suite `tests/test_historical_events.py` — **11 tests**
+(schema/provenance, AOI containment, no-future-dates [the §36 lesson], §38 exclusion
+immunization, damage ranking, haversine, both-site zone annotation, footprint-fallback path,
+HTML render, graceful absence). Full battery **11+10+7+12+12+11 green, run twice**; regeneration
+through the real ops path (`live_alarm.py` per site) is **idempotent** (re-run byte-identical
+minus the generated timestamp); live browser verification (tab toggling, all 5 per-site map
+links carry correct lat,lon); **12/12 relative cross-links resolve**; the validated 2025-season
+dashboards untouched; source-URL spot-checks live (AGU blog confirms 34 dead; The Quint confirms
+19 May 2022/10 dead; two outlets sit behind anti-bot 403s but were surfaced by same-day live
+searches).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -11,52 +11,47 @@
 
 ---
 
-# LIVE — Session 26 · branch `aoi-vaishnodevi` · updated 2026-07-17
+# LIVE — Session 27 · branch `aoi-vaishnodevi` · updated 2026-07-18
 
 ## Current state
 
-- **★ NEW (§50, M46) — one-click ops: local control panel + results hub, verified LIVE.**
-  `control_panel.bat` → `workflows/control_panel.py` (stdlib-only local server, zero new deps):
-  buttons for the refresh cycle / status board / 3-D rebuild that shell out to the SAME commands
-  `monsoon_cycle.ps1` uses (asserted by test), live log streaming, and a results hub that links
-  the existing dashboards with freshness stamps (the live `mosaic_asc/` operational dashboards
-  listed first — a real cycle run exposed that the first version missed them, error log 07-17).
-  Proven with real button-presses: full cycle clean both sites (~3 min), real 3-D rebuild
-  reproduced the §5 scenario counts, Docker-down gate + busy-409 exercised. The panel checks
-  Docker but NEVER starts/stops it. New suite `tests/test_control_panel.py` (12 tests).
-- **★ NEW (§50) — repo restructured, nothing broke.** All reading docs → `docs/{guides,runbooks,
-  briefs,references,archive}` with `docs/INDEX.md` (read order + old→new path map); AOI/route
-  geojsons → `config/aoi/`; credential templates → `config/templates/`; 29 `git mv` renames.
-  Functional root docs (this file, ledger, milestone, error log, journey) untouched by design;
-  root `config.yaml` deliberately stays (active-site switch). Verified: slugs/data-suffixes
-  unchanged, all SIX suites green (**7/7 + 12/12 + 10/10 + 11/11 + 12/12 + compose valid**),
-  live `aoi_status.py` all-green at new paths. Historical ledger §§ keep old paths (append-only);
-  translate via `docs/INDEX.md`. Three new bug-class entries in the error log (2026-07-17).
-- **(§49, M45) — full-product audit: ZERO bugs.** FS rasters pixel-exact vs an independently
-  re-written formula at both sites; all artifacts internally consistent and matching the ledger;
-  permanent as `tests/test_science_verification.py`. Two documented observations (§49): frame103's
-  noisy 4-pair chain (σ_v-gated, §24) and the kappa artifact holding only the adopted point.
-- **(§48/§47/§46–§44 carried):** zips disposable + junction bind (§48); soil verdict holds at
-  kappa=0.06, playbook M2 required (§47); van Genuchten shipped config-gated / adoption rejected,
-  kappa=0.06 adopted, CIs + ablation ladder standing — Science Upgrade Plan top 3 ALL RESOLVED.
-- **BOTH sites in WATCH** (as-of 2026-07-11 data; re-confirmed by the §50 panel-driven cycle
-  2026-07-17): VD 18/18 zones active, 0 ALERT days; Ramban 8/8 active, 4 April ALERT days.
-  Next scheduled cycle **19 Jul 08:00**; the cycle checks Docker (10-min grace), never manages it.
-- **GACOS pair ready (§0b):** `gacos_request.py` prints the form values, `gacos_ingest.py` turns
-  the email tarball into crosscheck-ready tifs (gold-tested). Remaining: submit → ingest → crosscheck.
-- **Radar side (§35/§43):** July S1 passes still not at ASF as of 07-10; the §43 f106 bridge swap
-  applies at the next rebuild. **NISAR:** too few products (§33); recheck ~early Aug.
+- **★ NEW (§51, M47) — Past-events dashboard tab + curated historical-damage records, verified
+  live.** Both dashboards now carry a third tab: each site's documented landslide history ranked
+  by damage, every row with a Google Maps link, confidence badge + sources, and its CURRENT alert
+  standing (nearest hazard zone + live m*/FS/creep). Records live in NEW committed files
+  (`data/inventory/*_historical_events.json`) — the back-test inventories are deliberately
+  untouched so the validated scores stay earned. Verified two rounds: 11-test new suite
+  (`tests/test_historical_events.py`), full battery ×2 green, idempotent regen, browser
+  click-through, 12/12 cross-links, live source-URL checks (all in §51).
+- **⚠ USER REVIEW REQUESTED (§51): 3 low-confidence rows** — Ramban "Digdol 27 Apr 2025"
+  (likely duplicate of the 20 Apr cloudburst), VD 2008 Bhawan date (GSI Aug-vs-Dec internal
+  discrepancy; resolve via Kumar 2009a), VD undated pre-2017 Himkoti casualty rockfall. All three
+  render as "pending review" on the dashboard until settled.
+- **§38's fabricated-event exclusion is now TEST-enforced** (closure-window + no-future-date
+  assertions) — the immunization records became executable checks.
+- **(§50, M46 carried):** control panel + results hub live; repo restructured (`docs/INDEX.md`
+  maps old→new); suites now SEVEN all green (**7 + 12 + 10 + 11 + 12 + 11 + compose valid**).
+- **(§49–§44 carried):** full-product audit zero bugs; zips disposable; kappa=0.06 adopted both
+  sites; CIs + ablation ladder standing — Science Upgrade Plan top 3 ALL RESOLVED.
+- **BOTH sites in WATCH** (as-of 2026-07-11 data, re-confirmed by this session's regen runs):
+  VD 18/18 zones active, 0 ALERT days; Ramban 8/8 active, 4 April ALERT days. Next scheduled
+  cycle **19 Jul 08:00**; the cycle checks Docker (10-min grace), never manages it.
+- **GACOS pair ready (§0b):** submit the form → ingest → crosscheck remain. **Radar (§35/§43):**
+  July S1 passes still pending at ASF; §43 f106 bridge swap applies at next rebuild. **NISAR:**
+  recheck ~early Aug (§33).
 - **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: validated + site-tuned**
   (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
-  site (§31 addendum); soils literature-corroborated not lab-measured (§37/§39/§42/§47);
-  fast-failure tools unproven-in-anger; §40 GACOS discrepancy pair open.
+  site (§31 addendum) — now VISIBLE on the dashboard itself (§51: 4/5 Ramban historical damage
+  sites outside today's footprint, stated with the unmeasured≠safe caveat); soils
+  literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS discrepancy pair open.
 - **⚠ Archival note (§48):** the Google Drive copy of the 235 raw zips is the ONLY archival
   source (ASF server copies expired; re-creation costs HyP3 credits ≈7,460 remaining).
 
 ## Recommended next step
 
-The product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
+First: **user reviews the 3 flagged historical rows (§51)** — settle or drop them. Then the
+product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
 download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
 gap (Sentinel-2 optical change) and sub-daily IMERG. User-side: field check of the NE-flank CORE
 target; merge to `master`; publish the dashboard. Day-to-day ops: start Docker at logon, then
@@ -64,14 +59,15 @@ either let the scheduled cycle run or double-click `control_panel.bat` and press
 
 ## Uncommitted delta
 
-Session 26's two work batches are already committed by the user: `53e640c`+`fbeafb6` (control
-panel + results hub + 12-test suite + launcher) and `d174a66` (repo restructure, fully verified).
+Session 27's feature batch is already committed by the user: `c618ca2` (Past-events tab, curated
+records, gitignore re-include, first 10 tests, regen + browser verification).
 
-Still uncommitted (this wrap only):
-- MODIFIED: `RESULTS_AND_KPIS.md` (§50), `milestone.md` (M46), `error_history_log.md` (3 entries,
-  2026-07-17), `SESSION_REVIEW.md` (this block + one STABLE read-order note).
-- Git-ignored as usual: journey entry (S26). Primer unchanged — no new science concepts this
-  session (ops + structure only).
+Still uncommitted (round-2 testing + this wrap):
+- MODIFIED: `tests/test_historical_events.py` (+1 footprint-fallback test → 11),
+  `RESULTS_AND_KPIS.md` (§51), `milestone.md` (M47), `error_history_log.md` (3 entries,
+  2026-07-18), `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entry (S27). Primer unchanged — no new science concepts this
+  session (curation + UI; provenance methodology already covered by §36–§38).
 
 ---
 

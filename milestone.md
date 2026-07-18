@@ -1602,3 +1602,39 @@ prove the move broke nothing.
 
 **Bottom line:** day-to-day operation is now *start Docker, click a button, read the dashboard* —
 and a newcomer opening the project sees a clean front door instead of thirty files.
+
+## ✅ Milestone 47 — The dashboard learned its history  *(Past-events tab, 2026-07-18)*
+
+**What we set out to do:** give the warning dashboard a memory. Until now it only showed the
+*present* — which slopes are creeping, how wet it is today. But anyone standing in front of it
+would fairly ask: "what has actually happened here before, and how bad was it?" We wanted a view
+of the documented past landslides at each site, worst first, without breaking the clean look of
+the page.
+
+**What we built:** a new **Past events** tab on both sites' dashboards. It lists every documented
+landslide disaster we could verify, ranked by the damage it caused — lives lost first, then
+injuries, then destroyed roads and houses. Every row shows: a clickable map link that opens the
+exact spot in Google Maps, what happened and what triggered it, *how solid the record is* (a
+colour-coded confidence badge — hover it and it tells you why we believe it), the sources
+themselves, and — the part that ties past to present — **how that historical spot stands in
+today's alert system**: how far it sits from the nearest hazard zone our radar-plus-physics map
+is watching right now, and how fragile that zone is.
+
+**The honest parts, by design:** we did NOT just copy events from news articles. Every event was
+checked against an official report, a peer-reviewed paper, or at least two independent news
+outlets — the hard lesson from earlier sessions (one wrong date once inverted a whole
+conclusion, and one AI-generated "research" document simply invented a disaster that never
+happened; that fake stays excluded, and there is now an automatic test that keeps it out). Three
+rows we could *not* fully verify are openly labelled "pending review" instead of being quietly
+dropped or quietly trusted. And where a historical disaster site sits *outside* today's mapped
+zones, the page says so plainly — adding that this means "not currently measured", never "safe".
+
+**What the history says:** at Vaishno Devi, the worst recorded disaster is recent — the August
+2025 Ardhkuwari landslide (34 lives) — and it happened 1.6 km from a zone our current map
+already flags as fragile. On the Ramban highway corridor, the record is dominated by the 2022
+tunnel collapse (10 workers) and the 2025 cloudburst; most of those spots lie outside our current
+radar coverage — a limitation we have documented all along, now made visible on the page itself.
+
+**Bottom line:** the dashboard now answers three questions instead of two — *where* could slopes
+fail, *when* is the danger real, and *what has this mountain already done* — with every claim
+carrying its receipt.

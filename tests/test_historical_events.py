@@ -228,6 +228,30 @@ def test_dashboard_page_with_and_without_hist():
             assert anchor in page2, anchor
 
 
+def test_loader_footprint_fallback_without_per_zone_csv():
+    """When per_zone_vulnerability.csv is absent (a site where per_zone_gate.py has not run),
+    the annotation must fall back to the operational-footprint centroids (severity/FS/creep,
+    no m*) instead of failing or silently skipping — and the today-cell must still render."""
+    saved = (oa.SLUG, oa.ALERTS_DIR)
+    real_fp = (PROJECT_ROOT / "data" / "alerts_vaishnodevi" / "mosaic_asc"
+               / "alerts_operational.json")
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            oa.SLUG = "vaishnodevi"
+            oa.ALERTS_DIR = Path(td)          # empty: no per_zone_vulnerability.csv here
+            hist = oa.load_historical_events(real_fp)
+        finally:
+            oa.SLUG, oa.ALERTS_DIR = saved
+    assert hist is not None
+    for e in hist["events"]:
+        z = e.get("nearest_zone")
+        assert z is not None and z["m_star"] is None, e["name"]
+        assert z.get("severity") in ("CRITICAL", "HIGH"), e["name"]
+        assert isinstance(e["nearest_zone_km"], float)
+        cell = oa._hist_today_cell(e)
+        assert "<td>" in cell and "no zone data" not in cell, e["name"]
+
+
 def test_loader_absent_record_returns_none():
     saved = oa.SLUG
     try:
