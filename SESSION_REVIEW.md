@@ -68,6 +68,13 @@
   (§56):** 8 winter dates + 3 GUNW over both AOIs → the L-vs-C coherence pilot is runnable
   NOW; operational stream absent here, recheck monthly. **Active plan:**
   `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **★ NEW (§57) — Plan Tier 0 EXECUTED (0a–0d done; suites now EIGHT, all green).**
+  Radar-freshness pill on both dashboards + `radar_watch.py` in every regen (non-fatal).
+  Instantly surfaced: **Ramban's WHERE map is ~12 weeks stale (radar through 24 Apr) with 11
+  newer ASC scenes at ASF — its rebuild is UNBLOCKED NOW** (mostly S1A×S1A pairs); VD waits on
+  ASF S1D ingest. Cross-unit seam verified submittable (HyP3 supports S1C/S1D; path-27
+  S1A 18 Jun × S1D 25 Jun = 7-day baseline; credits 7,460). Only the rebuild itself remains —
+  the user's credit/compute call.
 - **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: validated + site-tuned**
   (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster

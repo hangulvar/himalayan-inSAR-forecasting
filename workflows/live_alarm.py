@@ -162,6 +162,13 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> N
     except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
         print(f"imerg gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
               f"a stale sub-daily card")
+    # Radar watcher (radar_watch.py, plan Tier 0c §56) — same non-fatal contract: ASF being
+    # unreachable must never break the alarm chain (the freshness pill shows last known state).
+    try:
+        run("radar_watch.py")
+    except Exception as e:  # noqa: BLE001
+        print(f"radar watch SKIPPED ({type(e).__name__}: {e}) — freshness pill shows the "
+              f"last known radar state")
     run("operational_alarm.py", "--csv", str(season_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat(), "--out-suffix", suffix)
     print(f"\nLIVE alarm regenerated as-of {as_of} -> "

@@ -200,6 +200,29 @@ def load_historical_events(footprint_path: Path):
             "events": events}
 
 
+def radar_status(footprint_path: Path):
+    """The WHERE map's radar provenance for the freshness pill: newest library acquisition
+    feeding this footprint (radar_watch.library_newest — manifest × source_stacks) plus, when
+    radar_watch.py has run, whether NEWER scenes already sit at ASF. None -> pill hidden."""
+    try:
+        from radar_watch import WATCH_JSON, library_newest
+        lib = library_newest(footprint_path)
+    except Exception:  # noqa: BLE001 — a missing manifest must not break the dashboard
+        return None
+    if lib is None:
+        return None
+    out = {"through": lib.isoformat(), "newer_at_asf": None, "new_scenes": 0, "new_units": ""}
+    try:
+        w = json.loads(WATCH_JSON.read_text(encoding="utf-8"))["sites"].get(SLUG, {})
+        if w.get("new_asc_scenes"):
+            out.update(newer_at_asf=w.get("newest_asc_at_asf"),
+                       new_scenes=w["new_asc_scenes"],
+                       new_units="/".join(w.get("new_units", [])))
+    except Exception:  # noqa: BLE001 — watcher never ran / stale file: show library state only
+        pass
+    return out
+
+
 def load_imerg_summary(sfx: str):
     """The sub-daily IMERG gate's season summary (imerg_gate.py), or None — the dashboard
     card is skipped when the check hasn't run for this season (never another season's)."""
@@ -368,9 +391,16 @@ def main() -> int:
     hist = load_historical_events(Path(args.footprint))
     # Sub-daily IMERG second opinion (imerg_gate.py) — card skipped when absent.
     imerg = load_imerg_summary(sfx)
+    # Radar provenance/freshness pill (radar_watch.py, plan Tier 0b/0c) — hidden when unknown.
+    radar = radar_status(Path(args.footprint))
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
-                    hist, imerg)
+                    hist, imerg, radar)
+    if radar:
+        newer = (f"; NEWER at ASF through {radar['newer_at_asf']} ({radar['new_scenes']} scenes)"
+                 if radar.get("new_scenes") else "")
+        print(f"RADAR freshness: WHERE map built from acquisitions through "
+              f"{radar['through']}{newer}")
     if imerg and imerg.get("latest"):
         il = imerg["latest"]
         print(f"IMERG sub-daily check: latest {il['date']} E={il['max_E']} ({il['level']}); "
@@ -720,7 +750,7 @@ def _hist_panel(hist, lvl, as_of) -> str:
 
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
                     alert_tier: dict, watch_tier=None, per_zone=None, hist=None,
-                    imerg=None) -> None:
+                    imerg=None, radar=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -763,6 +793,14 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     where_cards = _tier_card(alert_tier, "ALERT")
     if watch_tier:
         where_cards += "\n" + _tier_card(watch_tier, "WATCH", compare_recall=alert_tier.get("recall"))
+
+    radar_pill = ""
+    if radar:
+        radar_pill = (f'<div class="fresh" id="radar-freshness" data-acq="{radar["through"]}" '
+                      f'data-new="{radar.get("newer_at_asf") or ""}" '
+                      f'data-newn="{radar.get("new_scenes", 0)}" '
+                      f'data-units="{radar.get("new_units", "")}">'
+                      f'🛰 Hazard map built from radar through {radar["through"]}.</div>')
 
     hist_btn = ('<button id="btn-hist" class="tab" onclick="showTab(\'hist\')">'
                 '🕰 Past events</button>' if hist else "")
@@ -884,6 +922,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
    &nbsp;<a href="#" onclick="showTab('guide');return false">New here? Open the guide →</a></div>
   <div class="fresh" id="staleness" data-asof="{as_of}">Data current to {as_of}
    (enable JavaScript for a live staleness check).</div>
+  {radar_pill}
 </div>
 
 <div class="wrap">
@@ -1104,6 +1143,32 @@ function showTab(t){{
   }} else {{
     el.style.background = '';
     msg = '🕐 ' + msg + ' Normal for this system (~5-day rainfall-data lag, 2–3-day refresh cadence).';
+  }}
+  el.textContent = msg;
+}})();
+// Radar-freshness pill (Strengthening Plan Tier 0b): the WHERE map's age, computed against
+// the viewer's clock; escalates when it ages, and announces when the radar watcher has found
+// NEWER scenes already at ASF (the rebuild trigger, Tier 0c).
+(function () {{
+  var el = document.getElementById('radar-freshness');
+  if (!el) return;
+  var days = Math.floor((Date.now() - new Date(el.dataset.acq + 'T00:00:00')) / 864e5);
+  var msg = '🛰 Hazard map (WHERE): built from radar acquired through ' + el.dataset.acq +
+            ' — ' + days + ' day' + (days === 1 ? '' : 's') + ' ago.';
+  el.style.background = '';
+  if (days > 90) {{
+    el.style.background = '#7a0c0c';
+    msg = '⚠ ' + msg + ' Badly stale — slope regimes may have changed since; treat the WHERE ' +
+          'map with caution until the radar cadence is rebuilt.';
+  }} else if (days > 35) {{
+    el.style.background = '#8a5a00';
+    msg = '⚠ ' + msg + ' Aging beyond the nominal 12-day cadence + ingest lag.';
+  }}
+  if (el.dataset.new) {{
+    if (!el.style.background) el.style.background = '#8a5a00';
+    msg += ' NEWER radar (' + el.dataset.newn + ' scene(s)' +
+           (el.dataset.units ? ', ' + el.dataset.units : '') + ', through ' + el.dataset.new +
+           ') is already at ASF — the cadence rebuild is unblocked.';
   }}
   el.textContent = msg;
 }})();

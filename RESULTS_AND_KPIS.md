@@ -2560,6 +2560,46 @@ as does earning this arm real operating points via back-testing when enough even
 
 ---
 
+## 57. Plan Tier 0 EXECUTED: radar watcher + freshness pill + seam verified — and Ramban's map found 3 months stale  `[MEASURED]`
+*(2026-07-18, session 27 cont. — NEW `workflows/radar_watch.py` + `tests/test_radar_watch.py`; pill in `operational_alarm.py`; hook in `live_alarm.py`)*
+
+**Tier 0b — radar-freshness pill, live on both dashboards.** The WHERE map now states its own
+age: "built from radar acquired through DATE — N days ago", computed against the viewer's
+clock (like the §53 rain pill; normal ≤35 d, amber >35 d, red >90 d "treat the WHERE map with
+caution"), and it announces when the watcher has found newer scenes at ASF. Hidden gracefully
+where provenance is unknown.
+
+**Tier 0c — `radar_watch.py`, wired non-fatally into every alarm regen.** Per registry AOI:
+newest library acquisition (stack manifest × footprint source_stacks) vs an all-units ASF
+query (constellation-level — never a unit whitelist, the §56 lesson encoded); writes
+`data/radar_watch.json` for the pill and prints an UNBLOCKED/waiting verdict. The discovery
+loop that failed us during the handover is now automatic.
+
+**What the new instruments immediately surfaced `[MEASURED]` (2026-07-18):**
+- **Ramban's WHERE map runs on radar through 2026-04-24 — ~12 weeks old** (the §35 "2026-07-10
+  backfill" extended only the VD stacks; Ramban's last extension was April). **11 newer ASC
+  scenes (S1A May–Jun + S1D) already sit at ASF — Ramban's cadence rebuild is unblocked TODAY,**
+  mostly with ordinary S1A×S1A pairs (no cross-unit dependency through 23 Jun).
+- VD's map is current through 2026-06-23; only the first S1D scene (25 Jun) is newer — its
+  next extension rides on ASF's S1D ingest catching up (CDSE already holds 30 Jun–12 Jul).
+
+**Tier 0d — cross-unit seam VERIFIED (docs + catalog + dry-run; zero credits spent):**
+- HyP3 officially supports S1C **and S1D** as InSAR inputs (GAMMA + ISCE2 updated), and its
+  product naming explicitly encodes cross-satellite pairs (S1AA/S1AC/S1CD…).
+- The fixed all-units search returns the seam scenes, and **the path-27 seam pair
+  S1A 2026-06-18 × S1D 2026-06-25 has a 7-day temporal baseline — well inside the 24-day
+  max**: the continuity bridge is submittable (~10 credits) whenever the user says go.
+- Dry-run of the production submitter: pairing + dedupe logic intact (42 planned / 42 correctly
+  deduped against the 183 existing jobs); **HyP3 credits confirmed 7,460**.
+
+**Verified:** new 5-test suite (real-manifest provenance, source-stack scoping, pure
+summarize_new incl. the no-library new-AOI edge, watch-file merge/corrupt tolerance, pill
+render + omission); battery now EIGHT suites **11+10+7+12+12+11+9+5 all green**; both
+dashboards regenerated through the full chain with the pill live. Tier 0 remaining: only the
+rebuild itself (user's credit/compute call) — 0a/0b/0c/0d all done.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

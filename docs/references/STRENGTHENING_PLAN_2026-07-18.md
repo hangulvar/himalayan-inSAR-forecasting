@@ -20,21 +20,21 @@ Grounded in the availability checks run this day (ledger §56) and the standing 
    complementary on 2026's two verified events. The burst arm lacks operating points; the gate
    is AOI-mean, not per-zone.
 
-## Tier 0 — Data-continuity triage (days; the WHERE map is aging while monsoon runs)
+## Tier 0 — Data-continuity triage — ✅ EXECUTED 2026-07-18 (§57), rebuild pending user go
 
-- **0a ✅ (done 2026-07-18):** all-units Sentinel-1 catalog query (the S1A/S1B whitelist bug).
-- **0b — Radar-freshness guard on the dashboard.** Mirror the §53 rain pill for the radar side:
-  "velocity field built from acquisitions through YYYY-MM-DD (N weeks ago)" with amber/red
-  escalation. Data: the stack manifest. Science: honesty — a creep map ages invisibly, and the
-  handover just made that real.
-- **0c — `radar_watch` poll in the scheduled cycle.** Weekly all-units ASF query per AOI path;
-  panel/toast when a NEW usable ASC scene lands ("cadence rebuild is unblocked"). We discovered
-  the handover weeks late by manual rechecking — automate the discovery, not the rebuild.
-- **0d — Cadence-rebuild readiness (do before the data lands).** Dry-run `submit_hyp3_jobs`
-  for the S1A→S1D bridge pairs; **verify HyP3 accepts cross-unit pairs** (S1A×S1D, S1D×S1D —
-  same burst grid, should pair; unverified). Confirm credit budget (§48 ≈7,460). The velocity
-  baseline's continuity across the 23 Jun (last S1A) → 25 Jun (first S1D) seam is the single
-  most important radar task of the season; the §43 f106 bridge swap applies in the same run.
+- **0a ✅:** all-units Sentinel-1 catalog query (the S1A/S1B whitelist bug).
+- **0b ✅:** radar-freshness pill live on both dashboards (age vs viewer clock; amber >35 d,
+  red >90 d; announces "newer radar at ASF — rebuild unblocked" from the watcher).
+- **0c ✅:** `radar_watch.py` runs non-fatally in every alarm regen (all-units ASF query per
+  AOI, `data/radar_watch.json`, UNBLOCKED/waiting verdict). Found immediately: **Ramban's map
+  is built from radar through 2026-04-24 (~12 weeks old) with 11 newer ASC scenes at ASF —
+  its rebuild is unblocked NOW**; VD current through 23 Jun, waiting on ASF's S1D ingest.
+- **0d ✅ (zero credits):** HyP3 officially supports S1C/S1D InSAR + cross-satellite pair
+  naming; the path-27 seam pair (S1A 18 Jun × S1D 25 Jun, 7-day baseline) is submittable;
+  submitter pairing/dedupe verified by dry-run; credits confirmed 7,460.
+- **REMAINING (user's call):** run the cadence rebuild — Ramban first (unblocked, mostly
+  S1A×S1A pairs + the seam bridge; applies the §43 f106 bridge swap), VD when ASF ingests the
+  Jun-30+ S1D passes.
 
 ## Tier 1 — In-monsoon rainfall science (1–2 weeks; monsoon is NOW and radar is blocked)
 
