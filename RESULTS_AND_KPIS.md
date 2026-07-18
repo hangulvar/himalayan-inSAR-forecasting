@@ -2456,6 +2456,28 @@ regenerated via `live_alarm.py`.
 
 ---
 
+## 54. Data refreshed to the publication edge + season-chart readability pass  `[MEASURED]`
+*(2026-07-18, session 27 cont. — `live_alarm.py` full fetch+alarm both sites; `operational_alarm.py` make_figure/caption rewrite)*
+
+- **Both sites refreshed to as-of 2026-07-12** — the newest day ERA5-Land had published on
+  2026-07-18 (~6-day provider lag; the staleness pill correctly reads "6 days behind · normal").
+  States unchanged: both WATCH (VD E=1.27 on the newest day; Ramban's 4 April ALERT days stand).
+  Season day-counts through 07-12: Ramban 74 quiet / 25 WATCH / 4 ALERT; VD 79 / 24 / 0.
+- **User-reported "red staleness pill with normal text": NOT a product defect** — it was the
+  leftover mutated DOM in the *testing* preview tab (the §53 tier probe on the pre-fix page);
+  a fresh load renders correctly. Root-caused and logged (error log 07-18) rather than patched
+  around.
+- **Season-chart readability pass (user feedback):** the user read E as *soil saturation* — the
+  figure's jargon invited it. Rewritten for a lay reader: title "Was the rain dangerous?…",
+  y-axis "rainfall danger level E (recent rain ÷ landslide-triggering rain)", in-band
+  WATCH/ALERT/quiet explanations, the E=1 line labelled as the historical danger line, event
+  lines now carry event names (Digdol visibly on the April ALERT peak; Himkoti inside VD's
+  late-June WATCH patch), day-count legend on the calendar strip, and an HTML caption that
+  explicitly says E grades the rain itself, not soil wetness. Suite 11/11; both dashboards
+  regenerated.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

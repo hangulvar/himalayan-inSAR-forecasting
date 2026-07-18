@@ -1266,3 +1266,23 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   against synthetic inputs, not a re-implementation of it — that is exactly how this
   branch-asymmetry surfaced. And in any state-styling if/else, every branch must fully specify
   the state it claims, not just the delta from the branch you expect to precede it.
+
+### [2026-07-18] User saw a red staleness pill with "normal" text — stale test-tab DOM, not the artifact
+
+* **Symptom:** the user's screenshot showed the new staleness pill with the >14-day red
+  background but the <=8-day "Normal for this system" text — an impossible combination for a
+  fresh page load.
+
+* **Root Cause:** the screenshot was of the in-app preview tab used for tier testing. The §53
+  escalation probe had rewound the page's as-of date and re-run the page's own (pre-fix) script,
+  which left the red background behind when the real date was restored — the exact
+  branch-asymmetry bug found and fixed that round. The mutated DOM stayed visible in the open
+  tab; the regenerated file on disk was always correct.
+
+* **Resolution:** force-reloaded the page and screenshot-confirmed the correct light pill; no
+  code change needed (the underlying style-reset bug was already fixed in the same session).
+
+* **Lesson:** after mutating a live page during in-browser testing, reload it before leaving it
+  on screen — a test-mutated DOM left visible reads as a product bug to anyone who glances at
+  it. When a report contradicts the code, first ask "which surface is being looked at?" before
+  hunting the logic.

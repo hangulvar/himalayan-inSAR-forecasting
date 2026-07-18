@@ -44,9 +44,14 @@
   maps old→new); suites now SEVEN all green (**7 + 12 + 10 + 11 + 12 + 11 + compose valid**).
 - **(§49–§44 carried):** full-product audit zero bugs; zips disposable; kappa=0.06 adopted both
   sites; CIs + ablation ladder standing — Science Upgrade Plan top 3 ALL RESOLVED.
-- **BOTH sites in WATCH** (as-of 2026-07-11 data, re-confirmed by this session's regen runs):
+- **BOTH sites in WATCH, refreshed to the publication edge (§54): as-of 2026-07-12** (the
+  newest ERA5-Land day as of 07-18; the staleness pill reads "6 days behind · normal"):
   VD 18/18 zones active, 0 ALERT days; Ramban 8/8 active, 4 April ALERT days. Next scheduled
   cycle **19 Jul 08:00**; the cycle checks Docker (10-min grace), never manages it.
+- **(§54) season chart rewritten for lay readers** after the user read E as soil saturation:
+  plain title/axis/band labels, named event lines (both 2026 catches now visible in the
+  picture), day-count legend, caption states E grades rain-vs-threshold, not wetness. Also
+  §54: the "red pill" report was stale test-tab DOM, not the artifact (error log).
 - **GACOS pair ready (§0b):** submit the form → ingest → crosscheck remain. **Radar (§35/§43):**
   July S1 passes still pending at ASF; §43 f106 bridge swap applies at next rebuild. **NISAR:**
   recheck ~early Aug (§33).
@@ -70,16 +75,15 @@ either let the scheduled cycle run or double-click `control_panel.bat` and press
 
 ## Uncommitted delta
 
-Session 27's earlier batches are already committed by the user: `c618ca2` (Past-events tab +
-curated records + first 10 tests), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round:
-Digdol resolved, Himkoti added, both Δ=0 catches, new-tab links).
+Session 27's work batches are ALL committed by the user: `c618ca2` (Past-events tab + curated
+records), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round + new-tab links), `4732cae`
+(§53 staleness guard), `87335d1` (season-chart readability pass).
 
-Still uncommitted (the §53 staleness-guard batch + this wrap):
-- MODIFIED: `workflows/operational_alarm.py` (staleness element + view-time escalation script),
-  `tests/test_historical_events.py` (staleness assertions), `RESULTS_AND_KPIS.md` (§53),
-  `error_history_log.md` (1 entry, 2026-07-18), `SESSION_REVIEW.md` (this block).
-- Git-ignored as usual: journey entry (S27 cont. 2). Primer + milestone unchanged (minor
-  hardening, no new science concepts; M47 already tells this feature's story).
+Still uncommitted (this final wrap only):
+- MODIFIED: `RESULTS_AND_KPIS.md` (§54), `error_history_log.md` (1 entry, 2026-07-18),
+  `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entry (S27 cont. 3). Primer + milestone unchanged (readability
+  + ops rounds, no new science concepts; M47 already tells this feature's story).
 
 ---
 
