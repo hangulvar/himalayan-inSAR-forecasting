@@ -60,9 +60,14 @@
   plain title/axis/band labels, named event lines (both 2026 catches now visible in the
   picture), day-count legend, caption states E grades rain-vs-threshold, not wetness. Also
   §54: the "red pill" report was stale test-tab DOM, not the artifact (error log).
-- **GACOS pair ready (§0b):** submit the form → ingest → crosscheck remain. **Radar (§35/§43):**
-  July S1 passes still pending at ASF; §43 f106 bridge swap applies at next rebuild. **NISAR:**
-  recheck ~early Aug (§33).
+- **GACOS pair ready (§0b):** submit the form → ingest → crosscheck remain. **★ Radar (§56):
+  the "missing July passes" were the S1 CONSTELLATION HANDOVER** — S1A retired 29 Jun 2026,
+  S1D now flies our paths (ASF has it through 25 Jun; CDSE through 12 Jul). Our A/B platform
+  whitelist would have starved the pipeline silently — FIXED. Rebuild fires when ASF ingest
+  catches up; cross-unit S1A×S1D pairing must be verified first (plan Tier 0d). **NISAR
+  (§56):** 8 winter dates + 3 GUNW over both AOIs → the L-vs-C coherence pilot is runnable
+  NOW; operational stream absent here, recheck monthly. **Active plan:**
+  `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
 - **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: validated + site-tuned**
   (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster

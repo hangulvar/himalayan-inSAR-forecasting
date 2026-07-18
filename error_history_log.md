@@ -1286,3 +1286,25 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   on screen — a test-mutated DOM left visible reads as a product bug to anyone who glances at
   it. When a report contradicts the code, first ask "which surface is being looked at?" before
   hunting the logic.
+
+### [2026-07-18] Sentinel-1 unit whitelist would have silently starved the pipeline forever
+
+* **Symptom:** "July S1 passes still not at ASF" persisted for weeks (§35 → §43 → today) and
+  was tracked as an upstream delay. Today's check showed the truth: Sentinel-1A ENDED
+  OPERATIONS on 29 Jun 2026 (constellation handover), Sentinel-1D is already acquiring our
+  exact paths (CDSE: 25/30 Jun, 7/12 Jul; ASF has 25 Jun) — and our catalog query
+  `platform=[SENTINEL1A, SENTINEL1B]` could never have returned an S1C/S1D scene. Had the
+  filter stayed, the pipeline would have reported "no new data" indefinitely while data flowed.
+
+* **Root Cause:** a satellite-unit whitelist written in the two-unit era (2025) plus treating
+  "no new scenes" as someone else's delay instead of investigating which layer was empty
+  (acquisition vs archive vs OUR QUERY).
+
+* **Resolution:** `submit_hyp3_jobs.py` now queries `PLATFORM.SENTINEL1` (all units), with a
+  comment carrying the handover fact; verified live (the all-units query returns the S1D
+  scenes the A/B query missed). Ledger §56; plan doc Tier 0.
+
+* **Lesson:** never whitelist satellite units — query at constellation level and let
+  downstream QA reject what doesn't pair. And when a data feed "goes quiet", binary-search the
+  layers (source catalog → mirror → your own filter) before attributing delay upstream: two of
+  the three layers had data the whole time.

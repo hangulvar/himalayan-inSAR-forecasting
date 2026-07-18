@@ -41,8 +41,11 @@ runs unattended, and `control_panel.bat` (root) gives one-click refresh + a resu
 - **Vaishno_Devi_Watchlist/** — Bhavan overhang brief, soil parameter research brief, GSI/geotech PDFs, the overhang KML.
 - **LandslideInventory/** — GSI landslide reports/compendium PDFs + the Batote–Ganpat susceptibility note (inventory provenance; exclusion notes live in `RESULTS_AND_KPIS.md`).
 
-### references/ — literature
+### references/ — literature & standing plans
 - **Joshimath InSAR.pdf** — the study that seeded the methodology.
+- **STRENGTHENING_PLAN_2026-07-18.md** — the ACTIVE data+science plan (Tier 0–4: S1-handover
+  triage, in-monsoon rain science, NISAR L-band pilot, validation depth, structural items);
+  successor to the archived Science Upgrade Plan.
 
 ### archive/ — superseded, kept for the record
 - **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the scheduled cycle + control panel.

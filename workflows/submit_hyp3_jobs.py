@@ -116,14 +116,18 @@ def load_aoi_geometry(geojson_path: Path) -> BaseGeometry:
 def search_sentinel1_slc(
     aoi: BaseGeometry, start: datetime, end: datetime
 ) -> list[asf.ASFProduct]:
-    """Query the ASF catalog for Sentinel-1A/B SLC IW scenes intersecting AOI."""
+    """Query the ASF catalog for Sentinel-1 SLC IW scenes intersecting AOI."""
     aoi_wkt = aoi.wkt
     logger.info(
         f"Querying ASF catalog: {start.date()} -> {end.date()} over AOI..."
     )
 
     results = asf.search(
-        platform=[asf.PLATFORM.SENTINEL1A, asf.PLATFORM.SENTINEL1B],
+        # ALL Sentinel-1 units, not [S1A, S1B]: the constellation handed over in June 2026
+        # (S1A end-of-operations 29 Jun 2026; S1C/S1D now fly the same reference orbits, and
+        # ASF already carries S1D scenes on our paths). The old A/B whitelist would silently
+        # return NOTHING ever again — see error log 2026-07-18 / ledger §56.
+        platform=[asf.PLATFORM.SENTINEL1],
         processingLevel=asf.PRODUCT_TYPE.SLC,
         beamMode=asf.BEAMMODE.IW,
         intersectsWith=aoi_wkt,

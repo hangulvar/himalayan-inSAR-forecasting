@@ -2531,6 +2531,35 @@ as does earning this arm real operating points via back-testing when enough even
 
 ---
 
+## 56. Radar-cadence + NISAR availability check — the S1 constellation HANDOVER found (and a silent-starvation bug fixed)  `[MEASURED]`
+*(2026-07-18, session 27 cont. — live ASF/CDSE/GEE queries; fix in `submit_hyp3_jobs.py`; plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`)*
+
+- **The "missing July passes" (§35) were the Sentinel-1 CONSTELLATION HANDOVER, not a delay:
+  S1A ended operations 29 Jun 2026**; S1C repositioned (≈2-week transition); **S1D now flies
+  our reference orbits** — CDSE shows S1D IW SLCs on our ASC paths **25 Jun, 30 Jun, 7 Jul,
+  12 Jul 2026** (+ DESC path 34). ASF has ingested S1D **through 25 Jun only** (≈3-week lag);
+  last S1A at ASF: path 100 23 Jun, path 27 18 Jun.
+- **Silent-starvation bug fixed same day:** our catalog query whitelisted
+  `platform=[SENTINEL1A, SENTINEL1B]` — with S1A retired it would have returned nothing
+  forever while data flowed. Now `PLATFORM.SENTINEL1` (all units), verified live: the
+  all-units query returns the S1D scenes the A/B query missed (error log 2026-07-18).
+- **Continuity risk named:** the velocity baseline must bridge the 23 Jun (last S1A) → 25 Jun
+  (first S1D) seam via cross-unit pairs; HyP3's acceptance of S1A×S1D pairs is UNVERIFIED —
+  plan Tier 0d verifies with one dry submission before the real rebuild (which also applies
+  the §43 f106 bridge swap).
+- **NISAR over both AOIs `[MEASURED]`:** filtering out the ECMWF aux flood — **8 acquisition
+  dates, 19 Nov 2025 → 18 Jan 2026**, each with RSLC/GSLC/GCOV, plus **3 GUNW** (+RUNW/RIFG,
+  GOFF/ROFF). NOTHING after 18 Jan 2026: the promised Jul-2026 operational forward stream has
+  not reached this region. Verdict: enough for the **L-band-vs-C-band coherence pilot NOW**
+  (plan Tier 2 — the decision experiment for our #1 weakness, vegetated-slope coverage);
+  operational L-band cadence still pending, recheck monthly.
+- **Plan drafted:** `docs/references/STRENGTHENING_PLAN_2026-07-18.md` (Tier 0 continuity
+  triage → Tier 1 in-monsoon rain science → Tier 2 NISAR pilot → Tier 3 validation depth →
+  Tier 4 structural), with a risk register; indexed in `docs/INDEX.md`, successor to the
+  completed Science Upgrade Plan.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
