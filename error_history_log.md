@@ -1227,3 +1227,24 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** when driving the preview browser across multiple file:// artifacts, verify document
   identity (title) first; fall back to on-disk HTML parsing — the rendered behavior is identical
   generated code, so one live page + N parsed pages is sufficient coverage.
+
+### [2026-07-18] Undated article URL misattributed to the wrong year's event cluster
+
+* **Symptom:** the curated Digdol–Khooni Nallah row cited an undated Greater Kashmir "SSP
+  traffic" article as a source for a supposed 27 Apr 2025 slide (graded LOW, duplicate-suspect).
+  User review + a fresh search showed the row's event actually happened 7 Apr 2026 — and that
+  same undated URL appears in the 2026 event's coverage cluster, not 2025's.
+
+* **Root Cause:** the article URL carries no date; it was attributed by topical similarity to the
+  2025 cluster during curation. An undated source can silently attach to whichever event you are
+  currently researching.
+
+* **Resolution:** row resolved to 2026-04-07 (HIGH — four independently dated 2026 outlets),
+  correction recorded in the row's confidence_reason + the inventory feature's date_correction;
+  the Kashmir Vision 27 Apr 2025 piece reclassified as follow-up coverage of the 20 Apr 2025
+  cloudburst (§12g). Ledger §52.
+
+* **Lesson:** extension of the §12g/§36 date rules — an UNDATED source URL must never anchor an
+  event's date; only sources with their own visible date (URL path or byline) can. The
+  LOW/pending-review grading did exactly its job here: the doubtful row was quarantined until
+  reviewed, never presented as settled.

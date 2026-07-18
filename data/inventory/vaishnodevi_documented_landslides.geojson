@@ -1,6 +1,6 @@
 {
   "type": "FeatureCollection",
-  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Every feature carrying a 'date' feeds the temporal back-test. 2026-07-07: +1 user_observed_vulnerable_location (Bhavan overhang, polygon in Research/Vaishno_Devi_Watchlist/) \u2014 lower evidentiary grade than the GSI points; filter by 'type' if a GSI-only score is wanted. 2026-07-11: +3 dated events (2008 Bhawan rockfall [GSI Spl.Pub.107 \u00a75.4.4 \u2014 source-internal Aug/Dec date discrepancy, flagged], 2016 Bhawan complex failure [SMVDSB/THDCIL records], 21 Jul 2025 Banganga [press-verified, 3+ outlets]). EXCLUDED after verification: the '2 Sep 2025 new-track rockfall, 3 dead' claim from a deep-research synthesis \u2014 no press/GSI trace, and the yatra was closed 26 Aug-14 Sep 2025; treated as fabricated (see RESULTS_AND_KPIS \u00a738).",
+  "note": "Vaishno Devi route ground truth from the GSI Preliminary Note on the 26.08.2025 Ardhkuwari disaster: 1 dated fatal event + 39 GSI-surveyed instability locations (DMS, Table-7.1) along Tarakot-Adhkuwari, Bhawan-Sanjichat-Adhkuwari, Himkoti Marg and Banganga-Adhkuwari. CAVEATS for scoring: points hug the track corridor (corridor-biased inventory, like Ramban's NH-44 set) and most are GSI-assessed VULNERABLE spots (incl. observed old failures), not all occurred slides. Every feature carrying a 'date' feeds the temporal back-test. 2026-07-07: +1 user_observed_vulnerable_location (Bhavan overhang, polygon in Research/Vaishno_Devi_Watchlist/) \u2014 lower evidentiary grade than the GSI points; filter by 'type' if a GSI-only score is wanted. 2026-07-11: +3 dated events (2008 Bhawan rockfall [GSI Spl.Pub.107 \u00a75.4.4 \u2014 source-internal Aug/Dec date discrepancy, flagged], 2016 Bhawan complex failure [SMVDSB/THDCIL records], 21 Jul 2025 Banganga [press-verified, 3+ outlets]). EXCLUDED after verification: the '2 Sep 2025 new-track rockfall, 3 dead' claim from a deep-research synthesis \u2014 no press/GSI trace, and the yatra was closed 26 Aug-14 Sep 2025; treated as fabricated (see RESULTS_AND_KPIS \u00a738). 2026-07-18: +1 dated event (8 Jul 2026 Himkoti new-track landslide, battery-car suspended \u2014 user-reported, verified across TOI + 5 independent outlets).",
   "features": [
     {
       "type": "Feature",
@@ -82,6 +82,27 @@
         "type": "Point",
         "coordinates": [
           74.9482,
+          33.0299
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Himkoti landslide, new track (battery-car service suspended)",
+        "type": "event_2026",
+        "date": "2026-07-08",
+        "time_local": "evening",
+        "casualties": 0,
+        "trigger": "intense rainfall (press-consistent across 6 outlets)",
+        "failure_type": "Rain-triggered landslide/debris onto the new (battery-car) track near Himkoti; service suspended, yatra continued via the old route",
+        "coord_confidence": "anchored to the Himkoti locality on the new track (press gives no precise chainage)",
+        "source": "Verified 2026-07-18: Times of India (user-supplied) + Greater Kashmir, Daily Excelsior, Kashmir Life, Free Press Journal, The CSR Journal (all 9-10 Jul 2026; Wednesday-evening timing = 8 Jul 2026)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.9356,
           33.0299
         ]
       }

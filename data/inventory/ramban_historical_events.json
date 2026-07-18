@@ -1,6 +1,6 @@
 {
   "site": "ramban",
-  "updated": "2026-07-18",
+  "updated": "2026-07-18 (rev 2: Digdol row resolved — see its confidence_reason correction record)",
   "note": "Curated HISTORICAL DAMAGE record for the dashboard's Past-events view — SEPARATE from ramban_documented_landslides.geojson (the validated back-test inventory), which is deliberately untouched. Verification rule (CLAUDE.md / ledger §12g, §36-§38): every event is checked against a primary source (peer-reviewed paper or GSI) or 2+ independent press outlets; publication date != event date; LOW-confidence rows are flagged review_needed for the user and rendered as pending review, never as settled fact. Ranking = deaths desc, then injured, then damage_score (0-10 editorial judgment of infrastructure/livelihood damage, used only to break ties among non-fatal events). Coordinates are approximate place centroids (same convention as the back-test inventory), NOT field-mapped scarps.",
   "events": [
     {
@@ -74,20 +74,23 @@
       ]
     },
     {
-      "name": "Digdol–Khooni Nallah slide (reported 27 Apr 2025)",
-      "date": "2025-04-27",
+      "name": "Digdol–Khooni Nallah slide (NH-44 blocked both directions)",
+      "date": "2026-04-07",
       "lat": 33.274, "lon": 75.207,
       "coord_confidence": "approximate_place_centroid",
       "deaths": 0, "injured": null,
-      "damage": "NH-44 shut by a heavy landslide near Digdol/Khooni Nallah (per the 27 Apr report)",
-      "trigger": "Unclear — very likely follow-up reporting on the 20 Apr cloudburst damage rather than a distinct new failure (ledger §12g date-correction finding)",
-      "damage_score": 2,
-      "confidence": "LOW", "confidence_score": 0.3,
-      "confidence_reason": "PENDING USER REVIEW — single outlet dated 27 Apr; the §12g literature review concluded this is most plausibly the 20 Apr event reported a week later (publication date != event date). Kept for transparency, flagged as a possible duplicate.",
-      "review_needed": true,
+      "damage": "Massive landslide between Digdol and Khooni Nallah deposited debris across NH-44; traffic suspended in BOTH directions on the Valley's supply lifeline; no casualties reported",
+      "trigger": "Fell inside a sustained wet spell — this project's own rainfall gate ran WATCH/ALERT continuously 3–11 Apr 2026 and 7 Apr was an ALERT day (E=2.13, see the season calendar)",
+      "damage_score": 3,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "RESOLVED 2026-07-18 (user review + fresh verification): multiple independent outlets all dated 7 Apr 2026 (Asian Mail, Social News XYZ, Gadyal Kashmir, The Hans India, Brighter Kashmir). Correction record: this row previously carried date 2025-04-27 at LOW confidence from a Kashmir Vision article — that article is now treated as follow-up coverage of the 20 Apr 2025 cloudburst (§12g), and the undated Greater Kashmir 'SSP traffic' piece belongs to THIS 2026 event (it appears in the 2026 search cluster).",
+      "review_needed": false,
       "sources": [
-        {"label": "Kashmir Vision, 27 Apr 2025", "url": "https://kashmirvision.in/2025/04/27/the-nh-44-landslide-in-ramban/"},
-        {"label": "Greater Kashmir (NH-44 shut near Digdol, Khooni Nallah)", "url": "https://www.greaterkashmir.com/latest-news/nh-44-shut-after-heavy-landslide-near-digdol-khooni-nallah-ssp-traffic/"}
+        {"label": "Asian Mail, 7 Apr 2026", "url": "https://asianmail.in/2026/04/07/jammu-srinagar-highway-shut-after-massive-landslide-hits-between-digdol-and-khooni-nallah/"},
+        {"label": "Social News XYZ, 7 Apr 2026", "url": "https://www.socialnews.xyz/2026/04/07/massive-landslide-in-jks-ramban-district-again-blocks-srinagar-jammu-nh-44-ld/"},
+        {"label": "Gadyal Kashmir, 7 Apr 2026", "url": "https://gadyalkashmir.com/2026/04/07/massive-landslide-blocks-nh-44-traffic-suspended-in-both-directions/"},
+        {"label": "The Hans India (Ramban NH-44 blocked again)", "url": "https://www.thehansindia.com/news/national/massive-landslide-in-jks-ramban-district-again-blocks-srinagar-jammu-nh-44-1063514"},
+        {"label": "Greater Kashmir (NH-44 shut near Digdol, Khooni Nallah — SSP traffic; undated URL, reattributed to this event)", "url": "https://www.greaterkashmir.com/latest-news/nh-44-shut-after-heavy-landslide-near-digdol-khooni-nallah-ssp-traffic/"}
       ]
     }
   ]

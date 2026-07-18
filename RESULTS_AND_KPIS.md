@@ -2391,6 +2391,45 @@ searches).
 
 ---
 
+## 52. Two §51 review rows RESOLVED → the gate's first two in-season catches of 2026  `[REAL]`
+*(2026-07-18, session 27 cont. — user review + fresh multi-outlet verification; regenerated via `live_alarm.py` both sites)*
+
+**↪ Corrects part of §51** (its "3 rows pending review" is now 2; its Digdol framing is superseded):
+
+- **Digdol–Khooni Nallah (Ramban): the pending-review row was a REAL, separate event — dated
+  7 Apr 2026** (user verdict, then independently confirmed: Asian Mail / Social News XYZ /
+  Gadyal Kashmir / The Hans India, all dated 2026-04-07; NH-44 blocked in BOTH directions, no
+  casualties). The §51 "likely duplicate of 20 Apr 2025" hypothesis was wrong for an
+  instructive reason: the **undated** Greater Kashmir "SSP traffic" URL actually belongs to the
+  2026 event and had been misattributed to the 2025 cluster. Confidence LOW→**HIGH**;
+  correction recorded in the row itself and in the inventory feature (`date_correction`).
+- **NEW dated event (Vaishno Devi): 8 Jul 2026 evening, Himkoti, new track** — rain-triggered
+  landslide; battery-car service suspended, yatra continued via the old route, no casualties
+  (user-reported TOI + Greater Kashmir / Daily Excelsior / Kashmir Life / Free Press Journal /
+  The CSR Journal; Wednesday-evening timing pins 8 Jul). Confidence **HIGH**.
+- Both folded into the temporal inventories (`*_documented_landslides.geojson`, §38 precedent:
+  append/correct openly, spatial back-test deliberately NOT re-run).
+
+**Did the dashboard catch them? YES — both, at Δ=0 (regenerated WHEN-card, 2026 season):**
+
+- **Ramban 7 Apr 2026: E=2.13 → ALERT — the alarm was RAISED the day the highway was buried**
+  (the wet spell ran WATCH/ALERT 3–11 Apr; ALERT days 4/7/8/9 Apr). First ALERT-grade in-season
+  catch of the 2026 monsoon; events-caught now reads 1/4 by ALERT (the three 2025 rows sit
+  before this season's data window by construction).
+- **VD 8 Jul 2026: E=1.06 → WATCH — armed, below the act-now line** (caught by WATCH+ at Δ=0;
+  no ALERT days in VD's 2026 season). Proportionate in hindsight: track debris, zero
+  casualties. Consistent with the §12c sensitivity bind: AOI-mean reanalysis rain grades a
+  localized burst low — the sub-daily IMERG upgrade (roadmap #5) is what would raise such days.
+
+**Also this round (user request): every real link on the dashboard now opens in a NEW tab**
+(`<base target="_blank">` — maps, sources, per-stack maps, sibling-site tabs; in-page tab
+switches unaffected; the other generated pages carry no external links, and the control panel
+already targeted `_blank`). Suite grows to **11 tests + the base-tag assertion**; full battery
+re-verified green (7 suites), both dashboards regenerated and checked live (all 37 real links on
+the VD page resolve to `_blank`; Ramban WHEN-card row shows `2026-04-07 · E 2.13 · ALERT`).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

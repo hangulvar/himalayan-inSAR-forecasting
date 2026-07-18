@@ -752,6 +752,9 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<base target="_blank"><!-- every real link (maps, sources, per-stack, sibling sites) opens in a
+ new tab so the dashboard is never navigated away; in-page tab switches use href="#" with
+ onclick return-false and are unaffected -->
 <title>{SITE} — Landslide Decision Support (research prototype)</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="{SITE} — InSAR Landslide Decision Support (research prototype)">

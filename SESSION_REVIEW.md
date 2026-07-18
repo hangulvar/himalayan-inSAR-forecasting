@@ -23,10 +23,16 @@
   untouched so the validated scores stay earned. Verified two rounds: 11-test new suite
   (`tests/test_historical_events.py`), full battery ×2 green, idempotent regen, browser
   click-through, 12/12 cross-links, live source-URL checks (all in §51).
-- **⚠ USER REVIEW REQUESTED (§51): 3 low-confidence rows** — Ramban "Digdol 27 Apr 2025"
-  (likely duplicate of the 20 Apr cloudburst), VD 2008 Bhawan date (GSI Aug-vs-Dec internal
-  discrepancy; resolve via Kumar 2009a), VD undated pre-2017 Himkoti casualty rockfall. All three
-  render as "pending review" on the dashboard until settled.
+- **★ NEW (§52) — two review rows RESOLVED → the gate's first two in-season 2026 catches, both
+  Δ=0.** Digdol was a REAL separate slide, 7 Apr 2026 (user verdict + 4 independently dated
+  outlets) — and 7 Apr was an **ALERT day (E=2.13)**: alarm raised the day NH-44 was buried. New
+  verified VD event 8 Jul 2026 (Himkoti new track, battery-car suspended) fell on a **WATCH day
+  (E=1.06)** — armed, proportionate to a no-casualty blockage. Both folded into the temporal
+  inventories (§38 precedent, no spatial re-score). All dashboard links now open in NEW tabs
+  (`<base target="_blank">`).
+- **⚠ USER REVIEW still open (§51/§52): 2 rows** — VD 2008 Bhawan date (GSI Aug-vs-Dec internal
+  discrepancy; resolve via Kumar 2009a) and the VD undated pre-2017 Himkoti casualty rockfall.
+  Both render as "pending review" on the dashboard until settled.
 - **§38's fabricated-event exclusion is now TEST-enforced** (closure-window + no-future-date
   assertions) — the immunization records became executable checks.
 - **(§50, M46 carried):** control panel + results hub live; repo restructured (`docs/INDEX.md`
@@ -50,7 +56,7 @@
 
 ## Recommended next step
 
-First: **user reviews the 3 flagged historical rows (§51)** — settle or drop them. Then the
+First: **user reviews the 2 remaining flagged rows (§52)** — settle or drop them. Then the
 product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
 download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
 gap (Sentinel-2 optical change) and sub-daily IMERG. User-side: field check of the NE-flank CORE
@@ -62,10 +68,13 @@ either let the scheduled cycle run or double-click `control_panel.bat` and press
 Session 27's feature batch is already committed by the user: `c618ca2` (Past-events tab, curated
 records, gitignore re-include, first 10 tests, regen + browser verification).
 
-Still uncommitted (round-2 testing + this wrap):
-- MODIFIED: `tests/test_historical_events.py` (+1 footprint-fallback test → 11),
-  `RESULTS_AND_KPIS.md` (§51), `milestone.md` (M47), `error_history_log.md` (3 entries,
-  2026-07-18), `SESSION_REVIEW.md` (this block).
+Still uncommitted (round-2 testing + wrap + the §52 review round):
+- MODIFIED: `workflows/operational_alarm.py` (`<base target="_blank">`),
+  `tests/test_historical_events.py` (+fallback test + base-tag assertion → 11),
+  `data/inventory/{ramban,vaishnodevi}_historical_events.json` (Digdol resolved; +Himkoti 2026),
+  `data/inventory/{ramban,vaishnodevi}_documented_landslides.geojson` (date correction; +1 dated
+  event each side of the correction), `RESULTS_AND_KPIS.md` (§51+§52), `milestone.md` (M47 +
+  addendum), `error_history_log.md` (4 entries, 2026-07-18), `SESSION_REVIEW.md` (this block).
 - Git-ignored as usual: journey entry (S27). Primer unchanged — no new science concepts this
   session (curation + UI; provenance methodology already covered by §36–§38).
 

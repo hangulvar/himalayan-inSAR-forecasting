@@ -70,6 +70,26 @@
       ]
     },
     {
+      "name": "Himkoti landslide on the new track (battery-car service suspended)",
+      "date": "2026-07-08",
+      "time_local": "evening",
+      "lat": 33.0299, "lon": 74.9356,
+      "coord_confidence": "anchored to the Himkoti locality on the new (battery-car) track — press gives no precise chainage",
+      "deaths": 0, "injured": null,
+      "damage": "Rain-triggered landslide dumped debris on the new track near Himkoti; battery-car service suspended while the Shrine Board cleared it; the yatra itself continued via the old route; no casualties reported",
+      "trigger": "Intense rainfall (per press); this project's gate held WATCH that day (E=1.06 — armed, below the act-now line)",
+      "damage_score": 2,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Verified 2026-07-18: Times of India (user-supplied) + 5 independent outlets (Greater Kashmir, Daily Excelsior, Kashmir Life, Free Press Journal, The CSR Journal) consistent on location (Himkoti, new track), Wednesday-evening timing (8 Jul 2026 was a Wednesday), rainfall trigger and the battery-car suspension",
+      "review_needed": false,
+      "sources": [
+        {"label": "Times of India (landslide hits Vaishno Devi track at Himkoti, battery car service suspended)", "url": "https://timesofindia.indiatimes.com/india/landslide-hits-vaishno-devi-track-at-himkoti-battery-car-service-suspended/articleshow/132297059.cms"},
+        {"label": "Greater Kashmir (yatra unaffected, battery car suspended)", "url": "https://www.greaterkashmir.com/jammu/landslide-hits-vaishno-devi-track-yatra-unaffected-battery-car-service-suspended-12146584"},
+        {"label": "Daily Excelsior", "url": "https://www.dailyexcelsior.com/landslide-hits-vaishno-devi-track-yatra-unaffected-battery-car-service-suspended/"},
+        {"label": "Kashmir Life", "url": "https://kashmirlife.net/landslide-hits-vaishno-devi-track-after-heavy-rains-battery-car-service-suspended-442257/"}
+      ]
+    },
+    {
       "name": "Himkoti track RD 0/850 rockfall with pilgrim casualties (date unknown, pre-Jul 2017)",
       "date": null,
       "date_note": "UNDATED in the source — 'instability in recent past which lead to casualty to pilgrims', pre-30.06.2017 (the SMVDSB request-letter date)",

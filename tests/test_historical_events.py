@@ -219,6 +219,8 @@ def test_dashboard_page_with_and_without_hist():
                        "tab-guide", "ALARM: WATCH", "showTab"):
             assert anchor in page, anchor
         assert "Past events" in page
+        # Every real link opens in a new tab (the dashboard is never navigated away).
+        assert '<base target="_blank">' in page
         # Graceful degradation: no record -> no Past-events button, page still whole.
         out2 = tmp / "operational_alarm_dashboard_test2.html"
         oa.write_dashboard(out2, r, dates, E, levels, 1, fig, tier, hist=None)

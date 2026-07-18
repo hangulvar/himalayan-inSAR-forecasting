@@ -1638,3 +1638,14 @@ radar coverage — a limitation we have documented all along, now made visible o
 **Bottom line:** the dashboard now answers three questions instead of two — *where* could slopes
 fail, *when* is the danger real, and *what has this mountain already done* — with every claim
 carrying its receipt.
+
+**Addendum (same day) — the tab earned its keep immediately.** While reviewing the flagged rows,
+the user corrected one: the doubtful Ramban entry was not an old duplicate at all, but a real
+slide that buried the highway on **7 April 2026** — and our alarm calendar shows the system was
+at full **ALERT that very day** (rainfall 2.13× the danger line). A second event the user
+brought in — the **8 July 2026** landslide near Himkoti that suspended the Vaishno Devi battery
+cars — landed on a day our gate was at **WATCH** (armed, correctly short of a full alarm for
+what turned out to be a no-casualty track blockage). Two real 2026 events, both falling exactly
+on days the system had flagged — the first live in-season validation of the monsoon watch. Also
+per user request: every link on the dashboard now opens in a new browser tab, so you never lose
+the page you were reading.
