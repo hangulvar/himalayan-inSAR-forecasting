@@ -2430,6 +2430,32 @@ the VD page resolve to `_blank`; Ramban WHEN-card row shows `2026-04-07 · E 2.1
 
 ---
 
+## 53. Live staleness guard on the alarm banner (chosen low-hanging hardening)  `[MEASURED]`
+*(2026-07-18, session 27 cont. — `workflows/operational_alarm.py`; verified in-browser with the page's own script)*
+
+**Why this fruit:** the dashboard is a static snapshot, and nothing warned a viewer reading
+week-old state as current — operationally the cheapest real weakness to close. (Considered and
+deferred as NOT low-hanging: sub-daily per-zone IMERG — the §12c fix but a new credentialed data
+pipeline; GACOS second pull — blocked on an external form/email; operating-point re-tuning —
+touches validated thresholds without new validation data.)
+
+**What it does:** the banner now carries a `staleness` element stamped with the as-of date; a
+view-time script computes the snapshot's age against the VIEWER's clock and escalates:
+**≤8 days** = 🕐 normal (the known ~5-day ERA5-Land lag + 2–3-day cycle cadence, stated inline);
+**>8 days** = ⚠ amber "a refresh cycle has likely been missed — re-run before acting";
+**>14 days** = red "**STALE SNAPSHOT — TREAT THE ALARM STATE AS UNKNOWN**, run a refresh cycle
+and follow official advisories". No-JS fallback text still shows the as-of date.
+
+**Verified `[MEASURED]`:** live page computed **7 days** (as-of 2026-07-11 vs 2026-07-18) and
+rendered the normal tier; both escalation tiers exercised by re-evaluating the **page's own
+embedded script** with rewound as-of dates (amber at 10 d bg `#8a5a00`, red at 20 d bg
+`#7a0c0c`). The probe caught one real wrinkle — the normal branch didn't reset the background
+style — fixed (error log 07-18). Suite asserts the element + both thresholds + the
+treat-as-unknown copy; full battery re-verified **11+10+7+12+12+11 green**; both dashboards
+regenerated via `live_alarm.py`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

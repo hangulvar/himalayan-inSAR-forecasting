@@ -221,6 +221,11 @@ def test_dashboard_page_with_and_without_hist():
         assert "Past events" in page
         # Every real link opens in a new tab (the dashboard is never navigated away).
         assert '<base target="_blank">' in page
+        # Staleness guard: banner element carries the as-of date; the view-time script with
+        # both escalation thresholds is embedded (behavior itself is browser-verified).
+        assert 'id="staleness" data-asof="2026-06-02"' in page
+        for marker in ("TREAT THE ALARM STATE AS UNKNOWN", "days > 14", "days > 8"):
+            assert marker in page, marker
         # Graceful degradation: no record -> no Past-events button, page still whole.
         out2 = tmp / "operational_alarm_dashboard_test2.html"
         oa.write_dashboard(out2, r, dates, E, levels, 1, fig, tier, hist=None)

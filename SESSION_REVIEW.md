@@ -33,6 +33,11 @@
 - **⚠ USER REVIEW still open (§51/§52): 2 rows** — VD 2008 Bhawan date (GSI Aug-vs-Dec internal
   discrepancy; resolve via Kumar 2009a) and the VD undated pre-2017 Himkoti casualty rockfall.
   Both render as "pending review" on the dashboard until settled.
+- **★ NEW (§53) — live staleness guard on the alarm banner.** The static snapshot now computes
+  its own age against the VIEWER's clock at open time: 🕐 normal ≤8 d (the stated ~5-day ERA5
+  lag + cycle cadence), ⚠ amber >8 d (refresh likely missed), red >14 d "TREAT THE ALARM STATE
+  AS UNKNOWN". Verified with the page's own script at 7/10/20 days; suite asserts the element +
+  thresholds.
 - **§38's fabricated-event exclusion is now TEST-enforced** (closure-window + no-future-date
   assertions) — the immunization records became executable checks.
 - **(§50, M46 carried):** control panel + results hub live; repo restructured (`docs/INDEX.md`
@@ -65,18 +70,16 @@ either let the scheduled cycle run or double-click `control_panel.bat` and press
 
 ## Uncommitted delta
 
-Session 27's feature batch is already committed by the user: `c618ca2` (Past-events tab, curated
-records, gitignore re-include, first 10 tests, regen + browser verification).
+Session 27's earlier batches are already committed by the user: `c618ca2` (Past-events tab +
+curated records + first 10 tests), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round:
+Digdol resolved, Himkoti added, both Δ=0 catches, new-tab links).
 
-Still uncommitted (round-2 testing + wrap + the §52 review round):
-- MODIFIED: `workflows/operational_alarm.py` (`<base target="_blank">`),
-  `tests/test_historical_events.py` (+fallback test + base-tag assertion → 11),
-  `data/inventory/{ramban,vaishnodevi}_historical_events.json` (Digdol resolved; +Himkoti 2026),
-  `data/inventory/{ramban,vaishnodevi}_documented_landslides.geojson` (date correction; +1 dated
-  event each side of the correction), `RESULTS_AND_KPIS.md` (§51+§52), `milestone.md` (M47 +
-  addendum), `error_history_log.md` (4 entries, 2026-07-18), `SESSION_REVIEW.md` (this block).
-- Git-ignored as usual: journey entry (S27). Primer unchanged — no new science concepts this
-  session (curation + UI; provenance methodology already covered by §36–§38).
+Still uncommitted (the §53 staleness-guard batch + this wrap):
+- MODIFIED: `workflows/operational_alarm.py` (staleness element + view-time escalation script),
+  `tests/test_historical_events.py` (staleness assertions), `RESULTS_AND_KPIS.md` (§53),
+  `error_history_log.md` (1 entry, 2026-07-18), `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entry (S27 cont. 2). Primer + milestone unchanged (minor
+  hardening, no new science concepts; M47 already tells this feature's story).
 
 ---
 

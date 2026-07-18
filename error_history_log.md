@@ -1248,3 +1248,21 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   event's date; only sources with their own visible date (URL path or byline) can. The
   LOW/pending-review grading did exactly its job here: the doubtful row was quarantined until
   reviewed, never presented as settled.
+
+### [2026-07-18] Staleness-guard escalation branch left the previous tier's styling behind
+
+* **Symptom:** while exercising the new banner staleness guard's tiers by re-running the page's
+  own script with rewound as-of dates, returning to the normal (<=8 d) tier kept the previous
+  tier's red background — only the text reset.
+
+* **Root Cause:** the script set `el.style.background` in the amber/red branches but the normal
+  branch never touched it. Unreachable in production (the script runs once per page load with a
+  fixed as-of date), but a latent trap for any future re-run of the logic.
+
+* **Resolution:** normal branch now resets `el.style.background = ''` (falls back to the CSS
+  class). One-line fix, re-verified.
+
+* **Lesson:** verify browser escalation logic by re-evaluating the PAGE'S OWN embedded script
+  against synthetic inputs, not a re-implementation of it — that is exactly how this
+  branch-asymmetry surfaced. And in any state-styling if/else, every branch must fully specify
+  the state it claims, not just the delta from the branch you expect to precede it.

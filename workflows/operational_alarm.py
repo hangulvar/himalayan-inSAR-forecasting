@@ -778,6 +778,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
  .banner .lvl{{font-size:30px;font-weight:800;letter-spacing:1px}}
  .banner .meta{{font-size:14px;margin-top:6px;opacity:.95}}
  .banner a{{color:#fff}}
+ .fresh{{margin-top:10px;font-size:12px;padding:4px 10px;border-radius:4px;display:inline-block;
+   background:rgba(255,255,255,.18)}}
  .disclaimer{{background:#fff3cd;color:#7a5b00;border-bottom:1px solid #e6cf8b;padding:8px 24px;
    font-size:12px;line-height:1.5}}
  .wrap{{display:flex;gap:18px;padding:0 24px 18px;flex-wrap:wrap}}
@@ -820,6 +822,8 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <div class="meta">as of <b>{as_of}</b> &nbsp;·&nbsp; rainfall exceedance E = <b>{e_now:.2f}×</b>
    the regional danger line &nbsp;·&nbsp; <b>{live}</b> hazard zones live.<br>{blurb}
    &nbsp;<a href="#" onclick="showTab('guide');return false">New here? Open the guide →</a></div>
+  <div class="fresh" id="staleness" data-asof="{as_of}">Data current to {as_of}
+   (enable JavaScript for a live staleness check).</div>
 </div>
 
 <div class="wrap">
@@ -1009,6 +1013,30 @@ function showTab(t){{
   }}
   window.scrollTo(0, 0);
 }}
+// Live staleness guard: the page is a static snapshot, so its age is computed against the
+// VIEWER's clock at open time. Healthy = the known ~5-day ERA5-Land lag + 2-3-day cycle
+// cadence (<=8 d); beyond that the refresh cycle has been missed; beyond 14 d the shown alarm
+// state must not be trusted at all.
+(function () {{
+  var el = document.getElementById('staleness');
+  if (!el) return;
+  var days = Math.floor((Date.now() - new Date(el.dataset.asof + 'T00:00:00')) / 864e5);
+  var msg = 'Data current to ' + el.dataset.asof + ' — ' + days + ' day' +
+            (days === 1 ? '' : 's') + ' behind the day you are reading this.';
+  if (days > 14) {{
+    el.style.background = '#7a0c0c';
+    msg = '⚠ STALE SNAPSHOT — ' + msg + ' TREAT THE ALARM STATE AS UNKNOWN: run a refresh ' +
+          'cycle (control panel / monsoon_cycle) and follow official advisories.';
+  }} else if (days > 8) {{
+    el.style.background = '#8a5a00';
+    msg = '⚠ ' + msg + ' Beyond the normal data lag + refresh cadence — a refresh cycle has ' +
+          'likely been missed; re-run it before acting on this state.';
+  }} else {{
+    el.style.background = '';
+    msg = '🕐 ' + msg + ' Normal for this system (~5-day rainfall-data lag, 2–3-day refresh cadence).';
+  }}
+  el.textContent = msg;
+}})();
 </script>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
