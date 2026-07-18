@@ -1649,3 +1649,38 @@ what turned out to be a no-casualty track blockage). Two real 2026 events, both 
 on days the system had flagged — the first live in-season validation of the monsoon watch. Also
 per user request: every link on the dashboard now opens in a new browser tab, so you never lose
 the page you were reading.
+
+## ✅ Milestone 48 — A second rain sensor that sees the bursts  *(sub-daily IMERG gate, 2026-07-18)*
+
+**What we set out to do:** fix the alarm's known blind spot. Our rainfall gate ran on a *daily
+average* over the whole area — and a daily average hides exactly the thing that kills people in
+these mountains: a violent, local cloudburst. A day with one savage hour of rain and 23 quiet
+hours averages out to "drizzle". We had proven this blind spot exists (the deadly April 2025
+cloudburst read low on the daily average), and we had just watched it happen again: the 8 July
+landslide at Himkoti registered only a mild "WATCH" on the daily gate.
+
+**What we built:** a second, independent rain sensor for the dashboard. NASA's GPM satellite
+measures rain every **30 minutes**, and it reaches us only about **a day** after it falls —
+against nearly a week for the daily weather data. Every refresh cycle now also pulls this
+half-hourly satellite rain and asks, for each day: *was there any burst — over any window from
+half an hour to a day — that crossed the same proven danger line?* The dashboard gained a card
+showing the newest satellite day, its burst danger level, and the season's biggest bursts.
+
+**Did it work? Tested on this season's two real landslides — and the answer is the best kind:
+the two sensors catch different killers.** The 8 July Himkoti slide, which the daily gate
+under-called, lights up as a clear **ALERT** on the burst sensor — a sharp 3-hour downpour whose
+signature was measurable **hours before the evening collapse**. And the 7 April highway burial
+at Digdol — days of relentless soaking with no single burst — is the opposite: the burst sensor
+barely stirs, but the daily gate had already raised the full alarm that morning. One sensor for
+the long soak, one for the sudden burst; **together, both of this season's verified landslides
+read full ALERT on the day they happened.**
+
+**The honest part:** the burst sensor is deliberately labelled *experimental* on the dashboard.
+Its alarm thresholds haven't yet earned the same validation the daily gate has (at short
+timescales the danger line trips more easily, and we can't yet say how often it cries wolf);
+satellite rain is an 11-km-pixel average; and the newest day is always marked provisional while
+its data is still arriving. The official alarm stays the validated daily gate — the burst card
+is the sharp-eyed second opinion beside it.
+
+**Bottom line:** the dashboard now watches the rain two ways — slow and fast — and this season's
+evidence says that's exactly the pair you need.

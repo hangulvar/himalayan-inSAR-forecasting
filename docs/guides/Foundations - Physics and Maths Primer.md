@@ -1148,6 +1148,52 @@ block (absent = linear), `tests/test_fs_real.py`.
 
 ---
 
+## CF14. Two rain sensors, one danger line — the sub-daily burst gate (IMERG)
+
+CF2 gave us the danger line: rain of intensity *I* sustained for duration *D* has historically
+triggered landslides when *I* ≥ a·D^(−b). CF5 taught that *which rain data* you feed that line
+matters. This section is the operational conclusion of both: the same curve, fed by a **second,
+much faster rain sensor** (Milestone 48).
+
+**The blind spot.** Our daily gate feeds the curve a *daily, area-averaged* rainfall value. But
+average a day with one savage hour of rain and 23 dry hours and you get "drizzle" — the
+mountain-killer cloudburst literally averages away. We proved this on the deadly 20 Apr 2025
+cloudburst (clear crossing on half-hourly data, invisible on the daily mean) and watched it
+again on 8 Jul 2026 (Himkoti: daily gate said only WATCH).
+
+**The fix.** NASA's GPM IMERG product estimates rain every **30 minutes** on a ~11 km grid,
+arriving ~**1 day** after it falls (the daily reanalysis takes ~6). Each day we slide windows of
+every length from half an hour to a day through the half-hourly series and ask: did *any*
+window's mean intensity cross the same danger line?
+
+> E_sub(day) = max over D ∈ {0.5…24 h} of  [ (rain in the D-hour window ending that day) / D ] ÷ (a·D^(−b))
+
+The windows deliberately **cross midnight** — a burst at 23:30 belongs to the day it ends in,
+not to neither. **Everyday analogy:** the daily gate reads the rain gauge once every evening;
+the burst gate is a security camera that never blinks — it catches the smash-and-grab that
+happened between readings.
+
+**What this season proved (the best possible answer): the two sensors catch different
+killers.** The 8 Jul Himkoti slide — under-called by the daily gate — is a clear **ALERT** on
+the burst gate (a 3-hour downpour, measurable *hours before* the evening collapse). The 7 Apr
+Digdol highway burial — days of soaking, no single burst — is the mirror image: the burst gate
+barely stirs, the daily gate had already raised full ALERT. Long soak → daily arm; sudden burst
+→ sub-daily arm; combined, **both of 2026's verified events read ALERT on the day**.
+
+**Why it stays "experimental".** At short durations the same curve trips far more easily, and
+this arm's false-alarm rate is *unmeasured* — it has no back-tested operating points the way
+the daily gate has (CF7). So it ships as a labelled **second opinion** beside the validated
+alarm, not as the alarm. Also honest: an 11-km pixel still averages over a slope; no snowmelt;
+the newest day is provisional while its data arrives.
+
+🔗 **In our project: Milestone 48 / §55.** `imerg_gate.py` (incremental cached half-hourly
+fetch + daily E), the "sub-daily burst check" card on the operational dashboard, and a
+non-fatal hook in `live_alarm.py` (if the satellite feed is down, the validated chain is
+untouched). Remaining upgrades: per-zone rain from the 0.1° grid, and earning this arm its own
+validated thresholds as events accumulate.
+
+---
+
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
 
 ## CV1. What travels with the tool — and what must be earned again
@@ -1620,9 +1666,28 @@ matures, its adapter plugs in at one shared seam, so every registered site inher
 
 ---
 
+**Q: Why do you run two rainfall gates — isn't one danger curve enough?**
+A: One curve, two *sensors*, because rainfall kills two ways. A multi-day soak shows up in a
+daily average; a one-hour cloudburst averages away in it. Our daily reanalysis gate (validated,
+the official alarm) catches the soak; the half-hourly satellite gate (IMERG, experimental)
+catches the burst — and it runs ~5 days fresher. This season's two verified events split
+exactly along that line: the 7 Apr highway burial was a soak (daily arm ALERT, burst arm
+quiet), the 8 Jul Himkoti slide was a burst (burst arm ALERT hours ahead, daily arm only
+WATCH). Combined, both read ALERT on the day. The burst arm stays labelled experimental until
+it earns back-tested thresholds of its own — at short durations the curve trips easily and its
+false-alarm rate is unmeasured.
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
+
+- **The sub-daily burst gate (CF14 / §55) is experimental:** it reuses the validated regional
+  danger curve at short durations, but *its own* operating thresholds are not back-tested — at
+  these timescales the curve trips easily (10 ALERT-grade burst days at Vaishno Devi this season
+  vs 0 on the daily gate) and its false-alarm rate is unmeasured. Satellite rain is a ~11 km
+  pixel average (a slope-scale burst can still under-read), carries no snowmelt, and the newest
+  day is always provisional. It is a second opinion beside the validated daily alarm, not the
+  alarm.
 
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our

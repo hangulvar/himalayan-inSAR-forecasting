@@ -2478,6 +2478,59 @@ regenerated via `live_alarm.py`.
 
 ---
 
+## 55. Sub-daily IMERG burst gate SHIPPED (experimental second opinion) — the §12c fix, live  `[REAL]`
+*(2026-07-18, session 27 cont. — NEW `workflows/imerg_gate.py`; card in `operational_alarm.py`; guarded hook in `live_alarm.py`; suite `tests/test_imerg_gate.py`)*
+
+**What shipped:** the §12g one-off event test productized into a season-long, incremental,
+operational gate. `imerg_gate.py` maintains a cached half-hourly GPM IMERG V07 AOI-mean series
+per AOI+season (GEE, bounded chunked fetches — re-runs only pull the missing tail), computes
+each day's **peak sub-daily exceedance E** against the SAME verified nwhimalaya I-D curve over
+trailing windows of **0.5–24 h that cross midnight** (an overnight burst is credited to the day
+it ends in, never split), grades with the same watch_k=1/alert_k=2 convention, and emits a
+daily-E CSV + summary JSON. The dashboard gains a **"WHEN — sub-daily burst check"** card
+(latest satellite day + E + level chip, season burst-day counts, top burst, provisional flag on
+the still-arriving newest day) — framed explicitly as an **experimental second opinion: the
+validated alarm remains the daily gate** (this arm has no back-tested operating points yet;
+~11 km pixel; rain-only, no snowmelt). `live_alarm.py` refreshes it **non-fatally** before each
+dashboard regen (GEE down ⇒ the chain still completes; card stale/absent, never broken).
+
+**Freshness `[MEASURED]`:** IMERG in GEE probed current to **2026-07-17 08:30 UTC on 2026-07-18**
+(~1-day latency) vs the ERA5-Land daily gate's as-of 2026-07-12 — the burst card runs
+**5 days fresher** than the daily gate today.
+
+**Season 2026 by this lens (Apr 1 → Jul 17, 108 days) `[REAL]`:**
+- Ramban: 4 ALERT-grade / 12 WATCH-grade burst days; latest day 07-17 E=2.03 ALERT (provisional);
+  top burst 1 Jul (53.6 mm/6 h, E=6.27).
+- Vaishno Devi: **10 ALERT-grade** / 18 WATCH-grade burst days (the daily gate saw ZERO ALERT
+  days); latest day 07-17 **E=3.43 ALERT** (provisional); top burst 1 Jul (36.5 mm/3 h, E=6.4).
+- Honest reading of those counts: at short durations the same curve is far more sensitive, and
+  this arm's false-alarm rate is UNMEASURED — which is exactly why it ships as a second opinion,
+  not as the alarm.
+
+**Two-arm back-test on 2026's two verified events `[REAL]` — the arms are COMPLEMENTARY:**
+- **Himkoti 8 Jul (the §52 WATCH-only catch): sub-daily E=3.9 → ALERT** — a 22.2 mm/3 h burst
+  with the peak window ending 11:30 UTC ≈ 17:00 IST, i.e. the burst signature was in hand
+  **hours before the evening failure**. The §12c dilution bind, fixed on a real in-season event.
+- **Digdol 7 Apr (the §52 ALERT catch): sub-daily E=0.99 → below the line** — a multi-day
+  soaking (105 mm/5 d incl. snowmelt) with no single intense burst; the daily/multi-day arm is
+  the one that catches it (E=2.13 ALERT).
+- **Combined (max of the two arms): both 2026 verified events read ALERT at Δ=0.** Long-soak
+  failures belong to the daily arm, convective-burst failures to this one — the two-sensor
+  robustness line made operational.
+
+**Verified:** new hermetic 9-test suite (synthetic-burst E within 0.01 of hand computation at
+the right duration; midnight-crossing credit; provisional flagging; cache round-trip; summary
+schema; card render + page include/omit + corrupt-summary tolerance; suffix rule matches
+live_alarm). Full battery now SEVEN suites: **11+10+7+12+12+11+9 all green**; end-to-end
+`live_alarm` chain run for both sites (including the incremental no-op refetch at the latency
+edge); both regenerated dashboards verified on disk to carry the card with the correct values.
+
+**Roadmap delta:** LIVE roadmap #5 is now HALF done — **sub-daily: shipped (experimental)**;
+**per-zone/spatial IMERG** (per-zone E from the 0.1° grid instead of AOI-mean) remains open,
+as does earning this arm real operating points via back-testing when enough events accumulate.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

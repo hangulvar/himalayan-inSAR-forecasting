@@ -200,6 +200,59 @@ def load_historical_events(footprint_path: Path):
             "events": events}
 
 
+def load_imerg_summary(sfx: str):
+    """The sub-daily IMERG gate's season summary (imerg_gate.py), or None — the dashboard
+    card is skipped when the check hasn't run for this season (never another season's)."""
+    f = RAIN_DIR / f"imerg_gate_summary{sfx}.json"
+    if not f.exists():
+        return None
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt summary must not break the dashboard
+        return None
+
+
+def _imerg_card(im: dict, as_of: str) -> str:
+    """The 'sub-daily burst check' card: the same regional I-D curve applied to half-hourly
+    GPM IMERG — sharper (30-min bursts) and fresher (~1-day latency) than the daily gate,
+    framed honestly as an experimental second opinion with no back-tested operating points."""
+    latest, top = im.get("latest") or {}, im.get("top_burst_day") or {}
+    counts = im.get("level_counts", {})
+    lvl = latest.get("level", "DORMANT")
+    chip = (f'<span class="pill" style="background:{LEVEL_COLOR.get(lvl, "#999")}'
+            f'{";color:#333" if lvl == "DORMANT" else ""}">{lvl}</span>')
+    prov = (' <span style="color:#888">(provisional — the day is still arriving; '
+            'E can only rise)</span>' if latest.get("provisional") else "")
+    try:
+        fresher = (date.fromisoformat(latest["date"]) - date.fromisoformat(as_of)).days
+    except (KeyError, ValueError):
+        fresher = 0
+    fresh_txt = (f" — <b>{fresher} day(s) fresher</b> than the daily gate on this page"
+                 if fresher > 0 else "")
+    burst_txt = (f' · best burst {latest.get("burst_mm")} mm in {latest.get("duration_h")} h'
+                 if latest.get("duration_h") else "")
+    top_txt = (f'{top.get("date", "—")}: <b>{top.get("burst_mm")} mm in '
+               f'{top.get("duration_h")} h</b> (E={top.get("max_E")})' if top else "—")
+    return f"""  <div class="card">
+    <h2>WHEN — sub-daily burst check <span style="font-weight:400;font-size:12px">(GPM IMERG ·
+      experimental)</span></h2>
+    <div class="sub2">A second, independent rain sensor: half-hourly satellite rainfall (GPM
+      IMERG) screened against the SAME regional danger curve, but at short durations (30 min –
+      24 h). It catches the short, localised cloudbursts that a daily average dilutes — and it
+      runs only ~1 day behind real time. The two gates are complementary: long soaking wet
+      spells register on the daily gate; sharp bursts register here.</div>
+    <div class="big">E = {latest.get("max_E", "?")} {chip}</div>
+    <div style="font-size:13px;color:#444">newest satellite day <b>{latest.get("date", "?")}</b>{fresh_txt}{prov}{burst_txt}</div>
+    <p style="font-size:13px;margin:8px 0 2px"><b>Season by this lens:</b>
+      {counts.get("ALERT", 0)} ALERT-grade · {counts.get("WATCH", 0)} WATCH-grade burst days
+      (of {im.get("season", {}).get("days", "?")}). Biggest burst — {top_txt}.</p>
+    <p style="font-size:12px;color:#888;margin:6px 0 0">Experimental second opinion: the
+      validated alarm above remains the daily gate — this arm's thresholds are not yet
+      back-tested. Satellite rain is a ~11 km pixel average (a slope-scale burst can still
+      read low), it carries no snowmelt, and the newest day is provisional until complete.</p>
+  </div>"""
+
+
 def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
     out = []
     for e in E:
@@ -313,9 +366,15 @@ def main() -> int:
     per_zone = per_zone_live(ALERTS_DIR, dates[as_of_i].isoformat())
     # Curated historical-damage record — the Past-events tab (skipped when the site has none).
     hist = load_historical_events(Path(args.footprint))
+    # Sub-daily IMERG second opinion (imerg_gate.py) — card skipped when absent.
+    imerg = load_imerg_summary(sfx)
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
-                    hist)
+                    hist, imerg)
+    if imerg and imerg.get("latest"):
+        il = imerg["latest"]
+        print(f"IMERG sub-daily check: latest {il['date']} E={il['max_E']} ({il['level']}); "
+              f"season ALERT-grade burst days: {imerg['level_counts'].get('ALERT', 0)}")
     if hist:
         n_rev = sum(1 for e in hist["events"] if e.get("review_needed"))
         print(f"PAST EVENTS tab: {len(hist['events'])} documented events "
@@ -660,7 +719,8 @@ def _hist_panel(hist, lvl, as_of) -> str:
 
 
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
-                    alert_tier: dict, watch_tier=None, per_zone=None, hist=None) -> None:
+                    alert_tier: dict, watch_tier=None, per_zone=None, hist=None,
+                    imerg=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -847,6 +907,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     <table><tr><th>event</th><th>date</th><th>E</th><th>gate state</th></tr>
 {ev_rows}</table>
   </div>
+{_imerg_card(imerg, as_of) if imerg else ""}
 </div>
 {per_zone_html}
 

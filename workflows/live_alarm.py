@@ -143,7 +143,7 @@ def run(script: str, *args: str) -> None:
     subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
 
 
-def alarm_stage(season_csv: Path, suffix: str, threshold: str) -> None:
+def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> None:
     as_of = last_complete_day(season_csv)
     if as_of is None:
         raise SystemExit(f"alarm: {season_csv} missing/empty — run the fetch stage first "
@@ -153,6 +153,15 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str) -> None:
         "--threshold", threshold, "--out-suffix", suffix)
     run("per_zone_gate.py", "--csv", str(wetness_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat())
+    # Sub-daily IMERG burst check (imerg_gate.py, experimental §55) — refreshed BEFORE the
+    # dashboard so its card is current, but NON-FATAL: GEE down / earthengine-api absent /
+    # network trouble must never break the validated daily alarm chain (the card just goes
+    # stale or stays absent).
+    try:
+        run("imerg_gate.py", "--threshold", threshold, "--start", start.isoformat())
+    except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
+        print(f"imerg gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
+              f"a stale sub-daily card")
     run("operational_alarm.py", "--csv", str(season_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat(), "--out-suffix", suffix)
     print(f"\nLIVE alarm regenerated as-of {as_of} -> "
@@ -190,7 +199,7 @@ def main() -> int:
     if can_fetch:
         fetch_stage(season_csv, start, end)
     if can_alarm:
-        alarm_stage(season_csv, suffix, args.threshold)
+        alarm_stage(season_csv, suffix, args.threshold, start)
     return 0
 
 

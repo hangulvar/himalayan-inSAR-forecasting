@@ -38,6 +38,14 @@
   lag + cycle cadence), ⚠ amber >8 d (refresh likely missed), red >14 d "TREAT THE ALARM STATE
   AS UNKNOWN". Verified with the page's own script at 7/10/20 days; suite asserts the element +
   thresholds.
+- **★ NEW (§55, M48, CF14) — sub-daily IMERG burst gate SHIPPED (experimental).** The §12c fix:
+  `imerg_gate.py` (incremental half-hourly GPM IMERG via GEE, ~1-day latency — 5 days fresher
+  than ERA5 today) grades each day's peak burst vs the same nwhimalaya curve at 0.5–24 h;
+  "sub-daily burst check" card on both dashboards; non-fatal hook in `live_alarm.py`. Two-arm
+  back-test on 2026's verified events: **complementary** — Himkoti 8 Jul = burst-arm ALERT
+  (daily arm WATCH), Digdol 7 Apr = daily-arm ALERT (burst arm quiet); combined, both ALERT at
+  Δ=0. This arm has NO back-tested operating points (second opinion, card says so). Suites now
+  SEVEN (**11+10+7+12+12+11+9 green**). Remaining: per-zone IMERG from the 0.1° grid.
 - **§38's fabricated-event exclusion is now TEST-enforced** (closure-window + no-future-date
   assertions) — the immunization records became executable checks.
 - **(§50, M46 carried):** control panel + results hub live; repo restructured (`docs/INDEX.md`
@@ -67,9 +75,9 @@
 ## Recommended next step
 
 First: **user reviews the 2 remaining flagged rows (§52)** — settle or drop them. Then the
-product roadmap is unchanged (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
+product roadmap (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
 download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
-gap (Sentinel-2 optical change) and sub-daily IMERG. User-side: field check of the NE-flank CORE
+gap (Sentinel-2 optical change) and per-zone IMERG (§55's remaining half). User-side: field check of the NE-flank CORE
 target; merge to `master`; publish the dashboard. Day-to-day ops: start Docker at logon, then
 either let the scheduled cycle run or double-click `control_panel.bat` and press the button.
 
@@ -79,11 +87,13 @@ Session 27's work batches are ALL committed by the user: `c618ca2` (Past-events 
 records), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round + new-tab links), `4732cae`
 (§53 staleness guard), `87335d1` (season-chart readability pass).
 
-Still uncommitted (this final wrap only):
-- MODIFIED: `RESULTS_AND_KPIS.md` (§54), `error_history_log.md` (1 entry, 2026-07-18),
-  `SESSION_REVIEW.md` (this block).
-- Git-ignored as usual: journey entry (S27 cont. 3). Primer + milestone unchanged (readability
-  + ops rounds, no new science concepts; M47 already tells this feature's story).
+Still uncommitted (the §54 wrap docs + the §55 IMERG batch):
+- NEW: `workflows/imerg_gate.py`, `tests/test_imerg_gate.py` (9 tests).
+- MODIFIED: `workflows/operational_alarm.py` (sub-daily burst card), `workflows/live_alarm.py`
+  (guarded imerg hook), `RESULTS_AND_KPIS.md` (§54+§55), `milestone.md` (M48), the primer
+  (CF14 + Part D two-gates question + Part E limitation), `error_history_log.md` (1 entry,
+  2026-07-18), `SESSION_REVIEW.md` (LIVE + three STABLE roadmap facts).
+- Git-ignored as usual: journey entries (S27 cont. 3–4).
 
 ---
 
@@ -176,8 +186,10 @@ The core vision is fully built and scored above chance. Remaining work:
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
    decomposition (DEFERRED — needs better DESC: longer connected series / PS / phase-linking).
 3. **Make it live / smarter:** ✅ live rainfall ingestion DONE (`live_alarm.py` incremental ERA5-Land
-   + one-command alarm regen; 2–3-day runbook 2026-07-11 — remaining upgrade is sub-daily/per-zone
-   IMERG, LIVE roadmap #5). Still open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM
+   + one-command alarm regen; 2–3-day runbook 2026-07-11). ✅ **Sub-daily IMERG burst gate DONE
+   2026-07-18 (§55, experimental second opinion** — `imerg_gate.py` + dashboard card + non-fatal
+   live_alarm hook; remaining: per-zone IMERG from the 0.1° grid + earning this arm back-tested
+   operating points). Still open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM
    ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
 5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on
@@ -195,7 +207,8 @@ improvements until shown to matter.
 
 **Where the MVP is weakest today:** ~30 mm/yr velocity noise floor; single-look (no true 3-D motion);
 uniform soil strength (site-corroborated §20/§37, but one value per AOI) + dry/sat end-members +
-TWI-proxy downstream flag; AOI-mean daily rainfall (live, but not sub-daily/per-zone); a
+TWI-proxy downstream flag; rainfall now two-arm (daily AOI-mean validated + sub-daily IMERG
+experimental §55) but still not per-zone, and the burst arm lacks back-tested operating points; a
 static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 
 - **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), ✅ GACOS cross-check (VD, §40 — mixed
