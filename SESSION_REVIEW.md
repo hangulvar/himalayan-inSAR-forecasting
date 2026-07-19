@@ -68,6 +68,14 @@
   (§56):** 8 winter dates + 3 GUNW over both AOIs → the L-vs-C coherence pilot is runnable
   NOW; operational stream absent here, recheck monthly. **Active plan:**
   `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **★ NEW (§60, M50, CF15) — Plan Tiers 3+4 EXECUTED (suites now NINE, 89 tests green).**
+  3a: the ML challenger mostly READ THE ROAD (LR 0.731 → 0.560 without elevation ≈ physics
+  0.575; corridor bias laundered into "skill" — an argument FOR the physics map). 3c:
+  temporal-skill table now a committed, tested artifact. 4a: optical change on Ardhkuwari =
+  MARGINAL (failed-to-green anomaly, worst 6.4%; screening-grade). 4c: **real D8 routing flips
+  11/22 LLOF flags (Ramban 1/8 agree) — routed swap SCHEDULED post-merge** (validated
+  products deliberately untouched). User actions open: GACOS form (values printed), soil lab.
+  Deferred: 4d frames-101/102 rescue (multi-session compute).
 - **★ NEW (§58, M49) — Plan Tier 1 EXECUTED.** Burst arm CALIBRATED on six verified events:
   **ALERT at E≥3** (all fatal events caught, flagged days halved); **gauge bias measured —
   IMERG = 0.16–0.22× the Katra gauge on the extreme anchors** (never raise k); per-zone IMERG
@@ -110,13 +118,16 @@ Session 27's work batches are ALL committed by the user: `c618ca2` (Past-events 
 records), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round + new-tab links), `4732cae`
 (§53 staleness guard), `87335d1` (season-chart readability pass).
 
-Still uncommitted (the §54 wrap docs + the §55 IMERG batch):
-- NEW: `workflows/imerg_gate.py`, `tests/test_imerg_gate.py` (9 tests).
-- MODIFIED: `workflows/operational_alarm.py` (sub-daily burst card), `workflows/live_alarm.py`
-  (guarded imerg hook), `RESULTS_AND_KPIS.md` (§54+§55), `milestone.md` (M48), the primer
-  (CF14 + Part D two-gates question + Part E limitation), `error_history_log.md` (1 entry,
-  2026-07-18), `SESSION_REVIEW.md` (LIVE + three STABLE roadmap facts).
-- Git-ignored as usual: journey entries (S27 cont. 3–4).
+Committed through `9d51fbd` (Tiers 1+2). Still uncommitted (the §60 Tiers-3+4 batch + wrap):
+- NEW: `workflows/{susceptibility_crosscheck,optical_change,flow_routing_probe}.py`,
+  `tests/test_tier34.py` (6 tests), `data/inventory/temporal_skill_table.csv` (committed
+  standing table; gitignore re-include).
+- MODIFIED: `.gitignore`, `RESULTS_AND_KPIS.md` (§60), `milestone.md` (M50), the primer
+  (CF15 + Part D ML question), `docs/references/STRENGTHENING_PLAN_2026-07-18.md` (Tier 3/4
+  checkmarks), `error_history_log.md` (D8 edge bug), `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entries (S27 cont. 5–8).
+- **Next after merge:** the routed-LLOF validated swap (§60 4c), the Ramban cadence rebuild
+  (§57 — unblocked), GACOS form + soil lab (user).
 
 ---
 

@@ -1716,3 +1716,41 @@ automatically), it earns a permanent place in the pipeline.
 **Bottom line:** the burst sensor now has evidence-based rules and an honest bias sheet; the
 per-zone idea was measured and politely declined; and the next-generation satellite proved, on
 our own slopes, that it can see where we currently cannot.
+
+## ✅ Milestone 50 — Three hard questions, three honest answers  *(Plan Tiers 3+4, 2026-07-18)*
+
+**What we set out to do:** answer the three toughest "but have you checked…?" questions still
+hanging over the project. Would a machine-learning map beat our physics? Can ordinary satellite
+photos see the fast rockfalls our radar can't? And is the shortcut we use for "where would
+debris flow?" actually good enough?
+
+**Question 1 — ML vs physics.** We built a statistical landslide-susceptibility model from
+terrain data and scored it against our physics map on the same 112 field-verified landslides.
+At first glance the statistical model wins. Then we looked at *what it learned*: almost
+entirely "low elevation = landslide" — which is really "landslides get RECORDED along the
+valley highway". Remove elevation and its advantage vanishes completely. The lesson is worth
+the whole exercise: **a model trained on where people report landslides learns where people
+walk, not where mountains fail** — and our physics map, which cannot cheat that way, is the
+more honest instrument.
+
+**Question 2 — can photos see the rockfall?** We compared satellite images from before and
+after the Ardhkuwari disaster. Everything around the site turned greener after the monsoon —
+except the disaster site itself, which conspicuously failed to green (in the worst 6% of the
+whole area). A real signature, but not scream-off-the-page strong: a narrow rocky chute is at
+the limit of what 20-metre pixels resolve. Verdict, honestly graded: good enough for
+*screening* after an event, not yet a *detector* — sharper imagery is the named upgrade.
+
+**Question 3 — the debris-flow shortcut.** We computed real water routing over the terrain —
+which slopes actually drain into big channels — and compared it with the quick proxy the
+system has used. They disagree on **half the hazard zones** (on the Ramban highway, seven of
+eight). That settles it: the proxy gets replaced with real routing in a properly re-scored
+run right after the merge.
+
+**Also:** the growing table of "which events did each alarm arm catch, and how fast" is now a
+permanent, tested project artifact — three fatal events, all caught on the day by at least one
+arm. Two items wait on the user: the GACOS atmospheric-correction request (form values are
+printed and ready) and the soil lab tests.
+
+**Bottom line:** the ML challenger turned out to be reading the road; the camera can screen but
+not yet detect; and the plumbing shortcut is now scheduled for honest replacement. Every answer
+made the product more trustworthy — including the ones that found our own shortcuts wanting.

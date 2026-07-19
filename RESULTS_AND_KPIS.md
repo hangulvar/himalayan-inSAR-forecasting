@@ -2668,6 +2668,54 @@ chain (combined line verified on disk: Ramban WATCH / VD ALERT).
 
 ---
 
+## 60. Plan Tiers 3+4 EXECUTED: the statistical map mostly reads the road; optical change is screening-grade; the TWI proxy flips half the LLOF flags  `[REAL]`
+*(2026-07-18, session 27 cont. — NEW `susceptibility_crosscheck.py`, `optical_change.py`, `flow_routing_probe.py`, committed `data/inventory/temporal_skill_table.csv`; suite `tests/test_tier34.py`)*
+
+**3a — Susceptibility cross-check: the "would ML beat the physics?" answer is a bias lesson.**
+Terrain-only logistic regression (elevation, slope, TWI, curvature, roughness; IRLS, 5-fold
+CV; 112 GSI positives vs 2,000 seeded random negatives on the frame106 80 m grid):
+- LR CV AUC **0.731 ± 0.046** vs the raw physics pixel score (−FS_saturated) **0.575** — the
+  statistical map "wins"… but its dominant weight is **elevation at −0.98**, and removing
+  elevation collapses the LR to **0.560 ± 0.039** — statistically indistinguishable from the
+  physics score. **The LR's skill is mostly the corridor reporting bias** (the GSI inventory
+  hugs the low-elevation NH-44 valley) laundered into "susceptibility". The physics map cannot
+  and should not learn where people record landslides — an argument FOR its independence, and
+  a caution against training susceptibility models on corridor inventories. (Protocol note:
+  this raw-pixel point protocol is NOT comparable to the §16/§44 zone-buffer AUCs.)
+  Ensemble 0.691 (no gain over LR — consistent with the bias story).
+- **3c** — the standing **temporal-skill table is now a COMMITTED artifact**
+  (`data/inventory/temporal_skill_table.csv`, gitignore re-include, schema+consistency
+  tested): 6 verified events × both arms × Δ; grows with each §38-rule verification.
+- **3b** — GACOS handoff prepared: `gacos_request.py` printed the exact form values (times +
+  missing dates per track) — the submission itself is the user's step.
+
+**4a — Optical change (S2 dNDVI), back-tested on Ardhkuwari: MARGINAL — screening-grade.**
+Cloud-masked medians (pre Jun–Aug 2025, post Sep 26–Nov 15 post-monsoon; 8/12 images, 20 m):
+the AOI GREENED after the monsoon (median dNDVI **+0.198**) while the verified scar
+neighbourhood **failed to green** (dNDVI +0.013, deficit 0.185) — the worst **6.4%** of the
+AOI, a clear local anomaly but outside the extreme-5% tail. A narrow rocky debris chute sits
+at the limit of 20 m NDVI. Honest grade: usable for post-event **screening** with caveats;
+higher-resolution imagery or coherence-tripwire fusion (CV5) is the upgrade. Two documented
+method traps en route: the tight post-monsoon window was 100% cloud-masked at the scar
+(honest data-gap abort), and the naive Oct-long window diluted the signal (41st percentile).
+
+**4c — Flow-routing probe: the TWI proxy is NOT a stand-in — 11/22 zones flip.** Real D8
+upstream-area routing (full-frame catchments, ≥0.5 km² within ~240 m of the zone) vs the
+TWI-proxy `llof_potential`: **Ramban agrees on only 1/8 zones** (5 routed-only + 2
+proxy-only flips), VD 10/14. Verdict: divergence is material — **schedule the validated swap
+to routed LLOF as a scored re-run (post-merge)**; the validated products were deliberately
+NOT touched pre-merge.
+
+**Deferred with reasons:** 4b soil lab (user-side field/lab, §42); 4d frames-101/102 ERA5
+rescue (multi-session MintPy compute — not a pre-merge item).
+
+**Verified:** new suite `tests/test_tier34.py` (AUC/IRLS on synthetic separable data, optical
+stats, a D8 valley test that also pins the off-grid edge fix, temporal-table schema +
+fatal-events-always-caught, report-artifact checks). Full battery now NINE suites:
+**11+10+7+12+12+11+14+6+6 = 89 green.**
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

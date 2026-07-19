@@ -1199,6 +1199,36 @@ the validated daily alarm is untouched.
 
 ---
 
+## CF15. When the clever model is just reading the road — reporting bias in inventories
+
+CF6 taught us to grade maps against a landslide inventory. This section is the trap hidden in
+that idea (Milestone 50): **an inventory records where landslides were *noticed*, not where
+they *happened***. Ours hugs the NH-44 highway — because that is where the GSI surveys, where
+traffic stops, where reporters stand.
+
+We built a statistical susceptibility model (logistic regression on terrain: elevation, slope,
+wetness, curvature) and scored it against the physics map on the same 112 verified points. The
+statistical model "won" — until we read its weights: nearly all of its skill was one feature,
+**low elevation**, which in this valley simply means *near the highway*. Removing that single
+feature erased its entire advantage. **Everyday analogy:** train a model to find lost keys
+from past discoveries and it will learn "keys are found under streetlights" — because that is
+where people look, not where keys fall.
+
+> A model trained on a biased inventory learns the bias, fluently, and calls it skill.
+
+The physics map cannot learn where people look — it only knows slopes, water and strength.
+That *independence* is precisely its value, and why the ensemble of the two gained nothing:
+the statistical half brought mostly bias to the table. The general rule: before celebrating
+any data-driven hazard model, ask *what its features are proxies for* — and test by deleting
+the suspicious one.
+
+🔗 **In our project: Milestone 50 / §60.** `susceptibility_crosscheck.py` — LR CV AUC 0.731 →
+0.560 without elevation, vs physics 0.575 on the same raw-pixel protocol (deliberately not
+comparable to the §16/§44 zone-buffer scores). The corridor bias itself is an old friend:
+CV3/CV4 already carried it as the inventory's documented caveat; this experiment measured it.
+
+---
+
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
 
 ## CV1. What travels with the tool — and what must be earned again
@@ -1681,6 +1711,14 @@ quiet), the 8 Jul Himkoti slide was a burst (burst arm ALERT hours ahead, daily 
 WATCH). Combined, both read ALERT on the day. The burst arm stays labelled experimental until
 it earns back-tested thresholds of its own — at short durations the curve trips easily and its
 false-alarm rate is unmeasured.
+
+**Q: Wouldn't a machine-learning susceptibility model outperform your physics map?**
+A: We tested exactly that (CF15/§60). A terrain logistic regression beat the raw physics score
+on our inventory — but almost all its skill came from one feature, low elevation, which in
+this valley is a proxy for "near the highway where landslides get recorded". Delete that
+feature and the advantage vanishes. On a corridor-biased inventory, an ML map launders
+reporting bias into apparent skill; the physics map can't do that, which is its point. The
+right use of ML here is as a bias detector and a challenger — not as the product.
 
 # Part E — Honest Limitations
 

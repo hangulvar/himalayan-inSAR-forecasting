@@ -60,30 +60,29 @@ Grounded in the availability checks run this day (ledger §56) and the standing 
 - **2c ✅:** NISAR stream watch in `radar_watch.py` (non-fatal; currently "winter sample
   only, newest 18 Jan 2026"). Next NISAR action waits on the forward stream.
 
-## Tier 3 — Validation depth (2–4 weeks, interleaved)
+## Tier 3 — Validation depth — ✅ EXECUTED 2026-07-18 (§60; 3b awaits the user's form)
 
-- **3a — Susceptibility cross-check (Area 4 backlog).** LR/RF on DEM derivatives (slope,
-  curvature, TWI, relief, aspect, drainage/road distance) vs the 138-point GSI inventory,
-  k-fold AUC under the SAME protocol as the physics map; then the ensemble (physics ∩
-  statistical). Answers the reviewer question "does physics beat a statistical map here?" —
-  strengthens the claim whichever way it lands.
-- **3b — GACOS second pull** (§0b tooling ready; user submits the form, ingest + §40
-  crosscheck close the discrepancy pair).
-- **3c — Standing temporal-skill table.** Formalize the growing record (event × arm × Δ days:
-  Digdol daily-arm ALERT Δ=0; Himkoti burst-arm ALERT Δ=0; the 2025 trio) as a committed
-  ledger table that each verified event extends — this is the accumulating evidence base that
-  eventually validates the burst arm properly.
+- **3a ✅ — the bias lesson:** terrain LR 0.731 CV AUC "beats" the raw physics pixel score
+  (0.575) — but drop elevation and it collapses to 0.560: the LR mostly learned the
+  corridor reporting bias (valley = where landslides get recorded). Argument FOR the physics
+  map's independence; caution for any inventory-trained ML map. `susceptibility_crosscheck.py`.
+- **3b — USER ACTION:** GACOS form values printed (`gacos_request.py`); submit → ingest →
+  §40 crosscheck.
+- **3c ✅:** `data/inventory/temporal_skill_table.csv` — committed, schema-tested, grows per
+  §38-rule verification (6 events, all 3 fatal caught at Δ=0 by ≥1 arm).
 
-## Tier 4 — Structural science (month+; waiting on data or the user)
+## Tier 4 — Structural science — partially executed 2026-07-18 (§60)
 
-- **4a — Failure-class gap (CV3):** Sentinel-2/Landsat optical change (NDVI/bare-soil delta)
-  as the brittle-failure detector, fused with the coherence tripwire; back-test on the 26 Aug
-  2025 Ardhkuwari disaster (before/after imagery exists).
-- **4b — Soil M2 lab pass** (user-side; §42 showed failure depth/strength is load-bearing).
-- **4c — Flow-routing LLOF:** replace the TWI proxy with D8/D∞ routing on the DEM.
-- **4d — Per-stack ERA5 reference-pixel + unwrapping QC** (§22): rescue frames 101/102 →
-  deeper multi-look confirmation.
-- **4e — Merge `aoi-vaishnodevi` → master; hosted dashboard** (user calls).
+- **4a ✅ (MARGINAL):** S2 dNDVI back-test on Ardhkuwari — the scar failed to green while the
+  AOI greened (deficit 0.185, worst 6.4%): screening-grade, not detector-grade at 20 m;
+  upgrade = high-res imagery or CV5 coherence fusion. `optical_change.py`.
+- **4b — USER ACTION:** soil M2 lab pass (§42 load-bearing).
+- **4c ✅ (probe) → swap SCHEDULED post-merge:** real D8 routing flips **11/22** LLOF flags
+  (Ramban 1/8 agree) — the TWI proxy is not a stand-in; do the validated swap as a scored
+  re-run after the merge. `flow_routing_probe.py`.
+- **4d — DEFERRED (multi-session MintPy compute):** frames-101/102 ERA5 rescue.
+- **4e — IN PROGRESS:** merge `aoi-vaishnodevi` → master (PR prepared this session);
+  hosted dashboard after.
 
 ## Risk register
 

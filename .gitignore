@@ -153,6 +153,7 @@ data/inventory/*
 !data/inventory/vaishnodevi_documented_landslides.geojson
 !data/inventory/ramban_historical_events.json
 !data/inventory/vaishnodevi_historical_events.json
+!data/inventory/temporal_skill_table.csv
 
 #CLAUDE-2.0-2024-06-11
 CLAUDE.md

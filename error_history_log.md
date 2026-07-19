@@ -1308,3 +1308,19 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   downstream QA reject what doesn't pair. And when a data feed "goes quiet", binary-search the
   layers (source catalog → mirror → your own filter) before attributing delay upstream: two of
   the three layers had data the whole time.
+
+### [2026-07-18] D8 router sent edge cells to out-of-bounds indices (infinite drop to a -inf pad)
+
+* **Symptom:** first run of flow_routing_probe.py crashed with IndexError: a flow target index
+  beyond the array.
+
+* **Root Cause:** neighbours outside the frame were padded with -inf elevation; drop = z-(-inf)
+  = +inf made the off-grid cell the "steepest descent" — and its flat index was out of bounds.
+
+* **Resolution:** drop is defined only where BOTH cells are finite (else -inf), so edge and
+  nodata cells become off-map sinks; a synthetic-valley unit test now pins the behaviour
+  (including a NaN-hole DEM).
+
+* **Lesson:** padding with sentinel values changes the ARGMAX, not just the values — any
+  "pick the best neighbour" kernel must exclude sentinel cells from candidacy explicitly, and
+  edge behaviour deserves its own test case.
