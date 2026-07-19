@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VaishnoDevi_Trikuta_Corridor",
+        "description": "Katra -> Banganga -> Adhkuwari -> Sanjichhat -> Bhawan (33.0299N 74.9482E) -> Bhairon temple pilgrimage corridor on the Trikuta massif, incl. Tarakote Marg, the Bhawan-Bhairon ropeway, and the slopes above the track. Anchors verified against OSM (Katra 32.983N 74.935E; trek start 32.998N 74.940E; Bhawan 33.027N 74.945E; Bhairon 33.025N 74.945E), padded ~2 km."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [74.905, 32.960],
+            [74.985, 32.960],
+            [74.985, 33.055],
+            [74.905, 33.055],
+            [74.905, 32.960]
+          ]
+        ]
+      }
+    }
+  ]
+}

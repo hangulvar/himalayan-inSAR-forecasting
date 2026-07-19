@@ -1,33 +1,37 @@
 # 🏔️ Geospatial Analysis & Hazard Monitoring in the Western Himalayas
 
-A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into an automated, explainable hazard warning. The case study is the **NH-44 corridor through Ramban, Jammu & Kashmir** — a known landslide-prone segment with documented historical failures.
+A geospatial data science project that detects landslide-prone slopes from space and turns the measurement into ranked, explainable **decision support**: which slopes deserve inspection, and when vigilance should rise. Two live case studies in Jammu & Kashmir: the **NH-44 corridor through Ramban** (the original build) and the **Vaishno Devi pilgrimage corridor on the Trikuta massif** (the point-anywhere replication — disaster-validated, and in live WATCH through the 2026 monsoon).
 
-### 🎉 Status: full end-to-end MVP complete (Phases 1 – 4 Part A)
+### 🎉 Status: a validated two-site decision-support prioritization prototype
 
-The whole chain runs start to finish on a pathfinder satellite stack:
+**The claim, precisely:** this product **ranks WHERE to inspect and WHEN to heighten vigilance**, scored against verified landslide inventories. It is **not a warning system** — it does not predict individual landslides, and no safety, travel, or evacuation decision should rest on it. That smaller claim is the honest one, and every number behind it is validated and committed.
 
-> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → automated, explainable rainfall-driven alerts + browser dashboard.**
+The full chain — built and hardened on Ramban, then re-pointed at a second AOI by editing one config file:
+
+> **raw Sentinel-1 radar → clean, audited data → ground-movement velocity → physics-based hazard map → explainable, rainfall-gated prioritization (two-tier ALERT/WATCH) + browser dashboard (with a plain-language Guide tab).**
 
 | Phase | What it does | Status |
 |---|---|---|
-| **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Complete |
-| **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Pathfinder (1 of 5 stacks) |
-| **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Pathfinder |
-| **4A — Agentic warning system** | 3-agent orchestrator → geolocated alerts + HTML dashboard | ✅ Complete |
-| **4B — Interactive 3-D UI** | Draped-terrain 3-D hazard explorer (`dashboard_3d.html`) | ✅ Complete |
+| **1 — Data pipeline & integrity** | Fetch Sentinel-1, mask noise, audit atmosphere, verify network | ✅ Both sites |
+| **2 — SBAS velocity inversion** | Interferograms → LOS displacement time-series + mean velocity | ✅ Multi-stack union |
+| **3 — Geomechanical engine** | Slope + TWI + Infinite-Slope Factor of Safety, fused with creep | ✅ Site-calibrated soils |
+| **4A — Agentic decision support** | Two-tier ALERT/WATCH footprints × rainfall gate × per-zone ranking | ✅ Live at both sites |
+| **4B — Interactive UIs** | 3-D hazard explorer + publish-ready operational dashboard | ✅ Complete |
 
-#### Beyond the MVP — production hardening + a forecasting/validation investigation
+#### Beyond the MVP — the validation and operations arc
 
-The MVP is the *foundation*; substantial post-MVP work has since landed (full detail + every headline number in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md)):
+Full detail + every headline number lives in the **committed** [RESULTS_AND_KPIS.md](RESULTS_AND_KPIS.md) (cited below by §); live state in [SESSION_REVIEW.md](SESSION_REVIEW.md):
 
-- **Reproducibility & scale:** Dockerized (Linux container); AOI-parameterized; all **3 ascending stacks** inverted into a **union hazard mosaic**. The 2 descending stacks were evaluated and honestly **rejected** as too noisy.
-- **Field-standard cross-check:** **MintPy + ERA5 tropospheric correction** corroborates the custom SBAS engine on frame106 (agreement r ≈ 0.55–0.59 after correction).
-- **Hazard → forecast:** **inverse-velocity time-to-failure** (Fukuzono) screening, and **slope-parallel velocity (V_slope)** projection that quantifies the single-look blind spot and improves cross-geometry agreement.
-- **Rainfall-trigger investigation (a worked, honest scientific arc — incl. a self-correction):** real ERA5-Land rainfall + a **verified regional Himalayan intensity–duration curve**, cross-checked against **CHIRPS** and **half-hourly GPM IMERG** (via Google Earth Engine), back-tested against documented 2025 failures, plus a per-elevation freeze-thaw + chronic-saturation analysis. **Key finding (after a date correction):** the deadly **20 April 2025 Ramban cloudburst** (3 deaths; NH-44 washed out at 5 sites) **was acute-rainfall-triggered, and the model detects it** — the regional curve flags it at Δ=0 and sub-daily IMERG resolves the burst (E=2.25). An earlier "rainfall ruled out" reading turned out to be an **artifact of an imprecise news date** (our inventory had 27 Apr; the real disaster was 20 Apr). The refined picture: **primed slopes** (snowmelt/saturation/freeze-thaw) **+ a cloudburst trigger** — the model captures *both*; the smaller 8 May event stays marginal. A standing caveat: daily *AOI-mean* products dilute the localized cell, so sub-daily/point data is what resolves it. Next: a **verified landslide inventory (GSI Bhukosh)** for a scored test.
+- **Reproducibility & scale:** Dockerized; AOI-parameterized (`config.yaml` points the whole pipeline at a new site); ascending stacks inverted into a **union hazard mosaic**; the descending stacks evaluated and honestly **rejected** as too noisy. **MintPy + ERA5** cross-check corroborates the custom SBAS engine (§9).
+- **The operational warning (Ramban, §16–§25):** a **two-tier ALERT/WATCH** product with per-zone detection confidence, triage ranking, and a regional intensity–duration **rainfall gate** — the scored back-test beats chance, and a worked self-correction (a wrong news date had inverted a conclusion — §12g) set the project's verified-ground-truth rule.
+- **The second site (Vaishno Devi, §26–§32):** the entire pipeline re-pointed at the Trikuta shrine corridor; **validated against the 26 Aug 2025 Ardhkuwari disaster** (temporal Δ=0 catch + beats-chance spatial score, §31) with operating points earned by a local sweep (§32), on a 12.5 m DEM (§30).
+- **Route exposure & field targets (§28, §33–§34):** per-segment track exposure, a 2-track-confirmed creep target with field briefs + GPS KMLs, and a **fast-failure toolkit** for the brittle rockfall class — per-cycle coherence-drop tripwire, energy-line runout screen (the shrine complex sits in the LIKELY cone), and an institutional-records cross-check.
+- **Soil parameters site-corroborated (§36–§38):** site literature (incl. a pathway back-analysis paper) brackets every strength value in use — the "borrowed soils" caveat is retired; temporal validation now rests on **two independent fatal events, both caught on the day** (Ardhkuwari §31 + the 21 Jul 2025 Banganga landslide §38).
+- **Live operations (§35):** a routine radar-cadence cycle (resubmit → QA → invert → re-score) plus a rainfall-refresh loop; the monsoon onset flipped the VD site **DORMANT → WATCH** on 2026-07-04, with all vulnerable zones active — the per-zone gate doing exactly what it was built for.
 
-This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** (the 20 Apr date correction inverted an earlier finding) — is the project's scientific posture, and the explicit path toward a defensible, publishable tool.
+This honest style — every result tagged `[MOCK]`/`[REAL]`/`[MEASURED]`, negatives reported as plainly as positives, **and conclusions revised when the evidence changes** — is the project's scientific posture. The dashboard is a **decision-support prioritization prototype — not a warning system**: it ranks where to inspect and when vigilance should rise, does not predict individual landslides, and says so prominently.
 
-**New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
+**New here? Read [SESSION_REVIEW.md](SESSION_REVIEW.md) first** (the living "start here" dashboard), then [milestone.md](milestone.md) for the plain-language story. Deep detail lives in [session_journey.md](session_journey.md) (decisions) and [error_history_log.md](error_history_log.md) (bugs + fixes). The science is in [docs/guides/Foundations - Physics and Maths Primer.md](docs/guides/Foundations%20-%20Physics%20and%20Maths%20Primer.md).
 
 ---
 
@@ -42,14 +46,21 @@ Geospatial Analysis Himalayas/
 ├── milestone.md                    # Plain-language story of each milestone (for humans)
 ├── session_journey.md              # Session-by-session decisions and reasoning
 ├── error_history_log.md            # Every bug + root cause + fix from this project
-├── InSAR_hazard_forecasting_Context.md  # Original project vision + roadmap
+├── RESULTS_AND_KPIS.md             # Committed ledger of every headline KPI/finding
 │
 ├── .gitignore                      # Blocks credentials and large rasters from Git
-├── .netrc.template                 # NASA Earthdata + CDSE + USGS credential setup
-├── .env.template                   # Optional API keys (Mapbox, GEE, etc.)
 ├── environment.yml                 # Conda-forge environment spec (insar_qa_env)
 ├── requirements.txt                # Pip fallback (NOT recommended for geospatial)
-├── ramban_aoi.geojson              # Area-of-Interest polygon (Ramban / NH-44)
+├── config.yaml                     # ★ ACTIVE-SITE pointer (one line into config/)
+├── control_panel.bat               # Double-click launcher: local control panel + results hub
+│
+├── docs/                           # 📚 ALL reading material (see docs/INDEX.md)
+│   ├── INDEX.md                        # What to read, in which order, for what purpose
+│   ├── guides/                         # Primer, project vision, pipeline guide
+│   ├── runbooks/                       # NEW_AOI_PLAYBOOK, publishing checklist
+│   ├── briefs/                         # Field briefs, VD watchlist, landslide inventory notes
+│   ├── references/                     # Literature PDFs
+│   └── archive/                        # Superseded docs (+ local/ = git-ignored notes)
 │
 ├── workflows/                      # Pipeline scripts (by phase)
 │   ├── submit_hyp3_jobs.py             # P1: ASF HyP3 InSAR submission (SBAS N=3)
@@ -65,7 +76,8 @@ Geospatial Analysis Himalayas/
 │   ├── geomechanical_engine.py         # P3: slope + TWI + Factor of Safety + hazard fusion
 │   ├── agentic_orchestrator.py         # P4A: 3-agent warning system → alerts + dashboard
 │   ├── build_3d_dashboard.py           # P4B: interactive 3-D hazard explorer (HTML)
-│   ├── proj_pipeline_AOI.md            # Future AOI shortlist
+│   ├── aoi_status.py                   # Multi-AOI status dashboard + next-step guide
+│   ├── control_panel.py                # Local one-click control panel + results hub
 │   └── .gitkeep
 │
 ├── tests/
@@ -85,12 +97,12 @@ Geospatial Analysis Himalayas/
 │
 ├── logs/                           # Run logs from every workflow script
 │
-├── Research/                       # Background literature + the science primer
-│   ├── Foundations - Physics and Maths Primer.md   # Beginner science base (Phases 1–4A)
-│   ├── Joshimath InSAR.pdf  ·  Meteorology.md  ·  ...
-│
 ├── src/                            # Reserved for reusable modules (currently empty)
-└── config/                         # Reserved for parameter specs (currently empty)
+└── config/                         # ★ Per-AOI config REGISTRY (one YAML per site)
+    ├── ramban.yaml                     # Ramban NH-44 (the original build)
+    ├── vaishnodevi.yaml                # Vaishno Devi — Trikuta corridor
+    ├── aoi/                            # AOI polygons + route lines (GeoJSON, EPSG:4326)
+    └── templates/                      # Committable credential templates (.env/.netrc/.cdsapirc)
 ```
 
 ---
@@ -288,9 +300,18 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
 
 ### Configuration, multi-stack & MintPy (current)
 
-- **`config.yaml`** controls the AOI, job-name prefix, time window, baseline rules,
-  and the connectivity-rescue gate — point the pipeline at a new valley by editing it
-  (no code edits). Scripts read it via `workflows/config.py` (`--config` to override).
+- **The AOI config registry (`config/*.yaml`)** — one YAML per site holds everything
+  site-specific: AOI polygon, job-name prefix, time window, **soil shear-strength
+  (`soil:` block)**, operating points (`operational_m`/`watch_m`), baseline rules and
+  the connectivity-rescue gate. The root **`config.yaml` is a one-line
+  `active_config:` pointer** selecting the default site; target any other site
+  per-command with `-e INSAR_CONFIG=config/<aoi>.yaml` (works for every script) or
+  `--config` where exposed. Point the pipeline at a new valley with **zero code
+  edits** — full recipe incl. the manual steps: **[NEW_AOI_PLAYBOOK.md](docs/runbooks/NEW_AOI_PLAYBOOK.md)**.
+- **Multi-AOI status dashboard:** `python workflows/aoi_status.py` — one card per
+  registry site: stage checklist (incl. manual steps), current alarm level / live
+  zones / rainfall freshness, and the exact next command. Writes
+  `data/aoi_status.html` + `.json`; read-only and env-light (runs natively).
 - **One-time (existing Ramban data):** seed the product→stack manifest with
   `python workflows/stacks.py --seed-legacy` (new AOIs get it from the downloader).
 - **Automated, quality-gated connectivity rescue:**
@@ -301,7 +322,9 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   product (`data/mosaic/`, `data/alerts/mosaic_asc/`) for four scenarios: the mock
   `dry`/`monsoon`/`extreme` what-if cascade **plus** `operational` — the **rainfall-realistic
   standing product** (saturation **m=0.50** under the matric-suction FS physics §20 + the 12.5 m ALOS DEM
-  §21) that scores **AUC 0.64 — the project's best** in the back-test (`RESULTS_AND_KPIS.md` §16d/§20/§21).
+  §21 + **TWI-distributed saturation** kappa=0.06 §45) that scores **AUC 0.68 [0.64–0.72], p=0.0001**
+  at Ramban (VD **0.76 [0.72–0.79]**, the project best) in the back-test
+  (`RESULTS_AND_KPIS.md` §16d/§20/§21/§45; interval + permutation p + ablation ladder from §44).
   Add `--use-vslope`
   for the parallel downslope-projected product (`data/mosaic_vslope/`).
 - **MintPy (field-standard SBAS, separate image):** `python workflows/prep_mintpy.py
@@ -353,6 +376,30 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   P=1−Π(1−p). Writes confidence-filtered `alerts_<scenario>_conf{,70,90}.json` (scoreable by
   `backtest_inventory.py`). Honest finding: this measurement confidence is orthogonal to inventory AUC — a
   triage axis, not a spatial ranker.
+- **Validation statistics — CIs, significance, and the ablation ladder (§44):**
+  `python workflows/validation_stats.py [--scenario operational|watch]` — bootstrap 95% CIs on
+  AUC/recall (inventory resampled, B=10,000), a permutation p-value for "beats chance", and a
+  dumb-baseline **ablation ladder** (slope-only, logistic slope+TWI, physics-only, creep-only)
+  scored with the identical zone/centroid/distance-ROC protocol. Headline claims cite the
+  interval, not the point. After the §45 TWI-distributed-saturation upgrade (kappa=0.06): Ramban
+  operational **AUC 0.68 [0.64–0.72], p=0.0001, beats every ladder rung**; Vaishno Devi operational
+  **0.76 [0.72–0.79], p=0.0001** — kappa lifted VD from a §44 *tie* with a tuned slope-only map to a
+  point-estimate lead over it (and the best logistic rung), with 14 zones vs 155/218. Dashboards read
+  the intervals live.
+- **TWI-distributed saturation (§45):** the `kappa` config key gives each pixel
+  m_i = clip(m + kappa·(TWI_i − TWI_mean), 0, 1) — wet convergent terrain saturates first — swept
+  per site via `python workflows/rainfall_selectivity_backtest.py --kappas 0,0.03,0.06,0.10,0.15,0.20`
+  (both AOIs peaked at 0.06). kappa REDISTRIBUTES saturation spatially while preserving the AOI-mean
+  wetness (= the rainfall proxy); kappa=0 reproduces the uniform-m footprint exactly. All
+  wetness→FS physics lives in `workflows/fs_real.py` (single source of truth for the standing
+  product, season timeline, per-zone gate, and triage; pinned by `tests/test_fs_real.py`).
+- **Van Genuchten suction curve (§46) — built, config-gated, deliberately NOT enabled:** a
+  `suction: {alpha_kpa_inv, n}` config block switches cohesion from the linear c_dry→c_wet ramp to
+  the Vanapalli/van Genuchten curve (end-members reproduce bit-exactly; no engine re-run — the
+  correction rides on the slope raster). Four published (α,n) candidates were swept with full
+  m-re-sweeps at both sites and none beat the linear model — the parameters are not identifiable
+  from a spatial inventory (§46, an honest negative). Enable per site only when lab retention data
+  or dated per-zone failures can justify it.
 - **WATCH triage — rank, don't gate (§25):** `python workflows/watch_triage.py` — the recall-tier WATCH
   footprint (132 zones) is a "don't-miss-anything" net, so it is **kept whole and sorted** worst-first by
   `priority = (1−m*)×P` (fragility §19 × detection confidence §24) rather than narrowed by the §19 gate
@@ -429,8 +476,8 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 1. **Atmospheric Forensics** ✅ — phase-elevation correlation + coherence masking to keep only real ground motion (Phase 1).
 2. **InSAR time-series velocity** ✅ — Sentinel-1 SBAS over Ramban; landslide creep at mm/yr precision (Phase 2, pathfinder stack).
 3. **Geomechanical Modelling** ✅ — LOS velocity + DEM-derived slope/TWI → Infinite-Slope Factor of Safety + hazard fusion (Phase 3).
-4. **Agentic warning system** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable alerts (Phase 4A).
-5. **Meteorological Triggers (live)** ⏳ — swap mock rainfall scenarios for real Copernicus CDS forecasts (future hardening).
+4. **Agentic decision support** ✅ (Part A) — rainfall-scenario-driven cascading reasoner emits geolocated, explainable, ranked alerts (Phase 4A).
+5. **Meteorological Triggers (live)** ✅ — real ERA5-Land rainfall auto-fetched per season (`live_alarm.py`), graded by a verified regional intensity–duration curve into DORMANT/WATCH/ALERT (§17, §35); remaining hardening = sub-daily per-zone rain (IMERG).
 
 ---
 
@@ -447,10 +494,11 @@ These are documented in detail in [error_history_log.md](error_history_log.md). 
 ## 📚 Where To Read More
 
 - [SESSION_REVIEW.md](SESSION_REVIEW.md) — 🚦 the "start here" living dashboard (read first each session)
+- [NEW_AOI_PLAYBOOK.md](docs/runbooks/NEW_AOI_PLAYBOOK.md) — onboarding a new AOI, step by step (automated + manual)
 - [milestone.md](milestone.md) — plain-language story of each milestone (for humans, no jargon)
-- [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
+- [docs/guides/Foundations - Physics and Maths Primer.md](docs/guides/Foundations%20-%20Physics%20and%20Maths%20Primer.md) — beginner science base; how to confidently discuss the project
 - [InSAR_hazard_forecasting_Context.md](InSAR_hazard_forecasting_Context.md) — original vision + full roadmap
 - [session_journey.md](session_journey.md) — what decisions were made, when, and why
 - [error_history_log.md](error_history_log.md) — every bug we've hit, with root cause + fix
 - [CLAUDE.md](CLAUDE.md) — behavioural rules for AI-assisted development on this repo
-- [Research/](Research/) — background literature and meteorological notes
+- [docs/](docs/) — all reading material: guides, runbooks, field briefs, references, archive (see [docs/INDEX.md](docs/INDEX.md))

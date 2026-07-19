@@ -1,0 +1,110 @@
+{
+  "site": "vaishnodevi",
+  "updated": "2026-07-18",
+  "note": "Curated HISTORICAL DAMAGE record for the dashboard's Past-events view — SEPARATE from vaishnodevi_documented_landslides.geojson (the validated back-test inventory), which is deliberately untouched. Verification rule (CLAUDE.md / ledger §36-§38): every event is checked against a primary source (GSI / peer-reviewed / SMVDSB records) or 2+ independent press outlets; publication date != event date; LOW-confidence rows are flagged review_needed for the user and rendered as pending review. EXCLUSION RECORD (immunization, never delete): the '2 Sep 2025 new-track rockfall, 3 dead' claim from a deep-research synthesis was verified FABRICATED (no press/GSI trace; the yatra was closed 26 Aug–14 Sep 2025) and stays excluded (§38). Ranking = deaths desc, then injured, then damage_score (0-10 editorial tie-breaker for non-fatal events). Coordinates are approximate anchors (track localities), NOT field-mapped scarps.",
+  "events": [
+    {
+      "name": "Ardhkuwari landslide disaster (Inderprastha Bhojnalaya)",
+      "date": "2025-08-26",
+      "lat": 33.008764, "lon": 74.941791,
+      "coord_confidence": "anchored to GSI slope Nos. 110/111 (the slopes around the incident were pre-flagged by GSI)",
+      "deaths": 34, "injured": 20,
+      "damage": "Debris slide onto sheltering pilgrims near Ardhkuwari during record rainfall (629.4 mm/24 h at Katra, nearly 2x the previous record); worst disaster in the shrine route's recorded history; yatra suspended 26 Aug–14 Sep 2025. GSI preliminary note (29 Aug) recorded 32 dead; the toll rose to 34 in final press reporting",
+      "trigger": "Extreme late-monsoon rainfall (record-shattering 24-h total)",
+      "damage_score": 10,
+      "confidence": "VERIFIED", "confidence_score": 0.95,
+      "confidence_reason": "GSI primary source (preliminary note, 29 Aug 2025) + extensive independent press; toll difference (32 GSI-prelim vs 34 final) is explained by the note's 3-days-after timing and is recorded, not hidden",
+      "review_needed": false,
+      "sources": [
+        {"label": "GSI, 'A preliminary note on the landslide disaster of 26.08.2025 at Ardhkuwari' (29.08.2025), pp.1-3", "url": null},
+        {"label": "AGU Landslide Blog (Dave Petley), Sep 2025", "url": "https://eos.org/thelandslideblog/vaishno-devi-1"},
+        {"label": "The Logical Indian (toll rises to 34)", "url": "https://thelogicalindian.com/vaishno-devi-landslide-tragedy-death-toll-rises-to-34-pilgrimage-halted-as-rescue-ops-intensify/"}
+      ]
+    },
+    {
+      "name": "Banganga (Gulshan Ka Langar) landslide, old track",
+      "date": "2025-07-21",
+      "lat": 32.9887, "lon": 74.9493,
+      "coord_confidence": "anchored to Banganga locality on the old track (settlement-level, not GPS-precise)",
+      "deaths": 1, "injured": 9,
+      "damage": "Landslide/boulder fall onto the old track — booking office and overhead iron structure caved in; 1 pilgrim killed, 9 injured",
+      "trigger": "Heavy rain — Katra recorded 184.2 mm in the 24 h ending 08:30 IST 21 Jul 2025",
+      "damage_score": 4,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Press-verified 2026-07-11 across 3+ independent outlets (Kashmir Reader, The Kashmir Horizon, Greater Jammu, Deccan Herald) — date, casualties and the 184.2 mm/24 h figure consistent",
+      "review_needed": false,
+      "sources": [
+        {"label": "Kashmir Reader / The Kashmir Horizon / Greater Jammu / Deccan Herald, 21-22 Jul 2025 (cross-verified set)", "url": null}
+      ]
+    },
+    {
+      "name": "Bhawan rockfall at track km 11.550 (wedge failure)",
+      "date": "2008-08-30",
+      "lat": 33.0299, "lon": 74.9482,
+      "coord_confidence": "anchored to the Bhawan complex (event at track km 11.550, foot-slope near the Shrine and Bhairon track)",
+      "deaths": 1, "injured": 6,
+      "damage": "Rockfall by wedge failure in dolomitic limestone/cherty dolomite from the escarpment >400 m above the heavily-inhabited foot-slope; 1 killed, 6 injured",
+      "trigger": "Wedge failure along a bedding shear zone (source escarpment inaccessible)",
+      "damage_score": 3,
+      "confidence": "MEDIUM", "confidence_score": 0.6,
+      "confidence_reason": "PENDING USER REVIEW on the date only — GSI Spl.Pub.107 §5.4.4 is a primary source but is internally inconsistent: the section BODY says 30 Aug 2008, 11:00 hrs (adopted, more specific); the HEADING says 30 Dec 2008. Resolve via Kumar (2009a). The event itself (casualties, mechanism, location) is not in doubt",
+      "review_needed": true,
+      "sources": [
+        {"label": "GSI Spl.Pub.107 §5.4.4, p.127 (page image read 2026-07-11), citing Kumar (2009a)", "url": null}
+      ]
+    },
+    {
+      "name": "Bhawan complex slope failure (track between elevator point and gate 5)",
+      "date": "2016-03-12",
+      "lat": 33.0299, "lon": 74.9482,
+      "coord_confidence": "anchored to the Bhawan complex",
+      "deaths": 0, "injured": null,
+      "damage": "Rain-triggered landsliding damaged the track; the aged Durga Bhawan building had to be dismantled; slope subsequently stabilized with 37 pre-stressed cable anchors (26.5–30.5 m)",
+      "trigger": "Heavy and continuous rain (per the primary source)",
+      "damage_score": 5,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Primary-verified 2026-07-11: Naithani AK (2023), Aspects Min Miner Sci AMMS.000775 p.6 (PDF in Research/Vaishno_Devi_Watchlist/), corroborated by SMVDSB/THDCIL stabilization records (ledger §34/§39)",
+      "review_needed": false,
+      "sources": [
+        {"label": "Naithani AK (2023), 'Assessment of the Various Slope Stabilization Initiatives...', AMMS.000775 p.6", "url": null}
+      ]
+    },
+    {
+      "name": "Himkoti landslide on the new track (battery-car service suspended)",
+      "date": "2026-07-08",
+      "time_local": "evening",
+      "lat": 33.0299, "lon": 74.9356,
+      "coord_confidence": "anchored to the Himkoti locality on the new (battery-car) track — press gives no precise chainage",
+      "deaths": 0, "injured": null,
+      "damage": "Rain-triggered landslide dumped debris on the new track near Himkoti; battery-car service suspended while the Shrine Board cleared it; the yatra itself continued via the old route; no casualties reported",
+      "trigger": "Intense rainfall (per press); this project's gate held WATCH that day (E=1.06 — armed, below the act-now line)",
+      "damage_score": 2,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Verified 2026-07-18: Times of India (user-supplied) + 5 independent outlets (Greater Kashmir, Daily Excelsior, Kashmir Life, Free Press Journal, The CSR Journal) consistent on location (Himkoti, new track), Wednesday-evening timing (8 Jul 2026 was a Wednesday), rainfall trigger and the battery-car suspension",
+      "review_needed": false,
+      "sources": [
+        {"label": "Times of India (landslide hits Vaishno Devi track at Himkoti, battery car service suspended)", "url": "https://timesofindia.indiatimes.com/india/landslide-hits-vaishno-devi-track-at-himkoti-battery-car-service-suspended/articleshow/132297059.cms"},
+        {"label": "Greater Kashmir (yatra unaffected, battery car suspended)", "url": "https://www.greaterkashmir.com/jammu/landslide-hits-vaishno-devi-track-yatra-unaffected-battery-car-service-suspended-12146584"},
+        {"label": "Daily Excelsior", "url": "https://www.dailyexcelsior.com/landslide-hits-vaishno-devi-track-yatra-unaffected-battery-car-service-suspended/"},
+        {"label": "Kashmir Life", "url": "https://kashmirlife.net/landslide-hits-vaishno-devi-track-after-heavy-rains-battery-car-service-suspended-442257/"}
+      ]
+    },
+    {
+      "name": "Himkoti track RD 0/850 rockfall with pilgrim casualties (date unknown, pre-Jul 2017)",
+      "date": null,
+      "date_note": "UNDATED in the source — 'instability in recent past which lead to casualty to pilgrims', pre-30.06.2017 (the SMVDSB request-letter date)",
+      "lat": 33.029861, "lon": 74.935556,
+      "coord_confidence": "GSI-report DMS coordinates (33°01'47.5\"N 74°56'08\"E, stated in the report)",
+      "deaths": null, "injured": null,
+      "damage": "Casualty-causing instability at the RD 0/850 unstable slope (wedge/topple in highly jointed cherty dolomite, ~67° slope, 30–50 m damage corridor, boulders 0.5–2 m); casualty count not stated in the source",
+      "trigger": "Rain-seepage lubrication mechanism (per the GSI report)",
+      "damage_score": 1,
+      "confidence": "LOW", "confidence_score": 0.3,
+      "confidence_reason": "PENDING USER REVIEW — the GSI FS 2017-18 report is primary and credible, but the event is undated and the casualty count unstated, so per the date-verification rule it is recorded as pending, never as a settled dated event (the back-test inventory holds it as a vulnerable location, not an event)",
+      "review_needed": true,
+      "sources": [
+        {"label": "GSI open-file report FS 2017-18, 'Landslide and Slope Stability Assessment of Shri Mata Vaishno Devi Himkoti Track' (Singh, Rana & Jungral), Item M4-LS/NC/NR/SU-JK/2017/12224", "url": null}
+      ]
+    }
+  ]
+}

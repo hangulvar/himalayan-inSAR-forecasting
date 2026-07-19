@@ -1054,6 +1054,483 @@ moving" priority — the operator reads the top few instead of all 132 — with 
 
 ---
 
+## ✅ Milestone 31 — Pointing the tool at a second mountain  *(Vaishno Devi AOI, Phase 1, 2026-07-03)*
+
+**What we set out to do:** prove the "point it anywhere" promise for real. The new target: the **Vaishno
+Devi pilgrimage route** — the full climb from Katra town up to the shrine and on to the Bhairav temple —
+to find which parts of the track and the mountain-side infrastructure sit under slopes that are slowly
+creeping.
+
+**How we drew the new area:** instead of hand-drawing a box, we pulled the route's real landmarks (Katra,
+the trek start, the shrine, the Bhairav temple, even the ropeway between them) from OpenStreetMap and wrapped
+a box around them with a couple of kilometres of margin — enough to include the slopes *above* the path
+(the ones that could fail onto it) and the town at the bottom.
+
+**A lucky discovery:** the satellite "picture frames" that cover Ramban turn out to cover Katra too — the
+two sites are neighbours on the same orbital tracks. That means the radar archive we already downloaded
+for Ramban *also* photographs the new mountain, giving us history for free.
+
+**What happened:** we ordered 49 radar-pair computations from the NASA/ASF cloud (~490 of our 8,000
+credits). 48 came back perfect; 1 failed on their side. The failure exposed a small blind spot in our
+ordering script — it counted failed orders as "done", so re-running would never re-order them. One-line fix,
+re-ran, and it re-ordered exactly the missing one. Then the quality audit ran over everything and told us,
+honestly: the **deep-winter radar pairs are mostly ruined by snow and atmosphere** (expected in the high
+Himalaya), but the **spring chains — the ones that matter heading into the monsoon — are clean and fully
+connected**.
+
+**One important piece of plumbing:** because the two sites share picture frames, their results would have
+overwritten each other. We taught every step of the pipeline to keep **separate output folders per site**
+(Ramban keeps its original folders untouched; the new site gets its own `_vaishnodevi` folders). The two
+mountains now coexist in one project.
+
+**Plain-language result:** the raw radar ingredients for the Vaishno Devi route are **downloaded, audited,
+and ready** — next step is turning them into a motion map, then a hazard map for the track. (Honest caveat:
+the soil-strength number we'll use at first is borrowed from Ramban, and there's no local landslide list yet
+to score against — the new site starts as "framework-validated", not "site-validated".)
+
+---
+
+## ✅ Milestone 32 — The shrine route gets its first hazard map  *(Vaishno Devi Phases 2–4, 2026-07-03)*
+
+**What we set out to do:** turn the freshly-audited radar ingredients (Milestone 31) into the same product
+Ramban has — a motion map, then a physics hazard map, then ranked alert zones — for the pilgrimage route.
+
+**What broke first (and why that's good news):** pointing the machinery at a second mountain immediately
+exposed three hidden "only works for Ramban" assumptions — a quality bar set higher than a short radar
+series can ever reach, a high-resolution elevation tile that only covers Ramban, and one function whose
+callers were never updated after an earlier upgrade. All three fixed; the pipeline is now genuinely
+site-agnostic, and each fix came from a *real* failure rather than a guess.
+
+**What we got:** the two clean spring radar chains (May–June 2026, two different satellite tracks) became
+velocity maps, then a hazard map, then alert zones — landing in the new site's own folders, with Ramban's
+untouched. Under today's standing "realistic wet-season" assumption the route corridor shows **27 alert
+zones (4 critical)**; the wider watch net has 72; a worst-case fully-soaked monsoon scenario has 185. Most
+importantly, **411 spots are flagged by both satellite tracks independently** — that double-confirmed core
+is where to look first.
+
+**The honest caveat, in plain words:** this map is built from only ~7 weeks of radar — its "is it moving?"
+measurements are several times noisier than Ramban's year-long series — and it borrows Ramban's soil
+calibration, with no local landslide list yet to score against. Treat it as a **first reconnaissance map**,
+strongest where the two tracks agree, and improving every 12 days as new acquisitions extend the chain
+through the monsoon.
+
+**Plain-language result:** the Vaishno Devi route now has a working end-to-end hazard product — velocity →
+physics → ranked alert zones with dashboards — in its own folders beside Ramban's. Next: draw the actual
+pilgrim track on top and name which segments sit in or below the flagged zones.
+
+---
+
+## ✅ Milestone 33 — Drawing the pilgrim track on the hazard map  *(Route exposure, 2026-07-03)*
+
+**What we set out to do:** answer the question this whole second site exists for — *which parts of the
+actual walking route, and which buildings and cable-cars, sit near the slopes our radar+physics flags?*
+
+**What we did, plainly:** we pulled the real mapped geometry of the route from OpenStreetMap — the classic
+track, the two newer route variants (Himkoti and Hathimata), the Bhawan–Bhairon ropeway, the helipads and
+the shrine buildings — walked along it in 40-metre steps, and measured the distance from every step to the
+nearest flagged slope, using the same honest 250-metre yardstick our Ramban validation earned.
+
+**What the map says (first reconnaissance read):**
+- **One 680 m stretch of path above the Bhairon top** is the single place where the route comes near
+  ground that **both satellite tracks independently agree is creeping** — the most trustworthy flag we
+  have; look there first.
+- Under the standing realistic-wet-season setting, **no part of the track sits inside a flagged zone** —
+  the flagged slopes are off-track. Reassuring, with the usual young-data caveats.
+- The **two modern route variants pass through the wider "keep an eye on it" net** (~5 km combined), and
+  the **shrine complex, Bhairon temple and the ropeway** all sit within a couple hundred metres of
+  watch-level slopes. The classic track only shows up in the everything-soaked worst case.
+- **Katra town and the trek start are clear.**
+
+**Plain-language result:** the route now has a ranked, mapped exposure list — one double-confirmed hotspot
+to inspect, the modern variants and the shrine complex on the monitoring list, the classic track only in the
+worst case, and the town clear. Every 12 days of new radar sharpens it.
+
+---
+
+## ✅ Milestone 34 — The shrine corridor gets a live weather-aware alarm  *(VD two-factor warning, 2026-07-06)*
+
+**What we set out to do:** yesterday's route map answers *where* to look; a warning system also needs
+*when*. Ramban already had this "two-factor" design — a fixed hazard map that only *arms* when real
+rainfall crosses a danger line. We pointed the same machinery at the new site.
+
+**What we did, plainly:** fetched the real 2026 rain-and-snowmelt season for the Katra hills (April through
+June so far), converted it to a daily ground-wetness estimate, and ran it through the alarm: which days
+crossed the regional rain-danger line, and which of the 33 flagged slopes would have been "live" on each day.
+
+**What the alarm says today:** **all quiet (DORMANT).** The season's 13 danger-line days were all in one
+April wet spell, and none rose far enough above the line to rate an actual ALERT; on 30 June no flagged
+slope was wet enough to be active. As the monsoon builds, one command refreshes the whole picture.
+
+**Just as important — honesty plumbing:** we made it *impossible* for the new site's dashboard to wear the
+old site's medals. Vaishno Devi has no landslide history-list yet, so its dashboard now plainly says "not
+yet back-tested at this site" instead of borrowing Ramban's accuracy scores (which the old template would
+have quietly done). Each site also finally shows its **own name** in its dashboards.
+
+**Plain-language result:** the Vaishno Devi corridor now has a **live, weather-gated warning dashboard** —
+currently reading all-quiet — that refreshes with one command and tells the truth about what has and hasn't
+been validated at this site.
+
+---
+
+## ✅ Milestone 35 — Sharper glasses for the second mountain  *(VD 12.5 m DEM, 2026-07-06)*
+
+**What we set out to do:** the Vaishno Devi hazard map was built on a blurry 30-metre elevation model
+(a stopgap after we discovered the sharp one only covered Ramban). You fetched the matching sharp
+12.5-metre tile for the Trikuta hills; we plugged it in and re-ran everything.
+
+**Health check first:** the new tile passed — it covers 100 % of the corridor (the exact failure mode we
+hit before), in the map projection our grid already uses, with sensible elevations from Katra's valley
+floor to the high ridges. Each site now automatically finds *its own* sharp elevation tile.
+
+**What sharper terrain changed:** steeper slopes emerged from the blur (typical slope up from 18° to 22°,
+the steepest now 71°), so more ground fails the stability test — and crucially the **double-confirmed
+core grew by about a third** (411 → 567 spots where both satellite tracks agree). The route finding
+strengthened: the path above the Bhairon top now **passes directly through** double-confirmed creeping
+ground for 800 metres, not merely near it. The standing everyday product still flags nothing *on* the
+track, the town stays clear, and the live alarm still reads **all quiet** for late June.
+
+**Plain-language result:** same honest young-data caveats, but the map now sees the terrain at full
+sharpness — and its single most important finding (the stretch above Bhairon top) got more, not less,
+convincing. That stretch is worth a real-world look.
+
+---
+
+## ✅ Milestone 36 — The second mountain passes its first real exam  *(VD validated on the Ardhkuwari disaster, 2026-07-07)*
+
+**What we set out to do:** until now the Vaishno Devi product was honestly labelled "not yet tested at
+this site." You gave us what was missing: the official GSI report on the **26 August 2025 Ardhkuwari
+disaster** (32 lives lost near the Inderprastha Bhojnalaya on the pilgrim track) plus GSI's own table of
+40 surveyed danger spots along the routes. We turned that into the site's first genuine exam.
+
+**A chilling detail from the report itself:** GSI had *already flagged the exact slopes that failed* —
+years before — as vulnerable spots Nos. 110 and 111. This is precisely the kind of place-and-warn problem
+our tool exists for.
+
+**The when-test (strongest result):** we fetched the real 2025 rain record for these hills. The disaster
+day turns out to be **the wettest day of the entire season — 191 mm** — and our alarm, given only rain
+data, marks **that exact day as the single most dangerous day of 2025** and would have been at full ALERT
+on it. The honest asterisk: that monsoon was so relentless that the alarm would have been ON for many
+days that season — so "we'd have been alarmed that day" matters less than "that day was our #1."
+
+**The where-test:** our standing hazard map scores **clearly better than random luck** at its very first
+scoring (about the same grade Ramban earned after months of tuning) — 4 in 5 of GSI's danger spots lie
+within 2 km of one of our 37 flagged zones. **The humbling part:** our "double-confirmed" spots — where
+both satellite tracks agree ground is creeping — are all *away* from the track and scored zero against
+GSI's track-side list. Lesson learned and recorded: the track's dangers are fast rockfalls off cut
+slopes, a different beast from the slow creep radar sees best. For the *track*, trust the wide validated
+map; the double-confirmed core above Bhairon top is still worth its field check, but it's answering a
+different question.
+
+**Plain-language result:** the Vaishno Devi warning system is now **validated against a real disaster** —
+it beats chance on where, and its worst-day-of-the-season call lands exactly on the day that killed 32
+people. Its dashboards now wear the site's own scores, earned, not borrowed.
+
+---
+
+## ✅ Milestone 37 — The second mountain earns its own dial settings  *(VD operating-point sweep, 2026-07-07)*
+
+**What we set out to do:** the new site's two warning tiers were still using **Ramban's** dial settings —
+the assumed ground-wetness levels (m=0.50 and 0.70) that decide how wide each warning net is. Borrowed
+settings were the honest stopgap; now that the site has its own graded exam (Milestone 36), we could tune
+the dials against *its own* ground truth.
+
+**What we did, plainly:** we turned the wetness dial through sixteen positions and graded the resulting
+map at each one against the GSI danger-spot list (with the usual 5,000-random-points luck control). Then —
+the important discipline — we did **not** pick the single best-scoring position. The very best score sat
+right next to a cliff where the grade collapses; with only 41 ground-truth points, that peak could topple
+when the next radar pass arrives. We picked the **middle of the stable plateau** instead.
+
+**The new dials:** the act-now list tightens to **21 zones with a clearly better grade** (0.70 vs 0.62,
+twice as good as luck, two-thirds of random ground correctly rejected); the wide watch net moves slightly
+wider and now catches **38 of GSI's 41 danger spots**. Perfect 41/41 was available — for a net half again
+as big flagging most of the corridor — and we declined it, on paper, with reasons.
+
+**Built to travel:** the dial settings now live in each site's **config file** — Ramban keeps its own
+tuned values, the shrine route gets its own, and any third mountain will get the same sweep instead of
+hand-me-downs. Every dashboard and back-test inherited the new settings automatically and the disaster-day
+catch was re-verified intact.
+
+**Plain-language result:** the shrine-route warning system now runs on **dial settings earned from its own
+disaster record** — a sharper act-now list (grade 0.70), a wider catch-almost-everything watch net (38/41)
+— chosen for robustness over bragging rights, with the reasoning written down.
+
+---
+
+## ✅ Milestone 38 — Watching for the failures that give no warning  *(Bhavan overhang toolkit, 2026-07-08)*
+
+**What we set out to do:** the user had drawn a worrying rock formation hanging directly above the
+Vaishno Devi shrine complex. Our radar method is built for *slow-creeping* slopes — but an overhang
+doesn't creep; it holds, and then one day it lets go. Our own honesty notes call this the blind spot:
+the fast, brittle failures the creep map cannot see. So we built the first tools aimed at exactly
+that class.
+
+**Tool 1 — a tripwire in the radar's static.** Every 12 days the satellite compares "how similar does
+this patch of ground look to last time" — a quantity called *coherence*. Undisturbed rock looks almost
+identical pass after pass; a slope that has just collapsed looks completely scrambled. So instead of
+measuring slow motion, we now watch for a **sudden scramble** over the drawn formation. The clever bit:
+rain and growing vegetation scramble the *whole scene* a little, so the script only raises its hand when
+the formation scrambles **more than the rest of the area did** — and on its very first run it correctly
+ignored one rainy fortnight that had dimmed the entire scene. Current reading: quiet.
+
+**Tool 2 — "if it falls, what does it hit?"** A century-old empirical rule says falling rock almost
+always stops before a line drawn downhill at a certain angle from where it broke off. We swept that
+line from every point of the formation across the fine 12.5 m terrain model and shaded three zones:
+*likely reach*, *possible reach*, *extreme worst case*. The sober result: **the shrine complex below
+sits inside the likely-reach zone**, the ropeway's lower station in the possible zone, and about
+2.3 km of pilgrim track in the likely band. (Stated equally plainly: this is a "could a rock get
+there" screen — no bouncing physics, no accounting for barriers already installed.)
+
+**Tool 3 — asking who already knows.** Before instrumenting a face above a famous shrine, check the
+records. They are eloquent: the government geologists' own survey flags rock-wedge failure spots on the
+track a few hundred metres below the formation; the shrine complex itself had a **rain-triggered slope
+failure in March 2016** that took 37 deep steel anchors to fix; and the shrine board has run a rockfall
+programme with engineering partners **since 2012** — steel nets, catch fences, shelter sheds. Our
+concern isn't paranoia; it's the same concern the authorities have been paying to manage for a decade.
+First step of any field visit is now: *ask them for the maps of what's already been reinforced.*
+
+**Plus a paper instrument:** a step-by-step field protocol for the cheapest monitoring there is —
+painted marks and small plaster bridges across the cracks behind the overhang, re-photographed monthly
+and after storms. If a crack opens even a couple of millimetres, the plaster snaps and the photos prove
+it: an early warning the radar cannot give for this kind of failure.
+
+**Plain-language result:** the formation above the shrine is now **watched** (radar tripwire, currently
+quiet), its **consequence is mapped** (the complex is within likely reach of a fall), and the **paper
+trail confirms** the slope system is a known, actively managed hazard. The blind spot isn't closed — no
+tool here predicts *when* — but for the first time the pipeline has instruments pointed at it.
+
+---
+
+## ✅ Milestone 39 — From "a project with two sites" to "a product you point at mountains"  *(multi-AOI productization, 2026-07-12)*
+
+**What we set out to do:** we had proven the pipeline twice — built on Ramban, replicated on Vaishno
+Devi. But the *knowledge of how to do that* lived partly in documents, partly in memory, and partly in
+"defaults that happened to be right." If we (or anyone else) pointed the tool at a third mountain next
+year, what would they need? Which steps are automatic and which need a human to fetch a map or read a
+soil study? Where would they even check what state each mountain is in? This milestone turned all of
+that from folklore into machinery.
+
+**A filing cabinet for mountains.** Every site now has exactly one settings file in a registry folder
+— Ramban's card, Vaishno Devi's card, and a template for the next one. The master switch is a single
+line saying "the pipeline currently points HERE." You can also aim any individual command at any site
+without touching the switch. While building this we caught a quiet trap: the old "just pass a config
+flag" advice only actually worked on 4 of our ~30 scripts — the rest decide their site the moment they
+wake up, before reading any flags. The fix (an environment setting every script respects) is exactly
+the kind of thing better discovered now, on purpose, than next year in the middle of a monsoon.
+
+**The soil numbers can no longer sneak.** The strength-of-the-ground numbers (how much cohesion, what
+friction angle) used to be built-in defaults — correct for Ramban, *checked* for Vaishno Devi, but a
+third site would have inherited them silently, and wrong soil numbers make a confident wrong map. Now
+each site's card carries its own soil values **with a note saying where they came from**, and a test
+pins the defaults so nothing changed numerically for the two existing sites.
+
+**A control room wall.** One command now draws a status board: one card per mountain, showing its
+current alarm state (Vaishno Devi: WATCH, all zones live), how fresh its rainfall data is, every
+pipeline stage as a checklist — including the *human* steps like "do the soil homework" and "build the
+verified landslide list" — and, for whatever's missing, **the exact command to run next**. On its very
+first run it caught something real: Ramban's live rainfall had quietly fallen 15 days behind, and the
+board printed the command to fix it.
+
+**A recipe book for the next mountain.** A step-by-step playbook now walks a newcomer from "draw a
+polygon around your valley" to "live monsoon monitoring," honestly split into what the machine does
+and the five things only a human can do (draw the boundary, read the soil literature, fetch the fine
+terrain tile, verify the landslide history, tune the alarm dials). It ends with the scaling plan: why
+adding site #3 is now mostly filling in one card, and where the next radar satellite (NISAR) will plug
+in so every site benefits at once.
+
+**Plain-language result:** the pipeline stopped being "a research project that happens to run in two
+places" and became **a product with a registry, a dashboard, and a manual**. Nothing scientific
+changed — the same maps, the same alarms — but the path from "new mountain" to "monitored mountain" is
+now written down, checked by tests, and watched from one screen.
+
+---
+
+## ✅ Milestone 40 — We asked whether the soil homework matters. The mountain answered: completely.  *(soil-sensitivity sweep, 2026-07-13)*
+
+**What we set out to do:** of all the manual chores a new mountain demands, the most tedious is the
+"soil homework" — digging through geology reports to find how strong the local ground actually is
+(its cohesion, its friction, how deep the loose layer goes). We suspected it might not matter much:
+maybe any reasonable textbook values would give nearly the same danger map, and we could skip the
+homework at future sites. That's a testable claim, so we built a test: recompute the danger map for
+every plausible combination of soil values the literature allows, and score each one against the
+real landslide record. Total cost: a new script and about seven seconds of computing.
+
+**What we found:** the suspicion was wrong — decisively. Across values that are all *defensible from
+published studies*, the alert map swung from **125 danger zones down to zero**. Not "slightly
+different zones" — at several in-range settings the entire warning product simply vanishes, because
+the maths declares every slope strong enough to hold. The single most powerful number turned out to
+be the most mundane: **how thick the loose soil layer is**. Assume 2 metres instead of 3, and all 21
+of our validated warning zones disappear.
+
+**The tempting shortcut that doesn't work:** couldn't we just skip the homework and re-tune the
+alarm dial (the assumed wetness) until the map scores well again? Mathematically, yes — wetness and
+soil strength push the same lever. But then the dial stops meaning "how wet the ground is" and
+becomes an arbitrary fudge factor, and the rainfall-driven part of the warning system — *"this much
+rain makes the ground this wet, which tips these slopes"* — loses its physical honesty. A map tuned
+that way might still rank slopes usefully, but the WHEN of the warning would be built on sand.
+
+**Plain-language result:** the soil homework stays — now by *measurement*, not just principle. And
+the test itself became a permanent tool: every future site runs the seven-second sweep and gets a
+chart showing exactly which assumptions its warning map stands on. One more thing changed: the
+wish-list item "confirm the soil depth with a field measurement" jumped from nice-to-have to **the
+most valuable single number a site visit could bring back**.
+
+---
+
+## ✅ Milestone 41 — Putting error bars on our own report card (and daring a dumb map to beat us)  *(validation statistics, 2026-07-13)*
+
+**What we set out to do:** every score we'd ever quoted — "our map beats chance, AUC 0.64" — was a
+single number computed from a small list of known landslides. A skeptical reviewer would ask two
+fair questions we couldn't answer: *"with only ~40–140 landslides on record, how sure are you that
+number isn't luck?"* and *"would a much dumber map — say, just painting every steep slope red — score
+the same?"* So we built the statistical machinery to answer both, without changing the science at
+all: error bars (resampling our landslide list ten thousand times to see how much the score wobbles),
+a formal "is this better than random?" test, and a **ladder of deliberately dumb rival maps** —
+steepness alone, a simple statistical blend of steepness and wetness-of-terrain, physics without the
+satellite, satellite without the physics — each scored by exactly the same rules as our product, and
+each allowed to tune itself to its best possible score. We stacked the deck *against* ourselves on
+purpose: beating a rival that got every advantage is the claim no one can argue with.
+
+**What we found at Ramban:** the full system beats every rung of the ladder. Most tellingly, the
+satellite measurements alone score *worse than random guessing*, and the physics alone barely
+better — but fused together they beat everything. The whole really is more than its parts, and now
+that's a measured fact with error bars, not a slogan.
+
+**What we found at Vaishno Devi — the honest surprise:** our map beats its own ingredients easily,
+but a dumb "paint everything steeper than 40° red" map ties it on the raw score. The catch: that
+dumb map needs **155 zones** to do what ours does with **21**, and it can never say *when* danger
+rises — it's red forever. Our system's real advantages there are its short, precise list, its
+proven timing (it flagged the two deadly events on the exact day), and its ability to rank zones by
+fragility. But on the pure "where are the landslides?" score, on this small corridor-biased record,
+we cannot claim to beat simple steepness — so we don't. It's in the ledger, stated plainly.
+
+**Plain-language result:** every headline number now comes with an honest range ("0.71,
+plausibly 0.66–0.75") and a proof it beats randomness (99.99% confidence at both sites for the
+alert maps). The dashboards now show these ranges automatically. And the dumb-map ladder is now the
+permanent bar to clear: the next two science upgrades (smarter wetness, smarter soil physics) must
+beat it — measurably — or they don't ship.
+
+---
+
+## ✅ Milestone 42 — We stopped pretending the whole mountain gets wet at once  *(TWI-distributed saturation, 2026-07-13)*
+
+**What we set out to do:** our danger model had a hidden oversimplification. On a rainy day it treated
+*every* slope as equally soaked — one "wetness" number for the whole mountain. But rain doesn't work
+that way: water runs downhill and collects in valley hollows, while ridges shed it and stay drier. We
+already measure exactly where water tends to collect (a "wetness index" computed from the shape of the
+land). So we let each patch of ground have its own wetness — hollows a bit wetter, ridges a bit drier
+than the mountain's average — controlled by a single new dial. Crucially, the *average* stays exactly
+what the rain says, so this only moves wetness around; it doesn't secretly make everything wetter.
+
+**What we found:** two things, one expected and one genuinely reassuring. Expected: concentrating the
+"wet" onto the hollows made the danger map **sharper and smaller** — it stopped painting dry ridges as
+hazardous. Reassuring: we tuned that one dial separately on two different mountains with two different
+landslide records, and **both mountains independently landed on the exact same setting**. A number
+that transfers between sites like that is measuring something real about how mountains wet up, not just
+fitting one dataset. At Vaishno Devi it made the concrete difference we'd been chasing: last session's
+scorecard showed our map merely *tying* a dumb "just flag every steep slope" map; with this upgrade our
+map pulled ahead of it — same coverage, a tenth as many alert zones.
+
+**The honest part:** we kept the same error bars and significance tests from last session pointed at
+this result. The raw improvement in the score is real but small enough to sit inside the uncertainty,
+so we don't oversell it — the trustworthy wins are the tighter, more precise map and finally beating
+the "dumb baseline," not a dramatic jump in the number. And it sharpens *where* the danger is, not
+*when*: on the very wettest days the whole slope is soaked and everything lights up regardless. We
+adopted the setting for both sites, and it's one line away from being switched off if a future site
+disagrees.
+
+---
+
+## ✅ Milestone 43 — We built the fancier physics, tested it fairly, and said no  *(van Genuchten suction, 2026-07-13)*
+
+**What we set out to do:** two things. First, re-examine last milestone's wetness upgrade with fresh
+eyes — and that audit caught two corners of the system (the season timeline and the watch-list
+ranking) still quietly using the *old* uniform-wetness maths. We fixed that the durable way: all the
+"how wet makes this slope fail" arithmetic now lives in exactly one file that every tool imports, so
+the pieces can never drift apart again, and a 22-point check on both mountains confirmed everything
+agrees to the fourth decimal. Second, the last item on our science wish-list: real soil doesn't lose
+strength *linearly* as it wets — laboratory curves show the suction that glues damp soil together
+collapses suddenly over a narrow wetness range. We built that curve into the model (carefully: bone
+dry and fully soaked still give *exactly* the strengths we measured — the curve only reshapes the
+journey between them), with a switch that leaves everything unchanged until a site turns it on.
+
+**What we found:** we tested four published versions of the curve — spanning the plausible soil
+types for our mountains — and let each one re-tune the wetness dial to its own best score, the most
+generous test we could design. **None of them beat the simple straight line at both sites.** The
+best came within a whisker at one mountain and exactly tied the other — differences far smaller than
+our own error bars. The diagnosis is more interesting than the score: with only a *map* of past
+landslides to check against, the curve's shape and the wetness dial trade off against each other
+almost perfectly — the data literally cannot tell the curves apart. What *would* tell them apart is
+either a laboratory measurement of our actual soil's curve, or precise *dates* of when individual
+slopes gave way — both already on our field wish-list, now with one more reason.
+
+**Plain-language result:** the fancier physics is built, verified to the last bit, and one
+configuration line away from use — but it stays switched off, because the honest reading of our own
+statistics says it hasn't earned its two extra assumptions yet. Declining our own upgrade on
+evidence is the same discipline as reporting the slope-map tie in Milestone 41: the numbers decide,
+not the effort invested. The science plan's three upgrades are now all resolved: statistics
+(adopted), distributed wetness (adopted), suction curve (built, waiting for the data that can
+justify it).
+
+---
+
+## ✅ Milestone 44 — We found out why the computer crawled, then put the data warehouse on a diet  *(storage & automation overhaul, 2026-07-15)*
+
+**What we set out to do:** the automatic monsoon-watch job seemed to be downloading huge batches of
+radar data and grinding the computer to a halt at 100% disk. Find out what it was really doing, stop
+the slowdowns, and free up disk space.
+
+**What we found:** the job was innocent — its whole download was about 4 KB of rainfall numbers (the
+size of a short email), and it finished cleanly. The real culprits were three quiet
+misconfigurations: the virtual machine that Docker runs in had no memory limit (it could grab half
+the computer's RAM and every CPU core the moment it woke up), a leftover registry entry was starting
+Docker at every login even though its own setting said "don't", and the job's missed 8 AM slot was
+firing the moment the user logged in — exactly when they wanted to use the machine.
+
+**What we changed:** capped the virtual machine (it now peaks under 2 GB instead of 8), removed the
+stale autostart, and taught the job to shut Docker down properly (it turns out killing just the
+visible window leaves a background service running that can quietly restart everything). Then the
+big one: the 47 GB of original radar zip files were backed up to Google Drive and deleted — we
+proved the pipeline only ever needed one tiny text file from inside each zip, so those text files
+now live with the extracted data, and the zips became disposable. Future downloads land on a plain
+folder outside the cloud-synced documents tree.
+
+**Plain-language result:** ~56 GB of disk came back (the drive went from 85 to 150 GB free), the
+2-day watch cycle now runs in under 5 minutes using a fraction of the memory, and the machine stays
+responsive while it does. Every change was tested the hard way — including a rehearsal of the
+MintPy preparation step with zero zips on disk (byte-for-byte identical output) — and the testing
+itself caught a real bug nobody would have seen otherwise: Docker containers can't see through
+Windows folder shortcuts (junctions), so the container view needed its own explicit mapping.
+
+---
+
+## ✅ Milestone 45 — We audited our own product like a skeptic, and it held up  *(full-product verification, 2026-07-17)*
+
+**What we set out to do:** before trusting the system any further, put the whole product on
+trial — the math, the code, and the data — as if we were an outside reviewer trying to catch it
+being wrong.
+
+**What we did:** three separate examinations. For the *math*, we re-wrote the landslide physics
+formula from the textbook, completely independently of our engine, and compared the two answers at
+every single map pixel — they agreed to the smallest difference a computer can represent (better
+than a millionth). We also re-derived the rainfall danger thresholds from raw daily sums and got
+the exact same warning days the product reports. For the *code*, every script compiles and every
+test suite passes. For the *data*, every map layer sits on the right grid with physically sensible
+values, both landslide inventories are intact and inside their areas, the rainfall records have no
+missing days, and every number quoted in our documentation matches the actual files on disk.
+
+**The honest wrinkles:** one radar stack (the newer Vaishno Devi one) is noisier than the others
+because its data chain is still short — but our confidence system already measures exactly that
+and marks its detections accordingly. And a few "failures" during the audit turned out to be the
+auditor's own stale notes: the automatic watch cycle had quietly run that very morning — fully
+unattended, in about four minutes — and freshened the data underneath us. That accidental proof
+that the automation now works on its own was the nicest result of the day.
+
+**Plain-language result:** zero bugs found, and the audit itself became a permanent 12-test guard
+that will re-check the physics and data automatically from now on. The system doesn't just say
+the right things — we've now verified, pixel by pixel, that it computes them.
+
+---
+
 ## 🧭 Where We're Headed Next
 
 Almost the entire original "what's next" list is now **done**: a 3-D face (Milestone 5),
@@ -1091,3 +1568,189 @@ multi-track**. Everything ahead is deepening trust (the pro tool, finer data, th
 remaining tracks) and going live, not inventing new pieces.
 
 ---
+
+## ✅ Milestone 46 — One button instead of five commands, and a tidy house  *(control panel + repo restructure, 2026-07-17)*
+
+**What we set out to do:** two quality-of-life upgrades. First, make refreshing the analysis as
+easy as clicking a button — until now, updating the rainfall, regenerating the alarms, and
+rebuilding the dashboards meant typing several Docker commands in the right order. Second, tidy
+the project folder: reading material (guides, runbooks, field briefs, old plans) had piled up in
+the open next to the working files, and it was getting hard to know what to read.
+
+**What we built:** a small **local control panel** — you double-click `control_panel.bat`, a page
+opens in your browser, and three buttons do the work: *Refresh cycle* (fetch the latest rainfall
+and update every site's warning state), *Refresh status board*, and *Rebuild 3-D dashboard*. You
+watch the progress live, and when it finishes, a **results hub** page lists every dashboard with
+"updated X minutes ago" stamps — one click opens them. Under the hood the buttons run exactly the
+same commands the scheduled watcher runs, so there is one way of doing things, not two. The panel
+deliberately never starts or stops Docker — that stays your job, by your own earlier decision.
+
+**Did it work?** Yes, proven the honest way: we pressed the real buttons against the real
+pipeline. The full refresh ran clean for both sites in about 3 minutes; the rebuilt 3-D dashboard
+came out with exactly the same alert numbers as always (a free extra check that the whole physics
+cascade still behaves); and with Docker off, the panel says plainly "start Docker Desktop
+yourself" instead of failing mysteriously.
+
+**The tidy-up:** all reading material now lives in one `docs/` folder — guides (the science
+primer, the project vision), runbooks (how to onboard a new site), field briefs, reference
+papers, and an archive for superseded plans (each marked with *why* it's archived). A single
+`docs/INDEX.md` page answers "what should I read, in what order?" and maps every old location to
+the new one. The map polygons and credential templates moved into `config/`. The working files
+the rituals depend on (this file, the KPI ledger, the bug log, the session review) stayed exactly
+where they were, untouched. And we re-ran every test suite afterwards — all six, all green — to
+prove the move broke nothing.
+
+**Bottom line:** day-to-day operation is now *start Docker, click a button, read the dashboard* —
+and a newcomer opening the project sees a clean front door instead of thirty files.
+
+## ✅ Milestone 47 — The dashboard learned its history  *(Past-events tab, 2026-07-18)*
+
+**What we set out to do:** give the warning dashboard a memory. Until now it only showed the
+*present* — which slopes are creeping, how wet it is today. But anyone standing in front of it
+would fairly ask: "what has actually happened here before, and how bad was it?" We wanted a view
+of the documented past landslides at each site, worst first, without breaking the clean look of
+the page.
+
+**What we built:** a new **Past events** tab on both sites' dashboards. It lists every documented
+landslide disaster we could verify, ranked by the damage it caused — lives lost first, then
+injuries, then destroyed roads and houses. Every row shows: a clickable map link that opens the
+exact spot in Google Maps, what happened and what triggered it, *how solid the record is* (a
+colour-coded confidence badge — hover it and it tells you why we believe it), the sources
+themselves, and — the part that ties past to present — **how that historical spot stands in
+today's alert system**: how far it sits from the nearest hazard zone our radar-plus-physics map
+is watching right now, and how fragile that zone is.
+
+**The honest parts, by design:** we did NOT just copy events from news articles. Every event was
+checked against an official report, a peer-reviewed paper, or at least two independent news
+outlets — the hard lesson from earlier sessions (one wrong date once inverted a whole
+conclusion, and one AI-generated "research" document simply invented a disaster that never
+happened; that fake stays excluded, and there is now an automatic test that keeps it out). Three
+rows we could *not* fully verify are openly labelled "pending review" instead of being quietly
+dropped or quietly trusted. And where a historical disaster site sits *outside* today's mapped
+zones, the page says so plainly — adding that this means "not currently measured", never "safe".
+
+**What the history says:** at Vaishno Devi, the worst recorded disaster is recent — the August
+2025 Ardhkuwari landslide (34 lives) — and it happened 1.6 km from a zone our current map
+already flags as fragile. On the Ramban highway corridor, the record is dominated by the 2022
+tunnel collapse (10 workers) and the 2025 cloudburst; most of those spots lie outside our current
+radar coverage — a limitation we have documented all along, now made visible on the page itself.
+
+**Bottom line:** the dashboard now answers three questions instead of two — *where* could slopes
+fail, *when* is the danger real, and *what has this mountain already done* — with every claim
+carrying its receipt.
+
+**Addendum (same day) — the tab earned its keep immediately.** While reviewing the flagged rows,
+the user corrected one: the doubtful Ramban entry was not an old duplicate at all, but a real
+slide that buried the highway on **7 April 2026** — and our alarm calendar shows the system was
+at full **ALERT that very day** (rainfall 2.13× the danger line). A second event the user
+brought in — the **8 July 2026** landslide near Himkoti that suspended the Vaishno Devi battery
+cars — landed on a day our gate was at **WATCH** (armed, correctly short of a full alarm for
+what turned out to be a no-casualty track blockage). Two real 2026 events, both falling exactly
+on days the system had flagged — the first live in-season validation of the monsoon watch. Also
+per user request: every link on the dashboard now opens in a new browser tab, so you never lose
+the page you were reading.
+
+## ✅ Milestone 48 — A second rain sensor that sees the bursts  *(sub-daily IMERG gate, 2026-07-18)*
+
+**What we set out to do:** fix the alarm's known blind spot. Our rainfall gate ran on a *daily
+average* over the whole area — and a daily average hides exactly the thing that kills people in
+these mountains: a violent, local cloudburst. A day with one savage hour of rain and 23 quiet
+hours averages out to "drizzle". We had proven this blind spot exists (the deadly April 2025
+cloudburst read low on the daily average), and we had just watched it happen again: the 8 July
+landslide at Himkoti registered only a mild "WATCH" on the daily gate.
+
+**What we built:** a second, independent rain sensor for the dashboard. NASA's GPM satellite
+measures rain every **30 minutes**, and it reaches us only about **a day** after it falls —
+against nearly a week for the daily weather data. Every refresh cycle now also pulls this
+half-hourly satellite rain and asks, for each day: *was there any burst — over any window from
+half an hour to a day — that crossed the same proven danger line?* The dashboard gained a card
+showing the newest satellite day, its burst danger level, and the season's biggest bursts.
+
+**Did it work? Tested on this season's two real landslides — and the answer is the best kind:
+the two sensors catch different killers.** The 8 July Himkoti slide, which the daily gate
+under-called, lights up as a clear **ALERT** on the burst sensor — a sharp 3-hour downpour whose
+signature was measurable **hours before the evening collapse**. And the 7 April highway burial
+at Digdol — days of relentless soaking with no single burst — is the opposite: the burst sensor
+barely stirs, but the daily gate had already raised the full alarm that morning. One sensor for
+the long soak, one for the sudden burst; **together, both of this season's verified landslides
+read full ALERT on the day they happened.**
+
+**The honest part:** the burst sensor is deliberately labelled *experimental* on the dashboard.
+Its alarm thresholds haven't yet earned the same validation the daily gate has (at short
+timescales the danger line trips more easily, and we can't yet say how often it cries wolf);
+satellite rain is an 11-km-pixel average; and the newest day is always marked provisional while
+its data is still arriving. The official alarm stays the validated daily gate — the burst card
+is the sharp-eyed second opinion beside it.
+
+**Bottom line:** the dashboard now watches the rain two ways — slow and fast — and this season's
+evidence says that's exactly the pair you need.
+
+## ✅ Milestone 49 — The rain sensor got its rulebook, and the new satellite passed its audition  *(Plan Tiers 1+2, 2026-07-18)*
+
+**What we set out to do:** two things from the strengthening plan. First, give the new burst
+sensor (Milestone 48) proper rules — when exactly should it shout? — instead of borrowed ones.
+Second, audition NISAR, the new NASA/ISRO L-band radar satellite, on our own mountains: does it
+really see through the vegetation that blinds our current radar?
+
+**The rain rulebook:** we replayed the whole of 2025 through the burst sensor. It correctly
+flagged every deadly landslide day — including reproducing, through the production system, the
+exact verdicts of last month's hand study. From six verified events we set the shout-threshold
+at three times the danger line: every fatal day stays caught, and the number of alarm days per
+season roughly halves. We also learned something sobering by checking the satellite rain
+against the Katra rain gauge on the two worst days: **the satellite saw only a fifth of what
+the gauge measured** — a wide-area average simply cannot match a rain gauge standing under a
+cloudburst. That is exactly why we refuse to make the sensor less sensitive than this. And we
+tested a tempting upgrade — giving every hazard zone its own rain reading — and found our areas
+are simply too small for it to matter (the rain pixels are bigger than the zones), so we
+declined to build it. The dashboards now show a combined two-sensor reading; the official alarm
+remains the fully validated daily gate.
+
+**The NISAR audition:** we downloaded its first winter interferogram over Ramban and compared
+it, pixel by pixel, against our own radar from the same fortnight. The result is the best kind
+of clear: where our current radar already works, the newcomer adds nothing — but **in exactly
+the places our radar goes blind, NISAR recovered 75–87% of the lost ground** to usable quality.
+And this was measured in winter, when vegetation is thinnest — the monsoon advantage should be
+larger. Verdict: when NISAR's routine data stream reaches this region (our watcher now checks
+automatically), it earns a permanent place in the pipeline.
+
+**Bottom line:** the burst sensor now has evidence-based rules and an honest bias sheet; the
+per-zone idea was measured and politely declined; and the next-generation satellite proved, on
+our own slopes, that it can see where we currently cannot.
+
+## ✅ Milestone 50 — Three hard questions, three honest answers  *(Plan Tiers 3+4, 2026-07-18)*
+
+**What we set out to do:** answer the three toughest "but have you checked…?" questions still
+hanging over the project. Would a machine-learning map beat our physics? Can ordinary satellite
+photos see the fast rockfalls our radar can't? And is the shortcut we use for "where would
+debris flow?" actually good enough?
+
+**Question 1 — ML vs physics.** We built a statistical landslide-susceptibility model from
+terrain data and scored it against our physics map on the same 112 field-verified landslides.
+At first glance the statistical model wins. Then we looked at *what it learned*: almost
+entirely "low elevation = landslide" — which is really "landslides get RECORDED along the
+valley highway". Remove elevation and its advantage vanishes completely. The lesson is worth
+the whole exercise: **a model trained on where people report landslides learns where people
+walk, not where mountains fail** — and our physics map, which cannot cheat that way, is the
+more honest instrument.
+
+**Question 2 — can photos see the rockfall?** We compared satellite images from before and
+after the Ardhkuwari disaster. Everything around the site turned greener after the monsoon —
+except the disaster site itself, which conspicuously failed to green (in the worst 6% of the
+whole area). A real signature, but not scream-off-the-page strong: a narrow rocky chute is at
+the limit of what 20-metre pixels resolve. Verdict, honestly graded: good enough for
+*screening* after an event, not yet a *detector* — sharper imagery is the named upgrade.
+
+**Question 3 — the debris-flow shortcut.** We computed real water routing over the terrain —
+which slopes actually drain into big channels — and compared it with the quick proxy the
+system has used. They disagree on **half the hazard zones** (on the Ramban highway, seven of
+eight). That settles it: the proxy gets replaced with real routing in a properly re-scored
+run right after the merge.
+
+**Also:** the growing table of "which events did each alarm arm catch, and how fast" is now a
+permanent, tested project artifact — three fatal events, all caught on the day by at least one
+arm. Two items wait on the user: the GACOS atmospheric-correction request (form values are
+printed and ready) and the soil lab tests.
+
+**Bottom line:** the ML challenger turned out to be reading the road; the camera can screen but
+not yet detect; and the plumbing shortcut is now scheduled for honest replacement. Every answer
+made the product more trustworthy — including the ones that found our own shortcuts wanting.

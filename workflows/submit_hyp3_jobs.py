@@ -6,7 +6,7 @@ End-to-end ASF HyP3 submission pipeline for landslide monitoring over the
 Ramban (Jammu & Kashmir) NH-44 corridor.
 
 Pipeline:
-    1. Parse the AOI polygon from ramban_aoi.geojson with geopandas.
+    1. Parse the configured AOI polygon (config/aoi/<slug>_aoi.geojson) with geopandas.
     2. Query the ASF catalog (asf_search) for Sentinel-1 SLC IW scenes
        intersecting the AOI between May 1 2025 and Oct 31 2025
        (covers the heavy monsoon and immediate post-monsoon window).
@@ -116,14 +116,18 @@ def load_aoi_geometry(geojson_path: Path) -> BaseGeometry:
 def search_sentinel1_slc(
     aoi: BaseGeometry, start: datetime, end: datetime
 ) -> list[asf.ASFProduct]:
-    """Query the ASF catalog for Sentinel-1A/B SLC IW scenes intersecting AOI."""
+    """Query the ASF catalog for Sentinel-1 SLC IW scenes intersecting AOI."""
     aoi_wkt = aoi.wkt
     logger.info(
         f"Querying ASF catalog: {start.date()} -> {end.date()} over AOI..."
     )
 
     results = asf.search(
-        platform=[asf.PLATFORM.SENTINEL1A, asf.PLATFORM.SENTINEL1B],
+        # ALL Sentinel-1 units, not [S1A, S1B]: the constellation handed over in June 2026
+        # (S1A end-of-operations 29 Jun 2026; S1C/S1D now fly the same reference orbits, and
+        # ASF already carries S1D scenes on our paths). The old A/B whitelist would silently
+        # return NOTHING ever again — see error log 2026-07-18 / ledger §56.
+        platform=[asf.PLATFORM.SENTINEL1],
         processingLevel=asf.PRODUCT_TYPE.SLC,
         beamMode=asf.BEAMMODE.IW,
         intersectsWith=aoi_wkt,
@@ -232,16 +236,32 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
         return signatures
 
     matched = 0
+    fail_counts: dict[frozenset, int] = {}
     for job in jobs:
         if not (job.name and job.name.startswith(name_prefix)):
             continue
-        matched += 1
         granules = job.job_parameters.get("granules") if job.job_parameters else None
-        if granules and len(granules) >= 2:
-            signatures.add(frozenset(granules[:2]))
+        if not granules or len(granules) < 2:
+            continue
+        sig = frozenset(granules[:2])
+        if job.status_code == "FAILED":
+            # ONE failure gets retried on the next run (transient ASF hiccups); a pair
+            # that failed TWICE fails deterministically inside the processor (e.g. the
+            # frame106 Jan pair's "mcf reference point outside image segment") — PARK
+            # it rather than re-buying the same failure on every idempotent re-run.
+            fail_counts[sig] = fail_counts.get(sig, 0) + 1
+            continue
+        matched += 1
+        signatures.add(sig)
+    parked = {s for s, n in fail_counts.items() if n >= 2 and s not in signatures}
+    for s in parked:
+        logger.warning(f"PARKED (failed {fail_counts[s]}× at ASF — deterministic; "
+                       f"investigate before resubmitting manually): {sorted(s)}")
+    signatures |= parked
     logger.info(
         f"Dedupe scan: {matched} existing jobs under prefix '{name_prefix}', "
-        f"{len(signatures)} unique pair signatures."
+        f"{len(signatures)} unique pair signatures ({len(parked)} parked as "
+        f"permanently failing)."
     )
     return signatures
 

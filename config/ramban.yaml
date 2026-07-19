@@ -1,0 +1,68 @@
+# ============================================================================
+# AOI: Ramban NH-44 corridor (registry file) — the original build
+# ----------------------------------------------------------------------------
+# One file per AOI lives in config/. The root config.yaml is a one-line pointer
+# (`active_config: config/<aoi>.yaml`) selecting which AOI the pipeline targets;
+# any script also accepts `--config config/<aoi>.yaml` directly.
+# New AOI? Copy a registry file, then follow docs/runbooks/NEW_AOI_PLAYBOOK.md.
+#
+# NOTE: Ramban is the "grandfathered" AOI — its outputs live in the UNSUFFIXED
+# data dirs (data/velocity, data/hazard, data/alerts, data/mosaic*), and its
+# live-alarm artifacts use the plain "_<year>" suffix. That mapping comes from
+# the slug ('ramban'), so keep aoi_path pointing at config/aoi/ramban_aoi.geojson.
+# ============================================================================
+
+# --- Area of Interest -------------------------------------------------------
+aoi_path: config/aoi/ramban_aoi.geojson
+
+# Human-readable site label used in dashboard titles.
+site_name: Ramban NH-44
+
+# Warning-tier operating points: Ramban uses the calibrated defaults
+# (operational_m 0.50, watch_m 0.70 — §21b/§23), so the keys are omitted.
+
+# TWI-distributed saturation slope (§45, Science Upgrade Plan #2): m_i = clip(m +
+# kappa*(TWI_i - TWI_mean), 0, 1) — wet convergent terrain saturates first. Swept vs the GSI
+# inventory like m; both AOIs independently peaked at kappa=0.06 (Ramban ALERT AUC
+# 0.640->0.676; WATCH held). kappa=0 reproduces the uniform-m footprint exactly.
+kappa: 0.06
+
+# HyP3 job-name prefix. Every submitted job is named
+#   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
+# and downstream steps filter on this prefix.
+job_name_prefix: Ramban_NH44
+
+# --- Catalog search window (inclusive), ISO dates ---------------------------
+# The 2025 monsoon and immediate post-monsoon, when slope failure is most likely.
+search_start: 2025-05-01
+search_end: 2025-10-31
+
+# --- Soil shear-strength (Phase 3 infinite-slope engine) ---------------------
+# CALIBRATED from the GSI meso-scale (1:10,000) landslide-susceptibility field
+# study of the NH-244 Batote->Ganpat Bridge corridor, Ramban/Doda (§20):
+# φ 36.4–39.1° measured on site overburden -> conservative 36; dry/wet cohesion
+# split per the matric-suction model (§20; c_dry magnitude-interpreted, flagged
+# for source-PDF confirmation). These equal the engine defaults — stated here
+# explicitly so the registry file documents each site's soil provenance.
+soil:
+  cohesion_dry_kpa: 18.5   # c' + matric-suction apparent cohesion (FS_dry)
+  cohesion_wet_kpa: 5.0    # saturated effective cohesion (FS_saturated)
+  phi_deg: 36.0
+  gamma_kn_m3: 19.0
+  depth_m: 3.0
+
+# --- Pair-network / baseline rules ------------------------------------------
+baseline:
+  max_temporal_baseline_days: 24
+  sbas_neighbors: 1
+  # Enforced in the rescue gate since 2026-07-13 (§43) — see config/vaishnodevi.yaml.
+  max_perp_baseline_m: 150
+
+# --- Connectivity-rescue policy ---------------------------------------------
+# See config/vaishnodevi.yaml for the full commentary on the rescue gate.
+rescue_gate:
+  max_atmos_r2: 0.45
+  min_coherence: 0.6
+  min_surviving_pct: 15
+
+exclude_from_rescue: []

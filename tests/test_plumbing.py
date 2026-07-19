@@ -37,9 +37,15 @@ AUDIT_CSV = QA_MASKS / "_atmospheric_audit.csv"
 AUDIT_JSON = QA_MASKS / "audit_log.json"
 COH_CSV = QA_MASKS / "_coherence_mask_stats.csv"
 QUARANTINE_CSV = QA_MASKS / "_quarantine_list.csv"
+STACK_MANIFEST = QA_MASKS / "_stack_manifest.json"
 
-# Expected totals after SBAS N=3 expansion:
-EXPECTED_PRODUCT_COUNT = 183
+# The radar library is SHARED across AOIs and grows with every AOI pull and
+# radar-cadence cycle, so the expected product count is read from the stack
+# manifest (metadata-derived, updated by every download) instead of being
+# hardcoded. The old constant EXPECTED_PRODUCT_COUNT = 183 was the single-AOI
+# (Ramban SBAS N=3) era and went stale when Vaishno Devi's 49 pairs + the
+# 2026-07-10 backfill landed (235 products). The floor still catches data loss.
+MIN_PRODUCT_COUNT = 183  # the original Ramban library; the library only grows
 EXPECTED_PER_STACK_COUNTS = {
     # bucket prefix in product naming  -> expected number of products
     # (3 ASC stacks each have 14+13+12 = 39 pairs)
@@ -50,8 +56,14 @@ EXPECTED_PER_STACK_COUNTS = {
 }
 
 
-def _zip_count() -> int:
-    return sum(1 for p in RAW_ZIPS.glob("*.zip"))
+def _expected_product_count() -> int:
+    """Product count the pipeline itself believes in: the stack manifest."""
+    n = len(json.loads(STACK_MANIFEST.read_text(encoding="utf-8")))
+    assert n >= MIN_PRODUCT_COUNT, (
+        f"Stack manifest lists only {n} products (< {MIN_PRODUCT_COUNT}, the "
+        f"original Ramban library) — manifest truncated or data lost."
+    )
+    return n
 
 
 def _product_dirs() -> list[Path]:
@@ -66,23 +78,58 @@ def _masked_dirs() -> list[Path]:
 
 # ------------------------------------------------------------------------------
 # 1. Inventory assertions
+#
+# Since 2026-07-15 the raw HyP3 zips are DISPOSABLE staging artifacts (archived
+# off-machine; data/raw_zips is a junction to C:\InSAR_data\raw_zips). The
+# on-disk source of truth is data/processed_tiffs/<product>/ — the 6 extracted
+# GeoTIFF layers plus the HyP3 metadata <product>.txt (which prep_mintpy.py
+# reads from there instead of from the zip).
 # ------------------------------------------------------------------------------
-def test_zip_count_matches_expected() -> None:
-    """We expect 183 zips after SBAS N=3 (was 10 in the original draft plan)."""
-    n = _zip_count()
-    assert n == EXPECTED_PRODUCT_COUNT, (
-        f"Expected {EXPECTED_PRODUCT_COUNT} zips in {RAW_ZIPS}; found {n}. "
-        f"This means downloads are incomplete or extra products leaked in."
+def test_extracted_products_match_manifest() -> None:
+    """Every product the stack manifest knows about must have its extracted dir."""
+    expected = _expected_product_count()
+    n_dirs = len(_product_dirs())
+    assert n_dirs == expected, (
+        f"Expected {expected} extracted product dirs (per _stack_manifest.json) "
+        f"in {PROCESSED}; found {n_dirs}. Extraction incomplete, extra products "
+        f"leaked in, or the manifest is out of date."
     )
 
 
-def test_product_dir_count_matches_zips() -> None:
-    """Every zip should have produced an extracted product folder."""
-    n_zips = _zip_count()
-    n_dirs = len(_product_dirs())
-    assert n_dirs == n_zips, (
-        f"Mismatch: {n_zips} zips on disk, {n_dirs} extracted dirs. "
-        f"Re-run downloader with --extract."
+def test_zips_are_staging_only() -> None:
+    """Any zip still sitting in raw_zips must already have its extracted dir.
+
+    Zero zips is the normal state (they are deleted/archived after extraction);
+    a zip WITHOUT an extracted dir means --extract was never run on it."""
+    dirs = {d.name for d in _product_dirs()}
+    unextracted = sorted(
+        p.stem for p in RAW_ZIPS.glob("*.zip") if p.stem not in dirs
+    )
+    assert not unextracted, (
+        f"{len(unextracted)} zip(s) in {RAW_ZIPS} with no extracted product dir "
+        f"(run downloader with --extract): {unextracted[:5]}"
+    )
+
+
+def test_product_dirs_carry_all_layers_and_metadata() -> None:
+    """Each product dir must hold the 6 extracted layers + the HyP3 metadata txt.
+
+    The metadata txt is what makes the raw zip disposable — prep_mintpy.py
+    reads it from here. A dir missing it would silently force the (deleted)
+    zip fallback on the next MintPy prep."""
+    layer_suffixes = (
+        "_unw_phase.tif", "_corr.tif", "_dem.tif",
+        "_lv_theta.tif", "_lv_phi.tif", "_water_mask.tif",
+    )
+    problems = []
+    for d in _product_dirs():
+        missing = [s for s in layer_suffixes if not (d / f"{d.name}{s}").exists()]
+        if not (d / f"{d.name}.txt").exists():
+            missing.append(".txt (HyP3 metadata)")
+        if missing:
+            problems.append(f"{d.name}: missing {missing}")
+    assert not problems, (
+        f"{len(problems)} product dir(s) incomplete:\n  " + "\n  ".join(problems[:5])
     )
 
 
@@ -149,9 +196,10 @@ def test_audit_json_exists_and_parses() -> None:
     text = AUDIT_JSON.read_text(encoding="utf-8")
     data = json.loads(text)  # raises on malformed
     assert isinstance(data, list), "audit_log.json must be a JSON array."
-    assert len(data) == EXPECTED_PRODUCT_COUNT, (
-        f"audit_log.json has {len(data)} records; expected "
-        f"{EXPECTED_PRODUCT_COUNT}."
+    expected = _expected_product_count()
+    assert len(data) == expected, (
+        f"audit_log.json has {len(data)} records; expected {expected} "
+        f"(per _stack_manifest.json)."
     )
 
 

@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ramban_NH44_Corridor",
+        "description": "Primary test site focusing on the Chenab valley and NH-44 subsidence zones."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [75.150, 33.150],
+            [75.350, 33.150],
+            [75.350, 33.350],
+            [75.150, 33.350],
+            [75.150, 33.150]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -8,16 +8,18 @@ images, so the script auto-detects what the current environment can do and skips
 rest — run it once in each image and the whole chain completes:
 
   STAGE 1 — FETCH   (needs cdsapi+pygrib -> the `mintpy` image)
-    Incrementally extends data/rainfall/ramban_era5land_daily_<year>.csv from its last
-    complete day through today. Only contiguous days with actual precipitation data are
-    appended, so ERA5-Land's ~5-day publication lag simply means the CSV ends a few
-    days behind real time and the next run picks up from there. The 2025 back-test CSV
-    (ramban_era5land_daily.csv) is NEVER touched.
+    Incrementally extends data/rainfall/<aoi-slug>_era5land_daily_<year>.csv (the AOI —
+    and hence the slug — comes from config.yaml) from its last complete day through
+    today. Only contiguous days with actual precipitation data are appended, so
+    ERA5-Land's ~5-day publication lag simply means the CSV ends a few days behind
+    real time and the next run picks up from there. The base-season back-test CSV
+    (<slug>_era5land_daily.csv) is NEVER touched.
 
   STAGE 2 — ALARM   (needs rasterio+matplotlib -> the `insar` image)
     Re-derives the season wetness m(t) (rainfall_id_threshold.py), refreshes the
     per-zone active set (per_zone_gate.py) and regenerates the operational dashboard
-    as-of the newest day (operational_alarm.py), all suffixed _<year> so the validated
+    as-of the newest day (operational_alarm.py), all suffixed _<year> (Ramban,
+    grandfathered) or _<slug>_<year> (other AOIs) so the validated
     2025-season artifacts are preserved. Caveats: per_zone_gate's outputs are
     unsuffixed, so the per-zone panel reflects the LATEST run (re-run the 2025 chain to
     restore); the wetness proxy is normalised to the season-so-far 95th percentile, so
@@ -37,9 +39,12 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = PROJECT_ROOT / "workflows"
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
+SLUG = load_config().aoi_slug   # per-AOI filename prefix, from config.yaml
 
 
 def _have(*modules: str) -> bool:
@@ -138,20 +143,37 @@ def run(script: str, *args: str) -> None:
     subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
 
 
-def alarm_stage(season_csv: Path, suffix: str, threshold: str) -> None:
+def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> None:
     as_of = last_complete_day(season_csv)
     if as_of is None:
         raise SystemExit(f"alarm: {season_csv} missing/empty — run the fetch stage first "
                          f"(mintpy image).")
-    wetness_csv = RAIN_DIR / f"ramban_wetness_daily{suffix}.csv"
+    wetness_csv = RAIN_DIR / f"{SLUG}_wetness_daily{suffix}.csv"
     run("rainfall_id_threshold.py", "--csv", str(season_csv),
         "--threshold", threshold, "--out-suffix", suffix)
     run("per_zone_gate.py", "--csv", str(wetness_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat())
+    # Sub-daily IMERG burst check (imerg_gate.py, experimental §55) — refreshed BEFORE the
+    # dashboard so its card is current, but NON-FATAL: GEE down / earthengine-api absent /
+    # network trouble must never break the validated daily alarm chain (the card just goes
+    # stale or stays absent).
+    try:
+        run("imerg_gate.py", "--threshold", threshold, "--start", start.isoformat())
+    except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
+        print(f"imerg gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
+              f"a stale sub-daily card")
+    # Radar watcher (radar_watch.py, plan Tier 0c §56) — same non-fatal contract: ASF being
+    # unreachable must never break the alarm chain (the freshness pill shows last known state).
+    try:
+        run("radar_watch.py")
+    except Exception as e:  # noqa: BLE001
+        print(f"radar watch SKIPPED ({type(e).__name__}: {e}) — freshness pill shows the "
+              f"last known radar state")
     run("operational_alarm.py", "--csv", str(season_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat(), "--out-suffix", suffix)
     print(f"\nLIVE alarm regenerated as-of {as_of} -> "
-          f"data/alerts/mosaic_asc/operational_alarm_dashboard{suffix}.html")
+          f"data/alerts{load_config().data_suffix}/mosaic_asc/"
+          f"operational_alarm_dashboard{suffix}.html")
 
 
 def main() -> int:
@@ -165,8 +187,12 @@ def main() -> int:
                     help="I-D curve id, passed to every step (default: nwhimalaya).")
     args = ap.parse_args()
     start, end = date.fromisoformat(args.start), date.fromisoformat(args.end)
-    suffix = f"_{start.year}"
-    season_csv = RAIN_DIR / f"ramban_era5land_daily{suffix}.csv"
+    # Ramban keeps its original "_<year>" artifact names (grandfathered — the 2026
+    # season files already exist under them); any other AOI gets "_<slug>_<year>" so
+    # the UNPREFIXED outputs keyed by this suffix (id_threshold_report, the alarm
+    # report/dashboard) cannot collide across sites in the shared data/ dir.
+    suffix = f"_{start.year}" if SLUG == "ramban" else f"_{SLUG}_{start.year}"
+    season_csv = RAIN_DIR / f"{SLUG}_era5land_daily{suffix}.csv"
 
     can_fetch = _have("cdsapi", "pygrib")
     can_alarm = _have("rasterio", "matplotlib")
@@ -180,7 +206,7 @@ def main() -> int:
     if can_fetch:
         fetch_stage(season_csv, start, end)
     if can_alarm:
-        alarm_stage(season_csv, suffix, args.threshold)
+        alarm_stage(season_csv, suffix, args.threshold, start)
     return 0
 
 

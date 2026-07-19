@@ -56,10 +56,11 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject
 
+from config import load_config
 from geomechanical_engine import find_dem_for_stack, load_master_grid
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{load_config().data_suffix}"
 LOG_DIR = PROJECT_ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
@@ -132,7 +133,10 @@ def process_stack(stack: str, c_min: float, min_slope_deg: float,
         if s.nodata is not None:
             vlos = np.where(vlos == s.nodata, np.nan, vlos)
 
-    dem_path = find_dem_for_stack(stack)              # _dem.tif of the first KEEP product
+    # Always the _dem.tif of the first KEEP product (never the ALOS tile): the product
+    # dir is also where the lv_theta/lv_phi look-vector rasters live. (Latent since §21
+    # changed find_dem_for_stack to return a tuple — V_slope was not re-run after that.)
+    dem_path, _ = find_dem_for_stack(stack, prefer_alos=False)
     prod_dir, prod = dem_path.parent, dem_path.stem.rsplit("_dem", 1)[0]
     lv_theta = reproject_to_grid(prod_dir / f"{prod}_lv_theta.tif", transform, crs, w, h)
     lv_phi = reproject_to_grid(prod_dir / f"{prod}_lv_phi.tif", transform, crs, w, h)

@@ -7,7 +7,7 @@ ___
 > **How to read this file.** This is the project's *vision + roadmap*. For the
 > live operational state, start with [SESSION_REVIEW.md](SESSION_REVIEW.md). For
 > the plain-language story see [milestone.md](milestone.md); for the science see
-> [Research/Foundations - Physics and Maths Primer.md](Research/Foundations%20-%20Physics%20and%20Maths%20Primer.md);
+> [docs/guides/Foundations - Physics and Maths Primer.md](Foundations%20-%20Physics%20and%20Maths%20Primer.md);
 > for decisions and bugs see `session_journey.md` and `error_history_log.md`.
 
 In the Himalayas, atmospheric noise is brutal, vegetation causes rapid decorrelation, and phase unwrapping errors will outright lie to you. We approach every deformation map as a flawed hypothesis until the noise has been audited.
@@ -34,7 +34,7 @@ In the Himalayas, atmospheric noise is brutal, vegetation causes rapid decorrela
 > a hosted UI). See the **Post-MVP Roadmap** at the foot of this document.
 
 **Area of Interest:** the **NH-44 corridor through Ramban, Jammu & Kashmir**
-(`ramban_aoi.geojson`, ~20×22 km over the Chenab valley). *(Note: the original
+(`config/aoi/ramban_aoi.geojson`, ~20×22 km over the Chenab valley). *(Note: the original
 draft of this document proposed the Mandakini/Joshimath valley; we switched to
 Ramban for its documented NH-44 slope failures and sharp ridge geometry.)*
 
@@ -148,7 +148,7 @@ This architecture prevents the "garbage in, garbage out" problem that plagues re
 
 **What was actually built and run:**
 
-1. **Spatial/temporal query.** AOI = `ramban_aoi.geojson`. Window: 2025-05-01 →
+1. **Spatial/temporal query.** AOI = `config/aoi/ramban_aoi.geojson`. Window: 2025-05-01 →
    2025-10-31 (full monsoon + post-monsoon). 183 Sentinel-1 SLC interferograms
    ordered as `INSAR_GAMMA` products from ASF HyP3.
 2. **SBAS N=3 network.** Rather than a simple chain, we built a Small-Baseline
@@ -349,7 +349,7 @@ to invent.** Remaining work is *infrastructure*, *deepening trust*, and *deploym
    Ramban** — a new AOI runs the first step then breaks, and even Ramban only runs
    one stack end-to-end today. Needs: (i) a `config.yaml` for AOI path, job-name
    prefix, time window and baseline rules (replacing the hardcoded
-   `ramban_aoi.geojson` / `Ramban_NH44`); (ii) a single shared `stacks.py` that
+   `config/aoi/ramban_aoi.geojson` / `Ramban_NH44`); (ii) a single shared `stacks.py` that
    derives stack labels from product **metadata** (pathNumber/frameNumber) rather
    than the Ramban-orbit-specific acquisition time-of-day codes in `stack_key()`
    (duplicated across ~5 files); (iii) an **automated** connectivity-rescue step —
@@ -370,7 +370,7 @@ to invent.** Remaining work is *infrastructure*, *deepening trust*, and *deploym
    is irrelevant (Sentinel-1 frames are ~250 km) — *placement and shape* are what
    matter. **Workflow:** draw the polygon in **Google Earth Pro** (Add → Polygon),
    Save As `.kml`, then convert to GeoJSON
-   (`geopandas.read_file('aoi.kml').to_file('ramban_aoi.geojson', driver='GeoJSON')`,
+   (`geopandas.read_file('aoi.kml').to_file('config/aoi/ramban_aoi.geojson', driver='GeoJSON')`,
    or QGIS as a reliable fallback); GE Pro polygons are already WGS84/EPSG:4326,
    which the submitter expects. **Bundle this with the next HyP3 pull** — changing
    the AOI forces a full Phase-1 re-run (credits + hours of download), so refine
@@ -654,6 +654,6 @@ with an interactive 3-D face.
 
 ---
 # **References**
-- Joshimath InSAR case study — `Research/Joshimath InSAR.pdf`
-- Meteorological framing — `Research/Meteorology.md`, `Research/Data Sources Meteo.md`
-- Extreme weather 2025 — `Research/Extreme Weather events - Himalayas 2025.md`
+- Joshimath InSAR case study — `docs/references/Joshimath InSAR.pdf`
+- Meteorological framing — `docs/archive/local/Meteorology.md`, `docs/archive/local/Data Sources Meteo.md`
+- Extreme weather 2025 — `docs/archive/local/Extreme Weather events - Himalayas 2025.md`

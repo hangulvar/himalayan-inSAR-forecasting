@@ -86,7 +86,8 @@ from config import load_config
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
-OUT_DIR = PROJECT_ROOT / "data" / "velocity"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+OUT_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 DAYS_PER_YEAR = 365.25
@@ -470,7 +471,14 @@ def main() -> int:
     G, dates, t_days, vel_weights, pairs = build_design_matrix(products)
     n_dates = len(dates)
     n_unknowns = n_dates - 1
-    inverter = PixelInverter(G, n_unknowns, args.min_pairs)
+    # A short-chain stack (e.g. a 4-pair single-season frame) can never satisfy a
+    # min-pairs above its own pair count — clamp so small stacks invert at their
+    # physical limit (all pairs valid; zero redundancy, so treat outputs with care).
+    min_pairs = min(args.min_pairs, len(products))
+    if min_pairs < args.min_pairs:
+        logger.info(f"--min-pairs {args.min_pairs} exceeds stack size "
+                    f"({len(products)} pairs) — clamped to {min_pairs}.")
+    inverter = PixelInverter(G, n_unknowns, min_pairs)
 
     transform, width, height, crs, offsets = compute_clipped_grid(
         products, cfg.aoi_path, args.buffer_km

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """ingest_gsi_inventory.py — extract the GSI field-validated landslide inventory PDF
-(`Research/LandslideInventory/landslide_report.pdf`) into a readable CSV + a GeoJSON,
+(`docs/briefs/LandslideInventory/landslide_report.pdf`) into a readable CSV + a GeoJSON,
 filtered to the AOI, for a SCORED spatial back-test (replaces the ~11 approximate
 news-derived points; see RESULTS_AND_KPIS.md §12g).
 
@@ -33,7 +33,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "workflows"))
 
-PDF = PROJECT_ROOT / "Research" / "LandslideInventory" / "landslide_report.pdf"
+PDF = PROJECT_ROOT / "docs" / "briefs" / "LandslideInventory" / "landslide_report.pdf"
 OUT_DIR = PROJECT_ROOT / "data" / "inventory"
 HEADER = ["S.No", "Latitude", "Longitude", "Slide_Name", "State", "District",
           "Subdivision Or Taluk", "Material Involved", "Movement Type",
@@ -127,7 +127,7 @@ def main() -> int:
                       "properties": props})
     gj = {"type": "FeatureCollection",
           "note": ("GSI field-validated landslide inventory clipped to the AOI bbox + "
-                   f"{b} deg, from Research/LandslideInventory/landslide_report.pdf. "
+                   f"{b} deg, from docs/briefs/LandslideInventory/landslide_report.pdf. "
                    "Authoritative georeferenced ground truth for backtest_inventory.py "
                    "(supersedes the news-derived approximate points)."),
           "features": feats}

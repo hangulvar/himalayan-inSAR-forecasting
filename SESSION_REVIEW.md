@@ -7,42 +7,127 @@
 
 **House rule: no headline KPI/score is restated in this file.** Every number lives once, in
 `RESULTS_AND_KPIS.md` — this file cites the § only. (Pre-streamline verbose version archived at
-`Research/Archive/SESSION_REVIEW_pre-streamline_2026-07-03.md` and in git history.)
+`docs/archive/local/SESSION_REVIEW_pre-streamline_2026-07-03.md` and in git history.)
 
 ---
 
-# LIVE — Session 13 · branch `mvp-expansion` · updated 2026-07-03
+# LIVE — Session 27 · branch `aoi-vaishnodevi` · updated 2026-07-18
 
 ## Current state
 
-- **The full MVP is COMPLETE and demonstrable:** radar → audited data → SBAS velocity (3 ASC stacks; DESC dumped, quality-first) → physics hazard → explainable rainfall-driven warning + 3-D UI. Dockerized, point-anywhere (`config.yaml`), multi-stack + union mosaic. Plain-language story: `milestone.md` M1–M30.
-- **Validation is scored and beats chance.** CURRENT operating point = the **m=0.50 ALERT** product — project-best AUC (§21b). Scoring method: null-point control + distance-ROC/AUC (§16b).
-- **Two-tier product (§23):** precise **ALERT** map beside a higher-recall **WATCH** map (m=0.70); its ≥2-look core also beats chance. Both tiers surfaced in the dashboard's WHERE panel, scores read live from the back-test reports (self-updating).
-- **Per-zone detection confidence (§24):** velocity noise floor (σ_v, robust MAD) → P(creep is real, not noise); a *triage* axis, orthogonal to inventory AUC. Colour-coded column in the dashboard's per-zone panel.
-- **WATCH triage (§25):** the 132-zone net is *ranked, not gated* (priority = fragility m\* × confidence P); top-5 "read first" shortlist inside the dashboard's WATCH card.
-- **Two-factor warning WHERE×WHEN:** regional-curve temporal gate (§17, catches the 20 Apr 2025 cloudburst at Δ=0) + per-zone critical-saturation gating m\* (§19).
-- **Physics upgrades in force:** φ=36° GSI-calibrated friction (§15/§16a) + matric-suction dry/wet cohesion split (§20) + 12.5 m ALOS DEM slope (§21) — each removed an assumption AND raised the score.
-- **ERA5 tropo velocity:** frame106 good (§13/§18 — trust the multi-look core); frame102/101 honestly QC-stopped (§22), mosaic stays on custom velocities.
-- ⭐ **Headline demo:** `data/alerts/mosaic_asc/operational_alarm_dashboard.html` — WHERE (two tiers) × WHEN (alarm calendar) × WHICH ZONES (ranked triage panel + confidence column; `--as-of <date>`). Also `data/alerts/dashboard_3d.html` (3-D) and per-stack `dashboard_operational.html`.
-- **Data state:** all 3 ASC stacks at φ=36° + suction + 12.5 m DEM; zone counts per scenario → §23. (V_slope mosaics NOT refreshed since §16c — still pre-DEM.)
+- **★ NEW (§51, M47) — Past-events dashboard tab + curated historical-damage records, verified
+  live.** Both dashboards now carry a third tab: each site's documented landslide history ranked
+  by damage, every row with a Google Maps link, confidence badge + sources, and its CURRENT alert
+  standing (nearest hazard zone + live m*/FS/creep). Records live in NEW committed files
+  (`data/inventory/*_historical_events.json`) — the back-test inventories are deliberately
+  untouched so the validated scores stay earned. Verified two rounds: 11-test new suite
+  (`tests/test_historical_events.py`), full battery ×2 green, idempotent regen, browser
+  click-through, 12/12 cross-links, live source-URL checks (all in §51).
+- **★ NEW (§52) — two review rows RESOLVED → the gate's first two in-season 2026 catches, both
+  Δ=0.** Digdol was a REAL separate slide, 7 Apr 2026 (user verdict + 4 independently dated
+  outlets) — and 7 Apr was an **ALERT day (E=2.13)**: alarm raised the day NH-44 was buried. New
+  verified VD event 8 Jul 2026 (Himkoti new track, battery-car suspended) fell on a **WATCH day
+  (E=1.06)** — armed, proportionate to a no-casualty blockage. Both folded into the temporal
+  inventories (§38 precedent, no spatial re-score). All dashboard links now open in NEW tabs
+  (`<base target="_blank">`).
+- **⚠ USER REVIEW still open (§51/§52): 2 rows** — VD 2008 Bhawan date (GSI Aug-vs-Dec internal
+  discrepancy; resolve via Kumar 2009a) and the VD undated pre-2017 Himkoti casualty rockfall.
+  Both render as "pending review" on the dashboard until settled.
+- **★ NEW (§53) — live staleness guard on the alarm banner.** The static snapshot now computes
+  its own age against the VIEWER's clock at open time: 🕐 normal ≤8 d (the stated ~5-day ERA5
+  lag + cycle cadence), ⚠ amber >8 d (refresh likely missed), red >14 d "TREAT THE ALARM STATE
+  AS UNKNOWN". Verified with the page's own script at 7/10/20 days; suite asserts the element +
+  thresholds.
+- **★ NEW (§55, M48, CF14) — sub-daily IMERG burst gate SHIPPED (experimental).** The §12c fix:
+  `imerg_gate.py` (incremental half-hourly GPM IMERG via GEE, ~1-day latency — 5 days fresher
+  than ERA5 today) grades each day's peak burst vs the same nwhimalaya curve at 0.5–24 h;
+  "sub-daily burst check" card on both dashboards; non-fatal hook in `live_alarm.py`. Two-arm
+  back-test on 2026's verified events: **complementary** — Himkoti 8 Jul = burst-arm ALERT
+  (daily arm WATCH), Digdol 7 Apr = daily-arm ALERT (burst arm quiet); combined, both ALERT at
+  Δ=0. This arm has NO back-tested operating points (second opinion, card says so). Suites now
+  SEVEN (**11+10+7+12+12+11+9 green**). Remaining: per-zone IMERG from the 0.1° grid.
+- **§38's fabricated-event exclusion is now TEST-enforced** (closure-window + no-future-date
+  assertions) — the immunization records became executable checks.
+- **(§50, M46 carried):** control panel + results hub live; repo restructured (`docs/INDEX.md`
+  maps old→new); suites now SEVEN all green (**7 + 12 + 10 + 11 + 12 + 11 + compose valid**).
+- **(§49–§44 carried):** full-product audit zero bugs; zips disposable; kappa=0.06 adopted both
+  sites; CIs + ablation ladder standing — Science Upgrade Plan top 3 ALL RESOLVED.
+- **BOTH sites in WATCH, refreshed to the publication edge (§54): as-of 2026-07-12** (the
+  newest ERA5-Land day as of 07-18; the staleness pill reads "6 days behind · normal"):
+  VD 18/18 zones active, 0 ALERT days; Ramban 8/8 active, 4 April ALERT days. Next scheduled
+  cycle **19 Jul 08:00**; the cycle checks Docker (10-min grace), never manages it.
+- **(§54) season chart rewritten for lay readers** after the user read E as soil saturation:
+  plain title/axis/band labels, named event lines (both 2026 catches now visible in the
+  picture), day-count legend, caption states E grades rain-vs-threshold, not wetness. Also
+  §54: the "red pill" report was stale test-tab DOM, not the artifact (error log).
+- **GACOS pair ready (§0b):** submit the form → ingest → crosscheck remain. **★ Radar (§56):
+  the "missing July passes" were the S1 CONSTELLATION HANDOVER** — S1A retired 29 Jun 2026,
+  S1D now flies our paths (ASF has it through 25 Jun; CDSE through 12 Jul). Our A/B platform
+  whitelist would have starved the pipeline silently — FIXED. Rebuild fires when ASF ingest
+  catches up; cross-unit S1A×S1D pairing must be verified first (plan Tier 0d). **NISAR
+  (§56):** 8 winter dates + 3 GUNW over both AOIs → the L-vs-C coherence pilot is runnable
+  NOW; operational stream absent here, recheck monthly. **Active plan:**
+  `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **★ NEW (§60, M50, CF15) — Plan Tiers 3+4 EXECUTED (suites now NINE, 89 tests green).**
+  3a: the ML challenger mostly READ THE ROAD (LR 0.731 → 0.560 without elevation ≈ physics
+  0.575; corridor bias laundered into "skill" — an argument FOR the physics map). 3c:
+  temporal-skill table now a committed, tested artifact. 4a: optical change on Ardhkuwari =
+  MARGINAL (failed-to-green anomaly, worst 6.4%; screening-grade). 4c: **real D8 routing flips
+  11/22 LLOF flags (Ramban 1/8 agree) — routed swap SCHEDULED post-merge** (validated
+  products deliberately untouched). User actions open: GACOS form (values printed), soil lab.
+  Deferred: 4d frames-101/102 rescue (multi-session compute).
+- **★ NEW (§58, M49) — Plan Tier 1 EXECUTED.** Burst arm CALIBRATED on six verified events:
+  **ALERT at E≥3** (all fatal events caught, flagged days halved); **gauge bias measured —
+  IMERG = 0.16–0.22× the Katra gauge on the extreme anchors** (never raise k); per-zone IMERG
+  probed and DECLINED (~3 pixels/AOI, ≤1.29× divergence on decision days); display-only
+  "two-arm read" line live on both banners (today: Ramban WATCH, **VD combined ALERT** via the
+  burst arm on 17-Jul data).
+- **★ NEW (§59, M49) — Plan Tier 2 EXECUTED: the NISAR pilot CONFIRMS the L-band case.**
+  Winter 12-day GUNW vs our matched C-band pairs over Ramban: **where C-band fails (γ<0.35),
+  L recovers 75–87% of pixels to usable coherence** — the gain sits exactly in our blind
+  class; winter is the lower bound. VD not comparable yet (no winter C pairs). NISAR stream
+  watch now polls automatically (winter-sample only as of today). Suites: 83 tests green.
+- **★ NEW (§57) — Plan Tier 0 EXECUTED (0a–0d done; suites now EIGHT, all green).**
+  Radar-freshness pill on both dashboards + `radar_watch.py` in every regen (non-fatal).
+  Instantly surfaced: **Ramban's WHERE map is ~12 weeks stale (radar through 24 Apr) with 11
+  newer ASC scenes at ASF — its rebuild is UNBLOCKED NOW** (mostly S1A×S1A pairs); VD waits on
+  ASF S1D ingest. Cross-unit seam verified submittable (HyP3 supports S1C/S1D; path-27
+  S1A 18 Jun × S1D 25 Jun = 7-day baseline; credits 7,460). Only the rebuild itself remains —
+  the user's credit/compute call.
+- **Ramban: COMPLETE, scored, LIVE** (§21b, CIs §44). **Vaishno Devi: validated + site-tuned**
+  (§26–§32, §44 caveat). Merge `aoi-vaishnodevi` → `master` remains the user's call.
+- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
+  site (§31 addendum) — now VISIBLE on the dashboard itself (§51: 4/5 Ramban historical damage
+  sites outside today's footprint, stated with the unmeasured≠safe caveat); soils
+  literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS discrepancy pair open.
+- **⚠ Archival note (§48):** the Google Drive copy of the 235 raw zips is the ONLY archival
+  source (ASF server copies expired; re-creation costs HyP3 credits ≈7,460 remaining).
 
 ## Recommended next step
 
-Top remaining items (each needs external data / compute / per-stack tuning — see STABLE §3 for the full menu):
-(a) nonlinear van-Genuchten suction curve (§20 is first-order linear); (b) lab confirmation of c_dry/c_wet
-(the 18.5 unit question, §20); (c) per-stack ERA5 reference-pixel + unwrapping QC to rescue frame102/101
-(§22 fix path); (d) live rainfall ingestion (replace manual fetch); (e) NISAR ingestion as it matures
-(operational window from Jul 2026); (f) **new-AOI replication before monsoon** — point `config.yaml` +
-start the S1/HyP3 pull early (velocity needs a time series).
-
-> **⏸ Deferred user-side manual setups (both documented in `README.md` Step 7):** (1) GACOS tropo
-> cross-check; (2) GSI Bhukosh verified-date inventory (dropped as a blocker — the CSV suffices spatially).
+First: **user reviews the 2 remaining flagged rows (§52)** — settle or drop them. Then the
+product roadmap (STABLE §3/§4): **radar cadence when July passes land** (resubmit →
+download → QA → multistack → re-score, applying the §43 f106 bridge swap), then the failure-class
+gap (Sentinel-2 optical change) and per-zone IMERG (§55's remaining half). User-side: field check of the NE-flank CORE
+target; merge to `master`; publish the dashboard. Day-to-day ops: start Docker at logon, then
+either let the scheduled cycle run or double-click `control_panel.bat` and press the button.
 
 ## Uncommitted delta
 
-- Working tree **clean at `737e739`**; all Session-13 work committed (B1 `39c723c`, B2 `1314682`+`a4b5db6`, B3 `d7535f6`, B4 `737e739`).
-- **[2026-07-03] NEW this session — documentation-ritual streamline:** `.claude/commands/wrap-session.md` (one-command end-of-session ritual), this restructured LIVE/STABLE SESSION_REVIEW (verbose snapshot archived), CLAUDE.md §5 ritual rules updated (CLAUDE.md itself is untracked). Suggested commit:
-  `git add .claude/commands/wrap-session.md SESSION_REVIEW.md && git commit -m "Streamline documentation ritual: /wrap-session command + LIVE/STABLE SESSION_REVIEW"`
+Session 27's work batches are ALL committed by the user: `c618ca2` (Past-events tab + curated
+records), `6066cb0` (wrap: §51, M47), `dc6ff7d` (§52 review round + new-tab links), `4732cae`
+(§53 staleness guard), `87335d1` (season-chart readability pass).
+
+Committed through `9d51fbd` (Tiers 1+2). Still uncommitted (the §60 Tiers-3+4 batch + wrap):
+- NEW: `workflows/{susceptibility_crosscheck,optical_change,flow_routing_probe}.py`,
+  `tests/test_tier34.py` (6 tests), `data/inventory/temporal_skill_table.csv` (committed
+  standing table; gitignore re-include).
+- MODIFIED: `.gitignore`, `RESULTS_AND_KPIS.md` (§60), `milestone.md` (M50), the primer
+  (CF15 + Part D ML question), `docs/references/STRENGTHENING_PLAN_2026-07-18.md` (Tier 3/4
+  checkmarks), `error_history_log.md` (D8 edge bug), `SESSION_REVIEW.md` (this block).
+- Git-ignored as usual: journey entries (S27 cont. 5–8).
+- **Next after merge:** the routed-LLOF validated swap (§60 4c), the Ramban cadence rebuild
+  (§57 — unblocked), GACOS form + soil lab (user).
 
 ---
 
@@ -59,10 +144,14 @@ start the S1/HyP3 pull early (velocity needs a time series).
 | 5 | `session_journey.md` | Slim per-session bullets (what/why/dead-ends); older entries are long-form | Newest 1–2 entries |
 | 6 | `error_history_log.md` | Every bug + root cause + fix — **check before debugging anything** | Scan headings |
 | 7 | `docker/README.md` | How to build/run the pipeline in the Linux container | As needed |
-| 8 | `Research/Foundations - Physics and Maths Primer.md` | The science (Phases 1–4 + forecasting/rainfall/validation) | As needed |
+| 8 | `docs/guides/Foundations - Physics and Maths Primer.md` | The science (Phases 1–4 + forecasting/rainfall/validation) | As needed |
 | 9 | `InSAR_hazard_forecasting_Context.md` | Original vision / full expansion roadmap | Reference |
 
 **Also re-read `CLAUDE.md`** — behavioural rules + the documentation ritual (§5: run `/wrap-session` before stopping).
+
+> **Docs restructured 2026-07-17:** all reading material (guides, runbooks, field briefs,
+> references, archive) now lives under `docs/` — start at `docs/INDEX.md`, which also maps every
+> old path to its new home. The functional docs in the table above stay at the project root.
 
 > **Committed vs local-only (verified 2026-06-07 via `git ls-files`):** `CLAUDE.md` and
 > `session_journey.md` are **git-ignored / untracked** (local-only working notes), as is most of `data/`.
@@ -82,27 +171,60 @@ start the S1/HyP3 pull early (velocity needs a time series).
 - **Native Windows (legacy):** run compute scripts with the **conda env activated**, or rely on the
   in-script DLL bootstrap. Launching `python.exe` by full path *without* activation → numpy can't find
   its BLAS DLLs → **`0xC06D007F`** (DLL-load failure, not a numerical bug). Keep `logging` ASCII.
+  Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: ~6,170 (≈ enough for one more AOI's full Phase-1 pull). Disk: ~73 GB used in `data/`.
+- HyP3 credits: ~7,460 as of 2026-07-10 (§35; ≈ enough for one more AOI's full Phase-1 pull). Disk: ~46 GB in `data/` (§48 — raw zips Drive-archived + deleted 2026-07-15).
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
+- **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —
+  raise temporarily for heavy MintPy sessions, then `wsl --shutdown`.
+- **`data\raw_zips` is an NTFS junction → `C:\InSAR_data\raw_zips`.** Containers can't see through
+  junctions — compose nested-binds the real folder (both services).
+- **Start/stop Docker ONLY via `docker desktop start` / `docker desktop stop` (CLI, 4.37+).**
+  Force-killing the processes DETERMINISTICALLY bricks the next start (stale unix socket in
+  `%LOCALAPPDATA%\Docker\run\` → error dialog). If already bricked: quit the dialog, rename that
+  `run` dir, `docker desktop start` (error log 2026-07-15/16).
 
 ## 3. Open questions — "deepen trust" or "scale/deploy"
 
 The core vision is fully built and scored above chance. Remaining work:
 
-0. **Infrastructure & portability:** Infra 0a/0b DONE. Still: fold the <150 m perpendicular-baseline
-   gate into rescues; AOI guidance (a better polygon improves *targeting*, not the noise floor).
+0. **Infrastructure & portability:** Infra 0a/0b DONE. **Multi-AOI productization DONE (2026-07-12):**
+   per-AOI config registry (`config/*.yaml`, root `config.yaml` = one-line `active_config` pointer),
+   `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
+   config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
+   (multi-AOI stage/alarm dashboard + deterministic next step), `docs/runbooks/NEW_AOI_PLAYBOOK.md` (onboarding
+   runbook), `tests/test_config_registry.py`. ~~Fold the <150 m perpendicular-baseline gate into
+   rescues~~ ✅ DONE 2026-07-13 (§43 — one standing f106 bridge measured 151 m; a better
+   replacement is queued and applies at the next radar-cadence rebuild). Still: AOI guidance
+   (a better polygon improves *targeting*, not the noise floor).
    **New-AOI replication readiness:** infra replicability HIGH (config-driven, Dockerized, multi-stack);
    scientific transferability MEDIUM — a new AOI needs (a) ~2–3 months of S1 acquisitions for a velocity
-   baseline, (b) site soil calibration (φ=36° is Ramban-specific), (c) a local inventory for validation.
-1. **Accuracy backlog:** nonlinear van-Genuchten suction curve; lab confirmation of c_dry/c_wet;
-   per-stack ERA5 reference-pixel + unwrapping QC (rescue frame102/101, §22).
+   baseline, (b) a site soil check (Ramban field-calibrated §20; VD literature-corroborated §37 — each
+   new site needs its own pass, now recorded in its registry file; **measured to be load-bearing, §42 —
+   failure depth especially**), (c) a local inventory for validation
+   — the three manual steps the playbook and status dashboard track explicitly.
+0b. **GACOS second pull — tooling ready (2026-07-16):** `workflows/gacos_request.py` prints the
+   exact form values (bbox, per-track UTC time, missing dates only); `workflows/gacos_ingest.py`
+   turns the email tarball into cross-check-ready tifs + the STACKS snippet. The remaining §40
+   work is: submit the form, wait for the email, run ingest, run `_gacos_crosscheck.py`.
+1. **Accuracy backlog — the ranked plan is COMPLETE:** see `docs/archive/Science Upgrade Plan - Top 3
+   (2026-07-13).md` — ~~(1) bootstrap CIs + ablation-baseline ladder~~ ✅ DONE (§44,
+   `validation_stats.py`), ~~(2) TWI-distributed saturation m_i~~ ✅ DONE (§45, kappa=0.06 adopted
+   both sites; broke VD's §44 slope-only tie), ~~(3) nonlinear van-Genuchten suction curve~~ ✅
+   RESOLVED (§46 — mechanism shipped config-gated, adoption rejected: (α,n) not identifiable from a
+   spatial inventory; linear stands on evidence). Still behind those:
+   lab confirmation of c_dry/c_wet; per-stack ERA5 reference-pixel + unwrapping QC (rescue
+   frame102/101, §22).
 2. **Visualization:** combined interactive 3-D dashboard over the UNION mosaic; ASC/DESC vertical+EW
    decomposition (DEFERRED — needs better DESC: longer connected series / PS / phase-linking).
-3. **Make it live / smarter:** live rainfall ingestion (CHIRPS/GPM auto, replace manual fetch); real
-   flow-routing for LLOF (replace TWI proxy); hybrid LLM ("rules decide, LLM narrates").
+3. **Make it live / smarter:** ✅ live rainfall ingestion DONE (`live_alarm.py` incremental ERA5-Land
+   + one-command alarm regen; 2–3-day runbook 2026-07-11). ✅ **Sub-daily IMERG burst gate DONE
+   2026-07-18 (§55, experimental second opinion** — `imerg_gate.py` + dashboard card + non-fatal
+   live_alarm hook; remaining: per-zone IMERG from the 0.1° grid + earning this arm back-tested
+   operating points). Still open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM
+   ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
 5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on
    ASF Feb 2026; **calibrated forward processing at 1–3 day latency from Jul 2026**. L-band recovers
@@ -118,28 +240,35 @@ improvements until shown to matter.
 `InSAR_hazard_forecasting_Context.md` for durability). Each **AREA is self-contained**.
 
 **Where the MVP is weakest today:** ~30 mm/yr velocity noise floor; single-look (no true 3-D motion);
-assumed/uniform soil strength (φ now site-calibrated) + dry/sat end-members + TWI-proxy downstream flag;
-manual (not live) rainfall; a static-vs-worst-case hazard map; recall-limited validation on one small AOI.
+uniform soil strength (site-corroborated §20/§37, but one value per AOI) + dry/sat end-members +
+TWI-proxy downstream flag; rainfall now two-arm (daily AOI-mean validated + sub-daily IMERG
+experimental §55) but still not per-zone, and the burst arm lacks back-tested operating points; a
+static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 
-- **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), GACOS cross-check, DEM-error +
+- **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), ✅ GACOS cross-check (VD, §40 — mixed
+  first result, worth a second pull), DEM-error +
   coherence-weighted inversion, phase-linking/DS methods (recover vegetated slopes), <150 m Bperp rule.
 - **Area 2 — Signal strengthening:** ASC/DESC → vertical+EW (needs better DESC), PS points on rock/infra,
   longer series → seasonal vs steady-creep split.
 - **Area 3 — Map → FORECAST:** inverse-velocity TTF (built), regional ID thresholds (built/verified),
-  calibrated spatially-varying soil + distributed saturation, real flow-routing for LLOF.
+  TWI-distributed saturation ✅ DONE (§45, kappa=0.06); still: calibrated spatially-varying soil,
+  real flow-routing for LLOF.
 - **Area 4 — Validation & uncertainty:** scored back-test DONE (§16); uncertainty quantification DONE (§24);
   next = a susceptibility model (LR/RF) cross-check + a verified-date temporal test.
 - **Area 5 — Multi-sensor corroboration (GEE):** CHIRPS/IMERG/ERA5-Land rainfall, SMAP/ASCAT soil moisture,
   SoilGrids strength, DEM upgrades, WorldCover/NDVI veg masks, Sentinel-2/Landsat optical change, NASA GLC.
-- **Area 6 — Operationalize:** live rainfall ingestion, hybrid LLM, hosted + union 3-D dashboard.
+- **Area 6 — Operationalize:** ✅ live rainfall ingestion (done — `live_alarm.py` + runbook); hybrid LLM,
+  hosted + union 3-D dashboard.
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
-  #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve remains).
+  #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve BUILT + evaluated §46 —
+  rejected on identifiability, config-gated for when lab/temporal data exists).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
   decorrelation, our worst enemy); operational window from Jul 2026.
 
 **Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19); (2) ✅ physics/data
-upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) live rainfall;
-(5) NISAR ingestion as it matures; (6) susceptibility cross-check + nonlinear suction.
+upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) ✅ live rainfall
+(`live_alarm.py` + runbook); (5) NISAR ingestion as it matures; (6) susceptibility cross-check
+(~~nonlinear suction~~ ✅ resolved §46 — rejected on evidence).
 
 **Robustness in one line:** corroborate InSAR creep with optical change, real rainfall, soil moisture, and a
 validated inventory — never trust a single sensor or a single physics assumption.

@@ -36,13 +36,20 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import rasterio  # noqa: E402
 
-from per_zone_gate import critical_saturation, tier_of          # m* + vulnerability tier (§19)
+from config import load_config                                  # noqa: E402
+from per_zone_gate import tier_of                               # vulnerability tier (§19)
+import fs_real                                                  # m* + kappa/suction layers (§45/§46)
+from fs_real import effective_mstar                             # kappa-shifted activation (§45)
 from velocity_uncertainty import stack_noise, confidence        # noise floor + P (§24)
-from run_multistack import MERGE_DEG, connected_stacks          # union-merge distance + stacks
+from run_multistack import MERGE_DEG                            # union-merge distance
+from stacks import product_stacks                               # standing-product stacks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
+_CFG = load_config()
+_SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
+_KAPPA = _CFG.kappa                # §45 TWI-distributed saturation slope (0 = uniform m)
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 MOSAIC_ALERTS_DIR = ALERTS_DIR / "mosaic_asc"
 
 
@@ -60,18 +67,34 @@ def collect(stacks: list[str], scenario: str) -> list[dict]:
             fs_dry = d.read(1)
         with rasterio.open(fsat) as d:
             fs_sat = d.read(1)
+        # kappa layer (§45): fragility for the ranking is the ACTIVATION threshold m*_eff
+        # (same shift as per_zone_gate), so triage order matches the gate's firing order.
+        # suction layer (§46): m* from the nonlinear FS(m) root when the site enables it.
+        twi = twi_mean = slope = None
+        twip = HAZ_DIR / f"{s}_twi.tif"
+        if _KAPPA and twip.exists():
+            with rasterio.open(twip) as d:
+                twi = d.read(1)
+            twi_mean = float(np.nanmean(twi))
+        if _CFG.suction is not None:
+            with rasterio.open(HAZ_DIR / f"{s}_slope_deg.tif") as d:
+                slope = d.read(1)
         for a in json.loads(af.read_text(encoding="utf-8")).get("alerts", []):
             r, c = a["pixel_rowcol"]
             if not (0 <= r < fs_dry.shape[0] and 0 <= c < fs_dry.shape[1]):
                 continue
-            mstar = critical_saturation(float(fs_dry[r, c]), float(fs_sat[r, c]))
+            mstar = fs_real.mstar(float(fs_dry[r, c]), float(fs_sat[r, c]),
+                                  _CFG.soil, _CFG.suction,
+                                  float(slope[r, c]) if slope is not None else None)
             creep = a.get("mean_velocity_mmyr")
             if mstar is None or creep is None or not sigma:
                 continue
+            twi_zone = (float(twi[r, c]) if twi is not None and np.isfinite(twi[r, c])
+                        else None)
             lon, lat = a["centroid_lonlat"]
             rows.append({"stack": s, "lon": round(lon, 5), "lat": round(lat, 5),
                          "severity": a["severity"], "creep_mmyr": creep,
-                         "m_star": round(mstar, 3),
+                         "m_star": round(effective_mstar(mstar, twi_zone, twi_mean, _KAPPA), 3),
                          "p_look": round(confidence(float(creep), sigma), 3)})
     return rows
 
@@ -119,7 +142,7 @@ def main() -> int:
     ap.add_argument("--top", type=int, default=15, help="Rows to show in the .md report.")
     args = ap.parse_args()
 
-    stacks = args.stacks or connected_stacks()
+    stacks = args.stacks or product_stacks(args.footprint)
     rows = collect(stacks, args.footprint)
     if not rows:
         raise SystemExit(f"No '{args.footprint}' zones found — run run_multistack.py first.")
@@ -130,7 +153,9 @@ def main() -> int:
     tier_counts = Counter(z["vulnerability_tier"] for z in ranked)
     report = {
         "footprint": args.footprint, "method": "RANK not GATE — keep all zones, sort by "
-        "priority=(1-m*)*P (fragility x detection confidence)", "stacks": stacks,
+        "priority=(1-m*)*P (fragility x detection confidence); m* is the kappa-shifted "
+        "activation threshold m*_eff when the site sets kappa (§45), so triage order "
+        "matches the per-zone gate's firing order", "kappa": _KAPPA, "stacks": stacks,
         "n_zones": len(ranked), "n_multi_look": int(sum(z["n_looks"] >= 2 for z in ranked)),
         "priority_max": round(float(pri.max()), 3), "priority_median": round(float(np.median(pri)), 3),
         "priority_min": round(float(pri.min()), 3),

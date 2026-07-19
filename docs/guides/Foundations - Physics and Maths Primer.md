@@ -33,8 +33,10 @@ what we did; this file explains the *science* of why it works. Wherever you see
 > "Radar satellites orbit Earth and bounce microwaves off the ground. By very
 > precisely comparing the *timing* (phase) of the wave between two passes over
 > the same spot, we can measure if the ground moved — down to a few millimetres.
-> We use this to watch hillsides above the NH-44 highway in Ramban for slow
-> creep that can precede a landslide, especially during monsoon."
+> We use this to watch Himalayan hillsides for slow creep that can precede a
+> landslide — above the NH-44 highway in Ramban, and along the Vaishno Devi
+> pilgrimage route — fused with real rainfall into a live, weather-gated warning,
+> validated against documented landslides at both sites."
 
 Everything below explains the words in that paragraph.
 
@@ -1046,6 +1048,364 @@ confidence (operational median 0.77, monitoring-tier median 0.85), with multi-lo
 to ~1.0. Filtering by it doesn't change the inventory grade (AUC 0.50 → 0.51 → 0.48) — confirming it is a
 distinct, complementary trust axis, not a spatial ranker.
 
+## CF11. Error bars, permutation tests, and the dumb-baseline ladder — grading the grade itself
+
+CF6 taught us to grade the map honestly (null control, ROC/AUC). But an AUC from ~40–140 known
+landslides is itself a *measurement* — it has noise. Two tools put honesty on the honesty:
+
+**Bootstrap confidence interval — "how much would the score wobble?"** Re-draw the landslide list
+from itself, with replacement, 10,000 times; recompute the AUC each time; the middle 95% of those
+scores is the interval. Quote **"AUC 0.71 [0.66–0.75]"**, never a naked third decimal. *Analogy:*
+instead of weighing yourself once, you weigh yourself 10,000 mornings and report the range — a
+one-off 0.707 vs 0.696 difference stops looking meaningful the moment you see the spread.
+
+**Permutation test — "could random luck do this?"** Pool the real landslides with the 5,000 random
+control points, shuffle which labels are "real" 10,000 times, and ask how often shuffled labels
+score as well as ours. If (almost) never, the map genuinely knows something: **p = 0.0001** — the
+smallest value 10,000 shuffles can resolve — at both sites' alert maps.
+
+**The ablation ladder — "would a dumber map do the same?"** A score means little without a rival. So
+we score, *by the identical rules*, a ladder of deliberately dumb maps: steepness alone; a textbook
+statistical blend of steepness + terrain-wetness; our physics without the satellite; our satellite
+without the physics. Each rung even gets to cheat — it tunes its threshold to its own best score.
+The claim worth making is **incremental skill**: what the fusion adds *over each rung*.
+
+**What the ladder said.** At Ramban: the fusion beats every rung; satellite-alone is *below* chance
+and physics-alone barely above — the value is provably in the combination. At Vaishno Devi: the
+fusion beats its own ingredients, but a bare "steeper than 40°" map **ties it** on raw AUC (needing
+155 zones and lower precision to match our 21) — so there we claim footprint economy, timing (the
+two Δ=0 disaster catches), and per-zone ranking, *not* raw spatial superiority. Reporting the tie
+is the credential.
+
+🔗 **In our project: §44 / Milestone 41.** `validation_stats.py`; dashboards now read the interval
+and p-value live; the ladder is the permanent bar the next science upgrades must clear.
+
+## CF12. Where the ground gets wet first — TWI-distributed saturation
+
+Until now the "wetness dial" (CF6) turned the *whole* mountain equally wet on a given day: one
+saturation number `m` for every slope. But water doesn't wet a hillside uniformly — it runs downhill
+and pools where the land converges. We already measure exactly that tendency: the **Topographic
+Wetness Index** (TWI, CF/Part C), high in valley hollows, low on dry ridges. So we let each pixel
+have its own saturation:
+
+  m_i = clip( m + κ·(TWI_i − TWI_mean), 0, 1 )
+
+The average is still `m` (TWI is measured from its own mean), so the day's *overall* wetness — set by
+the rainfall — is unchanged; **κ just redistributes it**, giving convergent hollows a head start and
+ridges a lag. One new knob, κ ("how strongly TWI tilts the wetness"), tuned per site against the
+landslide record exactly like every other dial. κ=0 is the old uniform behaviour.
+
+**Everyday analogy.** Same rain falls on a car park, but the puddles form in the dips, not on the
+crown. Painting the whole lot "equally wet" misses where you'd actually slip.
+
+**Why it helped.** Both mountains, on separate landslide records, independently preferred the *same*
+gentle tilt (κ=0.06) — and it concentrated the alert on the wet, failure-prone hollows: the danger
+map got sharper and smaller. At Vaishno Devi this was the difference that finally pushed the model
+*past* the "dumb steep-slope map" it had merely tied in CF11 — same skill, a tenth the zones.
+
+**The honest caveat.** It sharpens *where*, not *when*: on the wettest days the whole slope is soaked
+(`m`≈0.9) and everything lights up regardless of κ; the tilt matters most on moderate days. And the
+raw skill gain sits inside the error bars (CF11) — the trustworthy wins are the tighter footprint and
+beating the baseline, not a proven jump in the score.
+
+🔗 **In our project: §45 / Milestone 42.** `kappa` config key; TWI-distributed m_i in the engine;
+swept via `rainfall_selectivity_backtest.py --kappas`; adopted at 0.06 for both sites.
+
+## CF13. The suction curve we built and didn't use — nonlinearity, identifiability, and saying no
+
+Damp soil is glued together by **matric suction** — the same capillary pull that makes a sandcastle
+stand. Our model had treated that glue as fading *linearly* from dry to soaked. Laboratory
+**soil-water retention curves** (van Genuchten's equation) say otherwise: the glue holds, holds…
+then collapses over a narrow wetness band. We built that curve in:
+
+  ψ(m) = (1/α)·(m^(−1/(1−1/n)) − 1)^(1/n)  → extra cohesion = min(c_dry − c_wet, ψ·m·tanφ′)
+
+Two safeguards made it honest. The **cap** (`min`) means suction can never claim more strength than
+the *measured* dry end-member; and ψ(1)=0 means fully-soaked strength is exactly the measured wet
+value. So the curve only reshapes the *journey* between two anchored facts — and because only
+cohesion changes, the whole thing rides on the existing maps as a correction term (no reprocessing).
+
+**Everyday analogy.** Wet sand is sticky across a wide range of dampness, then suddenly turns to
+soup. A straight line between "dry beach" and "soup" misses the cliff-edge. The question is *where*
+the cliff sits — that's what α and n encode, and they differ by soil type.
+
+**What the test said — and the concept that matters: identifiability.** We tried four published
+(α, n) pairs spanning our soil's plausible textures, each allowed to re-tune the wetness dial to its
+own best score. None beat the straight line at both mountains. Why? Scored against a *map* of past
+landslides, curve shape and dial setting are nearly interchangeable — moving one mimics the other, so
+the data **cannot identify** the curve's parameters. A parameter the data can't pin down is a
+liability, not physics. What would pin it down: a lab curve for *our* soil, or the *dates* individual
+slopes failed (the curve's real signature is timing, not placement).
+
+**The discipline.** The mechanism ships, verified bit-for-bit at the end-members and guarded by its
+own test file — switched off. Adopting it would have added two borrowed parameters for a gain our own
+error bars (CF11) call noise. Saying "not yet" to your own upgrade is the same muscle as publishing
+the slope-map tie.
+
+🔗 **In our project: §46 / Milestone 43.** `fs_real.py` (all wetness→FS physics in one module — an
+audit found two tools still on the old maths, CF12's layer now cannot drift), config `suction:`
+block (absent = linear), `tests/test_fs_real.py`.
+
+---
+
+## CF14. Two rain sensors, one danger line — the sub-daily burst gate (IMERG)
+
+CF2 gave us the danger line: rain of intensity *I* sustained for duration *D* has historically
+triggered landslides when *I* ≥ a·D^(−b). CF5 taught that *which rain data* you feed that line
+matters. This section is the operational conclusion of both: the same curve, fed by a **second,
+much faster rain sensor** (Milestone 48).
+
+**The blind spot.** Our daily gate feeds the curve a *daily, area-averaged* rainfall value. But
+average a day with one savage hour of rain and 23 dry hours and you get "drizzle" — the
+mountain-killer cloudburst literally averages away. We proved this on the deadly 20 Apr 2025
+cloudburst (clear crossing on half-hourly data, invisible on the daily mean) and watched it
+again on 8 Jul 2026 (Himkoti: daily gate said only WATCH).
+
+**The fix.** NASA's GPM IMERG product estimates rain every **30 minutes** on a ~11 km grid,
+arriving ~**1 day** after it falls (the daily reanalysis takes ~6). Each day we slide windows of
+every length from half an hour to a day through the half-hourly series and ask: did *any*
+window's mean intensity cross the same danger line?
+
+> E_sub(day) = max over D ∈ {0.5…24 h} of  [ (rain in the D-hour window ending that day) / D ] ÷ (a·D^(−b))
+
+The windows deliberately **cross midnight** — a burst at 23:30 belongs to the day it ends in,
+not to neither. **Everyday analogy:** the daily gate reads the rain gauge once every evening;
+the burst gate is a security camera that never blinks — it catches the smash-and-grab that
+happened between readings.
+
+**What this season proved (the best possible answer): the two sensors catch different
+killers.** The 8 Jul Himkoti slide — under-called by the daily gate — is a clear **ALERT** on
+the burst gate (a 3-hour downpour, measurable *hours before* the evening collapse). The 7 Apr
+Digdol highway burial — days of soaking, no single burst — is the mirror image: the burst gate
+barely stirs, the daily gate had already raised full ALERT. Long soak → daily arm; sudden burst
+→ sub-daily arm; combined, **both of 2026's verified events read ALERT on the day**.
+
+**Why it stays "experimental".** At short durations the same curve trips far more easily, and
+this arm's false-alarm rate is *unmeasured* — it has no back-tested operating points the way
+the daily gate has (CF7). So it ships as a labelled **second opinion** beside the validated
+alarm, not as the alarm. Also honest: an 11-km pixel still averages over a slope; no snowmelt;
+the newest day is provisional while its data arrives.
+
+🔗 **In our project: Milestones 48–49 / §55 & §58.** `imerg_gate.py` (incremental cached
+half-hourly fetch + daily E), the "sub-daily burst check" card, and a non-fatal hook in
+`live_alarm.py`. The arm was then CALIBRATED on six verified events (§58): burst ALERT at
+**E ≥ 3** (every fatal event stays caught, flagged days halve), with a measured caveat that
+drives the choice — IMERG read only **0.16–0.22×** the Katra gauge on the two worst 24-h
+anchors (an 11-km pixel average vs a point gauge under a cloudburst), so E is biased LOW in
+the events that matter and the threshold must never be pushed high. Per-zone rain was probed
+and declined: our zones sit inside ~3 IMERG pixels, so zone-level E barely departs from the
+AOI mean (≤1.29× on decision days). A display-only "two-arm read" line now sits on the banner;
+the validated daily alarm is untouched.
+
+---
+
+## CF15. When the clever model is just reading the road — reporting bias in inventories
+
+CF6 taught us to grade maps against a landslide inventory. This section is the trap hidden in
+that idea (Milestone 50): **an inventory records where landslides were *noticed*, not where
+they *happened***. Ours hugs the NH-44 highway — because that is where the GSI surveys, where
+traffic stops, where reporters stand.
+
+We built a statistical susceptibility model (logistic regression on terrain: elevation, slope,
+wetness, curvature) and scored it against the physics map on the same 112 verified points. The
+statistical model "won" — until we read its weights: nearly all of its skill was one feature,
+**low elevation**, which in this valley simply means *near the highway*. Removing that single
+feature erased its entire advantage. **Everyday analogy:** train a model to find lost keys
+from past discoveries and it will learn "keys are found under streetlights" — because that is
+where people look, not where keys fall.
+
+> A model trained on a biased inventory learns the bias, fluently, and calls it skill.
+
+The physics map cannot learn where people look — it only knows slopes, water and strength.
+That *independence* is precisely its value, and why the ensemble of the two gained nothing:
+the statistical half brought mostly bias to the table. The general rule: before celebrating
+any data-driven hazard model, ask *what its features are proxies for* — and test by deleting
+the suspicious one.
+
+🔗 **In our project: Milestone 50 / §60.** `susceptibility_crosscheck.py` — LR CV AUC 0.731 →
+0.560 without elevation, vs physics 0.575 on the same raw-pixel protocol (deliberately not
+comparable to the §16/§44 zone-buffer scores). The corridor bias itself is an old friend:
+CV3/CV4 already carried it as the inventory's documented caveat; this experiment measured it.
+
+---
+
+# Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
+
+## CV1. What travels with the tool — and what must be earned again
+
+When you point a working system at a **new place** (the Vaishno Devi pilgrimage route, ~40 km from Ramban),
+you discover which parts of it were *science* and which were *local knowledge in disguise*.
+
+**What travels free:** the physics (radar, phase, FS — Parts A–C), the pipeline (order → audit → invert →
+hazard → alert), and the *methods* of honesty (null controls, tiers, gates). **What must be earned again at
+each site:** the **soil numbers** (φ and cohesion were measured on Ramban-area slopes; the new mountain is
+limestone/dolomite + loose scree — different material, borrowed values), the **elevation tile** (the sharp
+12.5 m DEM is a per-site download), the **operating points** (m = 0.50/0.70 were *tuned* on Ramban's
+inventory), and above all the **validation** — a score earned on one mountain is not a credential for
+another.
+
+**Everyday analogy.** A good recipe travels; your oven's quirks don't. A chef moving kitchens keeps the
+recipe but re-learns the oven — and doesn't hang the old kitchen's Michelin star on the new wall.
+
+**Two engineering lessons worth telling.**
+- *A second site is a free integration test.* Pointing the pipeline at Katra immediately exposed three
+  hidden "only-works-for-Ramban" assumptions (a quality bar a short radar series can never reach; a DEM
+  tile that covers only Ramban; a function whose caller was never updated). Each was invisible while only
+  one site existed — and each fix made the tool genuinely site-agnostic.
+- *Two sites must not share drawers.* The same satellite frames cover both mountains, so outputs would have
+  silently overwritten each other. Every per-site file now lives in its own named folder/filename (the
+  "slug"), and — the honesty guard — a site's dashboard **cannot display another site's accuracy scores**:
+  if it hasn't been tested locally, it says so, in plain words.
+
+**A lucky physics bonus:** because radar frames are ~250 km long, the archive we'd already bought for
+Ramban also photographs the new mountain — history for free.
+
+🔗 **In our project: Milestones 31, 32, 34, 35.** Phase 1→4 replicated in days, not months; three latent
+assumptions fixed; per-site folders + "not yet back-tested at this site" cards; the site's own 12.5 m DEM
+sharpened slopes (median 18°→22°) and grew the two-track-confirmed core by ~38 %.
+
+---
+
+## CV2. Route exposure — turning a hazard map into "which part of the path?"
+
+A hazard map answers "*where is the ground suspect?*" A pilgrim, engineer or administrator asks a sharper
+question: "*which stretch of MY path is near that ground?*" The bridge between the two is embarrassingly
+simple mathematics: **distance**.
+
+**The gentle method.** Walk along the route in small steps (we use 40 m). At each step, measure the
+straight-line distance to the nearest flagged pixel or alert zone. (Computers do this instantly with a
+*distance transform*: for every cell in a grid, precompute how far it is to the nearest "on" cell.) Then
+classify each step by the *strongest* thing it is near, and merge consecutive steps of the same class into
+**segments** — a ranked to-do list instead of a coloured cloud.
+
+**The honest yardstick matters more than the method.** How near is "near"? We didn't invent a number — we
+reused the one the *scoring* earned (CF6): our maps demonstrably discriminate at **≤250 m**, so that is the
+exposure buffer; within one pixel (80 m) counts as a direct hit. Claiming more precision than your
+validation supports is how honest tools become dishonest slides.
+
+**Everyday analogy.** A weather map shows storms; a pilot's briefing says "your route clips the storm cell
+for 30 miles after waypoint X." Same data — different, more actionable question.
+
+🔗 **In our project: Milestone 33 (+ the §31 addendum).** The route (real OpenStreetMap geometry: the old
+track, both modern variants, the ropeway) against the union map: **one 800 m stretch above the Bhairon top
+passes directly through two-track-confirmed creeping ground** (the "go look here first" finding); the
+modern route variants ride through the wide monitoring net; the town and trek start are clear. And the
+sobering read the overlay forced us to print: the 26 Aug 2025 disaster site itself sits **598 m** from our
+nearest zone — *beats-chance at 2 km* is not *pinpoints-the-site at 250 m* (see CV4).
+
+---
+
+## CV3. Failure classes — the slow creep radar sees, and the fast rockfall it doesn't
+
+Not all landslides are the same physical animal, and no single instrument sees them all.
+
+**What SBAS InSAR is built for:** **slow, persistent creep** — a hillside moving millimetres-to-centimetres
+per year, coherently, over many 12-day revisits. That is exactly the precursor motion of large, deep-seated
+slides.
+
+**What the pilgrim track mostly suffers:** **fast, brittle, small failures** — rockfall off a cut slope, a
+debris chute in loose scree, a boulder shaken free by a cloudburst. These give *no slow warning creep* at
+80 m scale; between two satellite passes the ground goes from "fine" to "fallen" (and the radar often just
+sees the pixel *decorrelate* — turn to static — rather than move).
+
+**Why this matters for reading our maps.** At the new site, our most *measurement-certain* product — the
+two-track-confirmed creep core — scored **zero** against the GSI list of track-side danger spots, while the
+broader physics-weighted map beat chance. That is not a contradiction: the core detects a **different
+failure class** (deep massif creep, up-slope, away from the path) than the cut-slope rockfall the GSI
+surveyors catalogued at track level. Two questions, two answers: *"which slopes are measurably creeping?"*
+(core) and *"which cut-slopes menace the path?"* (physics map + GSI's own survey).
+
+**Everyday analogy.** A cardiologist's ECG is superb at slow heart-rhythm disease and useless for a broken
+arm. Scoring the ECG on an X-ray's caseload gives zero — that indicts the *pairing*, not the instrument.
+
+**The honest to-do this opens:** catching fast failures wants different signals — *coherence-drop* change
+detection (the radar pixel suddenly turning to static IS the event), optical before/after imagery, or a
+cut-slope geometry layer in the reasoner. Recorded as the main gap to close.
+
+🔗 **In our project: Milestone 36 (revision).** Trust guidance rewritten: for *track* hazard, lead with the
+validated physics map (AUC 0.62); the creep core (incl. CV2's 800 m segment) remains the best-corroborated
+*creep* — it is answering a different question than the corridor inventory asks.
+
+---
+
+## CV4. Validating on one real disaster — what a single event can and cannot prove
+
+On 26 August 2025 a landslide at Ardhkuwari on the pilgrim route killed 32 people. The official GSI report
+gave us what no amount of processing can synthesise: a **verified date, place, and 40 surveyed danger
+points**. How much can one event validate?
+
+**The when-test, done honestly.** Feed the model only 2025's weather and ask what it would have said.
+Result: the disaster day was the season's **maximum rain day (191 mm)**, the model's exceedance E peaked
+**that exact day**, and the gate stood at full ALERT (Δ = 0). But here is the discipline: that monsoon was
+so relentless the gate was at ALERT on **59 days** — so "we were alarmed that day" is *necessary* evidence
+(silence would have falsified us) yet weak *sufficient* evidence. The strong fact is the **peak**: of ~200
+days, the model's single loudest day was the day that killed. One event can *corroborate*; only many events
+can *calibrate*.
+
+**The where-test, both truths.** Against GSI's 40 points + the disaster (with a 5,000-point luck control):
+the standing map scores **AUC 0.62, recall 0.81 within 2 km, 1.67× better than luck** — genuinely beats
+chance at its very first exam, with borrowed soil numbers and seven weeks of radar. AND: at the honest
+250 m yardstick the disaster site itself is **598 m outside** our nearest zone. Both sentences are true.
+The first says the method has real skill; the second names the calibration target and the failure-class
+gap (CV3). A tool that can say both is worth trusting; one that only says the first is marketing.
+
+**One more bias to confess:** the GSI points hug the track (that's where surveyors walk), and most are
+*assessed-vulnerable* spots rather than occurred slides — so the ground truth itself is corridor-biased,
+exactly like Ramban's highway inventory. The score is real, but it grades "near the corridor's danger," not
+"everywhere on the mountain."
+
+**Everyday analogy.** A weather service that named the season's one deadly storm-day as its top-ranked risk
+day has shown real skill — but if its flood map drew the water 600 m from the street that drowned, you'd
+praise the forecast, fix the map, and never conflate the two.
+
+🔗 **In our project: Milestone 36.** First site validated against a real disaster; dashboards now wear the
+site's **own earned** scores (AUC 0.62 / recall 0.85); GSI's note also records that the exact failed slopes
+had been flagged by GSI years earlier — the institutional gap our tool exists to help close.
+
+---
+
+## CV5. Instruments for the fast failures — the coherence tripwire and the energy line
+
+CV3 named the gap: brittle failures give no creep to measure. This section is the first pair of
+instruments pointed at that gap (Milestone 38).
+
+**Coherence as a tripwire.** Every interferogram comes with a *coherence* map — per pixel, "how similar
+did this patch of ground look on the two dates?" (0 = pure static, 1 = identical). We normally use it
+only as a quality filter. But read over time it is a *change detector*: bare rock holds high coherence
+pass after pass, and a slope that has just collapsed turns to static — **the pixel decorrelating IS the
+event**. The catch: rain-wet ground and flushing vegetation also lower coherence, across the *whole
+scene*. So the watch flags only a **localized** drop:
+
+> flag if (polygon's drop vs its own history ≥ 0.12) **and** (its drop *relative to the AOI mean* ≥ 0.12)
+
+Two satellite tracks give an independent second witness — a drop on both is much harder for noise to
+fake. **Everyday analogy:** a shopkeeper's window rattles in every storm (scene-wide) — you only run
+outside when *your* window rattles on a calm day, or louder than the whole street's.
+
+**The energy line (Fahrböschung / shadow angle).** For "if it falls, what does it hit?" there is a
+century-old empirical rule (Heim 1932; Evans & Hungr 1993): a falling rock almost always comes to rest
+before the line drawn from its detachment point at a characteristic angle to the horizontal —
+
+> reachable if  (height drop / horizontal distance) ≥ tan(reach angle)
+
+Most fragmental rockfall stops inside the **32°** line; median events reach ~27.5°; the empirical
+extreme is ~**22°**. Sweep that line from every cell of the source polygon over a fine DEM and you get
+three nested "runout cones" — no physics simulation, just a well-tested envelope. **Everyday analogy:**
+you don't need ballistics to know where dropped marbles end up on a staircase — the bottom landing, and
+generations of janitors can tell you how far they roll.
+
+**What these tools do and don't claim.** The tripwire detects *after or during* failure (early only if
+the face fails piecewise); it never predicts. The cone says *could reach*, not *will* — it ignores
+bounce, barriers and intervening ridges. Their value is honest coverage: watch + consequence for the
+failure class the creep map is blind to.
+
+🔗 **In our project: Milestone 38 / §34.** `coherence_watch.py` (first run over the Bhavan overhang:
+quiet — and it correctly ignored a rainy fortnight that dimmed the whole scene) and
+`rockfall_runout.py` (the shrine complex sits inside the 32° likely-reach cone; ~2.3 km of track in the
+likely band). The records cross-check found the slope system already under managed treatment
+(2016 Bhawan failure, SMVDSB/THDCIL programme since 2012) — corroboration, and a reminder to ask for
+the as-builts before instrumenting.
+
 ---
 
 # Part D — Interview Prep: Likely Questions & Confident Answers
@@ -1077,6 +1437,15 @@ A: A pixel covered in moving vegetation gives random phase — noise that would 
 like a huge fake landslide. We'd rather have fewer, trustworthy pixels than many
 lying ones.
 
+**Q: How do you know your code actually computes the physics you claim?**
+A: We audited it like an outside reviewer (2026-07-17): re-wrote the Factor-of-Safety
+formula independently from the textbook and compared it against our published hazard
+rasters at *every pixel* — agreement to the smallest float difference — and re-derived
+the rainfall thresholds from raw daily sums, reproducing the product's warning days
+exactly. That audit is now a permanent 12-test suite that re-runs the comparison, so
+the claim "the maps implement the stated equations" is continuously machine-checked,
+not taken on faith (RESULTS_AND_KPIS.md §49).
+
 **Q: What does "LOS velocity" mean — is that up/down motion?**
 A: It's motion along the radar's *slanted* line of sight, a mix of vertical and
 horizontal. Separating pure vertical needs combining ascending and descending
@@ -1103,6 +1472,17 @@ A: Not yet — Phases 1–2 measure *movement* and Phase 3 turns it into a rough
 *hazard map*. A validated *forecast* (with rainfall, Phase 4) is the goal, not
 yet the reality. Movement + slope physics is an ingredient of prediction, not the
 prediction itself.
+
+**Q: So is the finished product an early-warning system?**
+A: No, and I claim less on purpose. It's a **decision-support prioritization
+prototype**: it ranks WHERE slopes deserve inspection (scored above chance
+against verified landslide inventories at two sites) and WHEN regional rainfall
+warrants heightened vigilance (both in-window fatal events caught on the day).
+It does not predict individual landslides, and no evacuation or closure decision
+should rest on it — that authority and that burden of proof belong to agencies
+like GSI and the district administration. The smaller claim is the one every
+number in the repo actually supports, and it's the difference between a
+defensible research product and an overclaimed one.
 
 **Q: How do you decide a slope is dangerous?**
 A: Two independent checks must agree. First, physics: the Infinite-Slope Factor
@@ -1222,11 +1602,137 @@ map assuming the soil was **fully soaked everywhere**, but the rainfall record o
 luck at 100 m**, trading some recall for precision. The honesty point I'd stress: the rain-trigger *line*
 decides *when* to alarm and can't move a *spatial* score — the map improved purely from the wetness *level*.
 
+**Q: You moved the tool to a second site — what actually transferred?**
+A: The physics, the pipeline, and the honesty methods transferred; the *numbers* didn't. Soil strength,
+the fine DEM tile, the operating points and — crucially — the validation score all have to be earned per
+site. We enforce that in software: a new site's dashboard literally cannot display another site's accuracy
+scores; until it's back-tested locally it says "not yet back-tested at this site." Bonus lesson: the second
+site was a free integration test — it exposed three hidden single-site assumptions in one afternoon.
+
+**Q: You validated the new site on one disaster — is one event enough?**
+A: Enough to *corroborate*, not to *calibrate*. The strong fact isn't "we were at ALERT that day" — that
+monsoon had 59 ALERT days — it's that the model's **peak** danger day of ~200 was exactly the day that
+killed 32 people, and spatially the map beat a 5,000-point luck control (AUC 0.62) at its first exam.
+I'd also volunteer the counter-fact unprompted: the disaster site sits 598 m from our nearest zone, outside
+our honest 250 m yardstick. Real skill at 2 km, not yet pinpoint precision — both statements are true.
+
+**Q: Your most-confirmed pixels scored ZERO against the official danger list — doesn't that sink the method?**
+A: It's a failure-class mismatch, not a method failure. SBAS radar measures *slow creep* — precursor motion
+of deep slides; the track-side list is *fast cut-slope rockfall*, which gives no slow warning at 80 m scale.
+Scoring a creep detector on a rockfall caseload is scoring an ECG on broken arms. The right response — which
+we took — is to re-scope the claim (the physics map, which does score, leads for track hazard) and add
+rockfall-appropriate signals (coherence-drop change detection, optical) to the roadmap.
+
+**Q: You admitted radar can't see fast rockfall — so what do you actually do about a cliff you're worried about?**
+A: Three things, none of them creep measurement. First, a **coherence tripwire** (CV5): the radar's own
+per-pixel similarity score turns to static when a face fails, so we watch each drawn polygon's coherence
+against its own history — and against the AOI mean, so a rainy fortnight that dims the whole scene doesn't
+false-alarm. Second, an **energy-line runout screen**: a century-old empirical angle rule that converts
+"unstable face" into "the shrine complex below is within likely reach" — the number an authority acts on.
+Third, the **paper trail**: the records showed this face system already had a treated 2016 failure and a
+decade-old mitigation programme — so step zero is asking for the as-builts, not installing instruments.
+I'd stress the honesty: the tripwire detects, it does not predict; the cone says *could reach*, not *will*.
+
+**Q: What would you do differently with more resources?**
+A: Three things, in order: a denser landslide inventory with verified dates (validation is the bottleneck,
+not processing); sub-daily point rainfall so the alarm varies per zone instead of per region (an extreme
+season saturates an AOI-wide gate); and lab-confirmed soil parameters — the second site's values are now
+corroborated by published site studies (§37), but nothing has been measured on-site for this project.
+
+**Q: Your soil parameters come from literature, not measurement — how do you know they don't drive the result?**
+A: Because we measured exactly that (§42) — and re-measured it after upgrading the wetness physics
+(§47), where the verdict held and sharpened. We swept every soil parameter across its
+literature-plausible range and re-scored the operational alert map at each setting: the footprint
+swung from ~120 zones to zero, and in-range values of soil depth alone can erase the product. So the
+honest answer is: they DO drive the result — which is why the per-site soil pass is a required,
+documented step with provenance recorded in each site's config, why we ran this sensitivity sweep
+at all, and why a field-measured soil depth is our top-priority ground-truth item. The wrong answer
+would have been to hide the sensitivity; instead it's a chart in the repo. And no, re-tuning the
+saturation dial can't substitute — soil strength and wetness are degenerate spatially, but the
+rainfall-to-wetness physics that times the warning only stays meaningful if the soils are right.
+
+**Q: Your AUC is 0.71 on 46 landslides — how do I know that isn't luck, or something a slope map gets for free?**
+A: Because we tested both, formally (§44/CF11). Luck: a permutation test — shuffle which points are
+"real landslides" 10,000 times — says chance matches our score about one time in ten thousand
+(p=0.0001, both sites). And every number now carries a bootstrap interval, so I'd say "0.71,
+plausibly 0.66–0.75", never the bare third decimal. The slope-map question is sharper, and the
+answer differs by site — which is exactly what makes it credible. At Ramban the fusion beats
+every dumb baseline we could build, *including* letting each one tune itself to its best score;
+satellite-alone and physics-alone are each ≈chance there, so the skill is provably in the
+combination. At Vaishno Devi a bare "steeper than 40°" map *tied* our raw AUC in the first pass —
+and I'd volunteer that unprompted. What I'd add now is what we did about it: the TWI-saturation
+upgrade (next question) lifted VD to 0.757, a point-estimate lead over that slope map, with a tenth
+the zones — while the other earned advantages (7× fewer zones at higher precision, the two fatal
+events caught at Δ=0 that no static map times, per-zone fragility ranking) stand regardless.
+
+**Q: You said one upgrade broke that tie — what was it, and are you sure it isn't just curve-fitting?**
+A: We stopped pretending the whole mountain gets equally wet. Water pools in hollows and drains off
+ridges, and we already measure that tendency (the wetness index, TWI). So each pixel's saturation
+became m + κ·(TWI − mean) instead of a flat m — one new knob κ, tuned against the landslide record
+like every other dial (§45/CF12). Two things guard against curve-fitting. First, κ *redistributes*
+wetness but keeps the day's average fixed at the rainfall value, so it can't quietly crank the whole
+map wetter — it's a physically-constrained tilt, not a free parameter. Second, and this is the real
+check: **both mountains, on completely separate landslide records, independently picked the same
+κ=0.06.** A curve-fit to one inventory wouldn't transfer; a real physical effect does. It sharpened
+the danger map at both sites and pushed VD past the slope-only baseline. I stay honest that the raw
+score gain is inside the error bars — the solid wins are the tighter footprint and clearing the
+baseline, not a proven jump in the number.
+
+**Q: You spent a session building nonlinear suction physics and then didn't use it — wasn't that wasted?**
+A: It's the most informative negative result in the project (§46/CF13). The build cost was small —
+the curve rides on the existing maps as a cohesion correction, anchored bit-exactly to the measured
+dry and wet strengths — and the test was maximally generous: four published parameter pairs, each
+allowed to re-tune the wetness dial to its own best score, on two mountains. None beat the simple
+linear model at both. The finding is *why*: against a spatial landslide map, curve shape and dial
+setting trade off almost perfectly — the parameters aren't identifiable from our data. That told us
+something we didn't know: the next unit of validation value is a lab retention curve or dated
+per-zone failures, not more model complexity. And the mechanism isn't waste — it's one config line
+away the day that data exists. A pipeline that only ever adopts its own upgrades isn't testing them.
+
+**Q: Could this scale to ten sites? What's automated and what isn't?**
+A: The plumbing scales; the science must be earned per site — and we've made that split explicit
+(M39). Everything site-specific lives in one registry config per AOI; outputs are name-spaced so
+sites can't collide; the radar library is shared across sites on the same satellite frames; and a
+status dashboard shows every site's stage checklist, current alarm state, and next command. What
+stays human per site — deliberately — is drawing the boundary, the soil literature/field pass, a
+*verified* landslide inventory, and tuning the alarm operating points against it. Ten sites is ten
+config cards plus ten rounds of that homework; the pipeline itself doesn't change. When NISAR data
+matures, its adapter plugs in at one shared seam, so every registered site inherits it at once.
+
 ---
+
+**Q: Why do you run two rainfall gates — isn't one danger curve enough?**
+A: One curve, two *sensors*, because rainfall kills two ways. A multi-day soak shows up in a
+daily average; a one-hour cloudburst averages away in it. Our daily reanalysis gate (validated,
+the official alarm) catches the soak; the half-hourly satellite gate (IMERG, experimental)
+catches the burst — and it runs ~5 days fresher. This season's two verified events split
+exactly along that line: the 7 Apr highway burial was a soak (daily arm ALERT, burst arm
+quiet), the 8 Jul Himkoti slide was a burst (burst arm ALERT hours ahead, daily arm only
+WATCH). Combined, both read ALERT on the day. The burst arm stays labelled experimental until
+it earns back-tested thresholds of its own — at short durations the curve trips easily and its
+false-alarm rate is unmeasured.
+
+**Q: Wouldn't a machine-learning susceptibility model outperform your physics map?**
+A: We tested exactly that (CF15/§60). A terrain logistic regression beat the raw physics score
+on our inventory — but almost all its skill came from one feature, low elevation, which in
+this valley is a proxy for "near the highway where landslides get recorded". Delete that
+feature and the advantage vanishes. On a corridor-biased inventory, an ML map launders
+reporting bias into apparent skill; the physics map can't do that, which is its point. The
+right use of ML here is as a bias detector and a challenger — not as the product.
 
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
+
+- **The sub-daily burst gate (CF14 / §55, calibrated §58) is still provisional:** its ALERT
+  threshold (E ≥ 3) is now evidence-based — six verified events, every fatal one caught, season
+  flag-days halved — but n=6 is a small calibration set, not a validation, and the residual
+  flag rate (7–18 ALERT-grade days/season) implies false alarms we cannot yet count against
+  ground truth. Two measured biases bound it: IMERG reads only **0.16–0.22×** of the Katra
+  gauge on extreme days (pixel-vs-point in orographic terrain, so E is biased LOW when it
+  matters most), and it carries no snowmelt. Per-zone rain was probed and declined at these
+  AOI scales (~3 pixels per AOI). It remains a second opinion beside the validated daily
+  alarm, not the alarm.
 
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our
@@ -1254,8 +1760,11 @@ Being able to state weaknesses is what makes you credible.
   a triage axis (ignore likely-noise), not a spatial ranker.
 - **Vegetation gaps:** dense forest decorrelates, so coverage is patchy — we get
   reliable measurements mainly on rock, soil, and infrastructure.
-- **Single stack so far:** the test result is one satellite track; full corridor
-  coverage and cross-checking is still ahead.
+- **Look coverage:** Ramban runs on three ascending tracks (union + a ≥2-look core); both descending
+  tracks were rejected on quality (CT4), so cross-geometry (vertical/east-west) decomposition still waits
+  on better descending data. The second site currently rests on **two short ascending spring chains**
+  (4 pairs each — zero inversion redundancy), so its velocity noise floor is several times Ramban's until
+  the monsoon acquisitions lengthen the series (every 12 days helps).
 - **Rainfall trigger — threshold fixed; the spring *source* mystery is now narrowed (CF5):** on the
   threshold dial we **switched the conservative global Caine curve for the published NW-Himalaya regional
   curve** — which flipped the spring back-test 0/2 → 2/2 — but it fires on **112/214 days** (sensitive, not
@@ -1289,10 +1798,13 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   **φ=36°** (GSI-measured on these slopes, 36.4–39.1°, vs the old textbook 32°), and cohesion is now a
   **dry/wet matric-suction split** (c_dry≈18.5 / c_wet=5 kPa, M26 / C4) instead of one flat assumed value —
   so the dry-state strength is the GSI-measured number and the saturated state correctly loses the suction
-  "glue." *Remaining:* the suction-vs-wetness curve is taken as **linear** (a nonlinear van-Genuchten
-  retention curve is the refinement), the failure depth z is still assumed, and the GSI dry-cohesion **unit**
-  ("18.5 kg/cm²" — physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening
-  layer, but the two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
+  "glue." *Update (§46/CF13):* the nonlinear van-Genuchten refinement was **built, tested against four
+  published parameter sets, and deliberately NOT adopted** — its parameters are not identifiable from a
+  spatial inventory (curve shape trades off against the wetness dial), so the linear curve stands *on
+  evidence*, with the mechanism one config line away when a lab retention curve or dated failures exist.
+  *Remaining:* the failure depth z is still assumed, and the GSI dry-cohesion **unit** ("18.5 kg/cm²" —
+  physically read as ~18.5 kPa) wants lab confirmation. FS is still a *relative* screening layer, but the
+  two biggest soil assumptions (friction, then cohesion) are now grounded in measurement.
 - **Slope sharpness — now upgraded (Milestone 27 / §21):** the hazard grid is 80 m (set by the
   InSAR velocity), but slope is now computed on the **12.5 m ALOS DEM** at native resolution and
   *averaged* onto each 80 m cell (mean-of-slopes > slope-of-mean), fixing the old under-estimate
@@ -1301,6 +1813,39 @@ core still beats chance (Milestone 28 / CF9); (c) it's
 - **Noisy hazard pixels:** the first hazard map flags too much — trustworthy
   mainly where HIGH pixels cluster, not as isolated single-pixel specks (a
   cluster-size filter and lower velocity noise will clean this up).
+- **Second site (Vaishno Devi) — validated, with named gaps (Milestones 31–36 / §31, CV1–CV4):** the route
+  product **beats chance at its first real exam** (26 Aug 2025 Ardhkuwari disaster + 40 GSI survey points:
+  AUC 0.62, recall 0.81@2 km; the model's peak-danger day of 2025 WAS the disaster day) — but carry these
+  four caveats when discussing it: (a) **soil φ/c are literature-corroborated but not lab-confirmed** —
+  site studies (Kumar & Anbalagan 2013 + GSI overburden data, §37) bracket every value we use (φ 32–43°
+  vs our 36°; c within the published dry/wet ranges), so the old "borrowed from Ramban" caveat is retired,
+  though nothing has been measured on-site *for us*; (b) the ground truth is **corridor-biased**
+  (GSI surveyors walk the track) and mostly *assessed-vulnerable* spots, not occurred slides; (c) the
+  **failure-class gap** (CV3): track-side rockfall gives no slow creep — our creep core scored 0 against the
+  corridor list, and the disaster site sits **598 m** from the nearest zone (the standing calibration
+  target); (d) in an **extreme monsoon the AOI-wide gate saturates** (59 ALERT days in 2025) — per-zone
+  sub-daily rain is the fix. *(Update M37: operating points are now site-earned — ALERT m=0.40 / WATCH
+  m=0.75 from the local sweep, §32 — so the "Ramban-tuned dials" caveat is retired; the other four stand.)*
+- **Validation statistics — the scores now carry error bars, and one honest tie (§44 / CF11 / M41):**
+  every headline AUC now ships with a bootstrap 95% interval (n=46 gives ±0.05; n=138 gives ±0.04 —
+  quote the range, never a bare third decimal) and a permutation p-value (both ALERT maps beat
+  chance at p=0.0001; both WATCH tiers are honestly ≈chance as spatial rankers — they are recall
+  nets). The ablation ladder is the fixed bar each science upgrade must clear. In §44 a tuned
+  slope≥40° map *tied* our raw spatial AUC at **Vaishno Devi** (needing 155 zones vs our 21); the
+  **§45 TWI-saturation upgrade (kappa=0.06) cleared it** — VD operational rose 0.707→0.757, a
+  point-estimate lead over both the slope and logistic baselines, with 14 zones. Honest still: that
+  gain sits inside the error bars (κ=0 and κ=0.06 CIs overlap at n≤138), so the durable wins are
+  footprint economy and *beating the baseline*, plus the Δ=0 temporal catches and per-zone ranking —
+  not a proven AUC step-change. At Ramban the fusion already beat every rung (both single ingredients
+  ≈chance alone); kappa widened the margin. The next upgrade (van-Genuchten suction) faces the same
+  ladder + CIs.
+- **Fast-failure instruments are new and unproven-in-anger (Milestone 38 / CV5 / §34):** the coherence
+  tripwire has never yet seen a real failure (its first timelines are 4 epochs — the minimum it can even
+  flag on is 3); a storm exactly coincident with a collapse could mask the local drop; and steep-face
+  layover pixels carry little signal either way. The runout cone is a *reach envelope* — no bounce,
+  barrier or ridge-blocking physics, and OSM has almost no buildings mapped at the shrine complex, so
+  its buildings count undercounts (the POI/route read is the trustworthy part). Neither tool predicts
+  timing. Treat both as watch + consequence coverage for the CV3 class, not as forecasts.
 
 ---
 
@@ -1338,6 +1883,8 @@ core still beats chance (Milestone 28 / CF9); (c) it's
 | **Ascending/Descending** | Satellite flying S→N (looks E) vs N→S (looks W). |
 | **Perpendicular baseline** | Sideways gap between two orbit positions; small is better. |
 | **Raster / pixel** | A gridded image; each cell holds one number. |
+| **Coherence-drop watch** | Flagging a polygon whose coherence suddenly falls more than the scene's — a fast-failure tell. |
+| **Energy line (Fahrböschung)** | Empirical angle from a detachment point below which falling rock rarely travels; sweeping it gives a runout cone. |
 
 ---
 

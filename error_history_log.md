@@ -23,6 +23,220 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-13] PowerShell 5.1 breaks on BOM-less UTF-8 .ps1 with em-dashes (monsoon_cycle.ps1 parser error)
+
+* **Symptom:** first run of the new `workflows/monsoon_cycle.ps1` died with
+  `ParserError: The string is missing the terminator: "` pointing at the last line — a line with
+  perfectly balanced quotes.
+
+* **Root Cause:** the file was written as UTF-8 **without BOM**. Windows PowerShell 5.1 reads
+  BOM-less scripts as ANSI/cp1252, so each em-dash (`—`, bytes E2 80 94) decodes to `â€`+**0x94 =
+  a cp1252 smart double-quote** — a QUOTE character to the parser. Every em-dash inside a string
+  toggled string state; the "missing terminator" surfaced at EOF, far from the real cause.
+
+* **Resolution:** script rewritten ASCII-only (em/en-dashes → `-`) AND saved with a UTF-8 BOM
+  (either alone fixes it; both = belt and braces). Runs clean.
+
+* **Lesson:** any `.ps1` this repo generates must be ASCII-clean or BOM'd — the prose habit of
+  em-dashes is a live syntax hazard in PowerShell 5.1 (this is the shell Task Scheduler invokes,
+  regardless of what wrote the file).
+
+---
+
+### [2026-07-13] per_zone_gate followed the LIVE connectivity snapshot, not the standing product — Ramban's live alarm broke silently after VD's radar cycle
+
+* **Symptom:** `live_alarm.py` (insar stage) for Ramban aborted: `per_zone_gate.py` exited with
+  "No operational zones found — run run_multistack.py first", even though Ramban's canonical union
+  product (12 zones) and per-stack alerts all exist on disk. VD's identical chain ran fine minutes
+  earlier.
+
+* **Root Cause:** `per_zone_gate.py` derived its stack list from `run_multistack.connected_stacks()`
+  — the **current shared qa_masks network snapshot**, which the session-18 VD radar cycle had
+  rewritten to list only the VD stacks (f103/f105) as connected. Ramban's per-stack alert files
+  exist for its own three ASC stacks, so the intersection was empty → zero zones. A latent
+  multi-AOI failure class: **any consumer of the live connectivity snapshot silently follows the
+  last AOI whose QA chain ran.** Ramban's live alarm had actually been broken since 2026-07-10; the
+  claim-repositioning dashboard regen was simply the first Ramban run to hit it.
+
+* **Resolution:** new `product_stacks()` in `per_zone_gate.py` — read the stack list off the
+  standing union product's own `source_stacks` (in `alerts_operational.json`), falling back to the
+  live snapshot only when no product exists yet. VD behavior unchanged (its union stacks == the
+  snapshot). Gating now follows the validated product, not the mutable shared state.
+
+* **Lesson:** in a multi-AOI world, the shared connectivity state is a *per-run scratch value*, not
+  a site property — anything operating on a site's standing product must take provenance (like
+  `source_stacks`) from the product itself. Same failure family as the hardcoded-183 test constant
+  (2026-07-12): single-site assumptions hiding in shared state.
+
+* **Follow-up (same day):** the same exposure existed in the four other standing-product consumers —
+  `coherence_watch.py`, `watch_triage.py`, `velocity_uncertainty.py`, `polygon_stats.py` (all
+  correct for VD today, silently wrong after any other AOI's QA run). Fixed centrally: the helper
+  moved to `stacks.py` as the shared `product_stacks(scenario)` (scenario-aware — watch_triage and
+  velocity_uncertainty pass their `--footprint`), all five consumers now import it;
+  `run_multistack.py` and the m/soil sweeps intentionally keep the live snapshot (they BUILD new
+  products). Verified: helper returns each site's own stacks under both configs; both sites'
+  triage/uncertainty chains + Ramban's live_alarm run end-to-end in-container.
+
+---
+
+### [2026-07-12] test_plumbing pinned the product count to 183 — stale since the VD pull (caught by the regression run)
+
+* **Symptom:** `tests/test_plumbing.py` in the insar container: 8/10 PASS but
+  `test_zip_count_matches_expected` and `test_audit_json_exists_and_parses` FAIL with "expected 183,
+  found 235". All cross-consistency tests (zips == product dirs == masked dirs == audit records)
+  passed — the *data* was coherent; the *expectation* was stale.
+
+* **Root Cause:** `EXPECTED_PRODUCT_COUNT = 183` was hardcoded in the single-AOI (Ramban SBAS N=3)
+  era. The radar library is shared and grows — VD's 49 pairs (§26) and the 2026-07-10 backfill
+  (§35) brought it to 235 — so any absolute count is guaranteed to go stale on every AOI pull or
+  radar-cadence cycle.
+
+* **Resolution:** expected count now READ FROM `data/qa_masks/_stack_manifest.json` (the
+  metadata-derived manifest every download updates — the pipeline's own belief about what exists),
+  with a `MIN_PRODUCT_COUNT = 183` floor so genuine data loss still fails. 10/10 PASS in-container.
+
+* **Lesson:** in a multi-AOI world, tests must assert *consistency between artifacts* (or derive
+  expectations from the pipeline's own metadata), never absolute counts of a growing shared
+  library. Same class as the grandfathered-suffix gotchas: single-site assumptions hide in
+  constants.
+
+---
+
+### [2026-07-12] `--config` only exists on 4 scripts — most read config at IMPORT time (near-miss, caught pre-commit)
+
+* **Symptom:** while writing `NEW_AOI_PLAYBOOK.md`, the draft commands used
+  `--config config/<slug>.yaml` on `run_multistack.py`, `live_alarm.py`, `fetch_rainfall.py`,
+  `rainfall_selectivity_backtest.py` — **none of which accept the flag**. Following the draft
+  would have silently run those steps against the *active* (pointer) AOI instead of the intended
+  one, with per-AOI suffixes hiding the mistake until outputs landed in the wrong site's dirs.
+
+* **Root Cause:** most workflow scripts call `load_config()` **at module level**
+  (`_SFX = load_config().data_suffix` etc.), i.e. before any argparse runs — so a `--config` flag
+  cannot ever reach them without restructuring every script. Only the 4 scripts that defer config
+  loading into `main()` (submitter, downloader, inverter, network graph) expose the flag. The
+  `config.py` docstring's old claim ("each script's `--config`") overstated reality.
+
+* **Resolution:** added an **`INSAR_CONFIG` env var override** in `load_config()` (one change
+  covers every script, import-time loads included; explicit `path` still wins):
+  `docker compose run --rm -e INSAR_CONFIG=config/<aoi>.yaml insar python ...` — verified in-container.
+  Playbook + `aoi_status.py` next-step commands use the correct mechanism per script.
+
+* **Lesson:** grep for the flag before documenting it — a runbook is code and deserves the same
+  verification; and module-level config loading is the structural reason per-AOI targeting must be
+  an *environment* concern, not an *argument* concern.
+
+---
+
+### [2026-07-10] Passing `--help` to the Phase-1 QA scripts EXECUTES them (no argparse)
+
+* **Symptom:** a "print the usage of the five QA-chain scripts" probe (`python workflows/<script> --help`)
+  silently **ran** `feature_engineering.py`, `phase_elevation_audit.py`, `_consolidate_quarantine.py` and
+  `apply_connectivity_rescues.py` end-to-end (~15 min of masking + audits + a quarantine-list rewrite and
+  10 rescue re-promotions). Only `sbas_network_graph.py` printed usage.
+
+* **Root Cause:** four of the five Phase-1 scripts have **no argparse** — their `main()` takes no CLI
+  arguments, so any argument (including `--help`) is ignored and the script just runs.
+
+* **Resolution:** no damage — the scripts are idempotent by house rule (masking skipped all existing
+  products; the audit is deterministic on unchanged inputs; the re-applied rescues were the same 10),
+  and the intended real run followed minutes later anyway. Verified state by re-running the chain
+  properly and checking the cascade reproduced §32 exactly.
+
+* **Lesson:** don't probe these scripts with `--help`; read the docstring instead. This is also a live
+  demonstration of WHY the "workflow scripts are idempotent" house rule exists — an accidental
+  double-run must be a no-op. If a new workflow script is added, either give it argparse or keep it
+  argument-free AND idempotent.
+
+### [2026-07-08] Overpass API returns 406 to PowerShell's hashtable POST body — urlencode it yourself
+
+* **Symptom:** `Invoke-RestMethod -Uri overpass-api.de/api/interpreter -Method Post -Body @{data=$q}`
+  → HTTP **406 Not Acceptable** (and a second symptom: the query "succeeding" but returning 1 element).
+* **Root cause:** PowerShell's automatic form-encoding of a hashtable body mangles the Overpass QL
+  quoted filter `["building"]`, and no User-Agent is sent — Overpass rejects the request. Separately,
+  the first bbox (33.005–33.05 N) was too narrow: the AOI's only mapped building cluster (Panchari Gali,
+  ~33.057 N) sits just outside it, so even a fixed request undercounted.
+* **Fix:** build the body explicitly — `'data=' + [System.Net.WebUtility]::UrlEncode($q)` with
+  `-ContentType 'application/x-www-form-urlencoded'` and a `User-Agent` header; widen the bbox to the
+  full massif (33.00–33.075 N). 63 buildings returned, cached at
+  `data/osm/vaishnodevi_buildings_overpass.json`.
+* **Lesson:** for non-trivial POST bodies, never hand PowerShell a hashtable — encode the string
+  yourself. And sanity-check a spatial query's *count* against what you already know before trusting it
+  (we knew ~62 buildings existed near Area A from the 2026-07-07 session).
+
+### [2026-07-07] Sweep report writer assumed an m=1.0 baseline row — crashed on a refinement sweep
+
+* **Symptom:** `rainfall_selectivity_backtest.py --saturations 0.33,...,0.48` (the VD refinement pass)
+  computed all rows, then died in `write_outputs`: f-string over `base[1]['full']` with `base[1] = None`.
+* **Root cause:** the report writer looked up the m=1.0 row for its "vs monsoon baseline" sentence and
+  assumed it always exists — true for the default saturation list, false for any focused refinement sweep.
+* **Fix:** baseline sentence is now conditional ("no m=1.0 baseline in this sweep"). Run-1 artifacts were
+  unaffected (the crash happened before any file write).
+* **Lesson:** report writers are code too — a "always in the default run" row is an input assumption;
+  refinement/partial runs are the norm once a tool is actually used.
+
+### [2026-07-06] The frame106 Jan pair fails DETERMINISTICALLY at ASF — retry-then-park added
+
+* **Symptom:** the resubmitted `VaishnoDevi_Trikuta_ASCENDING_path27_frame106` pair
+  (2026-01-13→2026-01-25) FAILED again — both attempts, ~2 h apart, identical pair.
+* **Root cause (from the job's processing log):** hyp3-gamma dies in unwrapping —
+  `mcf: ERROR: range position of phase reference point outside of image segment: 3384  bounds: 0 3384`.
+  The deep-winter pair has so little coherent area that GAMMA's auto-chosen phase reference point falls
+  outside the usable segment. Nothing on our side can fix it (no reference-point control in the
+  INSAR_GAMMA job API); resubmitting the identical job fails forever.
+* **Interaction with the 2026-07-03 dedupe fix:** skipping FAILED jobs in dedupe made re-runs resubmit
+  failed pairs — correct for transient failures, but a *deterministic* failure would now be re-bought
+  (10 credits) on EVERY idempotent re-run.
+* **Fix:** retry-then-park in `fetch_existing_pair_signatures()` — a pair with ONE failure is retried on
+  the next run; a pair with ≥2 failures (and no success) is treated as done and logged loudly as
+  `PARKED (failed 2× at ASF — deterministic)`. Verified: dry-run now plans 49, skips 49 (48 succeeded +
+  1 parked), submits 0.
+* **Impact:** none on the product — the pair's frame101 twin was QUARANTINE (R²=0.83) and the whole
+  winter-2026 chain is quarantined anyway (§26); the VD product is built from the clean spring stacks.
+* **Lesson:** idempotent retry logic needs BOTH halves — retry what might be transient, park what is
+  proven deterministic — or a self-healing loop becomes a money-burning loop.
+
+### [2026-07-03b] First cross-AOI run surfaced three latent "only-works-for-Ramban" assumptions
+
+* **Symptom:** `run_multistack.py` under the Vaishno Devi config failed twice in sequence:
+  (1) `custom_sbas_inverter.py`: "No solvable reference candidate in AOI — relax --min-pairs";
+  (2) after fixing that, `geomechanical_engine.py`: `IndexError` in `np.percentile` on an empty slope
+  array, preceded by "DEM (ALOS 12.5 m …) reprojected. Valid pixels: 0/34,608".
+* **Root causes (all latent single-AOI assumptions, invisible while only Ramban existed):**
+  1. **`--min-pairs` default 8 is unreachable by a 4-pair stack** — the new spring chains have 4
+     interferograms, so *no* pixel could ever qualify. Fix: clamp `min_pairs` to the stack's pair
+     count (logged when clamped); Ramban's 30–40-pair stacks unaffected.
+  2. **The 12.5 m ALOS DEM is a single per-AOI tile** (user-fetched for Ramban, §21) but
+     `find_dem_for_stack()` preferred it unconditionally → reprojection onto the Katra grid gave 0
+     valid pixels → NaN slope → crash. Fix: zero-coverage check + WARN + fallback to the HyP3
+     product DEM (`find_dem_for_stack(stack, prefer_alos=False)`).
+  3. **`slope_velocity.py` never adapted to §21's signature change** — it still used
+     `find_dem_for_stack`'s return as a bare Path (it became a `(path, is_fine)` tuple on
+     2026-06-10). Latent because V_slope was never re-run post-§21. Fix: unpack the tuple AND pass
+     `prefer_alos=False` — it needs the *product* `_dem.tif` anyway, since it derives the
+     lv_theta/lv_phi look-vector paths from the product directory.
+* **Lessons:** (a) a second AOI is a free integration test — defaults tuned on one site's data
+  volume (min-pairs, DEM tiles) must degrade gracefully, not die; (b) when a function's return shape
+  changes, grep ALL callers — an un-rerun caller stays silently broken; (c) prefer fallback-with-WARN
+  over hard preference for per-site optional upgrades.
+
+### [2026-07-03] HyP3 dedupe counted FAILED jobs as "done" — re-runs never resubmitted them
+
+* **Symptom:**
+  The Vaishno Devi Phase-1 pull came back 48/49 (one pair FAILED server-side at ASF:
+  `ASC_path27_frame106` 2026-01-13→2026-01-25). Re-running `submit_hyp3_jobs.py --submit` — the
+  documented idempotent recovery — reported `Skipped (dupes): 49, Submitted: 0`: the missing pair
+  was never re-ordered.
+* **Root cause:**
+  `fetch_existing_pair_signatures()` builds the dedupe set from **every** job under the name prefix,
+  regardless of `status_code` — so a FAILED job's granule pair looked "already submitted" forever.
+  A latent idempotency gap (same class as the Session-13 scenario-staleness sentinel): invisible until
+  the first genuine ASF-side failure, because every earlier job had succeeded.
+* **Fix:** skip `status_code == "FAILED"` jobs in the dedupe scan (`submit_hyp3_jobs.py`). Verified:
+  the next `--submit` run skipped 48 and resubmitted exactly the 1 failed pair (10 credits).
+* **Lesson:** dedupe/skip logic must key on *successful* prior work, not mere existence — "a job was
+  submitted" and "the work is done" are different predicates; test recovery paths with at least one
+  synthetic failure.
+
 ### [2026-06-08] MintPy CLI tools "command not found" under `bash -lc` in the micromamba image
 
 * **Symptom:**
@@ -756,3 +970,357 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   Standard Windows terminals do not expose the `conda` command by default. Always use `conda init <shell>` to integrate conda with your default shells, or rely on VS Code's native Python interpreter selector to automate environment activation.
 
 ---
+
+### [2026-07-13] VD dashboard displayed a stale back-test AUC (0.696/n=41) after the inventory grew to n=46
+
+* **Symptom:** the ledger's current VD operational baseline was AUC 0.707 (n=46 inventory, §42),
+  but the live VD dashboard still showed 0.696 — the value from the superseded n=41 inventory.
+
+* **Root Cause:** the dashboard's `load_tier()` reads `backtest_<scenario>_report.json`, a
+  one-shot artifact that is NOT regenerated when the inventory grows. The §39 inventory refresh
+  updated the ledger (via the soil-sweep baseline) but nobody re-ran `backtest_inventory.py`, so
+  the report file — and every dashboard regeneration reading it — silently carried the stale point.
+
+* **Resolution:** `validation_stats.py` (§44) writes `validation_stats_<scenario><sfx>.json`;
+  `load_tier()` now prefers it when present, taking the AUC/recall point AND the 95% CI + permutation
+  p from the SAME run — the displayed number and its interval can no longer come from different
+  inventories. Both sites' dashboards regenerated and verified.
+
+* **Lesson:** any user-facing surface that reads a *scored* artifact inherits that artifact's
+  staleness. When a validation input (inventory) changes, re-run the scorers the same session — or
+  better, make the surface read the newest-protocol report, as done here.
+
+### [2026-07-13] run_multistack --force / touch triggered a Ramban Phase-2 rerun that FAILS ("No solvable reference candidate")
+
+* **Symptom:** rebuilding Phase-4 alerts at the new kappa (§45) by touching the hazard rasters and
+  running `run_multistack.py` made Ramban re-enter **Phase 2 (SBAS inversion)**, which died with
+  `No solvable reference candidate in AOI — relax --min-pairs` (exit 1). VD rebuilt fine.
+
+* **Root Cause:** two things. (1) `run_multistack._stale(vel, QUARANTINE_CSV)` had gone true for
+  Ramban independently of the kappa work — the quarantine CSV's mtime was newer than the velocity
+  rasters, a false-positive staleness (velocity content is correct and kappa-independent). (2) The
+  current Ramban reference-pixel search can't re-solve from scratch in this container state, so the
+  rerun fails rather than reproducing the existing (good) velocity. The touch of `hazard_class.tif`
+  correctly staled Phase 4, but run_multistack re-checks Phase 2/3 for the same stack in one pass.
+
+* **Resolution:** did NOT let Phase 2 rerun. Drove Phase 4 + union DIRECTLY at the new kappa via a
+  throwaway script calling `agentic_orchestrator.run_scenario(stack, sc, ...)` for operational/watch
+  then `run_multistack.write_union_alerts(stacks)` — reads the unchanged FS/TWI rasters + config
+  kappa, never touches Phase 2/3. The failed SBAS attempt wrote nothing (it dies before output), so
+  the standing Ramban velocity is intact.
+
+* **Lesson:** to rebuild ONLY Phase 4 (e.g. after a config-only change like kappa that the mtime
+  staleness can't see), call the orchestrator + `write_union_alerts` directly rather than
+  `run_multistack --force`/touch — the latter also re-checks Phase 2/3 and can trip a fragile
+  reference-pixel re-solve. A config-change-aware staleness signal would be the real fix.
+
+### [2026-07-13] kappa (§45) shipped with two silent non-consumers: hazard_timeline and watch_triage ignored the TWI layer
+
+* **Symptom:** none visible — found by a deliberate deep-verification grep for every site that
+  interpolates FS_real or computes m* manually. The season timeline (`agentic_orchestrator.py
+  hazard_timeline`, line ~525) still built each day's FS as `(1-m)*FS_dry + m*FS_sat` with the
+  scalar m, and `watch_triage.py` ranked by the intrinsic m* — both silently diverging from the
+  kappa=0.06 standing product and the per-zone gate's m*_eff firing order.
+
+* **Root Cause:** §45's first cut edited the FS_real construction in ONE consumer (the
+  MeteorologicalTrigger) and the m* shift in ONE consumer (per_zone_gate), but the "FS at wetness
+  m" math existed in four places. Copy-paste physics: each new layer must be hand-carried to every
+  copy, and two copies were missed.
+
+* **Resolution:** NEW `workflows/fs_real.py` — single source of truth for `m_field` /
+  `fs_field(fs_dry, fs_sat, m, twi, kappa)` / `critical_saturation` / `effective_mstar`. All four
+  consumers (MeteorologicalTrigger, hazard_timeline, per_zone_gate, watch_triage) now import it;
+  per_zone_gate re-exports `critical_saturation` for backward compatibility. Verified by a 22-check
+  battery on both sites: config load + default gate, zero-sum/clip quantification (operational m
+  exact; watch m: VD −0.0015 mean shift / 2.9% clipped, Ramban −0.0009 / 1.7%), kappa=0 bitwise
+  identity on all 5 stacks, fs_field cluster counts == standing per-stack alert counts, m*_eff
+  FS-crossing roots to ±2e-3, double-build determinism. Triage + VD route exposure regenerated
+  (CORE 0.80 km unchanged; WATCH 7.92→7.84 km).
+
+* **Lesson:** when adding a physics layer, FIRST grep for every consumer of the quantity being
+  changed and centralize before editing — the §45 review's "one point change" was only true of the
+  standing product path. Any future layer (van Genuchten suction is next) goes into fs_real.py, and
+  its consumers stay import-only.
+
+### [2026-07-13] Third kappa non-consumer: soil_sensitivity_sweep rebuilt alerts at kappa=0 through a default argument
+
+* **Symptom:** none visible until the §42 sweep would next run — found by reading the tool before
+  re-running it on the kappa=0.06 product. `soil_sensitivity_sweep.py` calls
+  `rainfall_selectivity_backtest.build_stack_alerts(s, m_op, scen)` whose `kappa` parameter
+  DEFAULTED to 0.0 and was written into the scenario cfg explicitly — so every soil combo (and its
+  baseline sanity gate) would have been built at kappa=0, silently mismatching the standing
+  product (the gate would flag 21 vs 14 zones at VD, but only at run time).
+
+* **Root Cause:** same bug class as the fs_real centralization entry above, one call level deeper:
+  the physics layer was threaded as an OPTIONAL ARGUMENT whose default ("0.0") encoded a physics
+  choice instead of "inherit the site's adopted value". Every caller that didn't know about the
+  new layer silently opted out of it.
+
+* **Resolution:** `build_stack_alerts` now takes `kappa=None` / `suction=None` meaning "the site
+  config's adopted value" — the cfg key is only set when a sweep explicitly overrides (0.0 remains
+  a valid explicit override). The soil sweep inherits the standing physics with no change to its
+  own code; its baseline gate then reproduces the canonical product exactly (VD: 14 zones,
+  AUC 0.757, verified 2026-07-13; FS rasters checksum-restored).
+
+* **Lesson:** a physics layer must never be an optional argument with a value-default. Defaults
+  encode "no opinion", so they must mean "whatever the site config says" (None-sentinel), not a
+  particular physics setting. When adding a layer, audit every CALLER of the build path, not just
+  every copy of the math.
+
+---
+
+### [2026-07-15] Docker Desktop killed abruptly leaves stale unix-socket files that CRASH the next start (and a GUI-only kill lets the VM restart itself)
+
+* **Symptom:** three intertwined failure modes found while hardening the monsoon cycle. (1) After
+  `Stop-Process 'Docker Desktop'`, the engine reappeared minutes later — `com.docker.backend`
+  survives a GUI-only kill and can restart the WSL2 VM. (2) The FIRST `Docker Desktop.exe` launch
+  right after an abrupt teardown dies silently (observed twice; the monsoon cycle's 5-min wait
+  expired and it toasted "cycle SKIPPED"); an immediate relaunch succeeds in ~20 s. (3) Worst case:
+  Docker Desktop showed "unexpected error … initializing Inference manager: remove
+  C:/Users/varun/AppData/Local/Docker/run/dockerInference: The file cannot be accessed by the
+  system" and refused to start AT ALL — stale unix-socket **reparse points** in
+  `%LOCALAPPDATA%\Docker\run\` cannot be deleted by `del`, `Remove-Item`, or `[IO.File]::Delete`.
+
+* **Root Cause:** force-killing Docker's processes skips its socket/teardown cleanup. Unix-socket
+  files on Windows are reparse points that normal file APIs refuse to touch, so Docker's own
+  startup `remove()` fails too and it aborts.
+
+* **Resolution:** (1) `monsoon_cycle.ps1` shutdown now kills `Docker Desktop` + `com.docker.backend`
+  + `com.docker.build` before `wsl -t docker-desktop`, then VERIFIES `docker info` fails and logs a
+  warning otherwise. (2) The start wait-loop relaunches once at the 150 s mark if the GUI process
+  vanished. (3) For the stale-socket crash: **rename the whole `run` dir**
+  (`run` → `run_stale_<date>`) — Docker recreates it clean on next start; the renamed dir's socket
+  files stay undeletable but are 0 bytes and inert.
+
+* **Lesson:** never assume killing a GUI killed the service behind it — enumerate the process tree.
+  And when Windows refuses to delete a file "the system cannot access", stop fighting the file and
+  rename its PARENT directory; the recreating app neither knows nor cares.
+
+* **ROOT FIX (2026-07-16, supersedes the process-kill approach entirely):** the crash is
+  DETERMINISTIC — every force-kill strands the socket and every next start hits the error dialog
+  (confirmed by the user's screenshot; it also explains the "silent death" starts — the app was
+  sitting on a dialog that headless polling can't see). Docker Desktop 4.37+ ships a CLI:
+  **`docker desktop stop`** (clean teardown, no stranded sockets) and **`docker desktop start`**
+  (headless start). `monsoon_cycle.ps1` now uses ONLY these; `Stop-Process`/`Start-Process` on
+  Docker are banned in this repo. If a brick already happened: quit the dialog, rename
+  `%LOCALAPPDATA%\Docker\run`, then `docker desktop start`.
+
+---
+
+### [2026-07-15] Docker bind mounts silently do NOT resolve NTFS junctions — container saw an empty project subdir
+
+* **Symptom:** after relocating the raw-zip store (`data\raw_zips` → NTFS junction →
+  `C:\InSAR_data\raw_zips`), everything worked natively (reads, writes, git, the plumbing suite) —
+  but `docker compose run insar python -c "Path('/app/data/raw_zips').exists()"` returned **False**:
+  inside the container the junction is not followed, the path simply doesn't exist. Any
+  containerized Phase-1 `--download`/`--extract` or `prep_mintpy` zip-fallback would have failed.
+  Found only because the junction test battery included a container-side check.
+
+* **Root Cause:** Docker Desktop's Windows file-sharing (gRPC-FUSE/virtiofs) serves directory
+  entries but does not traverse NTFS reparse points that lead outside the shared subtree being
+  bind-mounted; the junction shows up as nothing at all in the container.
+
+* **Resolution:** explicit nested bind in `docker-compose.yml` for BOTH services —
+  `C:/InSAR_data/raw_zips:/app/data/raw_zips` mounts the real folder over the junction's path in
+  the container. Verified: both images see the dir, and a container-side write appears at
+  `C:\InSAR_data\raw_zips` on the host.
+
+* **Lesson:** an NTFS junction is a host-side illusion — every non-native consumer (containers, WSL,
+  some backup tools) must be tested against it explicitly. When a junction sits inside a
+  bind-mounted tree, add a nested bind for the junction target; the container path then works no
+  matter what the host-side link does.
+
+### [2026-07-17] Results hub missed the real live dashboards (glob one level too shallow)
+
+* **Symptom:** the new control panel's results hub listed only `data/alerts*/` top-level HTML
+  (old scenario dashboards) — the actual per-AOI LIVE operational dashboards never appeared.
+
+* **Root Cause:** `operational_alarm.py` writes its dashboard one level deeper, under
+  `alerts<sfx>/mosaic_asc/operational_alarm_dashboard_*.html`; the hub's `glob("*.html")` on the
+  alerts dir can't see subdirectories. Found only when a REAL refresh-cycle run printed the
+  output path into the panel's own log.
+
+* **Resolution:** hub now globs `alerts<sfx>/mosaic_asc/operational_alarm_dashboard*.html` and
+  lists it FIRST ("★ Live operational alarm dashboard"); regression test added
+  (`test_live_operational_dashboard_listed_first_when_present`).
+
+* **Lesson:** when building a UI over existing artifacts, derive the artifact list from what the
+  producers WRITE (read their output paths/logs), not from what a directory listing happens to
+  show — and always run the real producer once before declaring the consumer done.
+
+### [2026-07-17] Restructure landmines: path-anchored .gitignore rules invert silently on `git mv`
+
+* **Symptom (pre-empted, not hit):** moving `Research/` → `docs/` would have (a) broken the
+  `!Research/*_Watchlist/*.kml` re-include (future KMLs silently ignored) and (b) moved the
+  untracked `Research/Archive/*` stash OUT of its ignore rule — `git add -A` would then have
+  committed old LLM-synthesis research notes that were deliberately excluded from the repo.
+
+* **Root Cause:** `.gitignore` rules that embed directory paths are coupled to the tree layout;
+  a restructure changes rule semantics without touching the rules.
+
+* **Resolution:** grepped `.gitignore` for every path-anchored rule BEFORE moving; updated both
+  (`!docs/briefs/*_Watchlist/*.kml`, `docs/archive/local/*`) in the same change; verified with
+  `git check-ignore` (probe files) that re-includes work and the local archive stays ignored.
+
+* **Lesson:** a repo restructure is also a `.gitignore` migration. Before any `git mv`, grep the
+  ignore file for the old paths, and verify the NEW layout with `git check-ignore` probes both
+  ways (tracked stays tracked, excluded stays excluded).
+
+### [2026-07-17] Verification grep's own exclusion filter hid a whole directory of stale refs
+
+* **Symptom:** a repo-wide sweep for stale `Research/` references came back clean, but files
+  under `docs/` still contained stale paths (runnable commands in briefs, the context doc's
+  primer link).
+
+* **Root Cause:** the sweep piped `grep -rn` through `grep -v 'docs/guides|docs/briefs|…'` to
+  drop already-correct NEW paths — but `grep -rn` prefixes every hit with its file path, so ANY
+  hit inside `docs/` matched the exclusion by virtue of its filename prefix and was dropped.
+
+* **Resolution:** re-ran the docs/ sweep separately with the path prefix stripped (`sed
+  's|^docs/||'`) before filtering; found and fixed 8 more stale references.
+
+* **Lesson:** when filtering `grep -rn` output, remember the match line CONTAINS the file path —
+  exclusion patterns meant for line content will also match paths. Strip or split the path field
+  first, or use `--include`/`--exclude-dir` instead of post-filtering.
+
+### [2026-07-18] New committable data files silently swallowed by the data/inventory/* blanket ignore
+
+* **Symptom:** the two new curated historical-events JSONs (`data/inventory/*_historical_events.json`)
+  did not appear in `git status` at all — they would have shipped as local-only files, making the
+  dashboard's Past-events record non-robust (same failure class as headline numbers living only in
+  git-ignored journals).
+
+* **Root Cause:** `.gitignore` ignores `data/inventory/*` wholesale and re-includes ONLY the two
+  back-test inventory geojsons by exact name; any new file in that directory is ignored by default.
+
+* **Resolution:** added explicit `!data/inventory/*_historical_events.json` re-includes (both
+  sites), verified with `git check-ignore` + `git status`.
+
+* **Lesson:** third instance of the gitignore bug class (see 2026-07-17 entries): whenever a NEW
+  file is meant to be committed from under `data/`, run `git check-ignore -v <path>` immediately
+  after creating it — the blanket rules win silently.
+
+### [2026-07-18] Test counted a phrase in prose, not the marker it meant
+
+* **Symptom:** `test_hist_panel_html` failed: `html.count("pending review")` exceeded the number
+  of review-flagged events.
+
+* **Root Cause:** the panel's intro sentence legitimately contains the words "pending review", so
+  counting the raw phrase counted prose + badges together.
+
+* **Resolution:** count the exact structural badge marker (`>pending review</span>`) instead.
+
+* **Lesson:** when asserting counts against rendered HTML, count unambiguous structural markers,
+  never phrases that can also occur in prose.
+
+### [2026-07-18] Browser preview pane pinned to the first file:// snapshot — JS checks ran against a stale page
+
+* **Symptom:** after `navigate` to the Ramban dashboard file, in-page JS still reported the
+  Vaishno Devi page (title unchanged) — even with a forced reload.
+
+* **Root Cause:** files outside the preview's project root render as one-shot static snapshots;
+  navigating the pane to a different file:// path does not actually load it.
+
+* **Resolution:** asserted `document.title` before trusting any in-page check (which is how the
+  staleness was caught), then verified the second dashboard by parsing its HTML on disk instead.
+
+* **Lesson:** when driving the preview browser across multiple file:// artifacts, verify document
+  identity (title) first; fall back to on-disk HTML parsing — the rendered behavior is identical
+  generated code, so one live page + N parsed pages is sufficient coverage.
+
+### [2026-07-18] Undated article URL misattributed to the wrong year's event cluster
+
+* **Symptom:** the curated Digdol–Khooni Nallah row cited an undated Greater Kashmir "SSP
+  traffic" article as a source for a supposed 27 Apr 2025 slide (graded LOW, duplicate-suspect).
+  User review + a fresh search showed the row's event actually happened 7 Apr 2026 — and that
+  same undated URL appears in the 2026 event's coverage cluster, not 2025's.
+
+* **Root Cause:** the article URL carries no date; it was attributed by topical similarity to the
+  2025 cluster during curation. An undated source can silently attach to whichever event you are
+  currently researching.
+
+* **Resolution:** row resolved to 2026-04-07 (HIGH — four independently dated 2026 outlets),
+  correction recorded in the row's confidence_reason + the inventory feature's date_correction;
+  the Kashmir Vision 27 Apr 2025 piece reclassified as follow-up coverage of the 20 Apr 2025
+  cloudburst (§12g). Ledger §52.
+
+* **Lesson:** extension of the §12g/§36 date rules — an UNDATED source URL must never anchor an
+  event's date; only sources with their own visible date (URL path or byline) can. The
+  LOW/pending-review grading did exactly its job here: the doubtful row was quarantined until
+  reviewed, never presented as settled.
+
+### [2026-07-18] Staleness-guard escalation branch left the previous tier's styling behind
+
+* **Symptom:** while exercising the new banner staleness guard's tiers by re-running the page's
+  own script with rewound as-of dates, returning to the normal (<=8 d) tier kept the previous
+  tier's red background — only the text reset.
+
+* **Root Cause:** the script set `el.style.background` in the amber/red branches but the normal
+  branch never touched it. Unreachable in production (the script runs once per page load with a
+  fixed as-of date), but a latent trap for any future re-run of the logic.
+
+* **Resolution:** normal branch now resets `el.style.background = ''` (falls back to the CSS
+  class). One-line fix, re-verified.
+
+* **Lesson:** verify browser escalation logic by re-evaluating the PAGE'S OWN embedded script
+  against synthetic inputs, not a re-implementation of it — that is exactly how this
+  branch-asymmetry surfaced. And in any state-styling if/else, every branch must fully specify
+  the state it claims, not just the delta from the branch you expect to precede it.
+
+### [2026-07-18] User saw a red staleness pill with "normal" text — stale test-tab DOM, not the artifact
+
+* **Symptom:** the user's screenshot showed the new staleness pill with the >14-day red
+  background but the <=8-day "Normal for this system" text — an impossible combination for a
+  fresh page load.
+
+* **Root Cause:** the screenshot was of the in-app preview tab used for tier testing. The §53
+  escalation probe had rewound the page's as-of date and re-run the page's own (pre-fix) script,
+  which left the red background behind when the real date was restored — the exact
+  branch-asymmetry bug found and fixed that round. The mutated DOM stayed visible in the open
+  tab; the regenerated file on disk was always correct.
+
+* **Resolution:** force-reloaded the page and screenshot-confirmed the correct light pill; no
+  code change needed (the underlying style-reset bug was already fixed in the same session).
+
+* **Lesson:** after mutating a live page during in-browser testing, reload it before leaving it
+  on screen — a test-mutated DOM left visible reads as a product bug to anyone who glances at
+  it. When a report contradicts the code, first ask "which surface is being looked at?" before
+  hunting the logic.
+
+### [2026-07-18] Sentinel-1 unit whitelist would have silently starved the pipeline forever
+
+* **Symptom:** "July S1 passes still not at ASF" persisted for weeks (§35 → §43 → today) and
+  was tracked as an upstream delay. Today's check showed the truth: Sentinel-1A ENDED
+  OPERATIONS on 29 Jun 2026 (constellation handover), Sentinel-1D is already acquiring our
+  exact paths (CDSE: 25/30 Jun, 7/12 Jul; ASF has 25 Jun) — and our catalog query
+  `platform=[SENTINEL1A, SENTINEL1B]` could never have returned an S1C/S1D scene. Had the
+  filter stayed, the pipeline would have reported "no new data" indefinitely while data flowed.
+
+* **Root Cause:** a satellite-unit whitelist written in the two-unit era (2025) plus treating
+  "no new scenes" as someone else's delay instead of investigating which layer was empty
+  (acquisition vs archive vs OUR QUERY).
+
+* **Resolution:** `submit_hyp3_jobs.py` now queries `PLATFORM.SENTINEL1` (all units), with a
+  comment carrying the handover fact; verified live (the all-units query returns the S1D
+  scenes the A/B query missed). Ledger §56; plan doc Tier 0.
+
+* **Lesson:** never whitelist satellite units — query at constellation level and let
+  downstream QA reject what doesn't pair. And when a data feed "goes quiet", binary-search the
+  layers (source catalog → mirror → your own filter) before attributing delay upstream: two of
+  the three layers had data the whole time.
+
+### [2026-07-18] D8 router sent edge cells to out-of-bounds indices (infinite drop to a -inf pad)
+
+* **Symptom:** first run of flow_routing_probe.py crashed with IndexError: a flow target index
+  beyond the array.
+
+* **Root Cause:** neighbours outside the frame were padded with -inf elevation; drop = z-(-inf)
+  = +inf made the off-grid cell the "steepest descent" — and its flat index was out of bounds.
+
+* **Resolution:** drop is defined only where BOTH cells are finite (else -inf), so edge and
+  nodata cells become off-map sinks; a synthetic-valley unit test now pins the behaviour
+  (including a NaN-hole DEM).
+
+* **Lesson:** padding with sentinel values changes the ARGMAX, not just the values — any
+  "pick the best neighbour" kernel must exclude sentinel cells from candidacy explicitly, and
+  edge behaviour deserves its own test case.

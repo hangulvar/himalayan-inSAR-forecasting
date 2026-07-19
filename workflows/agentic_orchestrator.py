@@ -59,10 +59,16 @@ import rasterio
 from pyproj import Transformer
 from scipy import ndimage
 
+import fs_real
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-OUT_DIR = PROJECT_ROOT / "data" / "alerts"
+_CFG = load_config()
+_SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
+SITE = _CFG.site_name              # human-readable label for dashboard titles
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+OUT_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 RAIN_DIR = PROJECT_ROOT / "data" / "rainfall"
 LOG_DIR = PROJECT_ROOT / "logs"
 
@@ -91,8 +97,10 @@ logger = logging.getLogger("orchestrator")
 # operational_alarm.py TEMPORAL DORMANT/WATCH/ALERT states, which decide WHEN to consult a map.)
 SCENARIOS = {
     "dry":         {"rainfall_mm_72h": 0,   "saturation": 0.0,  "fs_layer": "FS_dry"},
-    "operational": {"rainfall_mm_72h": 29,  "saturation": 0.50, "fs_layer": "FS_real"},
-    "watch":       {"rainfall_mm_72h": 50,  "saturation": 0.70, "fs_layer": "FS_real"},
+    # Operating points are per-site (config operational_m / watch_m; defaults keep
+    # the ramban-tuned 0.50 / 0.70 — VD is swept to 0.40 / 0.75, §32).
+    "operational": {"rainfall_mm_72h": 29,  "saturation": _CFG.operational_m, "fs_layer": "FS_real"},
+    "watch":       {"rainfall_mm_72h": 50,  "saturation": _CFG.watch_m,       "fs_layer": "FS_real"},
     "monsoon":     {"rainfall_mm_72h": 120, "saturation": 1.0,  "fs_layer": "FS_saturated"},
     "extreme":     {"rainfall_mm_72h": 250, "saturation": 1.0,  "fs_layer": "FS_saturated"},
 }
@@ -114,7 +122,7 @@ CRITICAL_FS = 0.7
 # ------------------------------------------------------------------------------
 def load_wetness():
     """Ordered (dates, rain_mm{}, wetness_0_1{}) from the rainfall pipeline outputs."""
-    path = RAIN_DIR / "ramban_wetness_daily.csv"
+    path = RAIN_DIR / f"{load_config().aoi_slug}_wetness_daily.csv"
     if not path.exists():
         sys.exit(f"Missing {path} — run fetch_rainfall.py + rainfall_id_threshold.py first.")
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
@@ -188,10 +196,34 @@ class MeteorologicalTrigger:
                 fs_dry = s.read(1)
             with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
                 fs_sat = s.read(1)
-            self.fs = (1.0 - m) * fs_dry + m * fs_sat    # FS is exactly linear in m
+            # Physics layers via the shared fs_real module (single source of truth for
+            # every consumer of "FS at wetness m"): kappa TWI-distribution (§45, kappa=0 =
+            # uniform m, numerically identical to the historical scalar interpolation) and
+            # the optional van Genuchten suction-cohesion curve (§46, absent = linear).
+            # Both are cfg-overridable so the sweeps can test candidates without config edits.
+            kappa = float(self.cfg.get("kappa", _CFG.kappa))
+            suction = _CFG.suction
+            if "suction_alpha" in self.cfg:      # sweep override; alpha<=0 disables
+                from config import SuctionConfig
+                a = float(self.cfg["suction_alpha"])
+                suction = (SuctionConfig(a, float(self.cfg["suction_n"])) if a > 0
+                           else None)
+            twi = slope_deg = None
+            if kappa:
+                with rasterio.open(HAZ_DIR / f"{stack}_twi.tif") as s:
+                    twi = s.read(1)
+                m_desc = f"m={m:.2f} +/- kappa={kappa:g}*(TWI-{np.nanmean(twi):.1f})"
+            else:
+                m_desc = f"m={m:.2f}"
+            if suction is not None:
+                with rasterio.open(HAZ_DIR / f"{stack}_slope_deg.tif") as s:
+                    slope_deg = s.read(1)
+                m_desc += f" | vG suction(alpha={suction.alpha_kpa_inv:g},n={suction.n:g})"
+            self.fs = fs_real.fs_field(fs_dry, fs_sat, m, twi, kappa,
+                                       slope_deg, _CFG.soil, suction)
             logger.info(f"[Agent 2: Meteorological Trigger] REAL rainfall {scenario}: "
                         f"day {self.cfg.get('rain_day_mm')} mm, 72h {self.cfg['rainfall_mm_72h']} mm "
-                        f"-> saturation m={m:.2f} -> FS_real=(1-m)*FS_dry+m*FS_saturated"
+                        f"-> saturation {m_desc} -> FS_real=(1-m_i)*FS_dry+m_i*FS_saturated"
                         f"{'  [ID-THRESHOLD TRIGGER]' if self.cfg.get('is_trigger') else ''}.")
         else:
             with rasterio.open(HAZ_DIR / f"{stack}_{self.cfg['fs_layer']}.tif") as s:
@@ -370,7 +402,7 @@ def write_dashboard(path: Path, stack: str, scenario: str, cfg: dict,
         "no ground is both theoretically unstable AND measurably creeping.</p>")
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Ramban Hazard Dashboard — {scenario}</title>
+<title>{SITE} Hazard Dashboard — {scenario}</title>
 <style>
  body{{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f4f5f7;color:#1c1c1e}}
  header{{background:#0d1b2a;color:#fff;padding:16px 24px}}
@@ -396,7 +428,7 @@ def write_dashboard(path: Path, stack: str, scenario: str, cfg: dict,
  footer{{padding:10px 24px;font-size:11px;color:#888}}
 </style></head><body>
 <header>
-  <h1>🏔️ Ramban NH-44 — Landslide Hazard Dashboard</h1>
+  <h1>🏔️ {SITE} — Landslide Hazard Dashboard</h1>
   <div class="sub">Agentic forecast · stack {stack} · scenario: <b>{scenario.upper()}</b>
    ({cfg['rainfall_mm_72h']} mm/72h rainfall, saturation m={cfg['saturation']}, {cfg['fs_layer']})
    · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</div>
@@ -491,6 +523,15 @@ def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None
         fs_dry = s.read(1)
     with rasterio.open(HAZ_DIR / f"{stack}_FS_saturated.tif") as s:
         fs_sat = s.read(1)
+    # Same physics layers as the standing product (§45 kappa, §46 suction) — the
+    # timeline must not diverge from the footprints it explains (error log 2026-07-13).
+    twi = slope_deg = None
+    if _CFG.kappa:
+        with rasterio.open(HAZ_DIR / f"{stack}_twi.tif") as s:
+            twi = s.read(1)
+    if _CFG.suction is not None:
+        with rasterio.open(HAZ_DIR / f"{stack}_slope_deg.tif") as s:
+            slope_deg = s.read(1)
     dates, rain, mwet = load_wetness()
     trig = trigger_days()
     px_km2 = (abs(auditor.transform.a) / 1000.0) ** 2
@@ -498,7 +539,8 @@ def hazard_timeline(stack: str, out_dir: Path, use_vslope: bool = False) -> None
     rows = []
     for d in dates:
         m = mwet[d]
-        fs = (1.0 - m) * fs_dry + m * fs_sat
+        fs = fs_real.fs_field(fs_dry, fs_sat, m, twi, _CFG.kappa,
+                              slope_deg, _CFG.soil, _CFG.suction)
         labels, n = ndimage.label(creep & np.isfinite(fs) & (fs < FS_FAIL))
         if n:
             sizes = np.bincount(labels.ravel())[1:]

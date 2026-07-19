@@ -24,7 +24,7 @@ harmless no-op inside the container.
   auto-activates on every command (no manual `conda activate`, so the activation
   bug cannot occur).
 - **Not in the image — bind-mounted at run time:** the project code, the ~73 GB
-  `data/` directory, `logs/`, and `ramban_aoi.geojson`. Nothing large or
+  `data/` directory, `logs/`, and `config/` (incl. the AOI geojsons). Nothing large or
   machine-specific is baked in.
 - **Deliberate deviations from `environment.yml`:** conda-forge **only** (no
   `defaults` channel); `matplotlib-base` instead of `matplotlib` (headless, no

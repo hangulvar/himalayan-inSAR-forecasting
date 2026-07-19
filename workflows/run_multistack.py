@@ -41,19 +41,20 @@ import rasterio
 from rasterio.transform import from_origin
 from rasterio.warp import Resampling, reproject, transform_bounds
 
-from config import load_config  # noqa: F401  (kept for AOI-config parity / future use)
+from config import load_config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = PROJECT_ROOT / "workflows"
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 RESCUE_RECOMMENDATIONS = QA_DIR / "_rescue_recommendations.json"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-HAZ_DIR = PROJECT_ROOT / "data" / "hazard"
-ALERTS_DIR = PROJECT_ROOT / "data" / "alerts"
-MOSAIC_DIR = PROJECT_ROOT / "data" / "mosaic"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
+ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
+MOSAIC_DIR = PROJECT_ROOT / "data" / f"mosaic{_SFX}"
 MOSAIC_ALERTS_DIR = ALERTS_DIR / "mosaic_asc"
-MOSAIC_VSLOPE_DIR = PROJECT_ROOT / "data" / "mosaic_vslope"
+MOSAIC_VSLOPE_DIR = PROJECT_ROOT / "data" / f"mosaic_vslope{_SFX}"
 MOSAIC_ALERTS_VSLOPE_DIR = ALERTS_DIR / "mosaic_asc_vslope"
 LOG_DIR = PROJECT_ROOT / "logs"
 
@@ -379,9 +380,9 @@ def main() -> int:
     for sc, s in alert_summary.items():
         logger.info("  %-8s union zones=%d critical=%d multi-look=%d",
                     sc, s["n_union_zones"], s["n_critical"], s["n_confirmed_multi_look"])
-    logger.info("Outputs: data/mosaic/MOSAIC_ASC_hazard_class.tif , "
-                "data/alerts/mosaic_asc/alerts_<scenario>.json + briefings; "
-                "per-stack alerts in data/alerts/<stack>/")
+    logger.info(f"Outputs: {MOSAIC_DIR.name}/MOSAIC_ASC_hazard_class.tif , "
+                f"{ALERTS_DIR.name}/mosaic_asc/alerts_<scenario>.json + briefings; "
+                f"per-stack alerts in {ALERTS_DIR.name}/<stack>/")
 
     if args.use_vslope:
         logger.info("=== V_slope pass — downslope-projected creep (parallel product) ===")

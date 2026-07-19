@@ -25,15 +25,16 @@ DESIGN NOTES (MVP):
     "stable". Upgrading to the 12.5 m ALOS DEM is a documented production task.
   * InSAR velocity is a SEPARATE evidence layer, not a term inside FS (the
     physically honest reading of "active stress multiplier").
-  * Soil parameters are literature defaults for Himalayan colluvium, all
-    CLI-overridable. They are assumptions, not measurements.
+  * Soil parameters come from the per-AOI config's `soil:` block (registry
+    files under config/; defaults = the Ramban §20 calibration), CLI flags
+    override for one-off experiments. Site-corroborated, not measured on-site.
 
 Sign convention: LOS velocity negative = motion away from sensor
 (subsidence / downslope) = the "creep" direction we flag.
 
 Usage:
     python workflows/geomechanical_engine.py
-    python workflows/geomechanical_engine.py --phi 35 --cohesion-kpa 8 \
+    python workflows/geomechanical_engine.py --phi 35 --cohesion-dry-kpa 8 \
         --soil-depth-m 4 --vel-creep-thr -15
 """
 
@@ -59,13 +60,18 @@ import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject
 
+from config import load_config
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 QA_DIR = PROJECT_ROOT / "data" / "qa_masks"
 QUARANTINE_CSV = QA_DIR / "_quarantine_list.csv"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
-ALOS_DEM_DIR = PROJECT_ROOT / "data" / "dem_alos_12m"   # 12.5 m ALOS PALSAR DEM (optional upgrade)
-VEL_DIR = PROJECT_ROOT / "data" / "velocity"
-OUT_DIR = PROJECT_ROOT / "data" / "hazard"
+_SFX = load_config().data_suffix   # '' for ramban; '_<slug>' so AOIs coexist
+# 12.5 m ALOS PALSAR DEM (optional per-AOI upgrade, §21) — slug-scoped like the output
+# dirs, since a tile covers ONE site (ramban keeps data/dem_alos_12m unchanged).
+ALOS_DEM_DIR = PROJECT_ROOT / "data" / f"dem_alos_12m{_SFX}"
+VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
+OUT_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"
 
 GAMMA_W = 9.81  # unit weight of water, kN/m³
@@ -82,13 +88,15 @@ logger = logging.getLogger("geomech")
 
 
 # ------------------------------------------------------------------------------
-def find_dem_for_stack(stack: str) -> tuple[Path, bool]:
+def find_dem_for_stack(stack: str, prefer_alos: bool = True) -> tuple[Path, bool]:
     """Return (dem_path, is_fine). Prefer the 12.5 m ALOS PALSAR DEM (a single AOI tile,
     shared by all stacks) if present, falling back to the ~30 m HyP3 DEM of the stack's
     first KEEP product. `is_fine` flags the ALOS DEM so slope is computed at native 12.5 m
     then averaged onto the 80 m grid (sharper steepness — see slope_on_grid)."""
+    # prefer_alos=False skips the tile (e.g. after a zero-coverage check: the single
+    # user-fetched tile is per-AOI — it covers Ramban, not necessarily another site).
     alos = sorted(ALOS_DEM_DIR.glob("*.dem.tif")) + sorted(ALOS_DEM_DIR.glob("*_DEM.tif"))
-    if alos:
+    if alos and prefer_alos:
         return alos[0], True
     rows = list(csv.DictReader(QUARANTINE_CSV.open(encoding="utf-8")))
     keep = sorted(r["product"] for r in rows
@@ -232,7 +240,7 @@ def main() -> int:
     # --- Soil shear-strength parameters -------------------------------------------------
     # CALIBRATED (2026-06-03) from the GSI meso-scale (1:10,000) landslide-susceptibility
     # field study of the NH-244 Batote(Chakwa Nala)->Ganpat Bridge corridor, Ramban/Doda,
-    # J&K (GSI 2024-25 field season; brief in Research/LandslideInventory/). That study
+    # J&K (GSI 2024-25 field season; brief in docs/briefs/LandslideInventory/). That study
     # measured a friction angle of phi = 36.4-39.1 deg on site overburden (silty colluvium/
     # scree/RBM, 0.5-20 m thick, >75% fines, moisture-sensitive) -> we adopt phi=36 deg
     # (conservative end), replacing the generic literature 32 deg. gamma=19 and z=3 m sit
@@ -252,15 +260,28 @@ def main() -> int:
     # fines; FLAG for confirmation vs the source PDF). c_wet = 5 kPa (the prior conservative
     # wet value; FS_saturated is therefore UNCHANGED from the pre-split model). A nonlinear
     # soil-water-retention (van Genuchten) suction curve is the next refinement.
-    ap.add_argument("--cohesion-dry-kpa", type=float, default=18.5,
+    #
+    # VAISHNO DEVI CORROBORATION (2026-07-11, RESULTS_AND_KPIS.md §37): site literature
+    # (Kumar & Anbalagan 2013 + GSI-derived overburden data) brackets every default —
+    # soil φ 32–43° (ours 36), c 4.9–27.5 kPa dry / 4.5–7.9 kPa saturated lows (ours 18.5/5),
+    # weathering depth 1–3 m (ours 3). Values kept; the VD "borrowed φ/c" caveat is retired.
+    # NOTE: that paper's c=2.9 t/m², φ=46° are ROCK-JOINT (planar/wedge) parameters — do NOT
+    # feed them into this soil-mantle engine.
+    #
+    # SOURCE OF VALUES: the per-AOI config's `soil:` block (workflows/config.py
+    # SoilConfig; registry files under config/). The CLI flags below OVERRIDE the
+    # config for one-off experiments; config defaults (no soil: block) = the Ramban
+    # values documented above, so existing sites are numerically unchanged.
+    _soil = load_config().soil
+    ap.add_argument("--cohesion-dry-kpa", type=float, default=_soil.cohesion_dry_kpa,
                     help="dry/unsaturated cohesion kPa = c' + matric-suction apparent cohesion "
                          "(GSI LSM dry, magnitude-interpreted; used for FS_dry)")
-    ap.add_argument("--cohesion-wet-kpa", type=float, default=5.0,
+    ap.add_argument("--cohesion-wet-kpa", type=float, default=_soil.cohesion_wet_kpa,
                     help="saturated effective cohesion kPa (suction gone; used for FS_saturated)")
-    ap.add_argument("--phi", type=float, default=36.0,
+    ap.add_argument("--phi", type=float, default=_soil.phi_deg,
                     help="friction angle deg (GSI LSM Ramban/Doda: 36.4-39.1; default = conservative 36)")
-    ap.add_argument("--gamma", type=float, default=19.0, help="soil unit weight kN/m³")
-    ap.add_argument("--soil-depth-m", type=float, default=3.0,
+    ap.add_argument("--gamma", type=float, default=_soil.gamma_kn_m3, help="soil unit weight kN/m³")
+    ap.add_argument("--soil-depth-m", type=float, default=_soil.depth_m,
                     help="failure depth z (GSI LSM overburden 0.5-20 m; 3 m = shallow translational)")
     ap.add_argument("--fs-fail", type=float, default=1.0)
     ap.add_argument("--fs-marginal", type=float, default=1.3)
@@ -291,6 +312,14 @@ def main() -> int:
     dem = reproject_dem(dem_path, transform, crs, w, h)
     logger.info(f"DEM ({'ALOS 12.5 m' if dem_is_fine else 'HyP3 ~30 m'}: {dem_path.name}) "
                 f"reprojected. Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
+    if dem_is_fine and not np.isfinite(dem).any():
+        logger.warning(f"ALOS tile {dem_path.name} has ZERO coverage of this master grid "
+                       f"(the 12.5 m upgrade is a per-AOI tile) — falling back to the "
+                       f"HyP3 product DEM.")
+        dem_path, dem_is_fine = find_dem_for_stack(stack, prefer_alos=False)
+        dem = reproject_dem(dem_path, transform, crs, w, h)
+        logger.info(f"DEM (HyP3 ~30 m: {dem_path.name}) reprojected. "
+                    f"Valid pixels: {np.isfinite(dem).sum():,}/{w*h:,}")
 
     slope = slope_on_grid(dem_path, dem_is_fine, transform, crs, w, h, pixel_m, dem)
     slope_deg = np.degrees(slope)

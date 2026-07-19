@@ -1,57 +1,13 @@
 # ============================================================================
-# Pipeline configuration
+# ACTIVE-AOI POINTER — this is the whole file.
 # ----------------------------------------------------------------------------
-# Point the whole pipeline at an Area of Interest by editing this file (or pass
-# `--config path/to/other.yaml` to any workflow script). Every script reads
-# these values via workflows/config.py instead of hardcoding Ramban.
+# The pipeline reads this file by default (workflows/config.py). It points at
+# one per-AOI registry file under config/ — switch every script to another AOI
+# by editing this single line, or run one script against another AOI without
+# switching via `--config config/<aoi>.yaml`.
+#
+#   Registry:   config/ramban.yaml · config/vaishnodevi.yaml · <your new AOI>
+#   New AOI:    copy a registry file, then follow NEW_AOI_PLAYBOOK.md
+#   Status:     python workflows/aoi_status.py  (all AOIs, all stages)
 # ============================================================================
-
-# --- Area of Interest -------------------------------------------------------
-# Path (relative to the project root, or absolute) to the AOI polygon.
-# Must be GeoJSON in EPSG:4326. Draw it in Google Earth Pro -> Save As .kml ->
-# convert to GeoJSON (geopandas/QGIS). See InSAR_hazard_forecasting_Context.md.
-aoi_path: ramban_aoi.geojson
-
-# HyP3 job-name prefix. Every submitted job is named
-#   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
-# and downstream steps filter on this prefix. Use a short, unique slug per AOI.
-job_name_prefix: Ramban_NH44
-
-# --- Catalog search window (inclusive), ISO dates ---------------------------
-# Pick the period whose ground motion matters. Here: the 2025 monsoon and
-# immediate post-monsoon, when slope failure is most likely.
-search_start: 2025-05-01
-search_end: 2025-10-31
-
-# --- Pair-network / baseline rules ------------------------------------------
-baseline:
-  # Max temporal baseline (days) for a valid interferometric pair.
-  max_temporal_baseline_days: 24
-  # SBAS forward neighbours per scene (1 = consecutive chain; 3 = SBAS N=3).
-  sbas_neighbors: 1
-  # Max perpendicular baseline (m). Pairs above this risk layover / volume
-  # decorrelation. NOTE: declared here for the upcoming baseline-enforcement
-  # step (roadmap 0b) but not yet applied by the submitter.
-  max_perp_baseline_m: 150
-
-# --- Connectivity-rescue policy ---------------------------------------------
-# A rescue promotes a CONCERN interferogram to KEEP so it can BRIDGE two
-# otherwise-disconnected islands. A bridge is an unredundant single point of
-# failure — its noise is NOT averaged out by SBAS redundancy — so it must clear
-# a stricter quality bar than an ordinary KEEP pair. sbas_network_graph.py
-# applies this gate and refuses to bridge a gap with any pair that fails it; the
-# stack is then left disconnected (SVD / period-split downstream) rather than
-# injecting noise. Tighten/loosen these per AOI using the emitted audit.
-rescue_gate:
-  # NOISE gates (the primary controls) — both directly govern bridge reliability:
-  max_atmos_r2: 0.45      # phase-elevation R^2 ceiling (QUARANTINE line is 0.5)
-  min_coherence: 0.6      # mean coherence of surviving pixels floor
-  # COVERAGE sanity floor (completeness, not noise) — low by design so a sparse
-  # but clean bridge is not discarded; raise toward 30 to also demand coverage.
-  min_surviving_pct: 15
-
-# Manual override ON TOP of the scientific gate: stacks to force-skip entirely
-# (e.g. one you have decided to period-split regardless). Canonical labels.
-# Default empty — the gate above already excludes decorrelated stacks (e.g. the
-# only frame484 bridge has R^2~0.50 and is rejected automatically).
-exclude_from_rescue: []
+active_config: config/vaishnodevi.yaml

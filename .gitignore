@@ -109,6 +109,12 @@ dmypy.json
 *.kml
 *.kmz
 *.geojson
+# Keep the small hand-curated per-AOI inputs (polygons + route lines) — everything
+# else *.geojson stays ignored:
+!*_aoi.geojson
+!*_route.geojson
+# Keep the user-drawn field watchlist targets (KML is otherwise ignored):
+!docs/briefs/*_Watchlist/*.kml
 *.csv
 *.xlsx
 *.parquet
@@ -139,14 +145,19 @@ data/processed_tiffs/*
 data/qa_masks/*
 !data/qa_masks/.gitkeep
 
-# Track ONLY the small curated landslide inventory (back-test ground truth); ignore the
-# rest of data/inventory/ (generated reports/figures).
+# Track ONLY the small curated landslide inventories (back-test ground truth) and the
+# curated historical-damage records (the dashboard Past-events tab); ignore
+# the rest of data/inventory/ (generated reports/figures).
 data/inventory/*
 !data/inventory/ramban_documented_landslides.geojson
+!data/inventory/vaishnodevi_documented_landslides.geojson
+!data/inventory/ramban_historical_events.json
+!data/inventory/vaishnodevi_historical_events.json
+!data/inventory/temporal_skill_table.csv
 
 #CLAUDE-2.0-2024-06-11
 CLAUDE.md
 session_journey.md
 
-#hiding some unnecessary research notes and scratch files
-Research/Archive/*
+#hiding some unnecessary research notes and scratch files (local-only doc archive)
+docs/archive/local/*
