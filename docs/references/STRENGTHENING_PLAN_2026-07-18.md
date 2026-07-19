@@ -36,35 +36,29 @@ Grounded in the availability checks run this day (ledger §56) and the standing 
   S1A×S1A pairs + the seam bridge; applies the §43 f106 bridge swap), VD when ASF ingests the
   Jun-30+ S1D passes.
 
-## Tier 1 — In-monsoon rainfall science (1–2 weeks; monsoon is NOW and radar is blocked)
+## Tier 1 — In-monsoon rainfall science — ✅ EXECUTED 2026-07-18 (§58)
 
-- **1a — Per-zone IMERG E (§55's second half).** Sample the 0.1° grid at zone centroids
-  (bilinear), per-zone trailing-window E, and arm zones by their OWN burst E in
-  `per_zone_gate.py` (zone live iff m* ≤ m(t) AND [AOI E ≥ 1 OR zone-burst E ≥ 1]). Success:
-  per-zone E measurably diverges from AOI-mean on convective days; demo on the 8 Jul Himkoti
-  day (was the burst concentrated over the VD zones?).
-- **1b — Burst-arm provisional operating points from the 2025 seasons (data already exists).**
-  Run `imerg_gate.py` over both AOIs' 2025 windows; screen the verified events (20 Apr —
-  must reproduce the §12g E; 21 Jul Banganga; 26 Aug Ardhkuwari) AND count quiet-day
-  crossings → a first false-alarm rate; propose burst-arm watch_k/alert_k from that (labelled
-  provisional — n is small and says so). Bias check: IMERG vs the two dated Katra gauge
-  numbers (§51: 184.2 mm & 629.4 mm/24 h) — is IMERG hot/cold in this terrain?
-- **1c — Two-arm fusion, display-only, AFTER 1b.** A labelled "combined vigilance =
-  max(arms)" banner line only once the burst arm has provisional points. Never silently
-  change the validated alarm.
+- **1a ✅ (probe → deliberately NOT built):** zones span only ~3 IMERG pixels; decision-day
+  zone-over-AOI divergence ≤1.29× (the ≥3× ratios are a near-dry-day small-denominator
+  artifact, documented). Per-zone gating is LOW-VALUE at these AOI scales; revisit for a
+  larger AOI. Probe kept: `imerg_perzone_probe.py`.
+- **1b ✅:** 2025 seasons fetched; §12g reproduced through the production gate (20 Apr E=3.07,
+  8 May E=1.09); six-event two-arm table built; **burst-arm ALERT recalibrated to E≥3**
+  (halves flagged days, keeps all fatal catches); **gauge-bias measured: IMERG = 0.16–0.22×
+  the Katra gauge on the extreme anchors** → never raise k further. `imerg_calibration.py`.
+- **1c ✅:** display-only "Two-arm read (§58-calibrated)" line on both banners (today: Ramban
+  WATCH, VD ALERT via the burst arm). The validated daily alarm untouched.
 
-## Tier 2 — NISAR L-band pilot (1–2 weeks, parallel; the strategic step-change)
+## Tier 2 — NISAR L-band pilot — ✅ EXECUTED 2026-07-18 (§59)
 
-- **2a — Ingest the winter sample.** Pull the 3 GUNW + GCOV over the AOIs (Earthdata creds
-  already wired); crop/regrid; QA.
-- **2b — THE experiment: L-band vs C-band coherence on OUR vegetated slopes.** Same-season
-  12-day pairs (Nov–Jan): NISAR coherence vs S1 coherence, histogrammed inside the AOI and
-  inside the WorldCover vegetation mask. Success criterion: a quantified coherence gain
-  (median γ_L − γ_C over vegetation). Large → plan the operational L-band stack for the day
-  forward processing reaches this region (vegetated-slope coverage is our #1 stated
-  weakness). Small → documented negative result, C-band remains, claim retired.
-- **2c — Watcher.** Extend 0c's poll to the NISAR dataset (monthly): flag when post-Jan-2026
-  products appear.
+- **2a ✅:** the 12-day winter GUNW (27 Dec × 8 Jan, 2.3 GB) ingested to `data/nisar/`
+  (GCOVs deliberately skipped — 7–9 GB of backscatter the pilot doesn't need).
+- **2b ✅ — CONFIRMED:** where C-band fails (γ<0.35), **L-band recovers 75–87% of pixels**
+  (median γ_L 0.55–0.62 there); gain concentrated exactly in the failure class; winter =
+  lower bound on the monsoon advantage. VD not comparable (no winter C pairs — noted;
+  re-run when accumulated). `nisar_coherence_pilot.py`.
+- **2c ✅:** NISAR stream watch in `radar_watch.py` (non-fatal; currently "winter sample
+  only, newest 18 Jan 2026"). Next NISAR action waits on the forward stream.
 
 ## Tier 3 — Validation depth (2–4 weeks, interleaved)
 

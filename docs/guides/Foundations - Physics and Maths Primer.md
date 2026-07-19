@@ -1186,11 +1186,16 @@ the daily gate has (CF7). So it ships as a labelled **second opinion** beside th
 alarm, not as the alarm. Also honest: an 11-km pixel still averages over a slope; no snowmelt;
 the newest day is provisional while its data arrives.
 
-🔗 **In our project: Milestone 48 / §55.** `imerg_gate.py` (incremental cached half-hourly
-fetch + daily E), the "sub-daily burst check" card on the operational dashboard, and a
-non-fatal hook in `live_alarm.py` (if the satellite feed is down, the validated chain is
-untouched). Remaining upgrades: per-zone rain from the 0.1° grid, and earning this arm its own
-validated thresholds as events accumulate.
+🔗 **In our project: Milestones 48–49 / §55 & §58.** `imerg_gate.py` (incremental cached
+half-hourly fetch + daily E), the "sub-daily burst check" card, and a non-fatal hook in
+`live_alarm.py`. The arm was then CALIBRATED on six verified events (§58): burst ALERT at
+**E ≥ 3** (every fatal event stays caught, flagged days halve), with a measured caveat that
+drives the choice — IMERG read only **0.16–0.22×** the Katra gauge on the two worst 24-h
+anchors (an 11-km pixel average vs a point gauge under a cloudburst), so E is biased LOW in
+the events that matter and the threshold must never be pushed high. Per-zone rain was probed
+and declined: our zones sit inside ~3 IMERG pixels, so zone-level E barely departs from the
+AOI mean (≤1.29× on decision days). A display-only "two-arm read" line now sits on the banner;
+the validated daily alarm is untouched.
 
 ---
 
@@ -1681,13 +1686,15 @@ false-alarm rate is unmeasured.
 
 Being able to state weaknesses is what makes you credible.
 
-- **The sub-daily burst gate (CF14 / §55) is experimental:** it reuses the validated regional
-  danger curve at short durations, but *its own* operating thresholds are not back-tested — at
-  these timescales the curve trips easily (10 ALERT-grade burst days at Vaishno Devi this season
-  vs 0 on the daily gate) and its false-alarm rate is unmeasured. Satellite rain is a ~11 km
-  pixel average (a slope-scale burst can still under-read), carries no snowmelt, and the newest
-  day is always provisional. It is a second opinion beside the validated daily alarm, not the
-  alarm.
+- **The sub-daily burst gate (CF14 / §55, calibrated §58) is still provisional:** its ALERT
+  threshold (E ≥ 3) is now evidence-based — six verified events, every fatal one caught, season
+  flag-days halved — but n=6 is a small calibration set, not a validation, and the residual
+  flag rate (7–18 ALERT-grade days/season) implies false alarms we cannot yet count against
+  ground truth. Two measured biases bound it: IMERG reads only **0.16–0.22×** of the Katra
+  gauge on extreme days (pixel-vs-point in orographic terrain, so E is biased LOW when it
+  matters most), and it carries no snowmelt. Per-zone rain was probed and declined at these
+  AOI scales (~3 pixels per AOI). It remains a second opinion beside the validated daily
+  alarm, not the alarm.
 
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our

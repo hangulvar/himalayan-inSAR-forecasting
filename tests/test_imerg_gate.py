@@ -195,6 +195,89 @@ def test_load_imerg_summary_absent_and_corrupt():
         oa.RAIN_DIR = saved
 
 
+def test_calibrated_alert_threshold():
+    """§58: burst-arm ALERT at E>=3 (provisional, imerg_calibration.py); WATCH unchanged."""
+    assert ig.BURST_ALERT_K == 3.0 and ig.BURST_WATCH_K == 1.0
+    day0 = datetime(2026, 6, 1)
+    # E ~= 2.5 at D=1h (7.5 mm in 1 h): ALERT under the old k=2, WATCH under §58's k=3.
+    series = _series(day0, 1, {20: 7.5, 21: 7.5})
+    d = ig.daily_subdaily_E(series, A, B)[0]
+    assert 2.2 < d["max_E"] < 2.8 and d["level"] == "WATCH", d
+
+
+def test_calibration_pure_functions():
+    import imerg_calibration as ic
+    rows = [{"max_E": "0.5"}, {"max_E": "1.2"}, {"max_E": "3.4"}, {"max_E": "9.0"}]
+    s = ic.sweep(rows, ks=[1.0, 3.0, 8.0])
+    assert s["1.0"]["days"] == 3 and s["3.0"]["days"] == 2 and s["8.0"]["days"] == 1
+    assert s["1.0"]["pct"] == 75.0
+    # window_total: 24h window ending 03:00 crosses midnight and sums rate*0.5.
+    day0 = datetime(2025, 7, 20)
+    series = [(day0 + timedelta(minutes=30 * i), 2.0) for i in range(96)]  # 2 mm/h for 2 days
+    tot = ic.window_total(series, datetime(2025, 7, 21, 3, 0), 24.0)
+    assert abs(tot - 48.0) < 0.01, tot                     # 24 h * 2 mm/h = 48 mm
+
+
+def test_perzone_probe_pure_functions():
+    import imerg_perzone_probe as pp
+    rates = [0.0] * 20 + [30.0, 30.0] + [0.0] * 26        # the 1 h 30 mm burst
+    e = pp.day_E(rates, A, B)
+    assert abs(e - 10.0) < 0.1, e
+    pts = [{"lon": 74.94, "lat": 33.01}, {"lon": 74.95, "lat": 33.02},
+           {"lon": 75.01, "lat": 33.00}]
+    assert pp.distinct_pixels(pts) == 2                    # 749/330 vs 750/330
+
+
+def test_nisar_summarize():
+    from datetime import date as _d
+    import radar_watch as rw
+    prods = [{"level": "GUNW", "acq": "2025-12-27"}, {"level": "GSLC", "acq": "2026-01-18"}]
+    s = rw.summarize_nisar(prods, known_through=_d(2026, 1, 18))
+    assert s["n_gunw"] == 1 and s["stream_started"] is False and s["newest_acq"] == "2026-01-18"
+    s2 = rw.summarize_nisar(prods + [{"level": "GUNW", "acq": "2026-07-01"}],
+                            known_through=_d(2026, 1, 18))
+    assert s2["stream_started"] is True and s2["n_new_acq_dates"] == 1
+
+
+def test_combined_two_arm_line():
+    """Tier 1c: display-only combined read appears ONLY with a calibrated summary, and takes
+    the max of the arms (daily WATCH + burst ALERT -> combined ALERT)."""
+    import base64
+    import numpy as np
+    from datetime import date as _date
+    tiny = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+    r = {"season": {"start": "2026-06-01", "end": "2026-06-02", "days": 2},
+         "level_counts": {"DORMANT": 1, "WATCH": 1, "ALERT": 0},
+         "alert_pct_season": 0.0, "raw_regional_trigger_days": 1,
+         "selectivity_gain_raw_to_alert": "1 -> 0 days (1.0x fewer)",
+         "events_caught_by_alarm": "0/0", "events_caught_by_alert": "0/0",
+         "per_event": [], "footprint_zones": 3}
+    tier = {"scenario": "operational", "m": 0.5, "n_zones": 3, "n_crit": 1, "n_multi": 1,
+            "auc": None, "recall": None, "spec": None, "lift250": None,
+            "core_zones": None, "core_auc": None, "core_lift": None}
+    im = _summary_fixture()
+    im["burst_alert_k"] = 3.0
+    im["latest"]["level"] = "ALERT"
+    with tempfile.TemporaryDirectory() as td:
+        fig = Path(td) / "f.png"
+        fig.write_bytes(tiny)
+        out = Path(td) / "d1.html"
+        oa.write_dashboard(out, r, [_date(2026, 6, 1), _date(2026, 6, 2)],
+                           np.array([0.5, 1.2]), ["DORMANT", "WATCH"], 1, fig, tier, imerg=im)
+        page = out.read_text(encoding="utf-8")
+        assert "Two-arm read" in page
+        assert "§58-calibrated): <b>ALERT</b>" in page     # max(WATCH daily, ALERT burst)
+        assert "remains the validated daily gate" in page
+        # Without calibrated k (pre-§58 summary): no combined line, card still renders.
+        im2 = _summary_fixture()
+        out2 = Path(td) / "d2.html"
+        oa.write_dashboard(out2, r, [_date(2026, 6, 1), _date(2026, 6, 2)],
+                           np.array([0.5, 1.2]), ["DORMANT", "WATCH"], 1, fig, tier, imerg=im2)
+        page2 = out2.read_text(encoding="utf-8")
+        assert "Two-arm read" not in page2 and "sub-daily burst check" in page2
+
+
 # ------------------------------------------------------------------------------
 # Plain-python runner (mirrors the other suites)
 # ------------------------------------------------------------------------------

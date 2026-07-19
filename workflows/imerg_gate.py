@@ -59,6 +59,12 @@ DUR_H = [0.5, 1, 3, 6, 12, 24]        # trailing-window durations screened per d
 STEPS_PER_DAY = 48
 CHUNK_DAYS = 15                       # one GEE getInfo per chunk (bounded payloads)
 LEVELS = ["DORMANT", "WATCH", "ALERT"]
+# Burst-arm grading (imerg_calibration.py, Tier 1b §58 — PROVISIONAL, n=6 events): ALERT at
+# E>=3 keeps every fatal verified event (weakest 3.07) + Himkoti (3.9) while ~halving flagged
+# days vs the daily arm's k=2; do NOT raise further — IMERG under-reads the Katra gauge
+# ~4.5-6x on the extreme anchors, so E is biased LOW in exactly the events that matter.
+BURST_WATCH_K = 1.0
+BURST_ALERT_K = 3.0
 
 
 def season_suffix(year: int) -> str:
@@ -161,7 +167,8 @@ def daily_subdaily_E(series: list[tuple[datetime, float]], a: float, b: float) -
                     best = {"duration_h": D, "burst_mm": round(accum, 1),
                             "peak_mmph": round(accum / D, 2),
                             "window_end": times[i].strftime("%Y-%m-%d %H:%M")}
-        lvl = "ALERT" if best_E >= 2.0 else "WATCH" if best_E >= 1.0 else "DORMANT"
+        lvl = ("ALERT" if best_E >= BURST_ALERT_K else
+               "WATCH" if best_E >= BURST_WATCH_K else "DORMANT")
         out.append({"date": d.isoformat(), "n_steps": int(idx.size),
                     "provisional": bool(idx.size < STEPS_PER_DAY),
                     "total_mm": round(float(depth[idx].sum()), 1),
@@ -187,6 +194,7 @@ def write_outputs(days: list[dict], sfx: str, thr_id: str, a: float, b: float) -
     latest = days[-1] if days else None
     summary = {
         "slug": SLUG, "asset": IMERG_ASSET,
+        "burst_watch_k": BURST_WATCH_K, "burst_alert_k": BURST_ALERT_K,
         "threshold_id": thr_id,
         "threshold": f"{THRESHOLDS[thr_id]['label']} I={a}*D^-{b}",
         "durations_h": DUR_H,

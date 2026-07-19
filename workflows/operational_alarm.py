@@ -794,6 +794,22 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     if watch_tier:
         where_cards += "\n" + _tier_card(watch_tier, "WATCH", compare_recall=alert_tier.get("recall"))
 
+    # Display-only two-arm combined read (Tier 1c, §58): shown ONLY once the burst arm has
+    # calibrated (provisional) operating points; the official alarm level above it stays the
+    # validated daily gate, always.
+    combined_html = ""
+    if imerg and imerg.get("latest") and imerg.get("burst_alert_k"):
+        il = imerg["latest"]
+        rank = {lv: i for i, lv in enumerate(LEVELS)}
+        comb = il["level"] if rank.get(il["level"], 0) > rank.get(lvl, 0) else lvl
+        prov = " provisional" if il.get("provisional") else ""
+        combined_html = (
+            f'<div class="meta" style="margin-top:6px;font-size:13px">🌦 Two-arm read '
+            f'(experimental, §58-calibrated): <b>{comb}</b> — daily arm {lvl} '
+            f'(E {e_now:.2f}, {as_of}) · burst arm {il["level"]} (E {il["max_E"]}, '
+            f'{il["date"]}{prov}). The official alarm above remains the validated daily gate.'
+            f'</div>')
+
     radar_pill = ""
     if radar:
         radar_pill = (f'<div class="fresh" id="radar-freshness" data-acq="{radar["through"]}" '
@@ -920,6 +936,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
   <div class="meta">as of <b>{as_of}</b> &nbsp;·&nbsp; rainfall exceedance E = <b>{e_now:.2f}×</b>
    the regional danger line &nbsp;·&nbsp; <b>{live}</b> hazard zones live.<br>{blurb}
    &nbsp;<a href="#" onclick="showTab('guide');return false">New here? Open the guide →</a></div>
+  {combined_html}
   <div class="fresh" id="staleness" data-asof="{as_of}">Data current to {as_of}
    (enable JavaScript for a live staleness check).</div>
   {radar_pill}

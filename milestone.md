@@ -1684,3 +1684,35 @@ is the sharp-eyed second opinion beside it.
 
 **Bottom line:** the dashboard now watches the rain two ways — slow and fast — and this season's
 evidence says that's exactly the pair you need.
+
+## ✅ Milestone 49 — The rain sensor got its rulebook, and the new satellite passed its audition  *(Plan Tiers 1+2, 2026-07-18)*
+
+**What we set out to do:** two things from the strengthening plan. First, give the new burst
+sensor (Milestone 48) proper rules — when exactly should it shout? — instead of borrowed ones.
+Second, audition NISAR, the new NASA/ISRO L-band radar satellite, on our own mountains: does it
+really see through the vegetation that blinds our current radar?
+
+**The rain rulebook:** we replayed the whole of 2025 through the burst sensor. It correctly
+flagged every deadly landslide day — including reproducing, through the production system, the
+exact verdicts of last month's hand study. From six verified events we set the shout-threshold
+at three times the danger line: every fatal day stays caught, and the number of alarm days per
+season roughly halves. We also learned something sobering by checking the satellite rain
+against the Katra rain gauge on the two worst days: **the satellite saw only a fifth of what
+the gauge measured** — a wide-area average simply cannot match a rain gauge standing under a
+cloudburst. That is exactly why we refuse to make the sensor less sensitive than this. And we
+tested a tempting upgrade — giving every hazard zone its own rain reading — and found our areas
+are simply too small for it to matter (the rain pixels are bigger than the zones), so we
+declined to build it. The dashboards now show a combined two-sensor reading; the official alarm
+remains the fully validated daily gate.
+
+**The NISAR audition:** we downloaded its first winter interferogram over Ramban and compared
+it, pixel by pixel, against our own radar from the same fortnight. The result is the best kind
+of clear: where our current radar already works, the newcomer adds nothing — but **in exactly
+the places our radar goes blind, NISAR recovered 75–87% of the lost ground** to usable quality.
+And this was measured in winter, when vegetation is thinnest — the monsoon advantage should be
+larger. Verdict: when NISAR's routine data stream reaches this region (our watcher now checks
+automatically), it earns a permanent place in the pipeline.
+
+**Bottom line:** the burst sensor now has evidence-based rules and an honest bias sheet; the
+per-zone idea was measured and politely declined; and the next-generation satellite proved, on
+our own slopes, that it can see where we currently cannot.

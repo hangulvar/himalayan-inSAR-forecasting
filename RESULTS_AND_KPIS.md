@@ -2600,6 +2600,74 @@ rebuild itself (user's credit/compute call) — 0a/0b/0c/0d all done.
 
 ---
 
+## 58. Plan Tier 1 EXECUTED: burst arm calibrated (ALERT at E≥3), per-zone probe = honest low-value, two-arm line live  `[REAL]`
+*(2026-07-18, session 27 cont. — NEW `imerg_calibration.py` + `imerg_perzone_probe.py`; k=3 adopted in `imerg_gate.py`; combined line in `operational_alarm.py`; reports in `data/rainfall/imerg_{calibration,perzone_probe}_report.*`)*
+
+**1b — the burst arm's first evidence-based operating points (PROVISIONAL, n=6 events).** Both
+AOIs' 2025 seasons fetched (214 d each) and the §12g one-off *reproduced through the
+production gate*: 20 Apr 2025 E=3.07 clear crossing, 8 May E=1.09 marginal — same verdicts.
+The six-event two-arm table:
+
+| event | deaths | burst E | daily E | who catches at ALERT |
+|---|---|---|---|---|
+| 20 Apr 2025 cloudburst | 3 | **3.07** | 2.89 | both |
+| 8 May 2025 Chamba Seri (MEDIUM conf.) | 0 | 1.09 | 0.67 | **neither** (recorded honestly) |
+| 21 Jul 2025 Banganga | 1 | **4.19** | 2.51 | both |
+| 26 Aug 2025 Ardhkuwari | 34 | **9.21** | 9.94 | both |
+| 7 Apr 2026 Digdol (soak) | 0 | 0.99 | **2.13** | daily arm |
+| 8 Jul 2026 Himkoti (burst) | 0 | **3.90** | 1.06 | burst arm |
+
+- **Adopted: burst-arm ALERT at E≥3** (was 2): keeps 3/3 fatal + 4/4 burst-type events while
+  ~halving flagged days (Ramban 2025: 21→11 d; VD 2025: 36→18; VD 2026: 10→7). NOT raised
+  further because of the **gauge-bias finding: IMERG reads only 0.22× and 0.16× of the Katra
+  gauge on the two dated 24-h anchors** (184.2→39.8 mm; 629.4→99.7 mm) — an 11-km pixel mean
+  under-reads orographic point extremes ~4.5–6×, so burst E is biased LOW in exactly the
+  events that matter and the margin over the weakest fatal catch (3.07) is thin.
+- **1a — per-zone IMERG: measured, then deliberately NOT built.** Both AOIs' zones span only
+  **~3 IMERG pixels**; on decision-relevant days (AOI E≥1) the max zone-over-AOI divergence is
+  **1.29×** (sub-1.5 everywhere; the 3× ratios occur only on near-dry days via tiny
+  denominators — artifact documented in the report). Per-zone gating is a LOW-VALUE upgrade at
+  these AOI scales; revisit for larger AOIs. (CLAUDE.md working as intended: probe before
+  machinery.)
+- **1c — display-only two-arm combined line, live on both banners:** "Two-arm read
+  (experimental, §58-calibrated): max(arms)" with both arms' E and as-of dates; the official
+  alarm stays the validated daily gate. Today: Ramban combined WATCH; **VD combined ALERT**
+  (burst arm E=3.43 on 17 Jul data — 5 days fresher than the daily arm's WATCH).
+
+## 59. Plan Tier 2 EXECUTED: NISAR pilot — L-band RECOVERS 75–87% of the pixels C-band loses  `[MEASURED]`
+*(2026-07-18, session 27 cont. — NEW `nisar_coherence_pilot.py` (+ NISAR watch in `radar_watch.py`); GUNW 2.3 GB in `data/nisar/`; report `data/nisar/nisar_coherence_pilot.*`)*
+
+**The decision experiment for our #1 weakness (vegetated-slope decorrelation), run on OUR
+ground:** the NISAR winter 12-day GUNW (27 Dec 2025 × 8 Jan 2026, track 156 ASC, 40 m) vs our
+own bracketing HyP3 12-day C-band pairs (1→13 Jan path 27, 6→18 Jan path 100), L sampled at
+every C 80-m pixel over the Ramban AOI:
+
+| stack | median γ C | median γ L | C fails (%) | L recovers those (%) |
+|---|---|---|---|---|
+| ASC_path27_frame101 | 0.751 | 0.760 | 16.5 | **80.2** |
+| ASC_path27_frame106 | 0.571 | 0.717 | 27.4 | **86.9** |
+| ASC_path100_frame102 | 0.907 | 0.719 | 0.8 | 75.4 |
+
+- **Headline: where C-band FAILS (γ<0.35 — the class our QA discards), L-band recovers
+  75–87% of pixels to usable coherence** (median γ_L 0.55–0.62 there). Where C is already
+  excellent (frame102, 0.907) L adds nothing — the gain is precisely in the failure class,
+  which is the only place we need it. Overall-median gain is ~0 in winter (expected: minimum
+  vegetation contrast) — **this is a LOWER bound on the monsoon-season advantage.**
+- Verdict: **the L-band step-change case is CONFIRMED on our own slopes** — plan the
+  operational NISAR stack for the day the forward stream reaches this region (the watcher now
+  polls for it, Tier 2c: currently winter-sample only, newest acq 18 Jan 2026, 3 GUNW).
+- Honest scope: one pair per band; windows offset 5–6 d; 40 m vs 80 m posting; **VD not
+  comparable** (its C-band stacks start May 2026 — no winter pairs; noted in-report, re-run
+  when a winter accumulates).
+
+**Verification (both tiers):** suites extended to **14 (imerg) + 6 (radar/nisar)** hermetic
+tests (calibrated-k grading, sweep/window math, probe day-E + pixel-count, NISAR summarizer,
+combined-line render incl. absence, pilot pair-selection incl. the VD empty case); full
+battery **11+10+7+12+12+11+14+6 = 83 green**; both dashboards regenerated through the ops
+chain (combined line verified on disk: Ramban WATCH / VD ALERT).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

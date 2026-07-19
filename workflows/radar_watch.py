@@ -35,6 +35,11 @@ sys.path.insert(0, str(PROJECT_ROOT / "workflows"))
 MANIFEST = PROJECT_ROOT / "data" / "qa_masks" / "_stack_manifest.json"
 WATCH_JSON = PROJECT_ROOT / "data" / "radar_watch.json"
 _SCENE_DATE = re.compile(r"^S1[A-Z]{2}_\d{8}T\d{6}_(\d{8})T\d{6}_")
+# NISAR winter-sample edge over our AOIs as of the §56 check (8 acq dates, 3 GUNW, nothing
+# after this): any REAL NISAR product (ECMWF aux excluded) acquired later means the
+# operational forward stream has reached this region (plan Tier 2c).
+NISAR_KNOWN_THROUGH = date(2026, 1, 18)
+_NISAR_ACQ = re.compile(r"_(20\d{6})T\d{6}_")
 
 
 def library_newest(footprint_path: Path) -> date | None:
@@ -94,6 +99,35 @@ def query_asf(wkt: str, since: date) -> list[dict]:
     return out
 
 
+def summarize_nisar(products: list[dict], known_through: date = NISAR_KNOWN_THROUGH) -> dict:
+    """Pure: NISAR product list -> {n_products, n_gunw, newest_acq, n_new, stream_started}.
+    products: [{'level': 'GUNW', 'acq': 'YYYY-MM-DD'}, ...] (ECMWF aux already excluded)."""
+    acqs = sorted({p["acq"] for p in products if p.get("acq")})
+    new = [a for a in acqs if date.fromisoformat(a) > known_through]
+    return {"n_products": len(products),
+            "n_gunw": sum(1 for p in products if p.get("level") == "GUNW"),
+            "newest_acq": acqs[-1] if acqs else None,
+            "n_new_acq_dates": len(new),
+            "stream_started": bool(new)}
+
+
+def query_nisar(wkt: str) -> list[dict]:
+    """NISAR products over the AOI (ECMWF weather-aux excluded), acq date from scene name."""
+    import asf_search as asf
+    res = asf.search(dataset=asf.DATASET.NISAR, intersectsWith=wkt,
+                     start="2025-08-01T00:00:00Z")
+    out = []
+    for r in res:
+        name = r.properties.get("sceneName") or ""
+        if name.startswith("ECMWF"):
+            continue
+        m = _NISAR_ACQ.search(name)
+        out.append({"level": r.properties.get("processingLevel"),
+                    "acq": (datetime.strptime(m.group(1), "%Y%m%d").date().isoformat()
+                            if m else None)})
+    return out
+
+
 def _aoi_wkt(aoi_path: Path) -> str:
     gj = json.loads(aoi_path.read_text(encoding="utf-8"))
 
@@ -133,9 +167,27 @@ def main() -> int:
         print(f"radar watch [{slug}]: library through {s['library_through']} | {verdict}")
     if not sites:
         raise SystemExit("radar_watch: no site had an AOI + operational footprint to check")
+    # NISAR stream watch (plan Tier 2c) — one query, both AOIs share the coverage; NON-FATAL:
+    # a NISAR query hiccup must not lose the Sentinel-1 result we already have.
+    nisar = None
+    try:
+        first_cfg = sorted((PROJECT_ROOT / "config").glob("*.yaml"))[0]
+        import yaml
+        aoi = PROJECT_ROOT / (yaml.safe_load(first_cfg.read_text(encoding="utf-8"))
+                              .get("aoi_path", ""))
+        nisar = summarize_nisar(query_nisar(_aoi_wkt(aoi)))
+        verdict = (f"STREAM STARTED — {nisar['n_new_acq_dates']} acq date(s) newer than "
+                   f"{NISAR_KNOWN_THROUGH} (newest {nisar['newest_acq']}): begin Tier-2 "
+                   f"operational ingestion planning"
+                   if nisar["stream_started"] else
+                   f"winter sample only (newest acq {nisar['newest_acq']}, "
+                   f"{nisar['n_gunw']} GUNW) — forward stream not here yet")
+        print(f"nisar watch: {nisar['n_products']} products | {verdict}")
+    except Exception as e:  # noqa: BLE001
+        print(f"nisar watch skipped ({type(e).__name__}: {e})")
     WATCH_JSON.write_text(json.dumps(
         {"checked_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
-         "sites": sites}, indent=2), encoding="utf-8")
+         "sites": sites, "nisar": nisar}, indent=2), encoding="utf-8")
     print(f"  -> {WATCH_JSON}")
     return 0
 

@@ -68,6 +68,17 @@
   (§56):** 8 winter dates + 3 GUNW over both AOIs → the L-vs-C coherence pilot is runnable
   NOW; operational stream absent here, recheck monthly. **Active plan:**
   `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **★ NEW (§58, M49) — Plan Tier 1 EXECUTED.** Burst arm CALIBRATED on six verified events:
+  **ALERT at E≥3** (all fatal events caught, flagged days halved); **gauge bias measured —
+  IMERG = 0.16–0.22× the Katra gauge on the extreme anchors** (never raise k); per-zone IMERG
+  probed and DECLINED (~3 pixels/AOI, ≤1.29× divergence on decision days); display-only
+  "two-arm read" line live on both banners (today: Ramban WATCH, **VD combined ALERT** via the
+  burst arm on 17-Jul data).
+- **★ NEW (§59, M49) — Plan Tier 2 EXECUTED: the NISAR pilot CONFIRMS the L-band case.**
+  Winter 12-day GUNW vs our matched C-band pairs over Ramban: **where C-band fails (γ<0.35),
+  L recovers 75–87% of pixels to usable coherence** — the gain sits exactly in our blind
+  class; winter is the lower bound. VD not comparable yet (no winter C pairs). NISAR stream
+  watch now polls automatically (winter-sample only as of today). Suites: 83 tests green.
 - **★ NEW (§57) — Plan Tier 0 EXECUTED (0a–0d done; suites now EIGHT, all green).**
   Radar-freshness pill on both dashboards + `radar_watch.py` in every regen (non-fatal).
   Instantly surfaced: **Ramban's WHERE map is ~12 weeks stale (radar through 24 Apr) with 11

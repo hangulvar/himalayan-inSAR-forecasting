@@ -128,6 +128,25 @@ def test_dashboard_radar_pill_and_omission():
         assert 'id="radar-freshness"' not in page2
 
 
+def test_nisar_pilot_pair_selection_and_report():
+    """Tier 2b plumbing (no gdal/h5py needed): the pilot picks ONLY the AOI's own stacks'
+    bracketing winter pairs — 3 for Ramban, 0 for VD (whose stacks start May 2026, a
+    documented not-comparable case) — and the produced report carries the decision fields."""
+    import nisar_coherence_pilot as ncp
+    r_pairs = ncp.c_band_pairs("ramban")
+    assert len(r_pairs) == 3 and all(p.exists() for _, p in r_pairs)
+    assert {s for s, _ in r_pairs} == {"ASC_path27_frame101", "ASC_path27_frame106",
+                                       "ASC_path100_frame102"}
+    assert ncp.c_band_pairs("vaishnodevi") == []
+    lo_lon, lo_lat, hi_lon, hi_lat = ncp.aoi_bbox("ramban")
+    assert 75.0 < lo_lon < hi_lon < 75.5 and 33.0 < lo_lat < hi_lat < 33.5
+    rep = PROJECT_ROOT / "data" / "nisar" / "nisar_coherence_pilot.json"
+    if rep.exists():                                       # artifact check when the pilot ran
+        v = json.loads(rep.read_text(encoding="utf-8"))["verdict"]
+        assert "median_pct_of_C_fail_pixels_recovered_by_L" in v and "caveats" in v
+        assert v["median_pct_of_C_fail_pixels_recovered_by_L"] > 0
+
+
 # ------------------------------------------------------------------------------
 # Plain-python runner (mirrors the other suites)
 # ------------------------------------------------------------------------------
