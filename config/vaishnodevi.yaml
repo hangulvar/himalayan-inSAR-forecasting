@@ -29,6 +29,12 @@ watch_m: 0.75
 # 0.913->0.957). kappa=0 reproduces the uniform-m footprint exactly.
 kappa: 0.06
 
+# LLOF downstream-flag source (§60 4c): omitted/"twi" = the historical high-TWI valley
+# proxy (keeps the validated products byte-identical); "d8" = real D8 flow routing
+# (flow_routing_probe criterion — the probe measured 4/14 VD flags flip). Flip to
+# "d8" at the scheduled post-merge swap, then regenerate + re-score.
+# llof_routing: d8
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix. Use a short, unique slug per AOI.

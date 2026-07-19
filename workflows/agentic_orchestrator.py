@@ -59,11 +59,18 @@ import rasterio
 from pyproj import Transformer
 from scipy import ndimage
 
+import flow_routing_probe
 import fs_real
 from config import load_config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _CFG = load_config()
+# LLOF flag source (§60 4c, config-gated): "twi" (default) keeps the historical valley
+# proxy — validated products reproduce exactly; "d8" switches to real D8 flow routing
+# using the flow_routing_probe criterion, so the probe's numbers ARE the swap preview.
+LLOF_MODE = _CFG.llof_routing
+LLOF_NOTE = ("LLOF flag is a heuristic pending real flow routing" if LLOF_MODE == "twi"
+             else "LLOF flags come from real D8 flow routing (llof_routing: d8)")
 _SFX = _CFG.data_suffix            # '' for ramban; '_<slug>' so AOIs coexist
 SITE = _CFG.site_name              # human-readable label for dashboard titles
 VEL_DIR = PROJECT_ROOT / "data" / f"velocity{_SFX}"
@@ -239,6 +246,26 @@ class MeteorologicalTrigger:
 # ------------------------------------------------------------------------------
 # Agent 3 — Cascading Reasoner
 # ------------------------------------------------------------------------------
+# D8 flow-accumulation cache for llof_routing="d8" — one (acc, transform, crs, px_m)
+# per stack, shared across the 5 scenarios (the accumulation is scenario-independent).
+_D8_ACC_CACHE: dict[str, tuple] = {}
+
+
+def _llof_d8(stack: str, lon: float, lat: float) -> tuple[bool, float]:
+    """Routed LLOF flag for a zone centroid: same DEM, accumulation and criterion as
+    flow_routing_probe (§60 4c), so orchestrator flags match the probe's by design."""
+    if stack not in _D8_ACC_CACHE:
+        with rasterio.open(flow_routing_probe.stack_dem(stack)) as ds:
+            dem = ds.read(1).astype(np.float64)
+            dem[dem < -1000] = np.nan
+            _D8_ACC_CACHE[stack] = (flow_routing_probe.d8_accumulation(dem),
+                                    ds.transform, ds.crs, abs(ds.transform.a))
+    acc, tr, crs, px = _D8_ACC_CACHE[stack]
+    x, y = Transformer.from_crs(4326, crs, always_xy=True).transform(lon, lat)
+    r, c = rasterio.transform.rowcol(tr, x, y)
+    return flow_routing_probe.routed_llof_flag(acc, px, r, c)
+
+
 class CascadingReasoner:
     """Fuses creep + instability into geolocated, clustered alert zones."""
 
@@ -305,7 +332,16 @@ class CascadingReasoner:
         # flagged as a potential debris-delivery / Landslide-Lake-Outburst path.
         llof = False
         llof_reason = "No strong downstream-convergence signal near this zone."
-        if self.twi is not None and self.valley_twi is not None:
+        if LLOF_MODE == "d8":
+            llof, up_km2 = _llof_d8(self.stack, lon, lat)
+            llof_reason = (
+                f"Real D8 flow routing: max upstream drainage area {up_km2:.2f} km² "
+                f"within ~240 m of the zone "
+                + ("reaches the 0.5 km² channel threshold — failure could deliver "
+                   "debris into a significant drainage path (§60 4c)." if llof else
+                   "is below the 0.5 km² channel threshold — no significant drainage "
+                   "path nearby (§60 4c)."))
+        elif self.twi is not None and self.valley_twi is not None:
             # look in a neighbourhood around the zone for valley pixels
             r0, r1 = max(int(ys.min()) - 5, 0), min(int(ys.max()) + 6, a.height)
             c0, c1 = max(int(xs.min()) - 5, 0), min(int(xs.max()) + 6, a.width)
@@ -458,7 +494,7 @@ def write_dashboard(path: Path, stack: str, scenario: str, cfg: dict,
 </div>
 <footer>MVP demo · deterministic orchestrator · velocity coverage is sparse (~14% of AOI);
 absent pixels are unmeasured, not necessarily safe. Soil parameters are literature
-assumptions; LLOF flag is a heuristic pending real flow routing.</footer>
+assumptions; {LLOF_NOTE}.</footer>
 </body></html>"""
     path.write_text(html, encoding="utf-8")
 
@@ -504,9 +540,9 @@ def write_report(path: Path, stack: str, scenario: str, cfg: dict, alerts: list[
     else:
         lines.append("_No alert zones — nothing is both unstable and creeping in this scenario._")
     lines += ["", "---",
-              "_Caveats: velocity coverage ~14% of AOI (unmeasured ≠ safe); soil "
-              "parameters are literature assumptions; LLOF is a heuristic pending "
-              "real flow routing; single ascending stack._"]
+              f"_Caveats: velocity coverage ~14% of AOI (unmeasured ≠ safe); soil "
+              f"parameters are literature assumptions; {LLOF_NOTE}; "
+              f"single ascending stack._"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

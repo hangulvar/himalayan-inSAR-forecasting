@@ -46,6 +46,9 @@ runs unattended, and `control_panel.bat` (root) gives one-click refresh + a resu
 - **STRENGTHENING_PLAN_2026-07-18.md** — the ACTIVE data+science plan (Tier 0–4: S1-handover
   triage, in-monsoon rain science, NISAR L-band pilot, validation depth, structural items);
   successor to the archived Science Upgrade Plan.
+- **RAMBAN_REBUILD_MANIFEST_2026-07-19.md** — the dry-run-verified 3-pair submission
+  manifest for the unblocked Ramban cadence rebuild (frame-renumbering finding, ~30-credit
+  cost, one-command submit + the post-landing rebuild loop).
 
 ### archive/ — superseded, kept for the record
 - **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the scheduled cycle + control panel.

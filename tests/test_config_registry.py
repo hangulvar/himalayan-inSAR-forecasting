@@ -133,6 +133,32 @@ def test_soil_defaults_are_the_ramban_calibration() -> None:
         tmp.unlink(missing_ok=True)
 
 
+def test_llof_routing_gate() -> None:
+    """llof_routing (§60 4c): omitted -> 'twi' (the regression default that keeps the
+    validated products byte-identical), 'd8' accepted, anything else fails loudly."""
+    import yaml
+
+    base = {"aoi_path": "config/aoi/ramban_aoi.geojson", "job_name_prefix": "X",
+            "search_start": "2025-01-01", "search_end": "2025-02-01"}
+    tmp = PROJECT_ROOT / "data" / "_test_llof_config.yaml"
+    tmp.parent.mkdir(exist_ok=True)
+    try:
+        tmp.write_text(yaml.safe_dump(base), encoding="utf-8")
+        assert load_config(tmp).llof_routing == "twi"
+        tmp.write_text(yaml.safe_dump({**base, "llof_routing": "d8"}), encoding="utf-8")
+        assert load_config(tmp).llof_routing == "d8"
+        tmp.write_text(yaml.safe_dump({**base, "llof_routing": "dinf"}), encoding="utf-8")
+        try:
+            load_config(tmp)
+            raise AssertionError("invalid llof_routing did not raise ValueError")
+        except ValueError:
+            pass
+        for p in _registry_paths():
+            assert load_config(p).llof_routing in ("twi", "d8"), p.name
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 # ------------------------------------------------------------------------------
 # CLI runner (mirrors tests/test_plumbing.py so both run the same way).
 # ------------------------------------------------------------------------------

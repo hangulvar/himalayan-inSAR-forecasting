@@ -75,6 +75,45 @@ def test_d8_accumulation_valley():
     assert np.isfinite(fr.d8_accumulation(dem2)).all()
 
 
+def test_routed_llof_flag_criterion():
+    # The single shared LLOF criterion (§60 4c): 100 cells of 80 m pixels draining
+    # through one channel cell = 0.64 km² >= the 0.5 km² threshold.
+    acc = np.ones((20, 20))
+    acc[10, 10] = 100.0
+    flag, up = fr.routed_llof_flag(acc, 80.0, 8, 8)      # channel within the 3-px window
+    assert flag and abs(up - 0.64) < 1e-9
+    flag2, up2 = fr.routed_llof_flag(acc, 80.0, 2, 2)    # far from the channel
+    assert not flag2 and up2 < 0.01
+    fr.routed_llof_flag(acc, 80.0, 0, 19)                # corner: window clamps, no crash
+    flag4, up4 = fr.routed_llof_flag(acc, 80.0, -10, -10)  # fully off-grid -> empty window
+    assert not flag4 and up4 == 0.0
+
+
+def test_orchestrator_d8_matches_probe_criterion():
+    # llof_routing="d8" plumbing: the orchestrator's per-zone helper must reproduce
+    # routed_llof_flag through the lonlat -> DEM-grid roundtrip (cache monkeypatched,
+    # no rasters touched).
+    import agentic_orchestrator as ao
+    from pyproj import Transformer
+    from rasterio.crs import CRS
+    from rasterio.transform import from_origin
+
+    acc = np.ones((20, 20))
+    acc[10, 10] = 100.0
+    tr = from_origin(500000.0, 3660000.0, 80.0, 80.0)
+    ao._D8_ACC_CACHE["_FAKE_"] = (acc, tr, CRS.from_epsg(32643), 80.0)
+    try:
+        to_ll = Transformer.from_crs(32643, 4326, always_xy=True)
+        lon, lat = to_ll.transform(500000.0 + 10.5 * 80, 3660000.0 - 10.5 * 80)
+        flag, up = ao._llof_d8("_FAKE_", lon, lat)       # centred on the channel cell
+        assert flag and abs(up - 0.64) < 1e-6
+        lon2, lat2 = to_ll.transform(500000.0 + 2.5 * 80, 3660000.0 - 2.5 * 80)
+        flag2, _ = ao._llof_d8("_FAKE_", lon2, lat2)     # far from the channel
+        assert not flag2
+    finally:
+        del ao._D8_ACC_CACHE["_FAKE_"]
+
+
 def test_temporal_skill_table_schema_and_consistency():
     f = PROJECT_ROOT / "data" / "inventory" / "temporal_skill_table.csv"
     rows = list(csv.DictReader(f.open(encoding="utf-8")))

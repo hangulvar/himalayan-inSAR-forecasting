@@ -1,0 +1,83 @@
+# Ramban cadence-rebuild manifest (2026-07-19) — dry-run verified, zero credits spent
+
+The §57 follow-through: everything needed to run the unblocked Ramban rebuild, verified
+through the production submitter in dry-run. **Headline: the rebuild needs 3 submitted
+pairs (~30 credits), not the naive 10 (~100) — most "new" radar is already on disk.**
+
+## What the manifest work found (all `[MEASURED]` 2026-07-19)
+
+1. **Sentinel-1 frame numbering DRIFTED in May 2026** (alongside the §56 constellation
+   handover): over our AOIs, path-27 scenes are now framed **105** (was 106+101) and
+   path-100 scenes **103** (was 102); DESC path-34 is now 480/485 (was 484/479). The
+   per-frame bucket logic therefore starts NEW stacks for new scenes — the reason
+   Ramban's map sat "12 weeks stale" while radar kept arriving.
+2. **The May–June products already exist in the shared library** — the 2026-07-10 VD
+   backfill (§35) processed them under the VD prefix: `ASC_path27_frame105` (5 dates,
+   1 May→18 Jun) and `ASC_path100_frame103` (5 dates, 6 May→23 Jun). Their footprints
+   **fully contain the Ramban AOI** (f105: 74.47–77.67 E, 32.42–34.53 N; f103:
+   72.51–75.64 E, 31.99–34.05 N — verified from the product rasters).
+3. **Cross-AOI dedupe blind spot FIXED:** the submitter's dedupe was prefix-filtered, so
+   a Ramban-window dry-run planned 9 pairs the VD backfill had already processed
+   (~90 credits of duplicates). `fetch_existing_pair_signatures` is now prefix-AGNOSTIC
+   (the library is shared — any prefix's job dedupes); regression-verified: the same
+   dry-run now reads "10 planned, 9 skipped as duplicates".
+4. **New `--pair REF,SEC` submitter mode** (repeatable, dry-run/dedupe/retry as usual;
+   job name derives from the REFERENCE scene's direction/path/frame): frame-drift
+   bridges and cross-unit seam pairs can never be built by the per-frame bucket logic.
+   Suite `tests/test_submit_pairs.py` (5 tests, hermetic).
+
+## The manifest — 3 pairs, all dry-run verified 2026-07-19 (auth OK, credits 7,460)
+
+| # | Purpose | Reference | Secondary | Δt |
+|---|---|---|---|---|
+| 1 | Path-27 frame bridge (f106→f105) | S1A_IW_SLC__1SDV_20260419T125645_20260419T125712_064149_0812DA_D9E0 | S1A_IW_SLC__1SDV_20260501T125637_20260501T125704_064324_081956_47FF | 12 d |
+| 2 | Path-100 frame bridge (f102→f103) | S1A_IW_SLC__1SDV_20260424T130435_20260424T130502_064222_081581_0932 | S1A_IW_SLC__1SDV_20260506T130443_20260506T130510_064397_081BFC_F349 | 12 d |
+| 3 | S1A×S1D cross-unit seam (path 27) | S1A_IW_SLC__1SDV_20260618T125635_20260618T125701_065024_083204_0E69 | S1D_IW_SLC__1SDV_20260625T125553_20260625T125620_003393_005F85_8932 | 7 d |
+
+Cost ≈ 10 credits/job ⇒ **~30 credits** (balance 7,460). Optional 4th pair: frame101's
+chain also ends 2026-04-19 (S1A_IW_SLC__1SDV_20260419T125620_20260419T125647_064149_0812DA_CEF5
+× the same f105 2026-05-01 secondary) — submit only if the rebuild keeps f101 as a
+separate stack rather than letting f105 supersede it. DESC bridges (f484→480/485) are
+out of scope: the Ramban product is ASC-only.
+
+## To submit (the user's credit call — one command)
+
+```
+docker compose run --rm insar python workflows/submit_hyp3_jobs.py \
+  --config data/rebuild/ramban_rebuild_window_2026-07.yaml --submit \
+  --pair "S1A_IW_SLC__1SDV_20260419T125645_20260419T125712_064149_0812DA_D9E0,S1A_IW_SLC__1SDV_20260501T125637_20260501T125704_064324_081956_47FF" \
+  --pair "S1A_IW_SLC__1SDV_20260424T130435_20260424T130502_064222_081581_0932,S1A_IW_SLC__1SDV_20260506T130443_20260506T130510_064397_081BFC_F349" \
+  --pair "S1A_IW_SLC__1SDV_20260618T125635_20260618T125701_065024_083204_0E69,S1D_IW_SLC__1SDV_20260625T125553_20260625T125620_003393_005F85_8932"
+```
+
+(Drop `--submit` to re-preview. The window config `data/rebuild/ramban_rebuild_window_
+2026-07.yaml` is data-local/git-ignored; it is reproduced below in case of a fresh clone.)
+
+## After the products land (the rebuild loop proper)
+
+1. `download_hyp3_products.py` → QA chain (coherence mask + atmospheric audit) — the
+   3 new products + the existing f105/f103 products join the manifest.
+2. Stack decision (the §22-style seam question, risk register item): treat f105 as the
+   continuation of f106 (bridged at 19 Apr→1 May) and f103 of f102 (24 Apr→6 May);
+   cross-check pre/post-seam velocities on stable ground before trusting trends across
+   the seam — same for the S1A→S1D handover at 18→25 Jun.
+3. `apply_connectivity_rescues.py` re-run applies the **§43 f106 bridge swap**
+   (20250506→20250611 Bperp 151 m → 20250506→20250530 Bperp 102 m) inside its loop.
+4. Invert → hazard → union alerts → **re-score vs the GSI inventory** (§16 chain);
+   ledger the product shift. The radar-freshness pill clears automatically.
+
+## Window config for reproduction (`data/rebuild/ramban_rebuild_window_2026-07.yaml`)
+
+```yaml
+aoi_path: config/aoi/ramban_aoi.geojson
+site_name: Ramban NH-44
+kappa: 0.06
+job_name_prefix: Ramban_NH44
+search_start: 2026-04-10
+search_end: 2026-06-30
+soil: {cohesion_dry_kpa: 18.5, cohesion_wet_kpa: 5.0, phi_deg: 36.0,
+       gamma_kn_m3: 19.0, depth_m: 3.0}
+baseline: {max_temporal_baseline_days: 24, sbas_neighbors: 1, max_perp_baseline_m: 150}
+rescue_gate: {max_atmos_r2: 0.45, min_coherence: 0.6, min_surviving_pct: 15}
+exclude_from_rescue: []
+```

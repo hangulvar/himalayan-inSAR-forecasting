@@ -81,6 +81,7 @@ class Config:
     operational_m: float
     watch_m: float
     kappa: float
+    llof_routing: str
     suction: SuctionConfig | None
     job_name_prefix: str
     search_start: datetime
@@ -121,6 +122,14 @@ def _to_utc(value) -> datetime:
         return datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
     # String fallback (e.g. quoted dates).
     return datetime.fromisoformat(str(value)).replace(tzinfo=timezone.utc)
+
+
+def _llof_routing(raw: dict, cfg_path: Path) -> str:
+    value = str(raw.get("llof_routing", "twi"))
+    if value not in ("twi", "d8"):
+        raise ValueError(f"Config {cfg_path}: llof_routing must be 'twi' or 'd8', "
+                         f"got {value!r}")
+    return value
 
 
 def load_config(path: str | Path | None = None) -> Config:
@@ -186,6 +195,12 @@ def load_config(path: str | Path | None = None) -> Config:
         # reproduces the uniform-m behavior (a built-in regression gate), so a config without
         # this key is numerically unchanged.
         kappa=float(raw.get("kappa", 0.0)),
+        # LLOF downstream-flag source (§60 4c): "twi" = the historical high-TWI valley
+        # proxy (DEFAULT — exactly reproduces the validated products), "d8" = real D8
+        # flow routing (upstream drainage area, flow_routing_probe criterion). The probe
+        # measured 11/22 zone flags flip under real routing; flip this key per site at
+        # the scheduled post-merge swap and regenerate.
+        llof_routing=_llof_routing(raw, cfg_path),
         # Nonlinear suction-cohesion curve (§46): absent = the linear model (regression
         # gate). Requires n>1 (van Genuchten shape parameter) and alpha>0 (1/kPa).
         suction=(SuctionConfig(alpha_kpa_inv=float(raw["suction"]["alpha_kpa_inv"]),

@@ -64,6 +64,10 @@ HAZ_DIR = PROJECT_ROOT / "data" / f"hazard{_SFX}"
 ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_SFX}"
 LOG_DIR = PROJECT_ROOT / "logs"
 
+# Footer wording follows the config-gated LLOF source (§60 4c).
+LLOF_NOTE = ("LLOF heuristic" if _CFG.llof_routing == "twi"
+             else "LLOF via real D8 routing")
+
 SCENARIOS = ["dry", "monsoon", "extreme"]
 VEL_CREEP_THR = -15.0
 
@@ -235,7 +239,7 @@ def main() -> int:
  <span class="k">dry</span> to <span class="k">monsoon</span>. Toggle
  “Measured creep” in the legend to show observed motion.<br>
  <span style="color:#9fb3c8">Pathfinder stack · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}.
- Coverage ~14% of AOI (unmeasured ≠ safe); soil params assumed; LLOF heuristic.</span>
+ Coverage ~14% of AOI (unmeasured ≠ safe); soil params assumed; {LLOF_NOTE}.</span>
 </div>
 <script>
  var traces = {json.dumps(traces)};

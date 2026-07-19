@@ -35,6 +35,13 @@ Grounded in the availability checks run this day (ledger §56) and the standing 
 - **REMAINING (user's call):** run the cadence rebuild — Ramban first (unblocked, mostly
   S1A×S1A pairs + the seam bridge; applies the §43 f106 bridge swap), VD when ASF ingests the
   Jun-30+ S1D passes.
+  **2026-07-19 — submission manifest READY (dry-run verified, zero credits):** see
+  `RAMBAN_REBUILD_MANIFEST_2026-07-19.md` — the May 2026 S1 frame renumbering means most
+  "new" Ramban radar already sits in the shared library under VD's stacks (f105/f103,
+  footprints cover Ramban); the true gap is **3 pairs ≈ 30 credits** (two frame bridges +
+  the S1D seam), one command to submit. The submitter gained a `--pair` mode and
+  prefix-agnostic dedupe (the prefix-filtered scan would have re-bought 9 existing
+  products, ~90 credits).
 
 ## Tier 1 — In-monsoon rainfall science — ✅ EXECUTED 2026-07-18 (§58)
 
@@ -80,6 +87,13 @@ Grounded in the availability checks run this day (ledger §56) and the standing 
 - **4c ✅ (probe) → swap SCHEDULED post-merge:** real D8 routing flips **11/22** LLOF flags
   (Ramban 1/8 agree) — the TWI proxy is not a stand-in; do the validated swap as a scored
   re-run after the merge. `flow_routing_probe.py`.
+  **Swap mechanism SHIPPED config-gated 2026-07-19:** `llof_routing: twi|d8` in the config
+  registry (default `twi` — validated products byte-identical; probe re-run verified
+  hash-identical). The orchestrator's d8 mode reuses the probe's exact criterion
+  (`routed_llof_flag`, shared function), so the probe's numbers ARE the swap preview.
+  Post-merge the swap = uncomment `llof_routing: d8` per site + regenerate + re-score.
+  (A latent window-clamp bug — far-off-grid centroid wrapped the slice — was caught by the
+  new tests and fixed before ship.)
 - **4d — DEFERRED (multi-session MintPy compute):** frames-101/102 ERA5 rescue.
 - **4e — IN PROGRESS:** merge `aoi-vaishnodevi` → master (PR prepared this session);
   hosted dashboard after.

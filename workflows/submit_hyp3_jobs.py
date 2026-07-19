@@ -29,6 +29,8 @@ Usage:
     python workflows/submit_hyp3_jobs.py              # dry-run preview
     python workflows/submit_hyp3_jobs.py --submit     # actually queue jobs
     python workflows/submit_hyp3_jobs.py --submit --orbit ASCENDING
+    # Explicit pairs (frame-drift bridges / cross-unit seams; repeatable):
+    python workflows/submit_hyp3_jobs.py --pair REF_SCENE,SEC_SCENE
 """
 
 from __future__ import annotations
@@ -141,6 +143,15 @@ def search_sentinel1_slc(
 # ------------------------------------------------------------------------------
 # 3. Strict flight-direction partitioning
 # ------------------------------------------------------------------------------
+def bucket_key_for(scene) -> str:
+    """DIRECTION_pathP_frameF key for a scene — the one definition shared by the
+    search-mode partition and the --pair job naming."""
+    props = scene.properties
+    direction = (props.get("flightDirection") or "UNKNOWN").upper()
+    return f"{direction}_path{props.get('pathNumber')}_frame{props.get('frameNumber')}"
+
+
+
 def partition_by_flight_direction(
     scenes: Iterable[asf.ASFProduct],
 ) -> dict[str, list[asf.ASFProduct]]:
@@ -158,12 +169,7 @@ def partition_by_flight_direction(
     """
     buckets: dict[str, list[asf.ASFProduct]] = {}
     for scene in scenes:
-        props = scene.properties
-        direction = (props.get("flightDirection") or "UNKNOWN").upper()
-        path = props.get("pathNumber")
-        frame = props.get("frameNumber")
-        key = f"{direction}_path{path}_frame{frame}"
-        buckets.setdefault(key, []).append(scene)
+        buckets.setdefault(bucket_key_for(scene), []).append(scene)
 
     # Sort each bucket chronologically by start time (ascending).
     for key, items in buckets.items():
@@ -216,17 +222,59 @@ def build_sbas_pairs(
 
 
 # ------------------------------------------------------------------------------
+# 4b. Explicit pairs (--pair) — frame-drift bridges and cross-unit seam pairs
+# ------------------------------------------------------------------------------
+def parse_pair_specs(specs: list[str]) -> list[tuple[str, str]]:
+    """Validate 'REF_SCENE,SEC_SCENE' specs into (ref, sec) name tuples (pure)."""
+    out: list[tuple[str, str]] = []
+    for spec in specs:
+        parts = [p.strip() for p in spec.split(",")]
+        if len(parts) != 2 or not all(parts):
+            raise ValueError(f"--pair expects 'REF_SCENE,SEC_SCENE', got: {spec!r}")
+        if parts[0] == parts[1]:
+            raise ValueError(f"--pair reference and secondary are identical: {spec!r}")
+        out.append((parts[0], parts[1]))
+    return out
+
+
+def resolve_explicit_pairs(
+    specs: list[str],
+) -> list[tuple[str, asf.ASFProduct, asf.ASFProduct]]:
+    """Look the named granules up at ASF and key each pair by its REFERENCE
+    scene's direction/path/frame — the stack whose chain the pair extends.
+
+    This is how pairs the per-frame bucket logic can never build get submitted:
+    the 2026 frame-renumbering bridges (e.g. path-27 frame106 2026-04-19 ×
+    frame105 2026-05-01) and cross-unit seam pairs (S1A × S1D).
+    """
+    name_pairs = parse_pair_specs(specs)
+    wanted = sorted({n for pair in name_pairs for n in pair})
+    found = {p.properties["sceneName"]: p for p in asf.granule_search(wanted)
+             if p.properties.get("sceneName") in wanted}
+    missing = [n for n in wanted if n not in found]
+    if missing:
+        raise SystemExit(f"ASF granule lookup found no product for: {missing}")
+    return [(bucket_key_for(found[ref]), found[ref], found[sec])
+            for ref, sec in name_pairs]
+
+
+# ------------------------------------------------------------------------------
 # 5. Dedupe against existing HyP3 jobs
 # ------------------------------------------------------------------------------
 def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[frozenset]:
-    """Return a set of {granule1, granule2} frozensets for jobs whose name starts
-    with the given prefix.
+    """Return a set of {granule1, granule2} frozensets for ALL existing jobs —
+    deliberately prefix-AGNOSTIC.
+
+    The processed-product library is SHARED across AOIs: one granule pair yields
+    one INT80 product that serves every site it covers, so an existing job under
+    ANY prefix makes resubmission pure credit waste. (Found 2026-07-19: a
+    prefix-filtered scan planned 9 pairs for the Ramban rebuild that the VD
+    backfill had already processed under the other prefix — ~90 credits.)
+    `name_prefix` is kept for the log line only.
 
     NOTE: hyp3_sdk's `find_jobs(name=X)` does EXACT-name match server-side, not
-    prefix match. Since our submission names are e.g. `Ramban_NH44_ASCENDING_
-    path100_frame102`, server-side filtering by `Ramban_NH44` would return zero
-    jobs. We therefore fetch all jobs and prefix-filter client-side. Cheap for
-    an account with <few-thousand historical jobs; revisit if this grows.
+    prefix match, so we fetch all jobs anyway. Cheap for an account with
+    <few-thousand historical jobs; revisit if this grows.
     """
     signatures: set[frozenset] = set()
     try:
@@ -236,10 +284,9 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
         return signatures
 
     matched = 0
+    under_prefix = 0
     fail_counts: dict[frozenset, int] = {}
     for job in jobs:
-        if not (job.name and job.name.startswith(name_prefix)):
-            continue
         granules = job.job_parameters.get("granules") if job.job_parameters else None
         if not granules or len(granules) < 2:
             continue
@@ -252,6 +299,8 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
             fail_counts[sig] = fail_counts.get(sig, 0) + 1
             continue
         matched += 1
+        if job.name and job.name.startswith(name_prefix):
+            under_prefix += 1
         signatures.add(sig)
     parked = {s for s, n in fail_counts.items() if n >= 2 and s not in signatures}
     for s in parked:
@@ -259,9 +308,9 @@ def fetch_existing_pair_signatures(hyp3: sdk.HyP3, name_prefix: str) -> set[froz
                        f"investigate before resubmitting manually): {sorted(s)}")
     signatures |= parked
     logger.info(
-        f"Dedupe scan: {matched} existing jobs under prefix '{name_prefix}', "
-        f"{len(signatures)} unique pair signatures ({len(parked)} parked as "
-        f"permanently failing)."
+        f"Dedupe scan (prefix-agnostic, shared library): {matched} existing jobs "
+        f"({under_prefix} under prefix '{name_prefix}'), {len(signatures)} unique "
+        f"pair signatures ({len(parked)} parked as permanently failing)."
     )
     return signatures
 
@@ -329,6 +378,18 @@ def main() -> int:
         help="Restrict submission to one orbit direction (default: BOTH).",
     )
     parser.add_argument(
+        "--pair",
+        action="append",
+        metavar="REF_SCENE,SEC_SCENE",
+        help=(
+            "Explicit granule pair (repeatable). Skips the AOI search and plans "
+            "exactly these pairs — for frame-drift bridges and cross-unit seam "
+            "pairs the per-frame bucket logic can never build. The job name "
+            "derives from the REFERENCE scene's direction/path/frame. Dry-run, "
+            "dedupe and retry behave as usual."
+        ),
+    )
+    parser.add_argument(
         "--max-baseline-days",
         type=int,
         default=None,
@@ -350,45 +411,53 @@ def main() -> int:
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    max_baseline_days = (
-        args.max_baseline_days if args.max_baseline_days is not None
-        else cfg.baseline.max_temporal_baseline_days
-    )
-    n_neighbors = (
-        args.sbas_neighbors if args.sbas_neighbors is not None
-        else cfg.baseline.sbas_neighbors
-    )
 
-    # --- 1. AOI ----------------------------------------------------------------
-    aoi = load_aoi_geometry(cfg.aoi_path)
-
-    # --- 2. Catalog query ------------------------------------------------------
-    scenes = search_sentinel1_slc(aoi, cfg.search_start, cfg.search_end)
-    if not scenes:
-        logger.error("No Sentinel-1 scenes found in the search window.")
-        return 1
-
-    # --- 3. Partition by flight direction (and path) ---------------------------
-    logger.info("Partitioning scenes by flightDirection + path:")
-    buckets = partition_by_flight_direction(scenes)
-
-    if args.orbit != "BOTH":
-        buckets = {k: v for k, v in buckets.items() if k.startswith(args.orbit)}
-        logger.info(f"Restricted to orbit={args.orbit}; {len(buckets)} bucket(s) remain.")
-
-    # --- 4. Build SBAS-style pairs per bucket ---------------------------------
-    logger.info(
-        f"Pair construction: n_neighbors={n_neighbors}, "
-        f"max_baseline_days={max_baseline_days}"
-    )
-    all_pairs: list[tuple[str, asf.ASFProduct, asf.ASFProduct]] = []
-    for bucket_key, items in buckets.items():
-        pairs = build_sbas_pairs(
-            items, max_baseline_days, n_neighbors=n_neighbors
+    if args.pair:
+        # Explicit-pair mode: skip AOI search + bucket pairing entirely.
+        all_pairs = resolve_explicit_pairs(args.pair)
+        for bucket_key, ref, sec in all_pairs:
+            logger.info(f"  [explicit] {bucket_key}  "
+                        f"{ref.properties['sceneName']} -> {sec.properties['sceneName']}")
+    else:
+        max_baseline_days = (
+            args.max_baseline_days if args.max_baseline_days is not None
+            else cfg.baseline.max_temporal_baseline_days
         )
-        logger.info(f"  {bucket_key}: {len(pairs)} pair(s) within baseline")
-        for ref, sec in pairs:
-            all_pairs.append((bucket_key, ref, sec))
+        n_neighbors = (
+            args.sbas_neighbors if args.sbas_neighbors is not None
+            else cfg.baseline.sbas_neighbors
+        )
+
+        # --- 1. AOI ------------------------------------------------------------
+        aoi = load_aoi_geometry(cfg.aoi_path)
+
+        # --- 2. Catalog query --------------------------------------------------
+        scenes = search_sentinel1_slc(aoi, cfg.search_start, cfg.search_end)
+        if not scenes:
+            logger.error("No Sentinel-1 scenes found in the search window.")
+            return 1
+
+        # --- 3. Partition by flight direction (and path) -----------------------
+        logger.info("Partitioning scenes by flightDirection + path:")
+        buckets = partition_by_flight_direction(scenes)
+
+        if args.orbit != "BOTH":
+            buckets = {k: v for k, v in buckets.items() if k.startswith(args.orbit)}
+            logger.info(f"Restricted to orbit={args.orbit}; {len(buckets)} bucket(s) remain.")
+
+        # --- 4. Build SBAS-style pairs per bucket ------------------------------
+        logger.info(
+            f"Pair construction: n_neighbors={n_neighbors}, "
+            f"max_baseline_days={max_baseline_days}"
+        )
+        all_pairs = []
+        for bucket_key, items in buckets.items():
+            pairs = build_sbas_pairs(
+                items, max_baseline_days, n_neighbors=n_neighbors
+            )
+            logger.info(f"  {bucket_key}: {len(pairs)} pair(s) within baseline")
+            for ref, sec in pairs:
+                all_pairs.append((bucket_key, ref, sec))
 
     if not all_pairs:
         logger.error("No valid pairs to submit. Check baseline / orbit filters.")

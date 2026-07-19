@@ -67,6 +67,21 @@ def d8_accumulation(dem: np.ndarray) -> np.ndarray:
     return acc.reshape(h, w)
 
 
+def routed_llof_flag(acc: np.ndarray, px_m: float, row: int, col: int,
+                     upstream_km2: float = UPSTREAM_KM2,
+                     near_px: int = NEAR_PX) -> tuple[bool, float]:
+    """The single LLOF criterion shared by this probe and the orchestrator's
+    `llof_routing: d8` mode (§60 4c): max upstream drainage area within near_px
+    of (row, col), flagged when it reaches upstream_km2."""
+    # Clamp both ends to [0, shape] — a far-off-grid centroid must give an EMPTY
+    # window, never a negative slice index that wraps around the array.
+    r0, r1 = max(0, row - near_px), max(0, min(acc.shape[0], row + near_px + 1))
+    c0, c1 = max(0, col - near_px), max(0, min(acc.shape[1], col + near_px + 1))
+    window = acc[r0:r1, c0:c1]
+    up_km2 = float(window.max()) * (px_m * px_m) / 1e6 if window.size else 0.0
+    return up_km2 >= upstream_km2, up_km2
+
+
 def stack_dem(stack: str) -> Path:
     man = json.loads(MANIFEST.read_text(encoding="utf-8"))
     for name, meta in man.items():
@@ -98,10 +113,7 @@ def main() -> int:
             lon, lat = zzz["centroid_lonlat"]
             x, y = pyproj.Transformer.from_crs(4326, crs, always_xy=True).transform(lon, lat)
             r, c = rasterio.transform.rowcol(tr, x, y)
-            r0, r1 = max(0, r - NEAR_PX), min(acc.shape[0], r + NEAR_PX + 1)
-            c0, c1 = max(0, c - NEAR_PX), min(acc.shape[1], c + NEAR_PX + 1)
-            up_km2 = float(acc[r0:r1, c0:c1].max()) * (px * px) / 1e6
-            routed = up_km2 >= UPSTREAM_KM2
+            routed, up_km2 = routed_llof_flag(acc, px, r, c)
             rows.append({"zone": i, "stack": stack, "severity": zzz["severity"],
                          "twi_llof": bool(zzz["llof_potential"]),
                          "routed_llof": routed,
