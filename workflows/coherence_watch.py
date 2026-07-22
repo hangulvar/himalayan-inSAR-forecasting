@@ -51,7 +51,7 @@ _CFG = load_config()
 TIFF_DIR = PROJECT_ROOT / "data" / "processed_tiffs"
 ALERTS_DIR = PROJECT_ROOT / "data" / f"alerts{_CFG.data_suffix}" / "mosaic_asc"
 
-_DATE_RE = re.compile(r"S1AA_(\d{8})T\d{6}_(\d{8})T\d{6}_")
+_DATE_RE = re.compile(r"S1[A-D][A-D]_(\d{8})T\d{6}_(\d{8})T\d{6}_")  # cross-unit S1AD (§61)
 
 
 def pair_dates(product: str) -> tuple[date, date] | None:

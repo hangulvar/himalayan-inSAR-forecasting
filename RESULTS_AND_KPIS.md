@@ -2750,11 +2750,34 @@ manifest-vs-audit consistency guard caught a stale `audit_log.json` at 235 → f
 `export_audit_json.py`). Battery unchanged at TEN suites **8+12+10+11+14+11+6+12+5+8 = 97 green**
 (the `test_submit_pairs.py` suite from §60-cont. is the 10th).
 
-**NOT done (the rebuild loop's judgment half, deliberately not headless):** stack-topology /
-seam-velocity cross-check (§22-style — compare pre/post-seam velocities on stable ground before
-trusting trends across f106→f105, f102→f103, S1A→S1D), then `apply_connectivity_rescues.py`
-(applies the §43 f106 bridge swap) → invert → hazard → union → **re-score vs the GSI inventory**.
-That is the next session's focused work; the validated product is untouched until it re-scores.
+**Seam-velocity cross-check DONE `[MEASURED]` (2026-07-22, non-destructive — production inverter
+reused via scratch quarantine + scratch OUT_DIR; validated `data/velocity/` untouched):**
+- **Frame renumber f106→f105 (and f102→f103): SAFE.** The bridge IFG 0419(f106)×0501(f105) is
+  coherent + atmospherically CLEAN (§61 above) — a coherent interferogram cannot be unwrapped
+  across misaligned frames, so the renumber is a label shift, not a geometry break. f105's own
+  short-series velocity is noisy (median −17 mm/yr over 48 days) — expected short-baseline
+  behaviour, not a frame defect.
+- **S1A→S1D handover (0618×0625): a correctable but UNVALIDATED offset → DROPPED.** Inverting
+  f105 with vs without the S1D pair: **no spatial distortion** (velocity-change median +0.4 mm/yr,
+  symmetric) but a **clean, tight systematic −18.6 mm offset (robust-σ 7 mm)** at the S1D epoch —
+  a platform-handover phase/reference step. Behaves like a correctable reference offset, but it
+  is the first cross-unit pair ever processed here. **User decision: drop the S1D seam; rebuild
+  S1A-only through 18 Jun** (the low-risk ~2-month cadence gain); revisit S1D when a second S1D
+  pass exists to cross-check it.
+- **Cross-unit parser bug found + fixed (error log 2026-07-22):** the `S1AA_`-hardcoded date
+  parsers (5 files) could not read the `S1AD` seam → broadened to `S1[A-D][A-D]_`; new regression
+  test; **battery 98 green** (science suite 12→13).
+
+**Full S1A-only rescore DEFERRED to a focused next session (user's call).** A faithful rebuild
+needs the REAL pipeline (`consolidate → apply_connectivity_rescues → run_multistack → GSI
+rescore`) — it depends on the pair-metrics cache + rescue-aware cross-frame network merge, which a
+non-destructive sandbox script cannot reconstruct (confirmed 3×: KEEP-only concat rank-deficient;
++hand-picked bridges still deficient; the recommender is metric-blind on a 3-column scratch
+quarantine). **Next-session plan:** back up `_quarantine_list.csv` + `_stack_manifest.json`
+(revert path), run the real S1A-only rebuild (bridges to 18/23 Jun, NO S1D), then compare the new
+AUC/recall against §21b/§44 as the pre/post before accepting. The validated product stays live
+and untouched until then. Diagnostic scripts kept in git-ignored `data/rebuild/`
+(`seam_check.py`, `sandbox_velocity.py`).
 
 ---
 

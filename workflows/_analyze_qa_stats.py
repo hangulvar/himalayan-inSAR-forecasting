@@ -80,7 +80,7 @@ def main() -> None:
     for r in rows:
         if r["status"] != "ok":
             continue
-        m = re.search(r"S1AA_(\d{4})(\d{2})\d{2}T", r["product"])
+        m = re.search(r"S1[A-D][A-D]_(\d{4})(\d{2})\d{2}T", r["product"])  # cross-unit S1AD (§61)
         if m:
             by_month[f"{m.group(1)}-{m.group(2)}"].append(float(r["surviving_pct"]))
     for month, vals in sorted(by_month.items()):

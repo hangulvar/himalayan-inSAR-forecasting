@@ -164,7 +164,7 @@ def _legacy_stack_key(product_name: str) -> str:
     identifies each frame within each orbit *for the Ramban AOI*; it does not
     generalise, which is exactly why new AOIs use the metadata manifest instead.
     """
-    m = re.search(r"S1AA_\d{8}T(\d{6})_", product_name)
+    m = re.search(r"S1[A-D][A-D]_\d{8}T(\d{6})_", product_name)  # incl. cross-unit S1AD (§61)
     if not m:
         return "unknown"
     hms = m.group(1)

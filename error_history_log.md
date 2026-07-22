@@ -23,6 +23,23 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-22] `S1AA_`-hardcoded date parsers silently drop cross-unit products (S1AD seam un-invertible)
+
+* **Symptom:** `custom_sbas_inverter.py` raised `ValueError: cannot parse dates from
+  S1AD_20260618T125635_20260625T125553_...` when the S1A×S1D seam product was fed to the
+  SBAS inversion — the rebuild literally could not invert the cross-unit pair.
+* **Root cause:** five date-parsing regexes were hardcoded to the `S1AA_` prefix
+  (`custom_sbas_inverter`, `sbas_network_graph`, `stacks`, `coherence_watch`,
+  `_analyze_qa_stats`). They pre-date the June-2026 S1 constellation handover (§56), which now
+  ships cross-unit HyP3 products named `S1AD` (and eventually `S1DD`). The manifest ingested the
+  seam correctly only because it reads path/frame from HyP3 **job metadata**, not the filename —
+  which masked the bug until the inverter parsed the filename.
+* **Fix:** broadened all five to `S1[A-D][A-D]_` (matches every A/B/C/D pairing; still matches
+  all existing `S1AA`). New regression test `test_pair_date_parsers_accept_cross_unit_products`
+  in `tests/test_science_verification.py` pins both a same-unit and a cross-unit name through
+  both inversion-path parsers. Battery 98 green. (2 GACOS-path references — a `gacos_request`
+  docstring + a `_gacos_crosscheck` glob — left for the separate GACOS workstream.)
+
 ### [2026-07-22] Bash tool mangles `/app/...` container paths (MSYS path translation) — failed background poll
 
 * **Symptom:** a background `docker compose run insar python /app/_tmp_watch_jobs.py` exited

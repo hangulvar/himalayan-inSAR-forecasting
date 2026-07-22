@@ -21,10 +21,14 @@
   all 3 — including the S1A×S1D 7-day seam (usable coherence + atmospherically clean):
   cross-satellite interferometry works over Ramban's terrain** (the §56 handover's biggest risk).
   Radar library 235→238; all QA artifacts re-synced. Numbers §61.
-- **⚠ Rebuild is HALF done — the judgment half remains (deliberately not headless):** stack-
-  topology / seam-velocity cross-check (§22-style, pre/post-seam velocities on stable ground for
-  f106→f105, f102→f103, S1A→S1D) → `apply_connectivity_rescues.py` (applies the §43 f106 bridge
-  swap) → invert → hazard → union → **re-score vs GSI**. Validated product untouched until then.
+- **★ Seam-velocity cross-check DONE (§61), S1D seam DROPPED, full rescore DEFERRED (user).**
+  Frame renumber f106→f105 / f102→f103 = SAFE (coherent bridge IFG). S1A→S1D handover carries a
+  clean **−18.6 mm** offset (no spatial distortion but unvalidated first cross-unit pair) →
+  **rebuild S1A-only through 18 Jun**, revisit S1D later. Cross-unit `S1AA_`-parser bug found +
+  fixed across 5 files (+ test; **battery 98 green**). The faithful S1A-only rescore needs the
+  REAL pipeline (`consolidate → apply_connectivity_rescues → run_multistack → GSI rescore`) — a
+  non-destructive sandbox can't reconstruct the rescue-aware network (confirmed 3×). Deferred to a
+  focused next session; validated product stays live + untouched. Scripts in `data/rebuild/`.
 - **★ NEW (§60-cont., committed `50f4df3`) — routed-LLOF swap SHIPPED config-gated.**
   `llof_routing: twi|d8` (default `twi` = validated products byte-identical, probe re-run
   hash-verified); d8 reuses the probe's exact criterion. Post-merge swap = uncomment `d8` per
@@ -54,26 +58,32 @@
 
 ## Recommended next step
 
-**The rebuild loop's judgment half (§61):** with all 3 new products QA-passed, run the multistack
-inversion, do the **seam-velocity cross-check** (verify pre/post-seam velocities agree on stable
-ground before trusting trends across the frame/unit handovers), apply the §43 f106 bridge swap via
-`apply_connectivity_rescues.py`, then hazard → union → **re-score vs the GSI inventory** and ledger
-the product shift. In parallel: **user settles the 2 §52 rows** (evidence in §61/journey), and
-optionally flips `llof_routing: d8` as its own scored swap. User-side (standing): GACOS form + soil
-lab; merge to `master`; publish the dashboard.
+**The deferred S1A-only rebuild rescore (§61) — a focused next session.** The seam check is done
+and S1D is dropped, so the rebuild is unambiguous: (1) back up `data/qa_masks/_quarantine_list.csv`
++ `_stack_manifest.json` (revert path), (2) run the REAL pipeline — `consolidate →
+apply_connectivity_rescues` (applies the §43 f106 bridge swap) `→ run_multistack` (invert→hazard→
+alerts→mosaic, **S1A-only: the two frame bridges + f105/f103 chains through 18/23 Jun, NOT the
+S1D seam**) `→ GSI rescore`, (3) **compare new AUC/recall vs §21b/§44 as the pre/post** before
+accepting; revert via the backup if it regresses. In parallel: **user settles the 2 §52 rows**
+(evidence §61/journey), and optionally flips `llof_routing: d8` as its own scored swap. User-side
+(standing): GACOS form + soil lab; merge to `master`; publish the dashboard.
 
 ## Uncommitted delta
 
 Session 28's Task 1–3 batch is **already committed by the user** (`50f4df3`: LLOF swap + manifest
 + §52 evidence). Uncommitted now (the rebuild-execution + wrap batch):
-- MODIFIED (tracked): `RESULTS_AND_KPIS.md` (§61), `error_history_log.md` (Bash path-mangling),
-  `docs/references/RAMBAN_REBUILD_MANIFEST_2026-07-19.md` (SUBMITTED + QA block, cites §61),
-  `SESSION_REVIEW.md` (this block).
+- MODIFIED (tracked) — two logical batches:
+  - **Parser fix:** `workflows/{custom_sbas_inverter,sbas_network_graph,stacks,coherence_watch,
+    _analyze_qa_stats}.py` (`S1AA_`→`S1[A-D][A-D]_`) + `tests/test_science_verification.py`
+    (new cross-unit parse test).
+  - **Docs/wrap:** `RESULTS_AND_KPIS.md` (§61 + seam-check + deferred plan), `error_history_log.md`
+    (parser bug + Bash path-mangling), `docs/references/RAMBAN_REBUILD_MANIFEST_2026-07-19.md`
+    (SUBMITTED + QA, cites §61), `SESSION_REVIEW.md` (this block).
 - Git-ignored (data/ + journals): the 3 new products under `data/processed_tiffs/` +
   `data/raw_zips/`, re-synced `data/qa_masks/{_stack_manifest.json,_coherence_mask_stats.csv,
-  _atmospheric_audit.csv,audit_log.json}`, `data/rebuild/ramban_rebuild_window_2026-07.yaml`,
-  the S28 journey entry.
-- **Next:** the rebuild loop's judgment half (§61) — a focused next session.
+  _atmospheric_audit.csv,audit_log.json}`, `data/rebuild/` (window yaml + `seam_check.py`/
+  `sandbox_velocity.py` diagnostics + their reports), the S28 journey entry.
+- **Next:** the deferred S1A-only rebuild rescore (§61) — a focused next session.
 
 ---
 
