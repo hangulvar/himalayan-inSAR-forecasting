@@ -1,8 +1,27 @@
-# Ramban cadence-rebuild manifest (2026-07-19) — dry-run verified, zero credits spent
+# Ramban cadence-rebuild manifest (2026-07-19) — SUBMITTED 2026-07-22
 
 The §57 follow-through: everything needed to run the unblocked Ramban rebuild, verified
 through the production submitter in dry-run. **Headline: the rebuild needs 3 submitted
 pairs (~30 credits), not the naive 10 (~100) — most "new" radar is already on disk.**
+
+## ✅ SUBMITTED 2026-07-22 (user-authorized 30-credit spend) — jobs RUNNING at ASF
+
+All 3 pairs submitted (0 dupes, 0 failed); **credits 7,460 → 7,430 (exactly 30 spent)**,
+verified independently via `find_jobs`. Job ids:
+
+| Job name | Pair | HyP3 job_id |
+|---|---|---|
+| Ramban_NH44_ASCENDING_path27_frame106 | 20260419 × 20260501 (f106 bridge) | 03d8160a-8069-445c-a2cf-c4e09a16a0c7 |
+| Ramban_NH44_ASCENDING_path100_frame102 | 20260424 × 20260506 (f102 bridge) | fb7123a4-53da-468a-99f5-7713a9d88dbf |
+| Ramban_NH44_ASCENDING_path27_frame105 | 20260618 × 20260625 (S1A×S1D seam) | 12407651-193e-4f0c-837b-4ec474bfddcb |
+
+**✅ 2026-07-22 — all 3 SUCCEEDED (~25 min), downloaded + extracted + QA'd. Both gates passed
+for all 3, incl. the S1A×S1D seam — de-risked. All coherence/atmospheric numbers: ledger §61.**
+(One retry: the seam zip arrived corrupt on the first pull; the script auto-deleted it and the
+re-fetch was clean — its own idempotent recovery path.) Manifest ingested all 3 with the right
+stack labels (bridges extend f106/f102; seam tagged f105); library 235→238.
+**Next: the rebuild loop below (inversion + seam-velocity cross-check + re-score) —
+judgment-heavy, not run headlessly.**
 
 ## What the manifest work found (all `[MEASURED]` 2026-07-19)
 

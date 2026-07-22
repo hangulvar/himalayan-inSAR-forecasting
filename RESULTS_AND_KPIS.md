@@ -2716,6 +2716,48 @@ fatal-events-always-caught, report-artifact checks). Full battery now NINE suite
 
 ---
 
+## 61. Ramban cadence rebuild — 30 credits SUBMITTED, products QA-passed, S1A×S1D seam DE-RISKED  `[MEASURED]`
+*(2026-07-22, session 28 — `submit_hyp3_jobs.py --pair`, `download_hyp3_products.py`,
+`feature_engineering.py`, `phase_elevation_audit.py`, `export_audit_json.py`; docs manifest
+`docs/references/RAMBAN_REBUILD_MANIFEST_2026-07-19.md`)*
+
+The §57 rebuild fired. User authorised the 3-pair manifest (§60/§57 finding: the May-2026 S1
+frame renumbering meant 9/10 "new" pairs were already on disk under the VD prefix; the true gap
+is 3 pairs — two frame bridges + the S1A×S1D seam).
+
+**Submission `[MEASURED]`:** all 3 pairs queued at ASF, 0 dupes, 0 failed; **HyP3 credits
+7,460 → 7,430 (exactly 30 spent)**, verified independently via `find_jobs`. All 3 SUCCEEDED in
+~25 min. Job ids in the manifest doc. One self-healing hiccup: the seam zip arrived corrupt on
+the first pull; `download_hyp3_products.py` auto-deleted it and the re-fetch was clean.
+
+**QA chain — both gates passed for all 3 `[MEASURED]`:**
+
+| Product (pair) | Stack | Coh survivors / mean-of-survivors | Atmos R² (verdict) |
+|---|---|---|---|
+| S1AA 20260419×20260501 (f106 bridge) | ASC_path27_frame106 | 30.4% / 0.700 | 0.132 (CLEAN) |
+| S1AA 20260424×20260506 (f102 bridge) | ASC_path100_frame102 | 54.3% / 0.761 | 0.064 (CLEAN) |
+| **S1AD 20260618×20260625 (S1A×S1D seam)** | ASC_path27_frame105 | 31.2% / 0.665 | 0.176 (CLEAN) |
+
+**Headline — the cross-unit seam is de-risked:** the S1A×S1D 7-day pair has usable coherence
+(31% survivors at mean 0.665, in-family with the two same-unit bridges) AND is atmospherically
+clean (R²=0.176) — **cross-satellite S1A×S1D interferometry works over Ramban's terrain**, the
+single biggest risk in the constellation-handover rebuild (§56 risk register). This is the
+winter/monsoon-independent confirmation the plan wanted before trusting S1D continuity.
+
+Radar library grew 235 → 238 products; manifest + `_coherence_mask_stats.csv` +
+`_atmospheric_audit.csv` + `audit_log.json` all re-synced (the plumbing suite's
+manifest-vs-audit consistency guard caught a stale `audit_log.json` at 235 → fixed by rerunning
+`export_audit_json.py`). Battery unchanged at TEN suites **8+12+10+11+14+11+6+12+5+8 = 97 green**
+(the `test_submit_pairs.py` suite from §60-cont. is the 10th).
+
+**NOT done (the rebuild loop's judgment half, deliberately not headless):** stack-topology /
+seam-velocity cross-check (§22-style — compare pre/post-seam velocities on stable ground before
+trusting trends across f106→f105, f102→f103, S1A→S1D), then `apply_connectivity_rescues.py`
+(applies the §43 f106 bridge swap) → invert → hazard → union → **re-score vs the GSI inventory**.
+That is the next session's focused work; the validated product is untouched until it re-scores.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

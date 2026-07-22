@@ -23,6 +23,20 @@ This log tracks major environment issues, package conflicts, system quirks, and 
 
 ## Log Entries
 
+### [2026-07-22] Bash tool mangles `/app/...` container paths (MSYS path translation) — failed background poll
+
+* **Symptom:** a background `docker compose run insar python /app/_tmp_watch_jobs.py` exited
+  immediately with `python: can't open file '/app/C:/Program Files/Git/app/_tmp_watch_jobs.py'`.
+* **Root cause:** the Bash tool runs Git Bash (MSYS), which auto-translates a leading-slash
+  argument like `/app/...` into a Windows path (`C:\Program Files\Git\app\...`) *before* it
+  reaches the container. The path never resolved inside the container; the poll never ran (no
+  time lost — the ASF jobs were still processing).
+* **Fix / rule:** run docker via the **PowerShell tool** (no MSYS translation), or pass the
+  script path **relative** to the compose `working_dir` (`/app`) — i.e. `python
+  _tmp_watch_jobs.py`, not `/app/...`. Relaunched via PowerShell with the relative path and the
+  poll ran correctly. (Contrast: `docker compose run ... python workflows/foo.py` already worked
+  because `workflows/...` is relative.)
+
 ### [2026-07-13] PowerShell 5.1 breaks on BOM-less UTF-8 .ps1 with em-dashes (monsoon_cycle.ps1 parser error)
 
 * **Symptom:** first run of the new `workflows/monsoon_cycle.ps1` died with
