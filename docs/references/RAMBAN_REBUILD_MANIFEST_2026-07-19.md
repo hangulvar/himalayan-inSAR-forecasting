@@ -74,16 +74,24 @@ docker compose run --rm insar python workflows/submit_hyp3_jobs.py \
 
 ## After the products land (the rebuild loop proper)
 
-1. `download_hyp3_products.py` → QA chain (coherence mask + atmospheric audit) — the
-   3 new products + the existing f105/f103 products join the manifest.
-2. Stack decision (the §22-style seam question, risk register item): treat f105 as the
-   continuation of f106 (bridged at 19 Apr→1 May) and f103 of f102 (24 Apr→6 May);
-   cross-check pre/post-seam velocities on stable ground before trusting trends across
-   the seam — same for the S1A→S1D handover at 18→25 Jun.
+1. ✅ `download_hyp3_products.py` → QA chain — DONE 2026-07-22 (§61): 3 products QA-passed.
+2. ✅ **Seam cross-check DONE (§61, 2026-07-22).** Frame renumber f106→f105 / f102→f103 = SAFE
+   (coherent bridge IFG). **S1A→S1D handover carries a clean −18.6 mm offset → DROPPED by user
+   decision: rebuild S1A-only through 18 Jun** (bridges to f105/f103, NOT the S1D seam 0618×0625).
+   Revisit S1D when a second S1D pass exists. Cross-unit `S1AA_`-parser bug fixed en route
+   (error log 2026-07-22).
 3. `apply_connectivity_rescues.py` re-run applies the **§43 f106 bridge swap**
    (20250506→20250611 Bperp 151 m → 20250506→20250530 Bperp 102 m) inside its loop.
 4. Invert → hazard → union alerts → **re-score vs the GSI inventory** (§16 chain);
    ledger the product shift. The radar-freshness pill clears automatically.
+
+> **DEFERRED to a focused next session (user's call, 2026-07-22).** A faithful S1A-only rescore
+> needs the REAL pipeline (steps 3–4) with its pair-metrics cache + rescue-aware cross-frame
+> merge — a non-destructive sandbox script cannot reconstruct it (confirmed 3× — see §61 / journey
+> S28). **Plan:** back up `data/qa_masks/{_quarantine_list.csv,_stack_manifest.json}` (revert
+> path) → `consolidate → apply_connectivity_rescues → run_multistack` (S1A-only) `→ GSI rescore` →
+> compare new AUC/recall vs §21b/§44 → accept or restore-and-revert. Diagnostics kept in
+> git-ignored `data/rebuild/` (`seam_check.py`, `sandbox_velocity.py`).
 
 ## Window config for reproduction (`data/rebuild/ramban_rebuild_window_2026-07.yaml`)
 

@@ -113,7 +113,9 @@ logger = logging.getLogger("sbas_inverter")
 # Inputs
 # ------------------------------------------------------------------------------
 def parse_pair_dates(product_name: str) -> tuple[datetime, datetime]:
-    m = re.search(r"S1AA_(\d{8})T(\d{6})_(\d{8})T(\d{6})_", product_name)
+    # S1[A-D][A-D]: accept cross-unit HyP3 pairs (S1AD, S1DD…) from the June-2026
+    # constellation handover, not just same-unit S1AA (ledger §56/§61).
+    m = re.search(r"S1[A-D][A-D]_(\d{8})T(\d{6})_(\d{8})T(\d{6})_", product_name)
     if not m:
         raise ValueError(f"cannot parse dates from {product_name}")
     fmt = "%Y%m%dT%H%M%S"

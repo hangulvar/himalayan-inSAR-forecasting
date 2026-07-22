@@ -63,8 +63,9 @@ logger = logging.getLogger("sbas_network_graph")
 
 
 def parse_pair_dates(product_name: str) -> tuple[datetime, datetime] | None:
-    """Extract (reference_date, secondary_date) from a HyP3 product name."""
-    m = re.search(r"S1AA_(\d{8})T(\d{6})_(\d{8})T(\d{6})_", product_name)
+    """Extract (reference_date, secondary_date) from a HyP3 product name.
+    S1[A-D][A-D]: accept cross-unit pairs (S1AD…) from the S1 handover (§56/§61)."""
+    m = re.search(r"S1[A-D][A-D]_(\d{8})T(\d{6})_(\d{8})T(\d{6})_", product_name)
     if not m:
         return None
     fmt = "%Y%m%dT%H%M%S"

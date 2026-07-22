@@ -294,6 +294,25 @@ def test_alarm_artifacts_cross_consistent() -> None:
 # ------------------------------------------------------------------------------
 # References: every § cited by the dashboard file must exist in the ledger.
 # ------------------------------------------------------------------------------
+def test_pair_date_parsers_accept_cross_unit_products() -> None:
+    """The S1 constellation handover (§56/§61) ships cross-unit HyP3 products
+    (S1AD, S1DD…). The date-parsing regexes were hardcoded to S1AA and silently
+    dropped them — this pins the broadened S1[A-D][A-D] pattern in both parsers
+    that feed the inversion/network, for both a same-unit and a cross-unit name."""
+    import custom_sbas_inverter as csi
+    import sbas_network_graph as sng
+
+    s1aa = "S1AA_20260419T125645_20260501T125637_VVP012_INT80_G_weF_85CC"
+    s1ad = "S1AD_20260618T125635_20260625T125553_VVP007_INT80_G_weF_05DD"
+    for parse in (csi.parse_pair_dates, sng.parse_pair_dates):
+        r1 = parse(s1aa)
+        assert r1 is not None and (r1[0].date(), r1[1].date()) == (
+            date(2026, 4, 19), date(2026, 5, 1)), (parse, "S1AA")
+        r2 = parse(s1ad)                                   # the cross-unit seam
+        assert r2 is not None and (r2[0].date(), r2[1].date()) == (
+            date(2026, 6, 18), date(2026, 6, 25)), (parse, "S1AD")
+
+
 def test_ledger_section_references_complete() -> None:
     ledger = (PROJECT_ROOT / "RESULTS_AND_KPIS.md").read_text(encoding="utf-8")
     have = set(re.findall(r"^## (\d+)[a-z]?\.", ledger, re.M))
