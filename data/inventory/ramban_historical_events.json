@@ -1,6 +1,6 @@
 {
   "site": "ramban",
-  "updated": "2026-07-18 (rev 2: Digdol row resolved — see its confidence_reason correction record)",
+  "updated": "2026-07-24 (rev 3: added the 22 Jul 2026 Gangroo–Ramsu fatal boulder strike — prospective real-world event, gate cross-checked; rev 2: Digdol row resolved)",
   "note": "Curated HISTORICAL DAMAGE record for the dashboard's Past-events view — SEPARATE from ramban_documented_landslides.geojson (the validated back-test inventory), which is deliberately untouched. Verification rule (CLAUDE.md / ledger §12g, §36-§38): every event is checked against a primary source (peer-reviewed paper or GSI) or 2+ independent press outlets; publication date != event date; LOW-confidence rows are flagged review_needed for the user and rendered as pending review, never as settled fact. Ranking = deaths desc, then injured, then damage_score (0-10 editorial judgment of infrastructure/livelihood damage, used only to break ties among non-fatal events). Coordinates are approximate place centroids (same convention as the back-test inventory), NOT field-mapped scarps.",
   "events": [
     {
@@ -91,6 +91,24 @@
         {"label": "Gadyal Kashmir, 7 Apr 2026", "url": "https://gadyalkashmir.com/2026/04/07/massive-landslide-blocks-nh-44-traffic-suspended-in-both-directions/"},
         {"label": "The Hans India (Ramban NH-44 blocked again)", "url": "https://www.thehansindia.com/news/national/massive-landslide-in-jks-ramban-district-again-blocks-srinagar-jammu-nh-44-1063514"},
         {"label": "Greater Kashmir (NH-44 shut near Digdol, Khooni Nallah — SSP traffic; undated URL, reattributed to this event)", "url": "https://www.greaterkashmir.com/latest-news/nh-44-shut-after-heavy-landslide-near-digdol-khooni-nallah-ssp-traffic/"}
+      ]
+    },
+    {
+      "name": "Gangroo–Ramsu boulder strike (NH-44, Ramban)",
+      "date": "2026-07-22",
+      "lat": 33.32, "lon": 75.19,
+      "coord_confidence": "approximate_place_centroid (Gangroo, near Ramsu/Ramsoo; LOW spatial precision — exact km-marker not published)",
+      "deaths": 2, "injured": 5,
+      "damage": "Boulders/shooting stones struck a Tempo Traveller (Banihal->Doda) at Gangroo near Ramsu at ~13:20 IST, killing a couple from Doda (Nazir Ahmed, Shakeela Begum); 4 passengers and a traffic sub-inspector (SI Mohd Ashraf) injured. NH-44 suspended from ~09:30 the same day; part of a multi-day monsoon disaster (~23-25 rain-related deaths across Jammu province since 19 Jul, 7 missing; in Ramban ~8 houses damaged + ~22 link roads blocked over 3 days)",
+      "trigger": "Rainfall-triggered rockfall during the 19-22 Jul 2026 monsoon spell (24 h to 22 Jul: Udhampur 112.6 mm, Katra 58.5 mm; Kathua 153, Samba 133 regionally). Gate cross-check: the experimental IMERG sub-daily gate ran WATCH/ALERT continuously 17-23 Jul (ALERT 18 Jul E=3.05, four days before; WATCH on the event day 22 Jul E=2.44 — 20.8 mm/6 h AOI-mean). The validated daily ERA5-Land gate was WATCH 14-16 Jul (E~1.0-1.15) then latency-blind to 19-22 Jul (its data ends 18 Jul as of the 24 Jul fetch); daily-arm confirmation pending ERA5-Land publication (~27 Jul). Ledger §62",
+      "damage_score": 5,
+      "confidence": "HIGH", "confidence_score": 0.85,
+      "confidence_reason": "Event date/time unambiguous (22 Jul 2026 ~1:20 pm) across 3 independent outlets; publication 22-23 Jul. Injured count varies by outlet (a wire says 3, headlines say 4; the most detailed account — Daily Excelsior — gives 4 passengers + traffic SI = 5, adopted here). Coordinates are the Gangroo/Ramsu place centroid, not a field-mapped scarp",
+      "review_needed": false,
+      "sources": [
+        {"label": "IBTimes India, 22 Jul 2026 (boulder crushes tempo, two killed; NH-44 closed)", "url": "https://www.ibtimes.co.in/boulder-crushes-tempo-ramban-killing-two-jammu-srinagar-national-highway-closed-904086"},
+        {"label": "Kashmir Vision, 23 Jul 2026 (couple killed, 4 injured)", "url": "https://kashmirvision.in/2026/07/23/rain-fury-couple-killed-4-injured-as-boulders-hit-vehicle-on-jammu-srinagar-highway/"},
+        {"label": "Daily Excelsior, 22-23 Jul 2026 (Gangroo near Ramsu ~1:20 pm; district rainfall figures; SI Mohd Ashraf injured)", "url": "https://www.dailyexcelsior.com/rain-floods-wreak-havoc-chenab-ujh-flow-above-danger-mark-alert-sounded/"}
       ]
     }
   ]

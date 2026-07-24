@@ -2781,6 +2781,49 @@ and untouched until then. Diagnostic scripts kept in git-ignored `data/rebuild/`
 
 ---
 
+## 62. Prospective real-world catch — the 22 Jul 2026 Gangroo–Ramsu fatal boulder strike (NH-44)  `[REAL]`
+*(2026-07-24, session 29 — online-news verification + gate cross-check against the live 2026 artifacts,
+which `live_alarm.py` had already regenerated the same day at 12:55 on the auto-fetched rainfall.)*
+
+**The event (verified, 3 independent outlets):** 22 Jul 2026 ~13:20 IST, boulders/shooting stones
+struck a Tempo Traveller (Banihal→Doda) at **Gangroo near Ramsu (Ramsoo), Ramban, on NH-44** —
+**2 killed** (a couple from Doda), 4 passengers + a traffic SI injured; NH-44 suspended from ~09:30.
+Part of a multi-day monsoon disaster: **~23–25 rain-related deaths across Jammu province since 19 Jul**,
+7 missing; in Ramban ~8 houses damaged + ~22 link roads blocked over 3 days. Rainfall 24 h to 22 Jul:
+**Udhampur 112.6 mm, Katra 58.5 mm** (Kathua 153, Samba 133 regionally). Inside the Ramban AOI; folded
+into `ramban_historical_events.json` (rev 3, HIGH confidence). Sources: IBTimes India, Kashmir Vision
+(23 Jul), Daily Excelsior. The validated back-test inventory (`ramban_documented_landslides.geojson`)
+is deliberately **not** touched (§38 precedent — the spatial score is frozen).
+
+**Did the model catch it? Split by arm — the §12c/§12g "AOI-mean dilutes a local burst" pattern, replayed live:**
+
+- **Experimental IMERG sub-daily gate → YES, flagged the whole window.** **ALERT on 18 Jul
+  (E=3.05)** — four days before the strike — and a continuous WATCH/ALERT state **17→23 Jul**; the
+  event day itself **22 Jul = WATCH (E=2.44**, 20.8 mm/6 h AOI-mean). Season-wide only **3 ALERT days**
+  (1 / 2 / 18 Jul of 112) — not noise. It reached WATCH (not ALERT) on the exact day partly because the
+  ~11 km AOI-mean dilutes a point cloudburst (Udhampur gauge 112 mm vs AOI-mean ~33 mm), so the true
+  local intensity was higher than E=2.44 implies. Source: `imerg_gate_summary_2026.json`, asset
+  `NASA/GPM_L3/IMERG_V07`, fetched 2026-07-24 07:24 UTC (burst_watch_k 1.0 / burst_alert_k 3.0, §58).
+- **Validated daily ERA5-Land gate → latency-blind, confirmation PENDING (not a miss).** Its 2026
+  season ends **18 Jul** (~5-day reanalysis lag); it was **WATCH 14–16 Jul** (E≈1.0–1.15), DORMANT
+  17–18, and cannot yet see 19–22 Jul. Official 2026 daily-gate state through 18 Jul
+  (`operational_alarm_report_2026.json`): 109 days, **4 ALERT days (all early April), 29 WATCH**,
+  8.2× selectivity; it correctly caught the 7 Apr Digdol slide (§52: E=2.13 → ALERT, Δ=0). **Expected
+  to confirm ~27 Jul** once ERA5-Land publishes 19–22 Jul — the incremental `live_alarm.py` fetch
+  extends the CSV automatically; re-run `docker compose run --rm mintpy python workflows/live_alarm.py`
+  then the `insar` image to regenerate.
+
+**Verdict:** a genuine **prospective near-catch by the fresh IMERG arm** (ALERT 18 Jul + sustained WATCH
+through the event) — the strongest field evidence yet that the §55/§58 sub-daily arm earns its keep;
+the validated daily arm's ruling is *deferred by publication latency, not missed*. Spatial honesty: the
+event sits ~2 km from the northern frame-102 hazard-zone cluster (~33.31°N), but the creep map covers
+only ~14% of the AOI, so the exact failed slope is **not** confirmed as mapped (unmeasured ≠ safe), and
+a rain-triggered rockfall is a WHEN-trigger event, not a slow-creep target. **Caveats:** the IMERG arm
+has no back-tested operating points (experimental); the 2026 rainfall was auto-fetched locally (not
+re-pulled this session); the daily-arm confirmation is outstanding.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
