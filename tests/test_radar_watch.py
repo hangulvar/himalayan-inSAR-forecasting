@@ -133,11 +133,12 @@ def test_nisar_pilot_pair_selection_and_report():
     bracketing winter pairs — 3 for Ramban, 0 for VD (whose stacks start May 2026, a
     documented not-comparable case) — and the produced report carries the decision fields."""
     import nisar_coherence_pilot as ncp
-    r_pairs = ncp.c_band_pairs("ramban")
+    winter = ncp.SEASONS["winter"]
+    r_pairs = ncp.c_band_pairs("ramban", winter)
     assert len(r_pairs) == 3 and all(p.exists() for _, p in r_pairs)
     assert {s for s, _ in r_pairs} == {"ASC_path27_frame101", "ASC_path27_frame106",
                                        "ASC_path100_frame102"}
-    assert ncp.c_band_pairs("vaishnodevi") == []
+    assert ncp.c_band_pairs("vaishnodevi", winter) == []
     lo_lon, lo_lat, hi_lon, hi_lat = ncp.aoi_bbox("ramban")
     assert 75.0 < lo_lon < hi_lon < 75.5 and 33.0 < lo_lat < hi_lat < 33.5
     rep = PROJECT_ROOT / "data" / "nisar" / "nisar_coherence_pilot.json"
@@ -145,6 +146,107 @@ def test_nisar_pilot_pair_selection_and_report():
         v = json.loads(rep.read_text(encoding="utf-8"))["verdict"]
         assert "median_pct_of_C_fail_pixels_recovered_by_L" in v and "caveats" in v
         assert v["median_pct_of_C_fail_pixels_recovered_by_L"] > 0
+
+
+def test_l_window_health_separates_a_void_from_a_result():
+    """§65 — THE guard. A NaN void and a decorrelated slope produce identical-looking low
+    numbers downstream; scoring a void once produced a confident, fabricated 'L recovers
+    0.0%'. l_window_health must refuse the void and pass real data."""
+    import numpy as np
+    import nisar_coherence_pilot as ncp
+
+    # A 1-degree grid in EPSG:4326 so lx/ly are lon/lat directly (identity transform).
+    lx = np.linspace(75.0, 75.5, 51)
+    ly = np.linspace(33.0, 33.5, 51)
+    bbox = (75.1, 33.1, 75.4, 33.4)
+
+    good = np.full((51, 51), 0.7, dtype=np.float32)
+    h = ncp.l_window_health(good, lx, ly, bbox, 4326)
+    assert h["ok"] and h["valid_pct"] == 100.0 and h["median"] == 0.7
+
+    void = np.full((51, 51), np.nan, dtype=np.float32)
+    h = ncp.l_window_health(void, lx, ly, bbox, 4326)
+    assert not h["ok"] and h["valid_pct"] == 0.0 and "VOID" in h["reason"]
+
+    # Partly valid but under the floor -> still refused (the Vaishno Devi fringe case).
+    fringe = np.full((51, 51), np.nan, dtype=np.float32)
+    fringe[:10, :] = 0.6
+    h = ncp.l_window_health(fringe, lx, ly, bbox, 4326)
+    assert not h["ok"] and h["valid_pct"] < ncp.MIN_L_VALID_PCT
+
+    # Fully covered but numerically dead -> refused as void fringe, not scored as a result.
+    dead = np.full((51, 51), 0.007, dtype=np.float32)
+    h = ncp.l_window_health(dead, lx, ly, bbox, 4326)
+    assert not h["ok"] and "dead" in h["reason"]
+
+    # AOI entirely off the grid -> refused, not silently empty.
+    h = ncp.l_window_health(good, lx, ly, (10.0, 10.0, 10.1, 10.1), 4326)
+    assert not h["ok"] and h["valid_pct"] == 0.0
+
+
+def test_nisar_monsoon_run_aborted_without_a_verdict():
+    """The monsoon artifact must record an ABORT, never a coherence verdict, while the winter
+    artifact keeps its §59 numbers. Guards against a void run being read as a negative result."""
+    mon = PROJECT_ROOT / "data" / "nisar" / "nisar_coherence_pilot_monsoon.json"
+    if mon.exists():
+        m = json.loads(mon.read_text(encoding="utf-8"))
+        assert m["season"] == "monsoon"
+        assert m["verdict"]["status"].startswith("ABORTED"), m["verdict"]
+        assert "median_pct_of_C_fail_pixels_recovered_by_L" not in m["verdict"]
+        assert all(not c["ok"] for c in m["l_coverage"].values())
+    win = PROJECT_ROOT / "data" / "nisar" / "nisar_coherence_pilot.json"
+    if win.exists():
+        w = json.loads(win.read_text(encoding="utf-8"))
+        assert w["season"] == "winter"
+        assert w["verdict"]["median_pct_of_C_fail_pixels_recovered_by_L"] > 0
+        assert all(c["ok"] for c in w["l_coverage"].values())
+
+
+def test_nisar_season_presets_are_a_controlled_comparison():
+    """§65: the winter/monsoon presets must differ ONLY in season — same NISAR track, same
+    12-day baseline in both bands — or the comparison measures the wrong thing."""
+    import re
+    import nisar_coherence_pilot as ncp
+    from datetime import date as _date
+
+    tracks = set()
+    for name, s in ncp.SEASONS.items():
+        m = re.search(r"GUNW_\d+_(\d+)_([AD])_(\d+)_", s["h5"])
+        assert m, f"{name}: cannot parse track from {s['h5']}"
+        tracks.add(m.groups())                      # (track, direction, frame)
+        # Every C-band pair in every season is a 12-day baseline — the same as the L pair.
+        d = s["c_pairs"]
+        for slug, dates in d.items():
+            assert len(dates) == 4, f"{name}/{slug}"
+            for a, b in ((dates[0], dates[1]), (dates[2], dates[3])):
+                span = (_date.fromisoformat(f"{b[:4]}-{b[4:6]}-{b[6:]}")
+                        - _date.fromisoformat(f"{a[:4]}-{a[4:6]}-{a[6:]}")).days
+                assert span == 12, f"{name}/{slug}: {a}->{b} is {span} d, not 12"
+    assert len(tracks) == 1, f"seasons use different NISAR tracks: {tracks}"
+
+    # Output tags must be distinct, and winter's must stay empty so §59's artifact keeps its
+    # filename (a tagged winter run would orphan the ledger's cited report).
+    tags = [s["tag"] for s in ncp.SEASONS.values()]
+    assert len(set(tags)) == len(tags) and ncp.SEASONS["winter"]["tag"] == ""
+    assert ncp.SEASONS["monsoon"]["tag"]
+
+
+def test_nisar_monsoon_admits_the_renamed_continuation_frames():
+    """The May-2026 frame renumber (§61) put Ramban's June C-band pairs on f105/f103. The
+    monsoon preset must admit those (else Ramban silently scores zero pairs); the winter
+    preset must NOT (it would change §59's published selection)."""
+    import nisar_coherence_pilot as ncp
+    monsoon, winter = ncp.SEASONS["monsoon"], ncp.SEASONS["winter"]
+    assert winter["extra_stacks"] == []
+    assert set(monsoon["extra_stacks"]) == {"ASC_path27_frame105", "ASC_path100_frame103"}
+
+    for slug in ("ramban", "vaishnodevi"):
+        pairs = ncp.c_band_pairs(slug, monsoon)
+        assert pairs, f"{slug}: monsoon preset found no C-band pair"
+        assert all(p.exists() for _, p in pairs), slug
+        # Both AOIs resolve to the SAME two continuation stacks — VD via its own
+        # source_stacks, Ramban via the override — so the two sites stay comparable.
+        assert {s for s, _ in pairs} == {"ASC_path27_frame105", "ASC_path100_frame103"}, slug
 
 
 # ------------------------------------------------------------------------------

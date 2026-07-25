@@ -1840,3 +1840,47 @@ We put 2025 back exactly as it was and wrote the trap into the error log.
 **Bottom line:** the trigger moved for a reason we can defend, the change is confined to the
 experimental fast sensor (the official alarm is untouched, byte for byte), and the one weak
 point in the reasoning now has an automatic tripwire on it.
+
+## ✅ Milestone 53 — The new satellite finally started broadcasting, and we caught our own tool inventing a result  *(NISAR forward stream, 2026-07-25)*
+
+**What we set out to do:** the plan had a date on it. Back in July we checked whether NISAR —
+the new NASA-ISRO radar satellite, and the single biggest upgrade available to this project —
+had started delivering routine data over our valleys. It hadn't, so we wrote "recheck monthly"
+and predicted the window would open around July 2026. Today the watcher said it had: **the
+stream is live, with data from 19 July — making NISAR the freshest radar over Ramban by about
+ten weeks**, because the old European satellite that fed us stopped operating in June.
+
+**Why we cared so much.** Our biggest known weakness is that ordinary radar loses its grip on
+green, vegetated slopes — which is why our movement map covers only a fraction of each valley.
+NISAR uses a longer wavelength that sees through leaves. We measured that last winter: it
+recovered **75–87%** of the ground the old radar loses (Milestone 49). But we said so honestly
+at the time: *winter is the easy season*. Bare branches. The number that really matters is the
+monsoon one, when the canopy is thickest. Now, at last, we could measure it.
+
+**What happened instead — and this is the story.** The monsoon data came back looking dreadful.
+Our tool dutifully printed a tidy result: the new radar recovering **0%** of the lost ground —
+the exact opposite of the winter finding. It would have been very easy to write that down.
+
+It was wrong. The new files simply have **no data at all** over our two valleys — a blank hole
+left by the processing, not a measurement. Three things gave it away. First, the *old* radar
+looking at the same slopes on the same days was perfectly healthy — and it's the one that's
+supposed to struggle first, so the ground plainly hadn't gone quiet. Second, the file
+contradicts itself: one layer says "no signal here", another says "valid measurement here", on
+the very same pixels. Third, the values weren't *low* — they were **absent**: every single one
+of the 64,496 measurements over Ramban was blank.
+
+**The uncomfortable part we're keeping in writing:** NASA's own quality report marks these files
+**PASS**, because its alarm only goes off if a file is more than 99% empty — and these are only
+about half empty. A clean bill of health from the supplier told us nothing about whether *our
+particular valleys* had data. We downloaded a second file to be sure it wasn't a one-off; the
+hole was in exactly the same place.
+
+**What we built as a result.** The tool now checks whether there is actually data over a valley
+*before* it computes anything, and if there isn't it prints "**ABORTED — no verdict**" with the
+evidence instead of a number. A blank hole can never again come out the other end dressed as a
+finding. Five automatic tests hold that behaviour in place.
+
+**Bottom line:** the big satellite upgrade is real and now flowing, the winter result still
+stands untouched, the monsoon confirmation waits on NASA reprocessing these early files — and
+our tool learned the difference between "nothing is happening" and "we cannot see". That last
+one is the actual milestone.

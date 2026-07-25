@@ -1450,3 +1450,35 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   diff after** — the regeneration looked completely successful in its own console output; only
   the byte-comparison revealed that a third of what it wrote was wrong. Never accept a
   regeneration of a committed artifact on the strength of its exit code.
+
+### [2026-07-25] A NaN data void was scored as a coherence result — the pilot published "L recovers 0.0%" from no data
+
+* **Symptom:** the first monsoon NISAR run printed a clean, confident line —
+  `[vaishnodevi] ASC_path100_frame103: C 0.721 vs L 0.007 | C-fail 2.5% -> L recovers 0.0%` —
+  and the standing verdict string *"L-band recovers only a modest share of C-band's lost
+  ground"*. Read at face value it **inverts §59's validated 75–87% recovery finding**.
+
+* **Root Cause:** the granule's `coherenceMagnitude` layer is **100% NaN over Ramban and ~81%
+  NaN over Vaishno Devi** — a processing void, not decorrelation. Nothing in the pipeline
+  distinguished "L-band lost coherence here" from "this granule has no data here": both arrive
+  downstream as small numbers. The few surviving fringe pixels (median 0.007) were then treated
+  as a legitimate sample and reduced to a percentage. Three checks exposed it: C-band on the
+  same dates/ground reads 0.72–0.85 (the shorter wavelength cannot out-survive L-band by 100×);
+  `connectedComponents` claims valid unwrapped data on 100% of the pixels where coherence is
+  NaN; and the window is 64,496/64,496 NaN with **zero** pixels in (0, 0.05] — absent, not low.
+
+* **Aggravating factor:** NASA's own QA_SUMMARY marks every layer **PASS** at **46–63% NaN**,
+  because its threshold only trips above 99%. The product looked healthy by its own QA.
+
+* **Resolution:** `l_window_health()` in `nisar_coherence_pilot.py` now checks per-AOI valid
+  coverage (≥40%) and median (≥0.05) BEFORE scoring; a run where no AOI passes writes an
+  explicit `ABORTED — no verdict` artifact with the evidence and emits no coherence number.
+  Five hermetic cases pin it (full / void / fringe / numerically-dead / off-grid), plus an
+  artifact test asserting the monsoon report carries no recovery figure. §65.
+
+* **Lesson:** **absence of data and a bad result look identical once they are averaged.** Any
+  metric computed over a remotely-sourced raster needs a coverage precondition *upstream of the
+  statistic*, not a caveat downstream of it. Two corollaries: (1) a vendor's QA PASS describes
+  the granule, never your AOI — always re-check coverage over your own footprint; (2) when a
+  fresh run contradicts a validated finding, that is a signal to audit the input, not to
+  publish the reversal (same discipline as the §12g wrong-date lesson).

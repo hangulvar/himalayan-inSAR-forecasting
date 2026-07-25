@@ -1305,6 +1305,62 @@ overwrote published historical numbers, while reporting complete success. Only a
 against a pre-change backup caught it. **"Idempotent" means same inputs → same outputs, and it
 fails silently the moment one of the inputs is "the current state of the repo."**
 
+---
+
+## CF17. Wavelength beats vegetation — and telling "no signal" apart from "no data"
+
+Two ideas that arrived together (Milestones 49 and 53), one physical and one methodological.
+
+**The physics: why a longer wave sees through leaves.** Radar interferometry needs the ground to
+*look the same* to the satellite on both passes. Sentinel-1 is C-band — about a **5.6 cm**
+wavelength — which is the size of leaves and twigs. Let a canopy grow, rain fall, or a breeze
+blow, and the scattering rearranges completely between passes: coherence collapses and the pixel
+is unusable. That is why our velocity map covers only part of each valley and why every product
+carries the stamp *unmeasured ≠ safe*. NISAR's L-band is about **24 cm** — four times longer. A
+24 cm wave largely ignores leaf-scale clutter and reflects off trunks, branches and the ground
+beneath, so it keeps its grip where C-band lets go.
+
+**Everyday analogy:** shouting to someone through a hedge. A high-pitched voice (short
+wavelength) scatters off every leaf and arrives as mush; a deep voice (long wavelength) carries
+through. Same hedge, different wavelength, completely different result.
+
+🔗 **In our project (§59):** measured on our own slopes, not taken from the literature. Where
+C-band *fails* (γ < 0.35 — the class our QA discards), L-band holds a median γ of 0.55–0.62 and
+**recovers 75–87% of those pixels**. The gain is concentrated exactly in the failure class,
+which is the decision-relevant place.
+
+**The methodological idea: a void and a bad result look identical after averaging.** When the
+NISAR forward stream reached this region (§65), the obvious next experiment was to repeat that
+measurement in the **monsoon** — peak canopy, the season the whole L-band case is about, and the
+one §59 explicitly flagged as unmeasured. The run produced a clean, confident number: L-band
+recovering **0%** of C-band's lost ground. That number was **fabricated**. The granules contain
+no data at all over our AOIs — 100% NaN over Ramban — and the handful of surviving fringe pixels
+(median 0.007) got averaged into a percentage as if they were a sample.
+
+> **The rule:** *absence of data and a bad result are indistinguishable once you average them.*
+> Any statistic over a remotely-sourced raster needs a **coverage precondition upstream of the
+> statistic**, never a caveat downstream of it.
+
+Three checks caught it, and they generalise:
+1. **Cross-sensor sanity.** C-band on the same ground and dates read 0.72–0.85. C-band is the
+   *more fragile* sensor — it cannot out-survive L-band by 100×. When the more sensitive
+   instrument is fine and the robust one is dead, suspect the data, not the ground.
+2. **Internal contradiction.** The file's `connectedComponents` layer claimed valid unwrapped
+   data on 100% of the pixels where `coherenceMagnitude` was NaN. You cannot unwrap noise.
+3. **Absent, not low.** Zero pixels sat in (0, 0.05]; the window was 64,496/64,496 NaN. Real
+   decorrelation leaves a *distribution* near zero, not a hole.
+
+**And the supplier's QA does not answer your question.** NASA's own QA marks these granules
+**PASS** with 46–63% NaN per layer, because its threshold only trips above 99%. A vendor's QA
+describes the *granule*; you still have to check coverage over *your* footprint.
+
+🔗 **In our project (§65):** `nisar_coherence_pilot.py --season winter|monsoon` holds geometry
+constant (same NISAR track, 12-day baselines in both bands) so only the season varies, and
+`l_window_health()` refuses to score an AOI whose L window is under 40% valid — a run where no
+AOI survives writes **"ABORTED — no verdict"** with the evidence instead of a number. §59's
+winter result reproduces byte-identically. The monsoon confirmation is deferred on **data
+availability, not physics**.
+
 🔗 **In our project: Milestone 51 / §63.** `imerg_calibration.py` gained the episode
 measurement (`episodes`, `false_alarm_profile`), run over four AOI-seasons for both arms, and
 now *generates* the temporal-skill table it used to have typed by hand (which is how the 22 Jul
@@ -1822,6 +1878,19 @@ across the whole band (1.09, 2.44], so every threshold in it catches the same ev
 is simply the **cheapest** member of that band. When recall is flat over a range, your evidence
 can't pick a point in it; only a cost criterion can. That's the difference between choosing a
 threshold and overfitting one.
+
+**Q: Your tool produced a result that contradicted a validated finding. What did you do?**
+A: Audited the input before believing the reversal. A monsoon NISAR run reported L-band
+recovering 0% of C-band's lost ground — against a validated 75–87%. Three checks showed the
+granule was empty over our AOIs, not the ground quiet: the *more fragile* C-band sensor read a
+healthy 0.72–0.85 on the same dates (it cannot out-survive L-band by 100×); the file's own
+connected-components layer claimed valid data where coherence was NaN; and the values were
+absent rather than low — 64,496 of 64,496 pixels NaN, none in (0, 0.05]. So I shipped a coverage
+guard that aborts without a verdict instead of averaging a void into a percentage, and recorded
+the non-result. The general rule: absence of data and a bad result look identical once averaged,
+so the coverage check has to sit *upstream* of the statistic. Worth adding — the vendor's own QA
+marked those files PASS, because its NaN threshold is 99%; a supplier's QA describes the granule,
+never your footprint.
 
 **Q: Wouldn't a machine-learning susceptibility model outperform your physics map?**
 A: We tested exactly that (CF15/§60). A terrain logistic regression beat the raw physics score

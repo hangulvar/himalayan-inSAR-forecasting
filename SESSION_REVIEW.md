@@ -35,6 +35,19 @@
   re-fetch/reprocessing could silently un-catch that event. `tests/test_tier34.py` asserts
   `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly telling the reader to **re-derive k,
   not edit the test**.
+- **★ NEW (§65) — the NISAR forward stream ARRIVED (the plan's dated Tier-2c trigger fired) and
+  the first monsoon granules are VOID over both AOIs.** `stream_started: true`, newest acq
+  2026-07-19; **NISAR is now the freshest radar over Ramban by ~10 weeks** (C-band library ends
+  2026-05-06; S1A ceased ops 29 Jun). The §59 pilot is now two-season (`--season winter|monsoon`,
+  same track, 12-day baselines both bands). **Monsoon = honest ABORT, not a result:** both ASC
+  granules are 0% valid over Ramban / ~19% over VD (n=2 → systematic, not a bad granule).
+- **⚠ The pilot had published a FABRICATED number before the guard existed** — "L recovers 0.0%",
+  which would have INVERTED §59's validated 75–87%. Proven a void (not physics) three ways: C-band
+  healthy at 0.72–0.85 on the same dates; the granule's own connectedComponents claims valid data
+  where coherence is NaN; 64,496/64,496 NaN with zero pixels in (0, 0.05]. `l_window_health()`
+  now aborts without a verdict. **Note: NASA's QA marks these granules PASS at 46–63% NaN**
+  (its threshold is 99%) — a vendor QA PASS says nothing about your AOI. §59 reproduces
+  byte-identically. L-band case unchanged; monsoon confirmation deferred on DATA, not physics.
 - **⚠ TRAP FOUND (error log 2026-07-25): `operational_alarm.py` is NOT safely re-runnable for a
   PAST season.** It takes the season from its arguments but the hazard footprint + inventory
   from *today's* disk, so regenerating 2025 recomputed it against the present (Ramban footprint
@@ -69,8 +82,18 @@
 
 ## Recommended next step
 
-**The deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because it
-needs a design decision first: how f105/f103 join the f106/f102 chains (a stack is strictly
+**First, the HIGH-severity security finding from this session's scan (not yet fixed, user's
+call):** `operational_alarm.py` interpolates the historical-events JSON (`name`, `damage`,
+source `label`/`url`) raw into dashboard HTML — 105 fragments, zero `html.escape` — including
+inside an `href`. Confirmed with 4/4 payloads landing verbatim. It chains: `control_panel.py`
+serves those dashboards from `/file/…` at the SAME origin as its control API, so a payload can
+read any file under `data/` and `POST /run` with no CSRF barrier. Source is untrusted by our own
+§36–38 process (LLM-synthesis leads + news URLs). Fix ≈ escape + a URL-scheme allow-list + an
+`Origin` check on `POST /run`, plus a regression test using the payloads. Full scan results in
+the session transcript; nothing else above LOW.
+
+**Then the deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because
+it needs a design decision first: how f105/f103 join the f106/f102 chains (a stack is strictly
 direction/path/frame today). Then the recorded plan:
 back up `_quarantine_list.csv` + `_stack_manifest.json` → `consolidate →
 apply_connectivity_rescues → run_multistack` (S1A-only, NO S1D seam) → GSI rescore → **compare
@@ -81,7 +104,7 @@ Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's da
 
 ## Uncommitted delta
 
-Session 30 is **two logical batches** (commit separately):
+Session 30 is **three logical batches** (commit separately):
 
 **Batch A — §63, measure the burst arm's false-alarm cost:**
 - `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both arms; generated Tier-3c
@@ -101,9 +124,24 @@ Session 30 is **two logical batches** (commit separately):
 - Git-ignored regenerated data: 4× `*_imerg_daily_E_*.csv`, 4× `imerg_gate_summary_*.json`,
   `imerg_calibration_report.{json,md}`, the **2026** dashboards only.
 
+**Batch C — §65, NISAR forward stream + the void guard:**
+- `workflows/nisar_coherence_pilot.py` (winter/monsoon season presets; `l_window_health()`
+  coverage guard; ABORT path that writes evidence and no verdict; tagged outputs),
+  `tests/test_radar_watch.py` (6→10: season-preset integrity, renamed-frame admission, the
+  guard's 5 cases, the abort artifact), `RESULTS_AND_KPIS.md` (§65), `error_history_log.md`
+  (void-scored-as-result), `milestone.md` (M53), the primer (CF17 + a Part D answer),
+  `SESSION_REVIEW.md`.
+- Git-ignored data: `data/nisar/` — the 25 Jun×07 Jul GUNW **kept** (the monsoon preset points
+  at it; the ABORT must reproduce) + `nisar_coherence_pilot_monsoon.json`; the 07 Jul×19 Jul
+  granule was measured then deleted (numbers in §65; ~4 min to re-fetch). `data/nisar` now 4.0 GB.
+
 **Not touched (verified byte-identical):** every daily-arm report/calendar for all four
-AOI-seasons, the 2025 dashboards (deliberately reverted), all velocity/hazard/alert rasters.
-`session_journey.md` (git-ignored) has the S30 entry covering both batches.
+AOI-seasons, the 2025 dashboards (deliberately reverted), all velocity/hazard/alert rasters,
+and §59's winter NISAR result (sites/verdict/l_band dicts `==` a pre-change copy).
+`session_journey.md` (git-ignored) has the S30 entry covering all three batches.
+
+**Known-open, NOT fixed:** the HIGH-severity dashboard XSS + the panel CSRF gap (see
+Recommended next step).
 
 ---
 
@@ -204,10 +242,15 @@ The core vision is fully built and scored above chance. Remaining work:
    from the 0.1° grid. Still
    open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
-5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on
-   ASF Feb 2026; **calibrated forward processing at 1–3 day latency from Jul 2026**. L-band recovers
-   coherence over vegetation (our worst enemy) + ships geocoded interferograms via ASF (feeds this
-   pipeline). Track ASF availability; start ingestion to build an L-band baseline for the Jul-2026 window.
+5. **NISAR (step-change): the forward stream ARRIVED 2026-07 as predicted (§65).** L-band recovers
+   coherence over vegetation (our worst enemy, §59: 75–87% of C-band's failure class) + ships
+   geocoded interferograms via ASF. **Now the freshest radar over Ramban by ~10 weeks.** ~~Track ASF
+   availability~~ ✅ done (watcher). **Open:** the monsoon L-vs-C confirmation is blocked by NaN
+   voids over both AOIs in the provisional (`_PR_`/`P05023`) granules — n=2, systematic. Re-check
+   after NASA reprocesses, or when an acquisition lands with our footprint outside the void; scoring
+   is one command (`nisar_coherence_pilot.py --season monsoon`) and aborts honestly if still void.
+   Also newly available and unexploited: **DESC track-135 L-band GUNWs** — a possible route back to
+   the ASC/DESC vertical+EW decomposition that C-band DESC was too noisy for (Area 2).
 
 **Exception to MVP-first (always):** fix correctness/data-integrity bugs immediately; defer quality-only
 improvements until shown to matter.

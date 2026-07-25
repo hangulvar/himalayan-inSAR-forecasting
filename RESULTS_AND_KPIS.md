@@ -3000,6 +3000,91 @@ re-tune cannot silently invalidate it — only the one pinning test asserts lite
 
 ---
 
+## 65. NISAR forward stream ARRIVED — and the first monsoon granules are VOID over both AOIs (honest abort + a guard that would have published a fake result)  `[MEASURED]`
+*(2026-07-25, session 30 cont. — the plan's dated Tier-2c trigger fired. `radar_watch.py`
+(stream watch), `nisar_coherence_pilot.py` (seasons + coverage guard), 2 GUNWs pulled from ASF
+(~3.7 GB), suite `tests/test_radar_watch.py` 6→10. Reports
+`data/nisar/nisar_coherence_pilot{,_monsoon}.json`.)*
+
+**The trigger the plan was waiting on has fired `[MEASURED]`.** §56/Tier 2c said the NISAR
+operational stream had not reached this region ("nothing after 18 Jan 2026 — recheck monthly")
+and roadmap #5 named **Jul 2026** as the expected window. Today's watch: **`stream_started:
+true`, 104 products, 8 GUNWs, newest acquisition 2026-07-19, 6 new acquisition dates.** Five
+new GUNWs (Jun–Jul 2026) on top of §59's three winter ones — ASC track 156 (25 Jun×7 Jul,
+7 Jul×19 Jul) and DESC track 135. **NISAR is now the freshest radar over Ramban by ~10 weeks**
+(its C-band library ends 2026-05-06; S1A ceased operations 29 Jun, ASF's S1D ingest lags ~3 wk).
+
+**Why this mattered scientifically:** §59 measured L-band recovering **75–87%** of C-band's
+failure-class pixels but stated its own limitation plainly — *winter is the season of minimum
+vegetation contrast, so that is a LOWER BOUND*. Monsoon L-band is the number the whole L-band
+case rests on. The pilot was therefore parameterised into two seasons on the **same NISAR track
+156 frame 018** (geometry held constant, only season varies), with the 12-day baseline held
+fixed in both bands — the 7-day S1A×S1D seam pair was deliberately excluded because a shorter
+baseline decorrelates less and would have biased the comparison *toward* C-band.
+
+**Result: NO monsoon measurement is possible from the current stream. `[MEASURED]`**
+
+| granule (ASC 156) | granule-wide valid | Ramban window valid | Vaishno Devi window valid |
+|---|---|---|---|
+| winter 27 Dec × 08 Jan (§59) | 49.6% | **100.0%** (median γ_L 0.720) | **100.0%** (0.692) |
+| monsoon 25 Jun × 07 Jul | 33.9% | **0.0%** (all-NaN) | 19.3% (median **0.007**) |
+| monsoon 07 Jul × 19 Jul | 33.2% | **0.0%** (all-NaN) | 18.1% (median **0.007**) |
+
+Both monsoon granules are **voided over our AOIs in the same place** — n=2, so this is a
+systematic property of the provisional processing over this footprint, not a bad granule.
+
+**How we know it is a VOID and not a monsoon result** (three independent checks — this is the
+finding that matters, because the naive reading is "L-band collapses in the monsoon"):
+1. **C-band on the same ground and dates is healthy** — median γ_C **0.72–0.85** on the 06→18
+   Jun and 11→23 Jun 12-day pairs. C-band is the *shorter* wavelength; it cannot out-survive
+   L-band by 100×. If the ground had truly decorrelated, C would have died first. It didn't.
+2. **The granule contradicts itself.** Over Ramban `coherenceMagnitude` is 100% NaN while
+   `connectedComponents` is **>0 on 100%** of the same pixels — the unwrapper claims valid
+   unwrapped data exactly where coherence claims none.
+3. **The values are not low, they are absent** — 0 pixels exactly-zero, 0 pixels in (0, 0.05];
+   the Ramban window is **64,496/64,496 NaN**. VD's 0.007 is the fringe of the same void.
+
+**★ NASA's own QA PASSES these granules — and that is a trap worth recording.** The product
+QA_SUMMARY reports **46–63% NaN** across layers and marks each **PASS**, because its threshold
+only trips above **99%** NaN. One granule even carries `Passes all identification group checks?
+FAIL` alongside all-PASS layer checks. **A product-level QA PASS says nothing about whether your
+AOI has data.** Any pipeline ingesting NISAR must do its own per-AOI coverage check.
+
+**★ The guard — the real deliverable.** Before it existed, the monsoon run produced a confident,
+fully-formatted verdict: *"[vaishnodevi] C 0.852 vs L 0.007 | C-fail 2.5% → L recovers 0.0%"*
+plus the standing conclusion string *"L-band recovers only a modest share of C-band's lost
+ground"*. **That number was computed from a NaN void and is entirely fabricated** — and it
+directly contradicts §59, so publishing it would have inverted a validated finding on no
+evidence (precisely the §12g failure mode CLAUDE.md exists to prevent). `l_window_health()` now
+refuses to score an AOI whose L window is <40% valid or whose median is <0.05, and a run where
+no AOI survives writes an explicit **ABORTED — no verdict** artifact carrying the per-AOI
+evidence, never a coherence number. Pinned by 5 hermetic cases (full/void/fringe/dead/off-grid)
+plus an artifact test asserting the monsoon report has `status: ABORTED` and **no**
+`median_pct_of_C_fail_pixels_recovered_by_L` key, while the winter report keeps its §59 numbers.
+
+**§59 is untouched and re-verified.** The winter run reproduces **byte-identically** after
+parameterisation + guard (sites, verdict and l_band dicts all `==` a pre-change copy; only
+additive `season` and `l_coverage` keys). The winter guard reads 100% valid over both AOIs —
+a clean contrast that shows the guard is not simply rejecting everything.
+
+**Where this leaves the L-band case:** unchanged and still positive — §59's 75–87% recovery
+stands as the measured result, and it remains a *lower bound*. The monsoon confirmation is
+**deferred on data availability, not on physics**. Re-check when NASA reprocesses these
+provisional (`_PR_`, `P05023`) granules or when a later acquisition lands with our footprint
+outside the void; the machinery is now in place to score it in one command
+(`--season monsoon`) and to refuse it honestly if it is void again.
+
+**Cost/housekeeping:** ~3.7 GB pulled; the 07 Jul×19 Jul granule was deleted after measurement
+(its numbers are in the table above and it re-downloads in ~4 min), the 25 Jun×07 Jul granule
+is kept because the monsoon preset points at it and the ABORT must stay reproducible.
+
+**Verified:** suite `tests/test_radar_watch.py` **6→10** (season presets are a controlled
+comparison — same track, 12-day baselines both bands, distinct output tags with winter's empty
+so §59's artifact keeps its filename; the renumbered-frame admission; the coverage guard; the
+abort artifact). Full battery **TEN suites 8+12+10+11+21+11+10+13+5+8 = 109 green, 0 failed.**
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
