@@ -35,6 +35,19 @@
   re-fetch/reprocessing could silently un-catch that event. `tests/test_tier34.py` asserts
   `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly telling the reader to **re-derive k,
   not edit the test**.
+- **★ NEW (§67) — the routed-LLOF swap is ADOPTED (§60 4c CLOSED); its "post-merge" gate had
+  been satisfied since 2026-07-19** (`master` = `dc9ba1e`, PR #2 — the LIVE block was stale, the
+  item had been actionable for six days). `llof_routing: d8` on **both** sites, alerts + unions
+  regenerated. Zone sets **identical**; only the downstream flag moves (Ramban operational 6/8
+  zones flip, VD 3/14). **Re-score confirms the swap is CONFINED: AUC 0.676 unchanged**, hazard
+  rasters never touched. Honest limit: no LLOF ground truth exists, so this is an adoption on
+  mechanism quality, not a skill score (§67). New test pins `d8` on every registry site.
+- **⚠ Process failure logged (§67b):** re-running `backtest_inventory.py` with **default**
+  arguments (11-event inventory) clobbered both stored reports (138-event GSI). The
+  load-bearing `backtest_operational_report.*` was restored and verified identical; the monsoon
+  arm's prior on-disk state is lost (git-ignored; numbers survive in §16b). **Rule: never
+  re-run a scoring script with defaults to verify something — look up the producing invocation,
+  back up, run those args, diff.**
 - **★ NEW (§66) — a codebase-wide SECURITY SCAN found a HIGH stored XSS; it is now FIXED and
   regression-tested.** The dashboards rendered the historical-events record (`name`, `damage`,
   source `label`/`url` — the last inside `href`) with **zero** escaping; proven with 4/4
@@ -85,8 +98,13 @@
   keep flagged pending a GSI report request). Inventory rows untouched pending the verdict.
 - **(§55–§61 carried):** NISAR pilot confirms L-band recovers 75–87% of C-band's failure-class
   pixels (§59); radar watcher + freshness pill live (§57); the 3 rebuild products are QA-passed
-  and the S1A×S1D seam de-risked but S1D dropped (§61); LLOF d8 swap shipped config-gated (§60).
+  and the S1A×S1D seam de-risked but S1D dropped (§61).
   Active plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **Plan status after this session:** Tier 0 ✅, Tier 1 ✅ (§58/§63/§64), Tier 2 ✅ + stream
+  arrived (§59/§65), Tier 3 ✅ (3b GACOS = user), Tier 4: **4c ✅ CLOSED (§67)**, 4a ✅, 4e ✅
+  (merged 2026-07-19); **4b soil lab = user**, **4d frames-101/102 ERA5 rescue = still deferred**
+  (only f106 has an ERA5 config/script; 101/102 needs multi-session MintPy compute + real CDS
+  credentials — genuinely not a headless task).
 - **BOTH sites in WATCH (§54)**; Ramban COMPLETE/scored/LIVE (§21b, §44), Vaishno Devi validated
   + site-tuned (§26–§32). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
@@ -107,7 +125,7 @@ Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's da
 
 ## Uncommitted delta
 
-Session 30 is **four logical batches**; §63 (`2a13fd0`) and §64 (`533082b`) are already
+Session 30 is **five logical batches**; §63 (`2a13fd0`) and §64 (`533082b`) are already
 committed by the user, so the uncommitted delta is C + D:
 
 **Batch A — §63, measure the burst arm's false-alarm cost:**
@@ -149,10 +167,19 @@ committed by the user, so the uncommitted delta is C + D:
 - Git-ignored regenerated data: the two **2026** dashboards only (re-rendered with the fix; all
   four on disk audit clean).
 
+**Batch E — §67, routed-LLOF swap adopted:**
+- `config/ramban.yaml` + `config/vaishnodevi.yaml` (`llof_routing: d8`),
+  `tests/test_config_registry.py` (8→9: pins the adopted state), `RESULTS_AND_KPIS.md`
+  (§67 + §67b), `error_history_log.md` (default-arguments clobber), `SESSION_REVIEW.md`.
+- Git-ignored regenerated data: `data/alerts*/` per-stack + union alert JSONs/briefings for both
+  sites, `data/inventory/backtest{,_operational}_report.*`. Pre-swap backup kept at
+  `data/llof_swap/backup/` (25 MB) — delete once the swap is accepted.
+
 **Not touched (verified byte-identical):** every daily-arm report/calendar for all four
 AOI-seasons (re-checked after the XSS regen), the 2025 dashboards (deliberately reverted),
-all velocity/hazard/alert rasters, and §59's winter NISAR result.
-`session_journey.md` (git-ignored) has the S30 entry covering all four batches.
+all velocity/hazard rasters (§67 mtime check), the operational GSI back-test score (AUC 0.676),
+and §59's winter NISAR result.
+`session_journey.md` (git-ignored) has the S30 entry covering all five batches.
 
 ---
 

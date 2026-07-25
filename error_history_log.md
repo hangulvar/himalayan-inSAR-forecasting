@@ -1483,6 +1483,34 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   fresh run contradicts a validated finding, that is a signal to audit the input, not to
   publish the reversal (same discipline as the §12g wrong-date lesson).
 
+### [2026-07-25] Re-ran a scoring script with DEFAULT arguments to "verify" a change — and clobbered two reports
+
+* **Symptom:** verifying that the LLOF swap (§67) had not moved the hazard score, I ran
+  `backtest_inventory.py` with no arguments. It reported success. The diff against the stored
+  report then showed wild differences (AUC 0.676 → 0.628/0.450, n 138 → 11) that looked at first
+  like the swap had wrecked the model.
+
+* **Root Cause:** the script's DEFAULTS are not the arguments that produced the stored
+  artifacts. Default inventory is `ramban_documented_landslides.geojson` (11 events); both
+  stored reports were built from `gsi_inventory_aoi.geojson` (138), and the unsuffixed report
+  additionally uses `--alerts alerts_monsoon.json`. So the run scored a *different experiment*
+  and wrote it under the existing filenames. The alarming diff was my own doing, not the swap's.
+
+* **Resolution:** re-read the producing command recorded in the ledger (§16b), regenerated both
+  with those arguments, and diffed against a pre-swap backup. `backtest_operational_report.*`
+  came back identical in every field except a stale `aoi_path` string from the 2026-07-17
+  restructure — confirming the swap changed nothing. `backtest_report.*` (monsoon arm) had no
+  backup; regenerated from the documented command, its prior on-disk state is lost (git-ignored
+  derived artifact; its headline numbers survive in committed §16b). §67b.
+
+* **Lesson:** this is §64's trap wearing different clothes, hit **one entry later** — which is
+  the useful part. A regeneration is only a verification if it runs the *same experiment*;
+  otherwise it is a silent overwrite that also lies to you about the thing you were checking.
+  **Before re-running any scoring script: find the invocation that produced the stored artifact
+  (the ledger records it), back the artifact up, run with those exact arguments, then diff.**
+  A script's defaults are a convenience for first runs, never a reconstruction of history. And
+  when a verification produces an alarming result, suspect the harness before the change.
+
 ### [2026-07-25] Stored XSS: the dashboards rendered the untrusted events record unescaped
 
 * **Symptom:** found by a codebase-wide security scan, not by a failure. `operational_alarm.py`

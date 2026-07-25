@@ -31,7 +31,8 @@ kappa: 0.06
 # proxy (keeps the validated products byte-identical); "d8" = real D8 flow routing
 # (flow_routing_probe criterion — the probe measured 7/8 Ramban flags flip). Flip to
 # "d8" at the scheduled post-merge swap, then regenerate + re-score.
-# llof_routing: d8
+# ADOPTED 2026-07-25 (§67) — the post-merge swap fired (master took the merge 2026-07-19).
+llof_routing: d8
 
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"

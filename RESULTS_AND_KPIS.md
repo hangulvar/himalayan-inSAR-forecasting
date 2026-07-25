@@ -3158,6 +3158,90 @@ non-root, panel bound to 127.0.0.1 with a correct traversal guard, dependencies 
 
 ---
 
+## 67. Routed-LLOF swap ADOPTED (§60 4c closed) — the post-merge gate was already satisfied  `[MEASURED]`
+*(2026-07-25, session 30 cont. — `config/{ramban,vaishnodevi}.yaml` `llof_routing: d8`;
+alerts regenerated via `agentic_orchestrator.py` per stack + `run_multistack.write_union_alerts`;
+re-scored with `backtest_inventory.py`. Suite `tests/test_config_registry.py` 8→9.)*
+
+**The gate was open and nobody had noticed.** §60 4c scheduled the swap "post-merge"; the LIVE
+block still listed it as blocked on a merge that was the user's call. **`master` took the merge
+on 2026-07-19 (`dc9ba1e`, PR #2)** — so the condition had been satisfied for six days. The swap
+had never been scored. Checked before assuming: `git log master` and a diff of `master..HEAD`.
+
+**What changed `[MEASURED]`.** The TWI valley proxy is replaced by real D8 flow-accumulation
+routing for the downstream-debris (`llof_potential`) flag. Zone sets are **identical** before
+and after (verified by comparing every zone centroid) — the swap changes *which zones carry the
+downstream flag*, never which slopes are alerts:
+
+| site / scenario | zones | LLOF twi → d8 | gained | lost | flips |
+|---|---|---|---|---|---|
+| Ramban operational | 8 | 3 → **5** | +4 | −2 | **6 (75%)** |
+| Ramban watch | 106 | 48 → **55** | +33 | −26 | 59 (56%) |
+| Vaishno Devi operational | 14 | 5 → **8** | +3 | −0 | **3 (21%)** |
+| Vaishno Devi watch | 102 | 53 → **57** | +24 | −20 | 44 (43%) |
+
+Consistent with the §60 probe (which predicted ~7/8 Ramban and ~4/14 VD operational flips) —
+the small residual is that the probe ran against the then-current zone set.
+
+**★ The re-score: the swap is CONFINED, and that is the point `[MEASURED]`.** Re-running the
+GSI back-test on the operational footprint with its documented arguments gives
+**AUC 0.676, 28/138 detected, detection rate 0.203, null-vs-real median 7.01 / 3.75 km — every
+number identical to the pre-swap artifact.** That is the expected and desired result:
+`llof_potential` is a *downstream consequence annotation*, not a hazard input, so a correct swap
+must leave the hazard score untouched. Verified independently that no velocity or hazard raster
+was rewritten (Phase 2/3 never ran — mtime check). The swap's blast radius is exactly the alert
+JSONs, briefings, the 3-D dashboard label and route exposure.
+
+**Honest limit — this is an adoption on MECHANISM, not on a skill score.** There is no
+inventory of debris-flow *runout* events to score `llof_potential` against, and the flag is a
+property of the source slope while an event record is a property of the impact point — a
+category mismatch. So no ROC/AUC for the flag itself is possible or claimed. The case for d8
+rests on: (a) it computes the physical quantity (upslope accumulation over the real DEM) rather
+than a topographic-wetness stand-in; (b) the D8 router is unit-tested on a synthetic valley
+including the off-grid edge case (§60, `test_tier34`); (c) the §60 probe showed the proxy and
+the real routing disagree on **half of all zones**, so the proxy was demonstrably not a
+stand-in. Adopting the measured quantity over an unvalidated proxy is the defensible direction
+even without a flag-level score — and it is recorded here as such, not dressed up as skill.
+
+**Verified:** `tests/test_config_registry.py` **8→9** — a new test pins the adopted state
+(`llof_routing == "d8"` for every registry site) so a silent revert to the proxy fails loudly
+and a deliberate flip back is a visible edit. Full battery **TEN suites 9+12+10+15+21+11+10+13+5+8
+= 114 green, 0 failed.**
+
+### 67b. Process failure during the re-score — a derived artifact clobbered by default arguments  `[MEASURED]`
+
+Recorded because it happened **one entry after** logging the identical lesson (§64's past-season
+trap), which makes it worth more than a footnote.
+
+To verify the re-score I ran `backtest_inventory.py` **with default arguments**. Its defaults are
+not what produced the stored artifacts: the default inventory is
+`ramban_documented_landslides.geojson` (11 events) while both stored reports were built from
+`gsi_inventory_aoi.geojson` (138). The run therefore overwrote
+`data/inventory/backtest_report.json` and `backtest_operational_report.json` with numbers from a
+different experiment (AUC 0.450/0.628 vs the real 0.676) — and the console output looked
+perfectly successful.
+
+- **`backtest_operational_report.*` — fully restored.** Regenerated with the arguments the ledger
+  documents (§16b) and diffed against a backup taken before the swap: identical in every field
+  except `scored.aoi_path`, a stale string (`/app/ramban_aoi.geojson` →
+  `/app/config/aoi/ramban_aoi.geojson`) reflecting the 2026-07-17 config restructure. Same file,
+  new location; **no number moved**.
+- **`backtest_report.*` (the monsoon arm) — regenerated, not restored.** Its prior on-disk state
+  had no backup and its last-refresh provenance is unknown, so its previous contents are lost.
+  Nothing load-bearing is lost with them: it is a git-ignored derived artifact, its headline
+  numbers live in committed §16b, and it is reproducible from the documented command. The
+  regenerated run (AUC 0.434, 97/138, lift 0.79× @2 km) differs from §16b's historical 0.409
+  because the product has legitimately been rebuilt since (κ=0.06 adoption, §45) — §16b is a
+  superseded historical entry, not a target to reproduce.
+- **Rule now explicit:** *never re-run a scoring script with default arguments to "verify"
+  something* — look up the invocation that produced the stored artifact, back the artifact up,
+  run with those arguments, and diff. Vaishno Devi's back-tests were deliberately **not** re-run
+  for exactly this reason: their documented invocations were not to hand, and the swap's
+  confinement was already established by the identical Ramban score plus untouched hazard
+  rasters and identical zone centroids.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

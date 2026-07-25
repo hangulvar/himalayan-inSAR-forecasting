@@ -159,6 +159,21 @@ def test_llof_routing_gate() -> None:
         tmp.unlink(missing_ok=True)
 
 
+def test_llof_routing_adopted_state_is_d8_everywhere() -> None:
+    """§67: the scheduled post-merge swap FIRED — every registry site now routes LLOF with
+    real D8 flow accumulation, not the TWI proxy. Pinned so an accidental revert to the proxy
+    is caught, and so flipping back is a deliberate, visible edit (the swap changes which
+    zones carry the downstream-debris flag: Ramban 6/8 operational zones flipped, VD 3/14).
+
+    If this test fails, decide which is true — a site was reverted on purpose (update this
+    test AND the ledger), or the config drifted (fix the config).
+    """
+    for p in _registry_paths():
+        assert load_config(p).llof_routing == "d8", (
+            f"{p.name}: expected the adopted 'd8' routing (§67), got "
+            f"'{load_config(p).llof_routing}'")
+
+
 # ------------------------------------------------------------------------------
 # CLI runner (mirrors tests/test_plumbing.py so both run the same way).
 # ------------------------------------------------------------------------------
