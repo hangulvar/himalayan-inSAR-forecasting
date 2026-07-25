@@ -13,7 +13,11 @@ What is asserted:
     zone + live parameters) for BOTH sites, and distances are sane;
   • the rendered tab carries Google Maps links, confidence badges and the
     pending-review markers; the dashboard page keeps its existing tabs intact
-    and degrades gracefully (no Past-events button) when the record is absent.
+    and degrades gracefully (no Past-events button) when the record is absent;
+  • SECURITY: no field of the (untrusted, news/LLM-sourced) events record can
+    inject an element, an event handler, or a non-http(s) URL into the rendered
+    dashboard — asserted by PARSING the output, with a negative control proving
+    the auditor detects the vulnerability it guards against.
 
 Run from project root (conda env active, or in the insar container):
     python -m pytest tests/test_historical_events.py -v
@@ -266,6 +270,137 @@ def test_loader_absent_record_returns_none():
         assert oa.load_historical_events(Path("nonexistent.json")) is None
     finally:
         oa.SLUG = saved
+
+
+# ------------------------------------------------------------------------------
+# SECURITY — stored XSS via the (untrusted) historical-events record
+# ------------------------------------------------------------------------------
+# The events record is transcribed from news articles and LLM-synthesis leads, which CLAUDE.md
+# and §36-§38 treat as UNTRUSTED. control_panel.py serves the generated dashboards from
+# /file/... at the SAME ORIGIN as its control API, so an injected script would run with access
+# to POST /run and to every file under data/. Substring checks are NOT enough here: escaped
+# text legitimately still CONTAINS "onmouseover=" as inert characters. So parse the output and
+# assert on the resulting DOM.
+
+_XSS_EVENT = {
+    "name": "X</b><img src=x onerror=alert(1)>",
+    "date": "2026-01-01", "lat": 33.0, "lon": 75.0,
+    "deaths": 0, "injured": 0,
+    "damage": "<script>alert(4)</script>",
+    "confidence": "HIGH", "confidence_reason": '" onload="alert(5)',
+    "review_needed": False, "damage_score": 1, "confidence_score": 1,
+    "sources": [{"label": '" onmouseover="alert(2)', "url": "javascript:alert(3)"},
+                {"label": "legit", "url": "https://example.org/a?b=1&c=2"},
+                {"label": "scheme-relative", "url": "//evil.example/x"},
+                {"label": "data uri", "url": "data:text/html,<script>alert(9)</script>"}],
+}
+
+
+def _audit_html(markup: str) -> list:
+    """Parse `markup`; return every injected element, on* handler and non-http(s) URL."""
+    from html.parser import HTMLParser
+
+    findings = []
+
+    class Audit(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            if tag in ("script", "iframe", "object", "embed", "svg"):
+                findings.append(("element", tag))
+            for k, v in attrs:
+                if k.lower().startswith("on"):
+                    findings.append(("handler", tag, k, v))
+                if k.lower() in ("href", "src") and v:
+                    head = v.split("?")[0]
+                    scheme = head.split(":", 1)[0].lower() if ":" in head else ""
+                    if scheme and scheme not in ("http", "https"):
+                        findings.append(("scheme", tag, k, v[:40]))
+                    if v.startswith("//"):
+                        findings.append(("scheme-relative", tag, k, v[:40]))
+
+    Audit().feed(markup)
+    return findings
+
+
+def test_hist_panel_is_not_injectable():
+    hist = {"events": [dict(_XSS_EVENT)], "site": "t",
+            "updated": "<img src=x onerror=alert(6)>", "note": "<b>note</b>"}
+    html = oa._hist_panel(hist, "WATCH", date(2026, 7, 25))
+    assert _audit_html(html) == [], _audit_html(html)
+    # The payload must still be VISIBLE as text (escaped, not silently dropped) — a fix that
+    # deletes the content would also pass an injection check while destroying the record.
+    assert "&lt;img src=x onerror=alert(1)&gt;" in html
+    # A legitimate https source keeps its link, with the query ampersand escaped.
+    assert 'href="https://example.org/a?b=1&amp;c=2"' in html
+    # javascript:, data: and scheme-relative sources are cited as plain text, never linked.
+    assert html.count("<a href=") == 1 + html.count('href="https://www.google.com/maps')
+
+
+def test_audit_helper_actually_detects_the_vulnerability():
+    """NEGATIVE CONTROL. A guard that cannot fail is not a guard: disable the escaper and the
+    same assertions must FAIL — proving the audit detects the bug it was written for."""
+    original = oa._esc
+    try:
+        oa._esc = lambda v: "" if v is None else str(v)      # the pre-fix behaviour
+        hist = {"events": [dict(_XSS_EVENT)], "site": "t", "updated": "u", "note": "n"}
+        findings = _audit_html(oa._hist_panel(hist, "WATCH", date(2026, 7, 25)))
+        kinds = {f[0] for f in findings}
+        assert "element" in kinds, f"auditor missed the injected <script>/<img>: {findings}"
+        assert "handler" in kinds, f"auditor missed the on* handler: {findings}"
+    finally:
+        oa._esc = original
+    # …and with the escaper restored the very same input is clean again.
+    hist = {"events": [dict(_XSS_EVENT)], "site": "t", "updated": "u", "note": "n"}
+    assert _audit_html(oa._hist_panel(hist, "WATCH", date(2026, 7, 25))) == []
+
+
+def test_safe_url_allow_list():
+    assert oa._safe_url("https://a.example/x") == "https://a.example/x"
+    assert oa._safe_url("http://a.example/x") == "http://a.example/x"
+    for bad in ("javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,<script>",
+                "vbscript:msgbox", "//evil.example/x", "  javascript:alert(1)", "", None):
+        assert oa._safe_url(bad) == "", bad
+    # Quotes in an otherwise-valid URL are escaped, never allowed to close the attribute.
+    assert '"' not in oa._safe_url('https://a.example/"onmouseover="alert(1)')
+
+
+def test_full_dashboard_page_is_not_injectable():
+    """End-to-end: the whole rendered page, not just the panel."""
+    hist = {"events": [dict(_XSS_EVENT)], "site": "t",
+            "updated": "<img src=x onerror=alert(7)>", "note": "<b>n</b>"}
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        r, dates, E, levels, fig, tier = _minimal_dashboard_args(tmp)
+        r["per_event"] = [{"name": "<script>alert(8)</script>", "date": "2026-01-01",
+                           "E_on_day": 1.0, "alert_within_window": True,
+                           "alarm_within_window": True}]
+        out = tmp / "dash.html"
+        oa.write_dashboard(out, r, dates, E, levels, 1, fig, tier, hist=hist,
+                           radar={"through": "2026-05-06",
+                                  "newer_at_asf": '"><img src=x onerror=alert(9)>',
+                                  "new_scenes": 3, "new_units": "S1A/S1D"})
+        page = out.read_text(encoding="utf-8")
+
+    # The page legitimately contains FIRST-PARTY constructs written by our own code: its
+    # <script> blocks, the tab buttons' onclick="showTab(...)", and the base64 figure. Allow
+    # exactly those shapes and nothing else — so any NEW inline handler or URL scheme, whether
+    # injected by data or added carelessly by us later, fails this test.
+    import re
+    ok_onclick = re.compile(r"^showTab\('[a-z]+'\)(;return false)?$")
+    bad = []
+    for f in _audit_html(page):
+        if f[0] == "element" and f[1] == "script":
+            continue
+        if f[0] == "handler" and f[2] == "onclick" and ok_onclick.match(f[3] or ""):
+            continue
+        if f[0] == "scheme" and f[2] == "src" and (f[3] or "").startswith("data:image/png;base64"):
+            continue
+        bad.append(f)
+    assert bad == [], bad
+
+    # The injected payloads survive only as escaped text.
+    assert "<script>alert(8)</script>" not in page
+    assert "&lt;script&gt;alert(8)&lt;/script&gt;" in page
+    assert 'onerror=alert(9)' not in page.replace("&quot;", '"').split("data-new=")[0]
 
 
 # ------------------------------------------------------------------------------

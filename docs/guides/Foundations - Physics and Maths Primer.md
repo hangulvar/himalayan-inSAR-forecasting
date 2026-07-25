@@ -1879,6 +1879,20 @@ is simply the **cheapest** member of that band. When recall is flat over a range
 can't pick a point in it; only a cost criterion can. That's the difference between choosing a
 threshold and overfitting one.
 
+**Q: You security-tested your own project. What did you find, and how did you verify the fix?**
+A: One HIGH finding: the dashboards interpolated our historical-events record into HTML with no
+escaping — including each source's URL inside an `href`. It mattered because of two facts in
+combination: that record is **untrusted by our own documented rule** (its rows are transcribed
+from news and from LLM-synthesis leads that we've caught fabricating events), and the local
+control panel serves those dashboards from the *same origin* as its control API — so injected
+script would inherit `POST /run` and read access to all of `data/`. A sentence copied from a
+news site becomes local file read. I proved it with four payloads, fixed it with escaping plus
+an http/https allow-list for URLs (non-conforming sources render as plain text, never dropped),
+and — the part that matters — verified by **parsing** the output rather than grepping it. My
+first grep-based check produced false alarms, because correctly escaped text still *contains*
+the string `onmouseover=`. Then I added a negative control: disable the escaper and the tests
+must fail. A guard that cannot fail isn't evidence of anything.
+
 **Q: Your tool produced a result that contradicted a validated finding. What did you do?**
 A: Audited the input before believing the reversal. A monsoon NISAR run reported L-band
 recovering 0% of C-band's lost ground — against a validated 75–87%. Three checks showed the

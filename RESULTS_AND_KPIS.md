@@ -3085,6 +3085,79 @@ abort artifact). Full battery **TEN suites 8+12+10+11+21+11+10+13+5+8 = 109 gree
 
 ---
 
+## 66. Stored XSS in the dashboards — found, proven, FIXED, and regression-tested  `[MEASURED]`
+*(2026-07-25, session 30 cont. — codebase-wide security scan then remediation.
+`operational_alarm.py` (`_esc`/`_safe_url` + every untrusted interpolation),
+`tests/test_historical_events.py` 11→15. Severity **HIGH**.)*
+
+**The vulnerability `[MEASURED]`.** `operational_alarm.py` rendered the curated
+historical-damage record straight into HTML — 105 HTML fragments, **zero** escaping. Every
+field of `data/inventory/<slug>_historical_events.json` reached the page raw: `name`, `damage`,
+`date_note`, `confidence`, `confidence_reason`, and each source's `label` and **`url` — the
+last one inside `href="…"`**. Also unescaped: the radar-freshness pill's `data-*` attributes,
+which carry **ASF API** values. Proven, not theorised — four payloads landed verbatim:
+
+| payload | field | lands in |
+|---|---|---|
+| `X</b><img src=x onerror=alert(1)>` | `name` | element text |
+| `<script>alert(4)</script>` | `damage` | element text |
+| `javascript:alert(3)` | source `url` | **`href` attribute** |
+| `" onmouseover="alert(2)` | source `label` | **`title` attribute break-out** |
+
+**Why HIGH rather than cosmetic — the escalation chain.** Two facts combine. (1) The data is
+**untrusted by this project's own documented process**: §36–§38 and CLAUDE.md classify
+deep-research/LLM-synthesis documents as lead generators only, and the record's rows are
+transcribed from those plus news URLs. (2) `control_panel.py` serves the generated dashboards
+as `text/html` from `/file/…` — the **same origin** as its control API. So a payload reaching a
+dashboard executes at `http://127.0.0.1:8765` and can, same-origin and with no CSRF barrier:
+`fetch('/file/…')` **any file under `data/`** (~73 GB of products and config), `POST /run` to
+trigger Docker jobs, and exfiltrate both to any host. Local file read + job execution from a
+news-sourced string.
+
+**The fix.** `_esc()` (`html.escape(..., quote=True)`, None→"") on every interpolation of a
+value not originating in this codebase, and `_safe_url()` — an **allow-list** admitting only
+`http://`/`https://`; anything else (`javascript:`, `data:`, `vbscript:`, scheme-relative
+`//host`) yields `""` and the source is cited as **plain text instead of a link**, so a source
+is never silently dropped. Real links also gained `rel="noopener noreferrer"`.
+
+**Verified by PARSING, not substring matching `[MEASURED]`** — this distinction mattered: the
+first check reported three "still injected" hits that were actually *escaped* text (`&quot;
+onmouseover=&quot;…` legitimately contains the characters `onmouseover=`). The permanent test
+parses the rendered HTML and asserts the resulting DOM carries **no** injected element, **no**
+`on*` handler, and **no** non-http(s) `href`/`src`. Results:
+
+- `_hist_panel` with all four payloads → **0 findings**; payloads still present as escaped,
+  visible text (a fix that deleted content would also pass an injection check — asserted).
+- A legitimate source keeps its link with the query `&` escaped:
+  `href="https://example.org/a?b=1&amp;c=2"`.
+- **Whole-page** render → 0 findings, against a precise allow-list of the page's own
+  first-party constructs (its `<script>` blocks, `onclick="showTab(...)"`, the base64 figure) —
+  so any *new* inline handler, ours or injected, trips the test.
+- **NEGATIVE CONTROL:** disabling `_esc` makes the same assertions FAIL (injected element +
+  handler both detected), proving the guard can actually fail. A guard that cannot fail is not
+  a guard.
+- **All four dashboards on disk audit CLEAN**, including the two live 2026 pages regenerated
+  with the fix.
+
+**The validated daily arm is untouched** — all eight report/calendar artifacts across the four
+AOI-seasons are **byte-identical** before and after (the 2025 pages were deliberately not
+regenerated, per §64's past-season trap).
+
+**Verified:** suite `tests/test_historical_events.py` **11→15** (panel not injectable; the
+negative control; `_safe_url` allow-list incl. case-variant `JavaScript:`, leading whitespace,
+scheme-relative and empty/None; whole-page audit). Full battery **TEN suites
+8+12+10+15+21+11+10+13+5+8 = 113 green, 0 failed.**
+
+**Still open from the same scan (LOW, not fixed):** no CSRF/`Origin` check on the panel's
+`POST /run` — any site the user browses can trigger a job cross-origin; impact is unwanted
+compute only, since `action`/`aoi` are strictly allow-listed. Also: `_serve_file` reads whole
+files into memory (a multi-GB GeoTIFF request exhausts the panel), and the base image
+`mambaorg/micromamba:1.5.10` is an old pinned tag. Verified clean in the same scan: no
+`shell=True`/`eval`/`exec`/`pickle`, zip-slip safe, no secrets tracked or in history, container
+non-root, panel bound to 127.0.0.1 with a correct traversal guard, dependencies all current.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

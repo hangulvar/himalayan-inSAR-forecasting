@@ -1482,3 +1482,36 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   the granule, never your AOI — always re-check coverage over your own footprint; (2) when a
   fresh run contradicts a validated finding, that is a signal to audit the input, not to
   publish the reversal (same discipline as the §12g wrong-date lesson).
+
+### [2026-07-25] Stored XSS: the dashboards rendered the untrusted events record unescaped
+
+* **Symptom:** found by a codebase-wide security scan, not by a failure. `operational_alarm.py`
+  had 105 HTML fragments and **zero** `html.escape` calls; every field of the historical-events
+  JSON reached the page raw, including each source's `url` **inside `href="…"`**. Four crafted
+  payloads (element injection, `<script>`, `javascript:` URL, attribute break-out via `title`)
+  all landed verbatim in the rendered panel.
+
+* **Root Cause:** the record was treated as first-party because *we* curate it — but by this
+  project's own rule (CLAUDE.md / §36–§38) its rows are transcribed from news articles and from
+  LLM-synthesis documents that are explicitly UNTRUSTED. "Curated by us" is a statement about
+  effort, not about provenance. Compounding it, `control_panel.py` serves those dashboards from
+  `/file/…` at the **same origin** as its control API, so injected script inherits `POST /run`
+  and read access to everything under `data/`.
+
+* **Resolution:** `_esc()` on every non-first-party interpolation and `_safe_url()` as an
+  http/https **allow-list** (anything else renders as plain text, never a link);
+  `rel="noopener noreferrer"` on real links. Regression tests PARSE the output and assert the
+  DOM has no injected element, no `on*` handler and no non-http(s) URL — plus a negative
+  control that disables the escaper and requires those assertions to fail. §66.
+
+* **Gotcha worth its own line:** the first verification used substring checks and reported
+  three payloads as "still injected" that were in fact safely escaped — `&quot; onmouseover=`
+  legitimately *contains* the characters `onmouseover=`. **Substring matching cannot tell
+  escaped text from live markup; parse the HTML and assert on the DOM.** A naive grep here
+  produces both false alarms and, worse, false confidence.
+
+* **Lesson:** trust is a property of an input's *origin*, not of who last touched it — anything
+  transcribed from outside is untrusted no matter how carefully. And escape at the point of
+  interpolation, not at ingest: the record is legitimately allowed to contain `<`, `&` and
+  quotes; it is the *rendering* that must be safe.
+

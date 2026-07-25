@@ -35,6 +35,19 @@
   re-fetch/reprocessing could silently un-catch that event. `tests/test_tier34.py` asserts
   `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly telling the reader to **re-derive k,
   not edit the test**.
+- **★ NEW (§66) — a codebase-wide SECURITY SCAN found a HIGH stored XSS; it is now FIXED and
+  regression-tested.** The dashboards rendered the historical-events record (`name`, `damage`,
+  source `label`/`url` — the last inside `href`) with **zero** escaping; proven with 4/4
+  payloads. HIGH because `control_panel.py` serves those pages **same-origin** as its control
+  API → injected script inherits `POST /run` + read access to all of `data/`, and the record is
+  untrusted by our own §36–38 rule. Fixed with `_esc()` everywhere + an http/https `_safe_url()`
+  allow-list (non-conforming sources render as plain text, never dropped). **Verified by PARSING
+  the DOM, not substring matching** (which gave false alarms), with a **negative control** that
+  disables the escaper and requires the tests to fail. All 4 dashboards on disk audit CLEAN;
+  daily-arm artifacts byte-identical. Battery **109 → 113 green**.
+- **⚠ Still open from that scan (LOW, NOT fixed):** no CSRF/`Origin` check on the panel's
+  `POST /run` (unwanted compute only — `action`/`aoi` are allow-listed); `_serve_file` reads
+  whole files into memory; base image `mambaorg/micromamba:1.5.10` is an old pinned tag.
 - **★ NEW (§65) — the NISAR forward stream ARRIVED (the plan's dated Tier-2c trigger fired) and
   the first monsoon granules are VOID over both AOIs.** `stream_started: true`, newest acq
   2026-07-19; **NISAR is now the freshest radar over Ramban by ~10 weeks** (C-band library ends
@@ -82,17 +95,7 @@
 
 ## Recommended next step
 
-**First, the HIGH-severity security finding from this session's scan (not yet fixed, user's
-call):** `operational_alarm.py` interpolates the historical-events JSON (`name`, `damage`,
-source `label`/`url`) raw into dashboard HTML — 105 fragments, zero `html.escape` — including
-inside an `href`. Confirmed with 4/4 payloads landing verbatim. It chains: `control_panel.py`
-serves those dashboards from `/file/…` at the SAME origin as its control API, so a payload can
-read any file under `data/` and `POST /run` with no CSRF barrier. Source is untrusted by our own
-§36–38 process (LLM-synthesis leads + news URLs). Fix ≈ escape + a URL-scheme allow-list + an
-`Origin` check on `POST /run`, plus a regression test using the payloads. Full scan results in
-the session transcript; nothing else above LOW.
-
-**Then the deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because
+**The deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because
 it needs a design decision first: how f105/f103 join the f106/f102 chains (a stack is strictly
 direction/path/frame today). Then the recorded plan:
 back up `_quarantine_list.csv` + `_stack_manifest.json` → `consolidate →
@@ -104,7 +107,8 @@ Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's da
 
 ## Uncommitted delta
 
-Session 30 is **three logical batches** (commit separately):
+Session 30 is **four logical batches**; §63 (`2a13fd0`) and §64 (`533082b`) are already
+committed by the user, so the uncommitted delta is C + D:
 
 **Batch A — §63, measure the burst arm's false-alarm cost:**
 - `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both arms; generated Tier-3c
@@ -135,13 +139,20 @@ Session 30 is **three logical batches** (commit separately):
   at it; the ABORT must reproduce) + `nisar_coherence_pilot_monsoon.json`; the 07 Jul×19 Jul
   granule was measured then deleted (numbers in §65; ~4 min to re-fetch). `data/nisar` now 4.0 GB.
 
-**Not touched (verified byte-identical):** every daily-arm report/calendar for all four
-AOI-seasons, the 2025 dashboards (deliberately reverted), all velocity/hazard/alert rasters,
-and §59's winter NISAR result (sites/verdict/l_band dicts `==` a pre-change copy).
-`session_journey.md` (git-ignored) has the S30 entry covering all three batches.
+**Batch D — §66, the stored-XSS fix:**
+- `workflows/operational_alarm.py` (`_esc()` + `_safe_url()` and every untrusted interpolation:
+  the Past-events panel, the today-cell, the per-event table, the radar pill's ASF-sourced
+  `data-*`), `tests/test_historical_events.py` (11→15: panel + whole-page DOM audits, the
+  `_safe_url` allow-list, and the negative control), `RESULTS_AND_KPIS.md` (§66),
+  `error_history_log.md` (XSS + the substring-vs-parse gotcha), `milestone.md` (M54), the primer
+  (a Part D answer), `SESSION_REVIEW.md`.
+- Git-ignored regenerated data: the two **2026** dashboards only (re-rendered with the fix; all
+  four on disk audit clean).
 
-**Known-open, NOT fixed:** the HIGH-severity dashboard XSS + the panel CSRF gap (see
-Recommended next step).
+**Not touched (verified byte-identical):** every daily-arm report/calendar for all four
+AOI-seasons (re-checked after the XSS regen), the 2025 dashboards (deliberately reverted),
+all velocity/hazard/alert rasters, and §59's winter NISAR result.
+`session_journey.md` (git-ignored) has the S30 entry covering all four batches.
 
 ---
 

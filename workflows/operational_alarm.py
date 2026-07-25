@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html
 import json
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -500,6 +501,36 @@ def _conf_cell(v) -> str:
     return f"<td><b style='color:{color}'>{p:.2f}</b></td>"
 
 
+# ------------------------------------------------------------------------------
+# HTML escaping (security — see SECURITY note below)
+# ------------------------------------------------------------------------------
+# WHY THIS EXISTS: this dashboard interpolates the curated historical-damage record
+# (data/inventory/<slug>_historical_events.json) and its source list into HTML. Those rows are
+# transcribed from news articles and from deep-research/LLM-synthesis leads, which CLAUDE.md
+# and §36-§38 classify explicitly as UNTRUSTED input. The generated pages are then served by
+# control_panel.py from /file/... at the SAME ORIGIN as its control API (POST /run, and
+# /file/ read access to everything under data/) — so an unescaped field here is not a cosmetic
+# bug, it is script execution inside the panel's origin. Every interpolation of a value that
+# did not originate in this codebase goes through _esc(); every URL through _safe_url().
+def _esc(v) -> str:
+    """Escape a value for interpolation into element text OR a double-quoted attribute."""
+    return "" if v is None else html.escape(str(v), quote=True)
+
+
+_SAFE_URL_SCHEMES = ("http://", "https://")
+
+
+def _safe_url(u) -> str:
+    """A source URL safe to place in href="...": http/https only, then escaped.
+
+    Anything else — javascript:, data:, vbscript:, or a scheme-relative //host — returns ""
+    so the caller renders plain text instead of a link. An allow-list, not a block-list:
+    unknown schemes are refused by default.
+    """
+    s = "" if u is None else str(u).strip()
+    return html.escape(s, quote=True) if s.lower().startswith(_SAFE_URL_SCHEMES) else ""
+
+
 def _gmaps(lat, lon, decimals: int = 4) -> str:
     """A lat, lon rendered as a click-to-open Google Maps link (satellite view of the spot)."""
     lat, lon = float(lat), float(lon)
@@ -662,18 +693,18 @@ def _hist_today_cell(e) -> str:
     d_txt = f"{km * 1000:.0f} m" if km < 1 else f"{km:.1f} km"
     parts = []
     if z.get("m_star"):
-        parts.append(f"m* {z['m_star']}")
+        parts.append(f"m* {_esc(z['m_star'])}")
     if z.get("fs_0p40") not in (None, ""):
         try:
             parts.append(f"FS@0.40 {float(z['fs_0p40']):.2f}")
         except (TypeError, ValueError):
             pass
     if z.get("creep_mmyr") not in (None, ""):
-        parts.append(f"creep {z['creep_mmyr']} mm/yr")
+        parts.append(f"creep {_esc(z['creep_mmyr'])} mm/yr")
     if z.get("confidence"):
-        parts.append(f"P {z['confidence']}")
+        parts.append(f"P {_esc(z['confidence'])}")
     sev = z.get("severity") or "zone"
-    sev_html = f"<b style='color:#aa0000'>CRITICAL</b>" if sev == "CRITICAL" else sev
+    sev_html = f"<b style='color:#aa0000'>CRITICAL</b>" if sev == "CRITICAL" else _esc(sev)
     if km <= 2.0:
         return (f"<td><b>{d_txt}</b> to nearest hazard zone ({sev_html})"
                 f"<br><span style='color:#666'>{' · '.join(parts)}</span></td>")
@@ -694,26 +725,31 @@ def _hist_panel(hist, lvl, as_of) -> str:
         else:
             bits = []
             if deaths is not None:
-                bits.append(f"<b>{deaths}</b> dead" if deaths else "0 dead")
+                bits.append(f"<b>{_esc(deaths)}</b> dead" if deaths else "0 dead")
             if injured:
-                bits.append(f"{injured} injured")
+                bits.append(f"{_esc(injured)} injured")
             cas = " · ".join(bits)
-        date_txt = e.get("date") or f"<span style='color:#888'>{e.get('date_note', 'date unknown')}</span>"
+        date_txt = (_esc(e.get("date"))
+                    or f"<span style='color:#888'>{_esc(e.get('date_note', 'date unknown'))}</span>")
         conf = e.get("confidence", "LOW")
         badge = (f"<span class='pill' style='background:{HIST_CONF_COLOR.get(conf, '#999')}' "
-                 f"title=\"{e.get('confidence_reason', '')}\">{conf}</span>")
+                 f"title=\"{_esc(e.get('confidence_reason', ''))}\">{_esc(conf)}</span>")
         if e.get("review_needed"):
             badge += "<br><span style='font-size:11px;color:#dc2828'>pending review</span>"
         srcs = []
         for j, s in enumerate(e.get("sources", []), 1):
-            if s.get("url"):
-                srcs.append(f"<a href=\"{s['url']}\" target=\"_blank\" title=\"{s['label']}\">[{j}]</a>")
+            label, href = _esc(s.get("label")), _safe_url(s.get("url"))
+            if href:
+                srcs.append(f"<a href=\"{href}\" target=\"_blank\" rel=\"noopener noreferrer\" "
+                            f"title=\"{label}\">[{j}]</a>")
             else:
-                srcs.append(f"<span title=\"{s['label']}\" style='cursor:help;color:#666'>[{j}]</span>")
+                # No URL, or a URL whose scheme is not http/https — cite it as plain text
+                # rather than emitting a link we cannot vouch for.
+                srcs.append(f"<span title=\"{label}\" style='cursor:help;color:#666'>[{j}]</span>")
         rows.append(
-            f"<tr><td>{i}</td><td><b>{e['name']}</b></td><td>{date_txt}</td>"
+            f"<tr><td>{i}</td><td><b>{_esc(e['name'])}</b></td><td>{date_txt}</td>"
             f"<td>{_gmaps(e['lat'], e['lon'])}</td><td>{cas}</td>"
-            f"<td style='max-width:340px'>{e['damage']}</td>"
+            f"<td style='max-width:340px'>{_esc(e['damage'])}</td>"
             f"{_hist_today_cell(e)}<td>{badge}</td><td>{' '.join(srcs)}</td></tr>")
     review_note = (f" <b>{n_review} row(s) are LOW/flagged confidence and pending review</b> — "
                    f"treat them as leads, not settled fact." if n_review else "")
@@ -741,8 +777,8 @@ def _hist_panel(hist, lvl, as_of) -> str:
       safe slope). Conversely, a nearby zone does not mean the old failure will repeat there.</div>
     <details style='font-size:12px;color:#666;margin-top:8px'>
       <summary style='cursor:pointer'>Provenance &amp; verification rules for this record
-        (updated {hist['updated']})</summary>
-      <p style='margin:6px 0 0'>{hist['note']}</p>
+        (updated {_esc(hist['updated'])})</summary>
+      <p style='margin:6px 0 0'>{_esc(hist['note'])}</p>
     </details>
   </div>
 </div>"""
@@ -785,7 +821,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
 
     ev_rows = "\n".join(
-        f"<tr><td>{e['name']}</td><td>{e['date']}</td>"
+        f"<tr><td>{_esc(e['name'])}</td><td>{_esc(e['date'])}</td>"
         f"<td>{e['E_on_day'] if e['E_on_day'] is not None else '<span style=color:#888>before this season&#39;s data window</span>'}</td>"
         f"<td>{'<b style=color:#aa0000>ALERT</b>' if e['alert_within_window'] else ('WATCH+' if e['alarm_within_window'] else '—')}</td></tr>"
         for e in r["per_event"])
@@ -812,11 +848,13 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 
     radar_pill = ""
     if radar:
-        radar_pill = (f'<div class="fresh" id="radar-freshness" data-acq="{radar["through"]}" '
-                      f'data-new="{radar.get("newer_at_asf") or ""}" '
-                      f'data-newn="{radar.get("new_scenes", 0)}" '
-                      f'data-units="{radar.get("new_units", "")}">'
-                      f'🛰 Hazard map built from radar through {radar["through"]}.</div>')
+        # data-* values come from radar_watch.json, i.e. from ASF API responses — remote input,
+        # so escaped like any other (they land in quoted attributes the page's JS reads back).
+        radar_pill = (f'<div class="fresh" id="radar-freshness" data-acq="{_esc(radar["through"])}" '
+                      f'data-new="{_esc(radar.get("newer_at_asf") or "")}" '
+                      f'data-newn="{_esc(radar.get("new_scenes", 0))}" '
+                      f'data-units="{_esc(radar.get("new_units", ""))}">'
+                      f'🛰 Hazard map built from radar through {_esc(radar["through"])}.</div>')
 
     hist_btn = ('<button id="btn-hist" class="tab" onclick="showTab(\'hist\')">'
                 '🕰 Past events</button>' if hist else "")

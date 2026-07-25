@@ -1884,3 +1884,42 @@ finding. Five automatic tests hold that behaviour in place.
 stands untouched, the monsoon confirmation waits on NASA reprocessing these early files — and
 our tool learned the difference between "nothing is happening" and "we cannot see". That last
 one is the actual milestone.
+
+## ✅ Milestone 54 — We security-tested our own dashboards and found a real hole  *(stored XSS found and fixed, 2026-07-25)*
+
+**What we set out to do:** check the whole codebase for security weaknesses. Most of it came
+back clean — no unsafe command execution, no leaked passwords or keys, the file-download paths
+properly fenced, the container running without admin rights, every library up to date. But one
+finding was serious.
+
+**The hole.** Our dashboards show a table of past landslides at each site — name, damage,
+and numbered links to the news sources. We were pasting those straight into the web page
+without neutralising them. If any of that text happened to contain web *code* rather than plain
+words, the browser would run it instead of displaying it.
+
+**Why that actually mattered here, rather than being theoretical.** Two things line up badly.
+First, we ourselves wrote the rule that this record is **not** trustworthy input — its rows come
+from news articles and from AI-generated research summaries, and we've already caught those
+inventing events that never happened. Second, the one-click control panel serves these
+dashboards from the same address it uses for its own controls. So code smuggled into a
+landslide description would run *with the control panel's own privileges* — able to read any
+file in our data folder and to start jobs. A sentence copied from a news site could have become
+a way to read the whole project.
+
+**We proved it before fixing it.** Four test payloads hidden in an event's name, its damage
+description and a source link all came through intact and live. Then we fixed it — every piece
+of outside text is now neutralised before it reaches the page, and source links are only
+honoured if they're ordinary web addresses (anything exotic is shown as plain text instead of a
+clickable link, so no source is ever quietly dropped).
+
+**The part we're proudest of is how we checked the fix.** Our first check searched the page for
+suspicious words and reported three payloads as "still dangerous" — they weren't. Neutralised
+text still *contains* those words; it just can't do anything. Searching for words can't tell the
+difference between disarmed and armed. So we rebuilt the check to read the page the way a
+browser does and ask what would actually run. Then we added the important bit: we deliberately
+switched the fix off and confirmed the test **fails**. A safety check that can never fail tells
+you nothing.
+
+**Bottom line:** we went looking for weaknesses in our own work, found a genuine one, proved it
+was real, fixed it, and proved the fix — including proving that our proof works. All four live
+dashboards now come back clean, and the official alarm figures are untouched, byte for byte.
