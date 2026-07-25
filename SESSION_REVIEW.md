@@ -11,79 +11,77 @@
 
 ---
 
-# LIVE — Session 28 · branch `aoi-vaishnodevi` · updated 2026-07-22
+# LIVE — Session 30 · branch `aoi-vaishnodevi` · updated 2026-07-25
 
 ## Current state
 
-- **★ NEW (§61) — the Ramban cadence rebuild FIRED: 30 credits spent, 3 products QA-passed, the
-  S1A×S1D cross-unit seam DE-RISKED.** User authorised the 3-pair manifest; all queued (credits
-  7,460→7,430, verified), all SUCCEEDED, downloaded + extracted + QA'd. **Both gates passed for
-  all 3 — including the S1A×S1D 7-day seam (usable coherence + atmospherically clean):
-  cross-satellite interferometry works over Ramban's terrain** (the §56 handover's biggest risk).
-  Radar library 235→238; all QA artifacts re-synced. Numbers §61.
-- **★ Seam-velocity cross-check DONE (§61), S1D seam DROPPED, full rescore DEFERRED (user).**
-  Frame renumber f106→f105 / f102→f103 = SAFE (coherent bridge IFG). S1A→S1D handover carries a
-  clean **−18.6 mm** offset (no spatial distortion but unvalidated first cross-unit pair) →
-  **rebuild S1A-only through 18 Jun**, revisit S1D later. Cross-unit `S1AA_`-parser bug found +
-  fixed across 5 files (+ test; **battery 98 green**). The faithful S1A-only rescore needs the
-  REAL pipeline (`consolidate → apply_connectivity_rescues → run_multistack → GSI rescore`) — a
-  non-destructive sandbox can't reconstruct the rescue-aware network (confirmed 3×). Deferred to a
-  focused next session; validated product stays live + untouched. Scripts in `data/rebuild/`.
-- **★ NEW (§60-cont., committed `50f4df3`) — routed-LLOF swap SHIPPED config-gated.**
-  `llof_routing: twi|d8` (default `twi` = validated products byte-identical, probe re-run
-  hash-verified); d8 reuses the probe's exact criterion. Post-merge swap = uncomment `d8` per
-  site + regenerate + re-score. A latent window-clamp bug was caught by the new tests + fixed.
-- **★ NEW — submitter hardened:** prefix-AGNOSTIC dedupe (shared library — the prefix-filtered
-  scan would have re-bought 9 already-processed products, ~90 credits) + `--pair` mode for
-  frame-drift/seam bridges. New suite `tests/test_submit_pairs.py`. Battery now TEN suites,
-  **97 green**.
-- **⚠ USER REVIEW still open (§52): 2 rows, evidence now gathered.** Himkoti casualty row →
-  recommend **30 Jun 2017** (SMVDSB request letter is same-day as the fatal boulder; 2 outlets).
-  2008 Bhawan Aug-vs-Dec → **cannot be settled online** (dead-ends at the unpublished Kumar 2009a
-  GSI report; compendium §5.4.4 body=30 Aug adopted, heading=30 Dec) — recommend keep 30 Aug or
-  keep flagged pending a GSI report request. Inventory rows untouched pending the user's verdict.
-- **(§55–§59 carried):** sub-daily IMERG burst gate shipped experimental (ALERT E≥3, §58);
-  NISAR pilot confirms L-band recovers 75–87% of C-band's failure-class pixels (§59); radar
-  watcher + freshness pill live (§57). Active plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
-- **(§60, M50, CF15 carried):** susceptibility cross-check exposes corridor bias (the ML map
-  mostly reads the road); optical change screening-grade; temporal-skill table committed + tested.
-- **BOTH sites in WATCH (§54): as-of 2026-07-12** (VD 18/18 zones active, 0 ALERT; Ramban 8/8,
-  4 April ALERT days). The scheduled cycle checks Docker (10-min grace), never manages it.
-- **Ramban: COMPLETE, scored, LIVE** (§21b, §44) — the rebuild will *re-score* it, not replace
-  the standing product until then. **Vaishno Devi: validated + site-tuned** (§26–§32).
-  Merge `aoi-vaishnodevi` → `master` remains the user's call.
+- **★ NEW (§63) — the IMERG burst arm's FALSE-ALARM RATE is measured; the risk register's
+  "burst arm cries wolf" blocker is CLOSED.** Flagged days clustered into **episodes** (one
+  episode = one decision asked of a human), attributed to verified events, and the identical
+  measurement run on the validated daily arm over the four AOI-seasons on disk. Verdict: at its
+  shipped threshold the burst arm costs **less than half the alarm days** of the arm we already
+  trust while interrupting somewhat more often — **acute vs chronic** (the daily arm's WATCH
+  includes one unbroken 92-day spell). Reported as a strict/generous **bound**, never an
+  absolute score, because the inventory only records reported failures. Numbers §63.
+- **★ OPEN DECISION for the user (§63): lower the burst ALERT threshold k=3 → 2.4?** The §62
+  Gangroo–Ramsu strike (2 deaths) is now the 7th calibration event and reads **E=2.44 (WATCH)
+  on the day** — the first fatal event the arm does not reach ALERT on at Δ=0 (it had ALERTed
+  4 days earlier and never went quiet). k=2.4 buys that same-day catch for ~+47% alarm days and
+  ~+47% unexplained episodes — and the arm would *still* flag fewer days than the daily arm.
+  **Priced, deliberately NOT applied:** `imerg_gate.py`'s `BURST_ALERT_K` is unchanged at 3.0.
+- **★ The Tier-3c temporal-skill table is now GENERATED, not hand-typed** — it had silently gone
+  stale (the §62 event never landed in it). Its schema test was *tightened* around the new
+  `PENDING`/`pending` state (a latency-blind verdict), not loosened. Battery **98 → 105 green**.
+- **DEFERRED, deliberately: the S1A-only Ramban rebuild rescore (§61) is still the standing next
+  step and was NOT run this session.** It is not a headless task — the manifest doc says
+  "judgment-heavy, not run headlessly"; the f105→f106 / f103→f102 **cross-frame merge it needs
+  has no mechanism in the code** (a stack is strictly direction/path/frame; the rescue "bridges"
+  are within-stack), so it needs a design decision first; and its accept/reject is the user's
+  call. Nothing about it changed — the validated product stays live and untouched.
+- **(§62 carried) The 22 Jul 2026 Gangroo–Ramsu fatal strike stands as a prospective near-catch
+  by the burst arm**; the validated daily arm's confirmation is still **pending ERA5-Land
+  latency** (its 2026 record ends 18–19 Jul; expected to confirm ~27 Jul via `live_alarm.py`).
+- **⚠ USER REVIEW still open (§52): 2 rows, evidence gathered.** Himkoti casualty row →
+  recommend **30 Jun 2017**; 2008 Bhawan Aug-vs-Dec → cannot be settled online (keep 30 Aug or
+  keep flagged pending a GSI report request). Inventory rows untouched pending the verdict.
+- **(§55–§61 carried):** NISAR pilot confirms L-band recovers 75–87% of C-band's failure-class
+  pixels (§59); radar watcher + freshness pill live (§57); the 3 rebuild products are QA-passed
+  and the S1A×S1D seam de-risked but S1D dropped (§61); LLOF d8 swap shipped config-gated (§60).
+  Active plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **BOTH sites in WATCH (§54)**; Ramban COMPLETE/scored/LIVE (§21b, §44), Vaishno Devi validated
+  + site-tuned (§26–§32). Merge `aoi-vaishnodevi` → `master` remains the user's call.
 - **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
   site (§31/§51); soils literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS
   discrepancy pair open. Archival (§48): the Drive copy of the raw zips is the only archival source.
 
 ## Recommended next step
 
-**The deferred S1A-only rebuild rescore (§61) — a focused next session.** The seam check is done
-and S1D is dropped, so the rebuild is unambiguous: (1) back up `data/qa_masks/_quarantine_list.csv`
-+ `_stack_manifest.json` (revert path), (2) run the REAL pipeline — `consolidate →
-apply_connectivity_rescues` (applies the §43 f106 bridge swap) `→ run_multistack` (invert→hazard→
-alerts→mosaic, **S1A-only: the two frame bridges + f105/f103 chains through 18/23 Jun, NOT the
-S1D seam**) `→ GSI rescore`, (3) **compare new AUC/recall vs §21b/§44 as the pre/post** before
-accepting; revert via the backup if it regresses. In parallel: **user settles the 2 §52 rows**
-(evidence §61/journey), and optionally flips `llof_routing: d8` as its own scored swap. User-side
-(standing): GACOS form + soil lab; merge to `master`; publish the dashboard.
+**Two candidates, in this order.** (1) **The user's call on §63's operating point** — flip
+`BURST_ALERT_K` 3.0 → 2.4 (one constant + regenerate + re-ledger) or keep 3.0 and record why;
+the trade is fully priced. (2) **The deferred S1A-only rebuild rescore (§61) — a focused
+session WITH the user**, because it needs a design decision first: how f105/f103 join the
+f106/f102 chains (a stack is strictly direction/path/frame today). Then the recorded plan:
+back up `_quarantine_list.csv` + `_stack_manifest.json` → `consolidate →
+apply_connectivity_rescues → run_multistack` (S1A-only, NO S1D seam) → GSI rescore → **compare
+new AUC/recall vs §21b/§44 before accepting**; revert via the backup on a regression.
+Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's daily-arm verdict
+(the skill table will pick it up automatically — the row is machine-generated now). User-side
+(standing): settle the 2 §52 rows; GACOS form + soil lab; merge to `master`; publish the dashboard.
 
 ## Uncommitted delta
 
-Session 28's Task 1–3 batch is **already committed by the user** (`50f4df3`: LLOF swap + manifest
-+ §52 evidence). Uncommitted now (the rebuild-execution + wrap batch):
-- MODIFIED (tracked) — two logical batches:
-  - **Parser fix:** `workflows/{custom_sbas_inverter,sbas_network_graph,stacks,coherence_watch,
-    _analyze_qa_stats}.py` (`S1AA_`→`S1[A-D][A-D]_`) + `tests/test_science_verification.py`
-    (new cross-unit parse test).
-  - **Docs/wrap:** `RESULTS_AND_KPIS.md` (§61 + seam-check + deferred plan), `error_history_log.md`
-    (parser bug + Bash path-mangling), `docs/references/RAMBAN_REBUILD_MANIFEST_2026-07-19.md`
-    (SUBMITTED + QA, cites §61), `SESSION_REVIEW.md` (this block).
-- Git-ignored (data/ + journals): the 3 new products under `data/processed_tiffs/` +
-  `data/raw_zips/`, re-synced `data/qa_masks/{_stack_manifest.json,_coherence_mask_stats.csv,
-  _atmospheric_audit.csv,audit_log.json}`, `data/rebuild/` (window yaml + `seam_check.py`/
-  `sandbox_velocity.py` diagnostics + their reports), the S28 journey entry.
-- **Next:** the deferred S1A-only rebuild rescore (§61) — a focused next session.
+Session 30 is one logical batch (§63, burst-arm false alarms) — nothing else was touched:
+- MODIFIED (tracked): `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both
+  arms; generated Tier-3c table; 7th verified event; derived — no longer hardcoded — rationale
+  counts), `workflows/imerg_gate.py` (**comment only** — the stale "n=6 / every fatal event"
+  note), `tests/test_imerg_gate.py` (+7 hermetic tests, 14→21), `tests/test_tier34.py` (schema
+  tightened for `PENDING`), `data/inventory/temporal_skill_table.csv` (regenerated, 7 rows,
+  new `burst_alert_lead_days` column), `RESULTS_AND_KPIS.md` (§63), `error_history_log.md`
+  (4 entries), `milestone.md` (Milestone 51), the primer (CF16 + Part D/E refresh),
+  `SESSION_REVIEW.md` (this block).
+- Git-ignored: `session_journey.md` (S30 entry), regenerated
+  `data/rainfall/imerg_calibration_report.{json,md}`.
+- **No live product, dashboard, alarm threshold, or validated raster was touched.**
 
 ---
 
@@ -178,9 +176,10 @@ The core vision is fully built and scored above chance. Remaining work:
 3. **Make it live / smarter:** ✅ live rainfall ingestion DONE (`live_alarm.py` incremental ERA5-Land
    + one-command alarm regen; 2–3-day runbook 2026-07-11). ✅ **Sub-daily IMERG burst gate DONE
    2026-07-18 (§55, experimental second opinion** — `imerg_gate.py` + dashboard card + non-fatal
-   live_alarm hook; remaining: per-zone IMERG from the 0.1° grid + earning this arm back-tested
-   operating points). Still open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM
-   ("rules decide, LLM narrates").
+   live_alarm hook). ~~earning this arm back-tested operating points~~ ✅ DONE 2026-07-25 (§63 —
+   false-alarm rate measured against the validated arm on one yardstick; the k=3→2.4 move is
+   priced and awaiting the user's call). Remaining: per-zone IMERG from the 0.1° grid. Still
+   open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
 5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on
    ASF Feb 2026; **calibrated forward processing at 1–3 day latency from Jul 2026**. L-band recovers
@@ -198,8 +197,9 @@ improvements until shown to matter.
 **Where the MVP is weakest today:** ~30 mm/yr velocity noise floor; single-look (no true 3-D motion);
 uniform soil strength (site-corroborated §20/§37, but one value per AOI) + dry/sat end-members +
 TWI-proxy downstream flag; rainfall now two-arm (daily AOI-mean validated + sub-daily IMERG
-experimental §55) but still not per-zone, and the burst arm lacks back-tested operating points; a
-static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
+experimental §55) but still not per-zone, and the burst arm's operating points rest on n=7 events
+(its alarm COST is now measured, §63; its skill is still a small calibration set, not a
+validation); a static-vs-worst-case hazard map; recall-limited validation on two small AOIs.
 
 - **Area 1 — Noise reduction:** MintPy ERA5 (done on frame106), ✅ GACOS cross-check (VD, §40 — mixed
   first result, worth a second pull), DEM-error +

@@ -1180,11 +1180,12 @@ Digdol highway burial — days of soaking, no single burst — is the mirror ima
 barely stirs, the daily gate had already raised full ALERT. Long soak → daily arm; sudden burst
 → sub-daily arm; combined, **both of 2026's verified events read ALERT on the day**.
 
-**Why it stays "experimental".** At short durations the same curve trips far more easily, and
-this arm's false-alarm rate is *unmeasured* — it has no back-tested operating points the way
+**Why it shipped "experimental".** At short durations the same curve trips far more easily, and
+this arm's false-alarm rate was *unmeasured* — it had no back-tested operating points the way
 the daily gate has (CF7). So it ships as a labelled **second opinion** beside the validated
 alarm, not as the alarm. Also honest: an 11-km pixel still averages over a slope; no snowmelt;
-the newest day is provisional while its data arrives.
+the newest day is provisional while its data arrives. **That false-alarm gap is now closed —
+see CF16.**
 
 🔗 **In our project: Milestones 48–49 / §55 & §58.** `imerg_gate.py` (incremental cached
 half-hourly fetch + daily E), the "sub-daily burst check" card, and a non-fatal hook in
@@ -1226,6 +1227,60 @@ the suspicious one.
 0.560 without elevation, vs physics 0.575 on the same raw-pixel protocol (deliberately not
 comparable to the §16/§44 zone-buffer scores). The corridor bias itself is an old friend:
 CV3/CV4 already carried it as the inventory's documented caveat; this experiment measured it.
+
+---
+
+## CF16. How often does an alarm cry wolf? — episodes, bounds, and judging in one currency
+
+CF7 made the daily gate *selective*; CF14 added a faster second arm but shipped it with a hole:
+nobody had measured how often it fires when nothing happens. This section is how you measure
+that honestly when your ground truth is radically incomplete (Milestone 51).
+
+**Trap 1 — counting days flatters the wrong alarm.** Mountain rain arrives in *spells*. An arm
+that flags 11 days might have interrupted you 11 times or 3 times. The operational unit is not
+the day but the **episode**: a run of consecutive flagged days (merging spells separated by a
+single quiet day) — *one episode = one time the system asks a human to decide*.
+
+> unexplained-episode rate = (episodes with no verified event in or near them) ÷ (days of record) × 100
+
+**Everyday analogy:** a smoke detector that chirps once a month for a week is not "30 alarms" —
+it's one alarm you learn to ignore. Counting chirps hides that; counting episodes reveals it.
+
+**Trap 2 — "unexplained" is not "false".** Our inventory records only failures serious enough
+to be reported. A flag with no matching record may be perfectly correct rain over a slope
+nobody watched. There is no fix, only honesty: report a **bound**. Attribute episodes to events
+with a *strict* window (±1 d) and a *generous* one (±10 d); the strict count is the **upper
+bound** on false alarms, the generous count the **lower bound**, and the truth sits between.
+
+**Trap 3 — windows must respect the edge of the record.** A ±10-day window applied near the end
+of a series can "catch" an event the arm never had data for (our daily arm's season stops ~5
+days back, waiting on ERA5-Land). That is *pending*, not a catch and not a miss — see the error
+log. Clip the metric to the record's span or it invents skill exactly where the data runs out.
+
+**Trap 4 — never score a new instrument in absolute terms.** The bias above afflicts *both*
+arms identically. So the only defensible claim is a **comparison**: run the identical
+measurement on the arm you already trust, and report the new one relative to it.
+
+**The shape of the answer we got.** The two arms turned out to have opposite temperaments —
+**acute vs chronic**. The burst arm raises many short episodes; the daily arm raises few, but
+one of them runs unbroken for 92 days (42.6% of a season at WATCH — alarm fatigue by another
+name). The burst arm therefore interrupts more often while costing **less than half the total
+alarm days**. "Watch these two days" is cheaper to live with than "watch this quarter". A
+single ratio would have hidden all of that, which is why the ledger reports days, episodes,
+mean/longest episode length, and the bound side by side.
+
+**The bonus finding — a new event can move a fixed point.** Adding the 7th verified event (the
+fatal 22 Jul 2026 boulder strike) dropped the *same-day fatal floor* from E=3.07 to **2.44**:
+the shipped ALERT threshold of 3 no longer reaches every fatal event on the day it happens (it
+had alerted 4 days earlier and never gone quiet). The disciplined response is not to quietly
+re-tune the live gate but to **price the change** — lowering k to 2.4 buys that catch for ~50%
+more alarm days — and leave the operating point to whoever owns the consequences.
+
+🔗 **In our project: Milestone 51 / §63.** `imerg_calibration.py` gained the episode
+measurement (`episodes`, `false_alarm_profile`), run over four AOI-seasons for both arms, and
+now *generates* the temporal-skill table it used to have typed by hand (which is how the 22 Jul
+event went missing from it). `imerg_gate.py`'s `BURST_ALERT_K` is deliberately **unchanged**
+pending the user's call.
 
 ---
 
@@ -1709,8 +1764,31 @@ catches the burst — and it runs ~5 days fresher. This season's two verified ev
 exactly along that line: the 7 Apr highway burial was a soak (daily arm ALERT, burst arm
 quiet), the 8 Jul Himkoti slide was a burst (burst arm ALERT hours ahead, daily arm only
 WATCH). Combined, both read ALERT on the day. The burst arm stays labelled experimental until
-it earns back-tested thresholds of its own — at short durations the curve trips easily and its
-false-alarm rate is unmeasured.
+it earns back-tested thresholds of its own — at short durations the curve trips easily. **Its
+false-alarm cost is now measured (CF16/§63):** at its shipped threshold the burst arm costs
+**less than half the alarm days** of the validated daily arm while interrupting somewhat more
+often — acute vs chronic. A priced second opinion now, not an unquantified one.
+
+**Q: How can you claim a false-alarm rate when your landslide inventory is obviously incomplete?**
+A: I can't — and I don't. An episode I can't tie to a recorded landslide isn't proven wrong;
+the mountain may have moved where nobody was watching. So I report a **bound** rather than a
+number: attribute alarm episodes to events with a strict window and a generous one, and the
+true rate lies between the two counts. And because that incompleteness biases *both* arms
+identically, the only claim I'll defend is a **comparison** — the new arm against the arm we
+already validated, on the identical yardstick. Two further disciplines keep it honest: count
+**episodes**, not days (rain arrives in spells, so days flatter a chronic alarm), and clip
+every window to the end of the record, or you manufacture a "catch" for an event your data
+never reached (CF16).
+
+**Q: A fatal event happened and your fast gate only said WATCH. Doesn't that sink it?**
+A: It's the most useful thing that has happened to it. The 22 Jul 2026 boulder strike (2
+deaths) read E=2.44 — below the ALERT line of 3 — on the day. The arm wasn't asleep: it had
+raised ALERT four days earlier and held WATCH continuously through the strike. But it does mean
+the same-day fatal floor is 2.44, not 3.07, so a threshold picked from six events may sit
+slightly too high. The disciplined response isn't to quietly re-tune a live gate to fit the
+newest data point — it's to *price* the change (lowering to 2.4 buys that catch for ~50% more
+alarm days, still fewer than the daily arm flags) and hand the operating point to whoever owns
+the consequences. Overfitting a threshold to the last event is how alarms lose their meaning.
 
 **Q: Wouldn't a machine-learning susceptibility model outperform your physics map?**
 A: We tested exactly that (CF15/§60). A terrain logistic regression beat the raw physics score
@@ -1724,15 +1802,19 @@ right use of ML here is as a bias detector and a challenger — not as the produ
 
 Being able to state weaknesses is what makes you credible.
 
-- **The sub-daily burst gate (CF14 / §55, calibrated §58) is still provisional:** its ALERT
-  threshold (E ≥ 3) is now evidence-based — six verified events, every fatal one caught, season
-  flag-days halved — but n=6 is a small calibration set, not a validation, and the residual
-  flag rate (7–18 ALERT-grade days/season) implies false alarms we cannot yet count against
-  ground truth. Two measured biases bound it: IMERG reads only **0.16–0.22×** of the Katra
-  gauge on extreme days (pixel-vs-point in orographic terrain, so E is biased LOW when it
-  matters most), and it carries no snowmelt. Per-zone rain was probed and declined at these
-  AOI scales (~3 pixels per AOI). It remains a second opinion beside the validated daily
-  alarm, not the alarm.
+- **The sub-daily burst gate (CF14 / §55, calibrated §58, false-alarm-priced §63) is still
+  provisional:** its ALERT threshold is evidence-based — now seven verified events — and its
+  alarm cost is no longer a caveat but a measurement (CF16): fewer than half the alarm days of
+  the validated daily arm, at a somewhat higher interruption rate. But **n=7 is a calibration
+  set, not a validation**, and the "false alarms" are only a *bounded* quantity, because our
+  inventory records solely reported failures. Two measured biases bound it further: IMERG reads
+  only **0.16–0.22×** of the Katra gauge on extreme days (pixel-vs-point in orographic terrain,
+  so E is biased LOW when it matters most), and it carries no snowmelt. Per-zone rain was
+  probed and declined at these AOI scales (~3 pixels per AOI). **Newly honest (§63):** the
+  22 Jul 2026 fatal strike read only WATCH on the day (ALERT 4 days earlier), so the shipped
+  threshold does not reach every fatal event at Δ=0; the cheaper threshold is priced but
+  deliberately **not** applied. It remains a second opinion beside the validated daily alarm,
+  not the alarm.
 
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our

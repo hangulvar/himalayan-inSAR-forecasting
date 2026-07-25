@@ -59,10 +59,12 @@ DUR_H = [0.5, 1, 3, 6, 12, 24]        # trailing-window durations screened per d
 STEPS_PER_DAY = 48
 CHUNK_DAYS = 15                       # one GEE getInfo per chunk (bounded payloads)
 LEVELS = ["DORMANT", "WATCH", "ALERT"]
-# Burst-arm grading (imerg_calibration.py, Tier 1b §58 — PROVISIONAL, n=6 events): ALERT at
-# E>=3 keeps every fatal verified event (weakest 3.07) + Himkoti (3.9) while ~halving flagged
-# days vs the daily arm's k=2; do NOT raise further — IMERG under-reads the Katra gauge
-# ~4.5-6x on the extreme anchors, so E is biased LOW in exactly the events that matter.
+# Burst-arm grading (imerg_calibration.py, Tier 1b §58 — PROVISIONAL, n=7 events): ALERT at
+# E>=3 flags 3/4 fatal verified events on the day (weakest same-day catch 3.07) + Himkoti
+# (3.9) while ~halving flagged days vs the daily arm's k=2; do NOT raise further — IMERG
+# under-reads the Katra gauge ~4.5-6x on the extreme anchors, so E is biased LOW in exactly
+# the events that matter. §63: Gangroo-Ramsu 22 Jul 2026 (2 deaths) read only 2.44 on the day
+# (ALERT 4 d earlier) — whether to LOWER k to ~2.4 is open; §63 prices the false-alarm cost.
 BURST_WATCH_K = 1.0
 BURST_ALERT_K = 3.0
 

@@ -1355,3 +1355,70 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** padding with sentinel values changes the ARGMAX, not just the values — any
   "pick the best neighbour" kernel must exclude sentinel cells from candidacy explicitly, and
   edge behaviour deserves its own test case.
+
+### [2026-07-25] The committed temporal-skill table had silently gone stale — a hand-typed derived artifact
+
+* **Symptom:** `data/inventory/temporal_skill_table.csv` still held 6 events while the §62
+  Gangroo–Ramsu strike (22 Jul 2026, 2 deaths) had been verified, ledgered, and folded into
+  `ramban_historical_events.json` the day before. Its schema test passed the whole time.
+
+* **Root Cause:** the table was **hand-maintained** even though every field in it is derivable
+  from records already on disk (the IMERG daily-E CSVs + the daily alarm calendars). A schema
+  test can only check the rows that exist; nothing could notice a row that was never typed.
+
+* **Resolution:** `imerg_calibration.py` now GENERATES the table (`temporal_skill_rows` +
+  `write_temporal_skill_table`) from the same `EVENTS` list the rest of the report uses, so
+  adding an event to one place updates both. Ledger §63.
+
+* **Lesson:** if every column of a committed artifact is derivable, generate it — a hand-typed
+  derived file drifts silently, and a schema test guards the shape, never the completeness.
+  The test that would have caught this is "the artifact regenerates byte-identical", which is
+  only possible once there is a generator.
+
+### [2026-07-25] A windowed skill metric manufactured a "catch" past the end of the record
+
+* **Symptom:** scoring the validated daily arm against the 22 Jul 2026 event returned
+  *caught* at the ±10-day window — but that arm's 2026 season record **ends 19 Jul** (ERA5-Land
+  publication latency), so it had no data on the event day at all.
+
+* **Root Cause:** the ±W attribution window was applied without reference to the record's own
+  span. A flagged day near the end of the series sits within W days of an event that occurs
+  *after* the series stops, so the metric credited a verdict the arm never rendered.
+
+* **Resolution:** `false_alarm_profile` restricts the event tally to events inside
+  `[first_day, last_day]` of the record and counts the rest as `n_events_outside_record` —
+  reported as *pending*, neither catch nor miss (matching §62's framing of the latency case).
+  A dedicated hermetic test pins both directions.
+
+* **Lesson:** any ±window skill metric must be clipped to the record's edges, or it invents
+  skill exactly where the data ends — the most tempting place to overclaim, because a
+  latency-blind arm looks identical to a silent one.
+
+### [2026-07-25] "Nearest ALERT" reported an unrelated storm 85 days away as a lead time
+
+* **Symptom:** the new `burst_alert_lead_days` column read **85** for the 7 Apr 2026 Digdol
+  event and **16** for 8 May 2025 — presented as if the gate had warned about them.
+
+* **Root Cause:** the statistic was an unbounded nearest-neighbour search over the whole
+  season, so with no nearby ALERT it silently returned the closest one anywhere in the record.
+
+* **Resolution:** bounded to the attribution horizon (±10 d, `max(FA_WINDOWS_D)`); beyond it
+  the column is blank because the nearest ALERT is a different storm, not a lead time.
+
+* **Lesson:** a nearest-neighbour statistic without a bound always returns *something* — the
+  bound is what turns it into a claim. Same class of trap as an unclipped window (above).
+
+### [2026-07-25] Grandfathered filename rule nearly merged two seasons into one profile
+
+* **Symptom:** the first `_daily_arm_rows` returned 324 rows for Ramban 2026 (110 expected).
+
+* **Root Cause:** Ramban's 2025 alarm calendar keeps the grandfathered *unsuffixed* name
+  (`operational_alarm_calendar.csv`) while 2026 is `..._2026.csv`, so both are candidate paths
+  for the site and the loader concatenated them. The per-date lookup it was refactored from
+  never noticed, because it stopped at the first matching date.
+
+* **Resolution:** the loader filters rows to the requested season's year.
+
+* **Lesson:** the project's grandfathered-suffix rule (ramban unsuffixed) is safe for a keyed
+  lookup and unsafe for a bulk read — when refactoring "find one" into "load all", re-check
+  every path-resolution rule that the single-item version happened to tolerate.

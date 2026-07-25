@@ -117,17 +117,27 @@ def test_orchestrator_d8_matches_probe_criterion():
 def test_temporal_skill_table_schema_and_consistency():
     f = PROJECT_ROOT / "data" / "inventory" / "temporal_skill_table.csv"
     rows = list(csv.DictReader(f.open(encoding="utf-8")))
-    assert len(rows) >= 6
+    assert len(rows) >= 7
     from imerg_calibration import EVENTS
     ev_dates = {(s, d) for s, d, _, _ in EVENTS}
     for r in rows:
         assert (r["site"], r["date"]) in ev_dates, r["date"]
         assert r["burst_level"] in ("DORMANT", "WATCH", "ALERT")
-        assert r["daily_level"] in ("DORMANT", "WATCH", "ALERT")
-        assert r["caught_at_alert_by"] in ("both", "daily", "burst", "neither")
-        if int(r["deaths"]) > 0:                        # every fatal event is caught
-            assert r["caught_at_alert_by"] != "neither", r
-        if r["caught_at_alert_by"] != "neither":
+        # PENDING = the daily arm's season record does not reach the event day (ERA5-Land
+        # publication latency, §62) — an unknown verdict, never a silent miss.
+        assert r["daily_level"] in ("DORMANT", "WATCH", "ALERT", "PENDING")
+        assert r["caught_at_alert_by"] in ("both", "daily", "burst", "neither", "pending")
+        # 'pending' is only available while the daily arm genuinely cannot see the day.
+        assert (r["caught_at_alert_by"] == "pending") == (r["daily_level"] == "PENDING"
+                                                          and r["burst_level"] != "ALERT"), r
+        if int(r["deaths"]) > 0:
+            # Every fatal event is at least ARMED at Δ=0 by an arm that could see it (§63:
+            # Gangroo-Ramsu 22 Jul 2026 is the first fatal event no arm reaches ALERT on).
+            assert "WATCH" in (r["burst_level"], r["daily_level"]) \
+                or "ALERT" in (r["burst_level"], r["daily_level"]), r
+            if r["caught_at_alert_by"] != "pending":    # a settled verdict must be a catch
+                assert r["caught_at_alert_by"] != "neither", r
+        if r["caught_at_alert_by"] not in ("neither", "pending"):
             assert r["delta_days"] == "0"
 
 

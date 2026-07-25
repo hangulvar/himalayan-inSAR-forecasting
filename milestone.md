@@ -1754,3 +1754,47 @@ printed and ready) and the soil lab tests.
 **Bottom line:** the ML challenger turned out to be reading the road; the camera can screen but
 not yet detect; and the plumbing shortcut is now scheduled for honest replacement. Every answer
 made the product more trustworthy — including the ones that found our own shortcuts wanting.
+
+## ✅ Milestone 51 — We finally asked our fast alarm: how often do you cry wolf?  *(burst-arm false-alarm measurement, 2026-07-25)*
+
+**What we set out to do:** settle the one honest caveat that has followed our new fast rain
+sensor since the day it shipped (Milestone 48). We could show it catches things the slow sensor
+misses — but we had never measured how often it goes off when *nothing* happens. Until you know
+that, a sensitive alarm is just an alarm nobody will keep listening to. This was the last item
+blocking it from being called something better than "experimental", and it needed no new data
+and nothing from the user — only a careful look at the two seasons of rain records we already had.
+
+**The trick that made the question answerable: count interruptions, not days.** Our earlier
+attempt counted *flagged days*, which is misleading, because mountain rain arrives in spells. An
+alarm that flags eleven days might be interrupting you eleven separate times — or three times,
+for a few days each. So we grouped consecutive flagged days into **episodes**: one episode is one
+time the system asks a human to make a decision. Then we asked of each episode: did a real,
+verified landslide happen in or near it? And — the part that makes the answer trustworthy — we
+ran the *exact same count* on the old, validated slow alarm, so the new sensor is measured
+against the one we already trust rather than against an invented standard.
+
+**What we found: the two alarms have opposite personalities.** The fast sensor is *twitchy but
+brief* — it raises many short alarms, typically a couple of days each. The slow one is *calm but
+endless* — far fewer alarms, except one of them runs for **92 days without a break**, which is
+its own kind of useless. Add it up and the fast sensor asks for attention somewhat more often,
+yet costs **less than half as many total alarm days** as the alarm we already trust. Saying
+"watch these two days" is cheaper to live with than saying "watch this quarter", even if you say
+it more often. Numbers: `RESULTS_AND_KPIS.md` §63.
+
+**And an uncomfortable discovery, recorded rather than buried.** We folded in the fatal 22 July
+boulder strike on the Ramban highway. It turns out the fast sensor read only "watch" — not full
+alert — on the day two people died. It *had* raised a full alert four days earlier and never
+went quiet in between, so it was awake the whole time. But this is the first death our fast
+sensor didn't call at the top level on the day, and it means the threshold we picked in July may
+sit slightly too high. We measured exactly what it would cost to lower it (about 50% more alarm
+days — and even then the sensor would still be quieter than the slow one) and left the decision
+to the user. We changed nothing on the live dashboard.
+
+**The honest part:** our landslide records only contain failures serious enough to make the news.
+So an alarm we can't tie to a recorded landslide isn't proven to be *wrong* — the mountain may
+well have moved somewhere nobody was watching. We therefore report a range rather than a number,
+and only ever compare the two alarms against each other, never score either in isolation.
+
+**Bottom line:** the fast rain sensor now has a measured price tag instead of a caveat — it does
+not cry wolf more than the alarm we already rely on — and the same exercise handed us a real
+question about where its threshold should sit.

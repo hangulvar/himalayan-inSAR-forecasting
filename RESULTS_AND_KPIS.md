@@ -2824,6 +2824,89 @@ re-pulled this session); the daily-arm confirmation is outstanding.
 
 ---
 
+## 63. The burst arm's false-alarm rate MEASURED — it does not cry wolf more than the validated arm  `[MEASURED]`
+*(2026-07-25, session 30 — `imerg_calibration.py` extended (Q4 + a generated Tier-3c table);
+report `data/rainfall/imerg_calibration_report.{json,md}`; suite `tests/test_imerg_gate.py`
+14→21. Closes the standing blocker in the §56 plan's risk register — "burst arm cries wolf |
+1b measures the false-alarm rate before any fusion; stays labelled experimental until then" —
+and the §55/§62 caveat "this arm has no back-tested operating points".)*
+
+**The method (§58's day-count was only a proxy).** Monsoon rain arrives in spells, so "11
+flagged days" can be 3 decisions or 11. Flagged days are clustered into **EPISODES** (runs of
+flagged days, merging spells separated by ≤1 quiet day) — one episode = one time the gate asks
+for a decision. Each episode is explained/unexplained against the verified events, and the
+**same measurement runs on the validated daily arm** so the two are judged in one currency.
+Pooled over the four AOI-seasons on disk (**654** burst day-records / **648** daily — 214 each
+for 2025, 113/110 for the part-seasons). Provisional IMERG days dropped; an event outside an
+arm's record span counts as *pending*, never as a miss (the §62 ERA5-latency case).
+
+**Head-to-head at each arm's SHIPPED operating point `[MEASURED]`:**
+
+| arm (ALERT) | flagged days | % season | episodes | mean / longest ep | unexplained (±1 d) | per 100 d | ±10 d |
+|---|---|---|---|---|---|---|---|
+| **burst IMERG (k=3)** | 43 | **6.6%** | 19 | 2.3 / 8 d | 15 | **2.29** | 10 → 1.53 |
+| daily ERA5-Land (k=2, validated) | 91 | **14.0%** | 13 | 7.0 / 23 d | 9 | **1.39** | 7 → 1.08 |
+
+**Verdict — the arm earns its keep, with a named cost.** At its shipped threshold the burst arm
+costs **less than half the alarm DAYS of the arm we already trust** (6.6% vs 14.0% of season)
+while interrupting **~1.6× more often** (2.29 vs 1.39 unexplained episodes/100 d). The two arms
+have opposite temperaments, and that is the real finding: the burst arm is **acute** (19 short
+episodes, mean 2.3 d) where the daily arm is **chronic** (13 episodes, mean 7 d at ALERT, and at
+WATCH a single unbroken 92-day spell — 42.6% of season, which is alarm fatigue by another name).
+A gate that says "these two days" is operationally cheaper than one that says "this quarter",
+even when it says it more often.
+
+**Honest limit (load-bearing).** The inventory records only fatal/newsworthy failures over two
+small AOIs, so an unexplained episode is **not a proven false alarm** — much of it is real rain
+that moved ground nobody reported. The ±1 d count is therefore an **upper bound** and the ±10 d
+count a **lower bound** on each arm's false-alarm rate. Both arms carry the identical bias,
+which is exactly why this is reported as a *comparison*, never as an absolute skill score.
+
+**★ The 7th verified event changes the fatal floor — and opens a live operating-point question.**
+The §62 Gangroo–Ramsu strike (22 Jul 2026, 2 deaths) is now in the calibration set: it reads
+**E=2.44 (WATCH) on the day — the first FATAL event the burst arm does not reach ALERT on at
+Δ=0.** The arm was live (ALERT 18 Jul, **lead −4 d**, then continuous WATCH through the strike),
+but the same-day fatal floor is **2.44, not 3.07**, so §58's "keeps every fatal event" now reads
+**3/4 same-day**. Pricing the obvious response:
+
+| burst ALERT k | flagged days | % season | episodes | unexplained (±1 d) | per 100 d | events caught (±1 d) |
+|---|---|---|---|---|---|---|
+| 2.0 | 81 | 12.4% | 31 | 26 | 3.98 | 5/7 |
+| **2.4** (the largest k reaching E=2.44) | 63 | **9.6%** | 27 | 22 | **3.36** | **5/7** |
+| **3.0 (shipped)** | 43 | 6.6% | 19 | 15 | 2.29 | 4/7 |
+
+→ **Recommendation, NOT adopted (a live-gate operating point is the user's call): k=3 → 2.4**
+buys same-day ALERT on a 2-death event for +47% alarm days (6.6→9.6%) and +47% unexplained
+episodes (2.29→3.36/100 d) — and the arm would *still* flag fewer days than the validated daily
+arm (9.6% vs 14.0%). The counter-argument stands: with the §58 gauge bias (IMERG reads
+0.16–0.22× the Katra gauge on extremes) E is biased LOW anyway, so a lower k is the
+bias-consistent direction. `imerg_gate.py`'s `BURST_ALERT_K` is unchanged at 3.0 pending that call.
+
+**Tier-3c table is now GENERATED, not hand-maintained** (`data/inventory/temporal_skill_table.csv`,
+7 rows, written by `imerg_calibration.py`). It had silently gone stale — the §62 event never
+landed in it — which is precisely the failure mode a derived artifact removes. New column
+`burst_alert_lead_days` (nearest burst ALERT within ±10 d; blank beyond, where the nearest
+ALERT is an unrelated storm, not a lead time) and a `PENDING`/`pending` state for a verdict the
+daily arm's record cannot yet reach. The schema test was tightened, not loosened: `pending` is
+only legal while `daily_level == PENDING`, a *settled* fatal row must still be caught at ALERT,
+and every fatal row must be at least ARMED (WATCH+) at Δ=0 by an arm that could see it.
+
+**Data-refresh note (supersedes one §58 number):** the 2026 IMERG seasons grew 108→115 days (the
+§62 auto-fetch to 24 Jul), so §58's *"VD 2026: 10→7"* (days at k=2 vs k=3) now reads
+**VD 2026: 16→11** (and Ramban 2026, uncited there, 4→2 becomes 10→3). §58's 2025 counts
+(Ramban 21→11, VD 36→18) and both gauge-bias anchors are **byte-identical** — verified by
+diffing the regenerated report against the pre-change copy.
+
+**Verified:** 7 new hermetic tests (episode merging incl. unsorted/duplicate input; `burst_level`
+agreeing with the production gate on the same E; episode attribution at both windows; WATCH
+including ALERT days; the out-of-record *pending* rule; the full skill-table verdict matrix;
+pooling arithmetic) — suite 14→21, **full battery TEN suites 8+12+10+11+21+11+6+13+5+8 = 105
+green**. The regenerated report is byte-identical on a second run (idempotent), and all
+pre-existing report fields (2025 sweeps, gauge bias, the 6 original event rows) reproduce
+unchanged.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
