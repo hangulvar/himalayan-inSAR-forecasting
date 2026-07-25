@@ -23,12 +23,25 @@
   trust while interrupting somewhat more often — **acute vs chronic** (the daily arm's WATCH
   includes one unbroken 92-day spell). Reported as a strict/generous **bound**, never an
   absolute score, because the inventory only records reported failures. Numbers §63.
-- **★ OPEN DECISION for the user (§63): lower the burst ALERT threshold k=3 → 2.4?** The §62
-  Gangroo–Ramsu strike (2 deaths) is now the 7th calibration event and reads **E=2.44 (WATCH)
-  on the day** — the first fatal event the arm does not reach ALERT on at Δ=0 (it had ALERTed
-  4 days earlier and never went quiet). k=2.4 buys that same-day catch for ~+47% alarm days and
-  ~+47% unexplained episodes — and the arm would *still* flag fewer days than the daily arm.
-  **Priced, deliberately NOT applied:** `imerg_gate.py`'s `BURST_ALERT_K` is unchanged at 3.0.
+- **★ DECIDED + SHIPPED (§64) — burst ALERT threshold LOWERED 3.0 → 2.4 (user's call), all
+  artifacts regenerated.** Every day's `max_E` is **byte-identical**; only the grading line
+  moved — all **20** day-flips are WATCH→ALERT, none the other way. Result: **all 4 fatal
+  verified events now ALERT at Δ=0** (was 3/4 — the §62 Gangroo–Ramsu strike flips on its own
+  day). Cost and the "is this sound?" assessment: §64. Justification is *not* "2.44 minus
+  epsilon" — recall is flat across the band (1.09, 2.44], so 2.4 is the **cheapest** threshold
+  achieving the recall step. **The validated daily arm is untouched, byte-for-byte, all four
+  AOI-seasons.**
+- **⚠ Known fragility, guarded:** k=2.40 sits **1.6%** below the fatal floor (2.44), so an IMERG
+  re-fetch/reprocessing could silently un-catch that event. `tests/test_tier34.py` asserts
+  `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly telling the reader to **re-derive k,
+  not edit the test**.
+- **⚠ TRAP FOUND (error log 2026-07-25): `operational_alarm.py` is NOT safely re-runnable for a
+  PAST season.** It takes the season from its arguments but the hazard footprint + inventory
+  from *today's* disk, so regenerating 2025 recomputed it against the present (Ramban footprint
+  12→8 zones, VD 21→14, VD events 4→5) and overwrote §-cited historical numbers — while
+  reporting complete success. Caught only by byte-diffing against a pre-change backup; **fully
+  reverted**. Only the two **2026** dashboards were kept; the 2025 burst cards still show
+  k=3-era counts and are correct as historical snapshots.
 - **★ The Tier-3c temporal-skill table is now GENERATED, not hand-typed** — it had silently gone
   stale (the §62 event never landed in it). Its schema test was *tightened* around the new
   `PENDING`/`pending` state (a latency-blind verdict), not loosened. Battery **98 → 105 green**.
@@ -56,11 +69,9 @@
 
 ## Recommended next step
 
-**Two candidates, in this order.** (1) **The user's call on §63's operating point** — flip
-`BURST_ALERT_K` 3.0 → 2.4 (one constant + regenerate + re-ledger) or keep 3.0 and record why;
-the trade is fully priced. (2) **The deferred S1A-only rebuild rescore (§61) — a focused
-session WITH the user**, because it needs a design decision first: how f105/f103 join the
-f106/f102 chains (a stack is strictly direction/path/frame today). Then the recorded plan:
+**The deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because it
+needs a design decision first: how f105/f103 join the f106/f102 chains (a stack is strictly
+direction/path/frame today). Then the recorded plan:
 back up `_quarantine_list.csv` + `_stack_manifest.json` → `consolidate →
 apply_connectivity_rescues → run_multistack` (S1A-only, NO S1D seam) → GSI rescore → **compare
 new AUC/recall vs §21b/§44 before accepting**; revert via the backup on a regression.
@@ -70,18 +81,29 @@ Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's da
 
 ## Uncommitted delta
 
-Session 30 is one logical batch (§63, burst-arm false alarms) — nothing else was touched:
-- MODIFIED (tracked): `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both
-  arms; generated Tier-3c table; 7th verified event; derived — no longer hardcoded — rationale
-  counts), `workflows/imerg_gate.py` (**comment only** — the stale "n=6 / every fatal event"
-  note), `tests/test_imerg_gate.py` (+7 hermetic tests, 14→21), `tests/test_tier34.py` (schema
-  tightened for `PENDING`), `data/inventory/temporal_skill_table.csv` (regenerated, 7 rows,
-  new `burst_alert_lead_days` column), `RESULTS_AND_KPIS.md` (§63), `error_history_log.md`
-  (4 entries), `milestone.md` (Milestone 51), the primer (CF16 + Part D/E refresh),
-  `SESSION_REVIEW.md` (this block).
-- Git-ignored: `session_journey.md` (S30 entry), regenerated
-  `data/rainfall/imerg_calibration_report.{json,md}`.
-- **No live product, dashboard, alarm threshold, or validated raster was touched.**
+Session 30 is **two logical batches** (commit separately):
+
+**Batch A — §63, measure the burst arm's false-alarm cost:**
+- `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both arms; generated Tier-3c
+  table; 7th verified event; derived — no longer hardcoded — rationale counts),
+  `tests/test_imerg_gate.py` (+7 hermetic tests, 14→21), `tests/test_tier34.py` (schema tightened
+  for `PENDING`), `data/inventory/temporal_skill_table.csv` (generated, 7 rows, new
+  `burst_alert_lead_days` column), `RESULTS_AND_KPIS.md` (§63), `error_history_log.md` (4 entries),
+  `milestone.md` (M51), the primer (CF16 + Part D/E).
+
+**Batch B — §64, adopt k=2.4 and regenerate:**
+- `workflows/imerg_gate.py` (`BURST_ALERT_K` 3.0→2.4 + rationale comment),
+  `tests/test_imerg_gate.py` (boundary test rewritten to be constant-relative; pinning test now
+  asserts both sides of 2.4), `tests/test_tier34.py` (fatal-floor margin guard),
+  `data/inventory/temporal_skill_table.csv` (22 Jul row `pending`→`burst`),
+  `RESULTS_AND_KPIS.md` (§64), `error_history_log.md` (past-season regeneration trap),
+  `milestone.md` (M52), the primer (threshold-choice rule of thumb), `SESSION_REVIEW.md`.
+- Git-ignored regenerated data: 4× `*_imerg_daily_E_*.csv`, 4× `imerg_gate_summary_*.json`,
+  `imerg_calibration_report.{json,md}`, the **2026** dashboards only.
+
+**Not touched (verified byte-identical):** every daily-arm report/calendar for all four
+AOI-seasons, the 2025 dashboards (deliberately reverted), all velocity/hazard/alert rasters.
+`session_journey.md` (git-ignored) has the S30 entry covering both batches.
 
 ---
 
@@ -177,8 +199,9 @@ The core vision is fully built and scored above chance. Remaining work:
    + one-command alarm regen; 2–3-day runbook 2026-07-11). ✅ **Sub-daily IMERG burst gate DONE
    2026-07-18 (§55, experimental second opinion** — `imerg_gate.py` + dashboard card + non-fatal
    live_alarm hook). ~~earning this arm back-tested operating points~~ ✅ DONE 2026-07-25 (§63 —
-   false-alarm rate measured against the validated arm on one yardstick; the k=3→2.4 move is
-   priced and awaiting the user's call). Remaining: per-zone IMERG from the 0.1° grid. Still
+   false-alarm rate measured against the validated arm on one yardstick; §64 — ALERT k lowered
+   3.0→2.4 on that evidence, all 4 fatal events now caught at Δ=0). Remaining: per-zone IMERG
+   from the 0.1° grid. Still
    open: real flow-routing for LLOF (replace TWI proxy); hybrid LLM ("rules decide, LLM narrates").
 4. **Deploy/polish:** hosted Streamlit version of the 3-D dashboard.
 5. **NISAR (next-season step-change):** launched Jul 2025; L-band global since Aug 2025; 100k+ products on

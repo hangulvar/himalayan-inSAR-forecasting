@@ -1422,3 +1422,31 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** the project's grandfathered-suffix rule (ramban unsuffixed) is safe for a keyed
   lookup and unsafe for a bulk read — when refactoring "find one" into "load all", re-check
   every path-resolution rule that the single-item version happened to tolerate.
+
+### [2026-07-25] Re-running `operational_alarm.py` for a PAST season silently rewrote history
+
+* **Symptom:** after lowering the burst threshold (§64) I regenerated all four season dashboards
+  so their burst card would match. The **2026** reports came back byte-identical (correct — the
+  daily arm was untouched), but both **2025** reports had changed: Ramban `footprint_zones`
+  12→8, VD 21→14 and `footprint_critical` 3→1, and the event tallies moved
+  (`events_caught_by_alert` Ramban 3/4→2/4, VD 2/4→2/5).
+
+* **Root Cause:** `operational_alarm.py` takes the *season* from `--csv`/`--as-of` but takes the
+  **hazard footprint and the event inventory from whatever is on disk NOW**. Since the 2025
+  reports were first written, the footprint has been rebuilt (κ adoption, later re-scores) and
+  the VD inventory gained an event. So re-running a past season does not *reproduce* it — it
+  **recomputes it against the present**, overwriting a §-cited historical artifact with a
+  different number under the same filename.
+
+* **Resolution:** caught by byte-comparing every daily-arm artifact against a pre-change backup
+  taken before the regeneration; the six 2025 files (report json/md + calendar, both sites) and
+  the two 2025 dashboards were **restored**. Only the 2026 dashboards were kept. §64 records
+  that the 2025 burst cards deliberately still show k=3-era counts, correct as snapshots.
+
+* **Lesson:** two of them. (1) **A season report is a snapshot, not a pure function of its
+  season** — anything that mixes a historical window with live side-inputs is not safely
+  re-runnable, and "idempotent" (our workflow rule) means *same inputs → same outputs*, which
+  silently fails when a hidden input is "today's state". (2) **Back up before regenerating, and
+  diff after** — the regeneration looked completely successful in its own console output; only
+  the byte-comparison revealed that a third of what it wrote was wrong. Never accept a
+  regeneration of a committed artifact on the strength of its exit code.

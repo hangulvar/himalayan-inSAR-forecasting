@@ -140,6 +140,16 @@ def test_temporal_skill_table_schema_and_consistency():
         if r["caught_at_alert_by"] not in ("neither", "pending"):
             assert r["delta_days"] == "0"
 
+    # §64 margin guard. The ALERT threshold (2.4) sits only 1.6% below the WEAKEST fatal
+    # event's burst E (2.44) — that is the whole justification for the value. A future IMERG
+    # re-fetch/reprocessing that nudges that E down would silently un-catch a fatal event, so
+    # fail loudly here instead. Fix by re-deriving k, never by editing this test.
+    from imerg_calibration import BURST_ALERT_K
+    fatal_E = [float(r["burst_E"]) for r in rows if int(r["deaths"]) > 0]
+    assert min(fatal_E) >= BURST_ALERT_K, (
+        f"weakest fatal burst E {min(fatal_E)} fell below BURST_ALERT_K {BURST_ALERT_K} — "
+        "the threshold no longer reaches every fatal event on the day (§64)")
+
 
 def test_report_artifacts_when_present():
     inv = PROJECT_ROOT / "data" / "inventory" / "susceptibility_crosscheck.json"

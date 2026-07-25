@@ -1798,3 +1798,45 @@ and only ever compare the two alarms against each other, never score either in i
 **Bottom line:** the fast rain sensor now has a measured price tag instead of a caveat — it does
 not cry wolf more than the alarm we already rely on — and the same exercise handed us a real
 question about where its threshold should sit.
+
+## ✅ Milestone 52 — We lowered the fast alarm's trigger, and checked our reasoning twice  *(threshold 3.0 → 2.4, 2026-07-25)*
+
+**What we set out to do:** act on the question Milestone 51 raised. Two people died in the
+22 July boulder strike and our fast sensor called it only "watch", not "alert", on the day.
+The user decided to lower the trigger. Our job was to do it properly and — just as important —
+to write down honestly whether it was the *right* thing to do.
+
+**What changed, and what didn't.** Nothing about the rain measurement moved: every day's
+rainfall numbers are **identical** before and after. We only moved the line we draw through
+them. Across two seasons at both sites, exactly **20 days** changed grade — every single one
+from "watch" up to "alert", and no day moved the other way, which is the only thing lowering a
+line is allowed to do. Alert days went from 43 to 63 out of 654.
+
+**What it bought:** **all four fatal landslides on record are now flagged at the top level on
+the day they happened**, up from three of four. The 22 July strike is now an "alert".
+
+**Was it actually the right call? Our honest answer: yes — for a better reason than the obvious
+one.** The tempting justification is "we set it just below the event we missed", which is
+fitting the rule to the last thing that went wrong — a bad habit. But when we looked properly,
+*any* trigger between 1.1 and 2.44 catches exactly the same set of past events. So the real
+choice was: within that whole band, which value cries wolf least? That's the top of the band —
+2.4. It's the cheapest setting that buys the extra catch, which is a principled choice rather
+than a reactive one. It also moves in the direction our earlier measurements already pointed:
+satellite rain *under*-reads the worst storms by a factor of five, so if anything our numbers
+are too low on the days that matter.
+
+**And the fragility we're not hiding:** 2.4 sits barely 2% below the event that justified it. If
+NASA ever reprocesses that day's data slightly downward, the catch quietly vanishes. So we wrote
+an automatic check that fails loudly if that ever happens, with instructions to re-derive the
+number rather than paper over the test.
+
+**A near-miss worth telling.** While updating the dashboards, we regenerated the 2025 ones too —
+and discovered they came back *different*, because that tool rebuilds a past season using
+**today's** hazard map and landslide list rather than the ones that existed at the time. It
+would have silently rewritten published historical figures. We only caught it because we'd
+backed everything up first and compared file-by-file; the tool itself reported complete success.
+We put 2025 back exactly as it was and wrote the trap into the error log.
+
+**Bottom line:** the trigger moved for a reason we can defend, the change is confined to the
+experimental fast sensor (the official alarm is untouched, byte for byte), and the one weak
+point in the reasoning now has an automatic tripwire on it.

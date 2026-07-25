@@ -59,14 +59,17 @@ DUR_H = [0.5, 1, 3, 6, 12, 24]        # trailing-window durations screened per d
 STEPS_PER_DAY = 48
 CHUNK_DAYS = 15                       # one GEE getInfo per chunk (bounded payloads)
 LEVELS = ["DORMANT", "WATCH", "ALERT"]
-# Burst-arm grading (imerg_calibration.py, Tier 1b §58 — PROVISIONAL, n=7 events): ALERT at
-# E>=3 flags 3/4 fatal verified events on the day (weakest same-day catch 3.07) + Himkoti
-# (3.9) while ~halving flagged days vs the daily arm's k=2; do NOT raise further — IMERG
+# Burst-arm grading (imerg_calibration.py — PROVISIONAL, n=7 verified events).
+# History: k=2 (§55, uncalibrated) -> 3.0 (§58, six events) -> 2.4 (§64, ADOPTED 2026-07-25).
+# 2.4 is not a round number: it is the largest threshold that still reaches ALERT on the
+# WEAKEST fatal event on record (Gangroo-Ramsu 22 Jul 2026, 2 deaths, E=2.44) — §58's k=3
+# missed it on the day. At 2.4 every fatal verified event is ALERT at delta=0, and the §63
+# episode measurement prices the cost: ~+47% alarm days and ~+47% unexplained episodes vs
+# k=3, still FEWER flagged days than the validated daily arm. Do NOT raise it back: IMERG
 # under-reads the Katra gauge ~4.5-6x on the extreme anchors, so E is biased LOW in exactly
-# the events that matter. §63: Gangroo-Ramsu 22 Jul 2026 (2 deaths) read only 2.44 on the day
-# (ALERT 4 d earlier) — whether to LOWER k to ~2.4 is open; §63 prices the false-alarm cost.
+# the events that matter, and a lower k is the bias-consistent direction.
 BURST_WATCH_K = 1.0
-BURST_ALERT_K = 3.0
+BURST_ALERT_K = 2.4
 
 
 def season_suffix(year: int) -> str:

@@ -2907,6 +2907,99 @@ unchanged.
 
 ---
 
+## 64. Burst-arm ALERT threshold LOWERED 3.0 → 2.4 and regenerated — the change, and whether it makes sense  `[MEASURED]`
+*(2026-07-25, session 30 cont. — user-authorised operating-point change. `imerg_gate.py`
+`BURST_ALERT_K` 3.0→2.4; regenerated offline from the existing half-hourly caches for both AOIs
+× both seasons, then `imerg_calibration.py`, then the two 2026 dashboards. §63 priced this move;
+this section records what it actually did.)*
+
+**Scope of the change — grading only, physics untouched `[MEASURED]`.** Every day's `max_E`,
+burst window, duration and mm are **byte-identical** before and after (verified by diffing all
+four daily-E CSVs): the danger curve, the rain data and the exceedance maths did not move. Only
+the line drawn through them did. Structural check: **all 20 day-level flips are WATCH→ALERT** —
+no day left ALERT, no DORMANT day was touched, which is exactly and only what lowering a
+threshold may do.
+
+| season | ALERT days 3.0 → 2.4 | WATCH days | flipped days (E) |
+|---|---|---|---|
+| Ramban 2025 (214 d) | 11 → **17** | 31 → 25 | 25 May 2.59 · 28 Jul 2.58 · 30 Jul 2.45 · 1 Sep 2.61 · 4 Sep 2.41 · 18 Sep 2.82 |
+| Ramban 2026 (115 d) | 3 → **7** | 20 → 16 | 7 Jul 2.60 · 19 Jul 2.62 · 20 Jul 2.95 · **22 Jul 2.44** |
+| Vaishno Devi 2025 (214 d) | 18 → **26** | 39 → 31 | 18 Apr 2.49 · 30 May 2.86 · 24 Jun 2.62 · 16 Jul 2.47 · 29 Jul 2.95 · 31 Jul 2.84 · 7 Sep 2.68 · 6 Oct 2.46 |
+| Vaishno Devi 2026 (115 d) | 11 → **13** | 24 → 22 | 19 Jun 2.93 · 4 Jul 2.65 |
+| **pooled (654 d)** | **43 → 63** (6.6% → **9.6%** of season) | — | 20 flips |
+
+**What it bought `[MEASURED]`: every fatal verified event is now ALERT at Δ=0 — 4/4, was 3/4.**
+The 22 Jul 2026 Gangroo–Ramsu strike (2 deaths, E=2.44) flips WATCH→ALERT on the day it
+happened. The Tier-3c table's `caught_at_alert_by` for that row moves `pending` → **`burst`**
+with `delta_days=0`. No other event's verdict changed.
+
+**What it cost `[MEASURED]` (the §63 yardstick, re-run):**
+
+| burst arm @ALERT | flagged days | % season | episodes | mean/longest ep | unexplained (±1 d) | per 100 d |
+|---|---|---|---|---|---|---|
+| k=3.0 (was) | 43 | 6.6% | 19 | 2.3 / 8 d | 15 | 2.29 |
+| **k=2.4 (now)** | **63** | **9.6%** | **27** | 2.3 / 8 d | **22** | **3.36** |
+| daily ERA5-Land k=2 (validated, unchanged) | 91 | 14.0% | 13 | 7.0 / 23 d | 9 | 1.39 |
+
+The production gate's own recomputed ALERT counts (17+7+26+13 = **63**) match §63's k=2.4 sweep
+row exactly — an independent confirmation that the calibration sweep and the shipped gate agree.
+
+### Does lowering it make sense? — the honest assessment
+
+**Yes, on three arguments, with one real fragility.**
+
+1. **It is not fitted to a single point — it is the selectivity-optimal choice for the recall
+   step.** The sorted event E values are 0.99, 1.09, **2.44**, 3.07, 3.90, 4.19, 9.21. *Any* k in
+   the band (1.09, 2.44] catches the same 5 of 7 events at Δ=0 — the sweep confirms it (k=1.5,
+   2.0 and 2.4 all read 5/7). Within that band, higher k = fewer false alarms. **2.4 is the top
+   of the band**, so it buys the recall step at the lowest possible alarm cost: 63 days vs 81 at
+   k=2.0. The alternative reading — "2.44 minus epsilon, fitted to the newest event" — would be
+   overfitting; this one is not, because the whole band is equivalent in recall and 2.4 is its
+   cheapest member.
+2. **It is the bias-consistent direction.** §58 measured IMERG reading only **0.16–0.22×** the
+   Katra gauge on the two extreme 24-h anchors (11-km pixel mean vs a point gauge in orographic
+   terrain). E is therefore biased **LOW in exactly the events that matter**, so a *lower*
+   trigger corrects toward the truth. §58's own conclusion was "k must NOT be pushed above 3" —
+   2.4 moves the way the evidence already pointed.
+3. **The arm stays cheaper than the arm we already trust.** Even at 9.6% of season it flags
+   **fewer days than the validated daily arm's 14.0%**, and its episodes stay short (mean 2.3 d
+   vs 7.0 d; the daily arm's WATCH still contains one unbroken 92-day spell). The acute-vs-chronic
+   finding of §63 survives the change.
+
+**The fragility, stated plainly: the margin is 1.6%.** 2.40 sits just below 2.44. An IMERG V07
+reprocessing, a re-fetch, or any AOI-polygon edit that nudges that day's E down by 2% silently
+un-catches the fatal event that motivated the whole change. **Mitigation shipped:** a regression
+guard in `tests/test_tier34.py` asserts `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly
+with instructions to re-derive k rather than edit the test.
+
+**Two honest counter-points, recorded rather than argued away.** (a) The *operational* gain is
+smaller than the metric gain: the arm was already ALERT on 18 Jul and held WATCH continuously
+through the strike, so a reader watching the dashboard was warned either way — what changed is
+the label on the day, not the awareness. (b) The unexplained-episode rate is now **2.4× the
+validated arm's** (3.36 vs 1.39 per 100 d). That is the price of the extra catch and it is why
+this arm **remains display-only and labelled experimental** — the official alarm is still the
+daily gate, whose thresholds, reports and calendars are **byte-identical** before and after
+(verified for all four AOI-seasons).
+
+**Regeneration scope + a trap found.** Regenerated: the four daily-E CSVs, the four
+`imerg_gate_summary_*.json` (all now record `burst_alert_k: 2.4`), the calibration report, the
+Tier-3c table, and the **2026** dashboards for both AOIs (the live ones; both correctly still
+read WATCH on the provisional 24 Jul day, E=2.2 and 2.01). **Deliberately NOT regenerated: the
+2025 season dashboards** — re-running `operational_alarm.py` for a *past* season recomputes it
+against **today's** hazard footprint and inventory, which silently rewrote the 2025 reports
+(Ramban footprint 12→8 zones, VD 21→14, VD events 4→5) and would have invalidated §-cited
+historical numbers. Caught by a byte-comparison against a pre-change backup and **fully
+reverted**; entry in the error log. Their burst cards therefore still show k=3-era counts and are
+correct as historical snapshots.
+
+**Verified:** full battery **105 green, 0 failed** (ten suites, unchanged count).
+`test_calibrated_alert_threshold` now pins **both sides** of the new boundary (a burst at E≈2.5
+must read ALERT, one at E≈1.7 must stay WATCH) plus `BURST_ALERT_K <= 2.44`; the boundary test
+in `test_imerg_gate.py` was rewritten to state edges **relative to the constants**, so the next
+re-tune cannot silently invalidate it — only the one pinning test asserts literal values.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

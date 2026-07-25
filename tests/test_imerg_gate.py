@@ -197,13 +197,21 @@ def test_load_imerg_summary_absent_and_corrupt():
 
 
 def test_calibrated_alert_threshold():
-    """§58: burst-arm ALERT at E>=3 (provisional, imerg_calibration.py); WATCH unchanged."""
-    assert ig.BURST_ALERT_K == 3.0 and ig.BURST_WATCH_K == 1.0
+    """§64: burst-arm ALERT lowered to E>=2.4 (was 3.0 in §58); WATCH unchanged at 1.0.
+
+    2.4 is chosen so the WEAKEST fatal event on record (Gangroo-Ramsu 22 Jul 2026, E=2.44)
+    reaches ALERT on the day. Pin both sides of that boundary so a future re-tune is a
+    deliberate act, not a silent drift.
+    """
+    assert ig.BURST_ALERT_K == 2.4 and ig.BURST_WATCH_K == 1.0
+    assert ig.BURST_ALERT_K <= 2.44, "k must still reach the weakest fatal event (E=2.44)"
     day0 = datetime(2026, 6, 1)
-    # E ~= 2.5 at D=1h (7.5 mm in 1 h): ALERT under the old k=2, WATCH under §58's k=3.
-    series = _series(day0, 1, {20: 7.5, 21: 7.5})
-    d = ig.daily_subdaily_E(series, A, B)[0]
-    assert 2.2 < d["max_E"] < 2.8 and d["level"] == "WATCH", d
+    # E ~= 2.5 at D=1h (7.5 mm in 1 h): WATCH under §58's k=3, ALERT under §64's k=2.4.
+    hot = ig.daily_subdaily_E(_series(day0, 1, {20: 7.5, 21: 7.5}), A, B)[0]
+    assert 2.2 < hot["max_E"] < 2.8 and hot["level"] == "ALERT", hot
+    # ~1.7x the line stays WATCH — the change lowers the bar, it does not remove it.
+    mild = ig.daily_subdaily_E(_series(day0, 1, {20: 5.0, 21: 5.0}), A, B)[0]
+    assert 1.0 < mild["max_E"] < 2.4 and mild["level"] == "WATCH", mild
 
 
 def test_calibration_pure_functions():
@@ -298,12 +306,14 @@ def test_episodes_merge_single_day_gaps_only():
 
 
 def test_burst_level_reproduces_the_shipped_grades():
-    assert ic.burst_level(0.99) == "DORMANT"
-    assert ic.burst_level(ic.BURST_WATCH_K) == "WATCH"
-    assert ic.burst_level(2.99) == "WATCH"
-    assert ic.burst_level(ic.BURST_ALERT_K) == "ALERT"
+    # Boundary behaviour stated relative to the constants, so a re-tune (§58 k=3 -> §64 k=2.4)
+    # does not silently invalidate the test — only test_calibrated_alert_threshold pins values.
+    assert ic.burst_level(ic.BURST_WATCH_K - 0.01) == "DORMANT"
+    assert ic.burst_level(ic.BURST_WATCH_K) == "WATCH"              # inclusive lower edge
+    assert ic.burst_level(ic.BURST_ALERT_K - 0.01) == "WATCH"
+    assert ic.burst_level(ic.BURST_ALERT_K) == "ALERT"              # inclusive lower edge
     # It must agree with the production gate's own grading on the same E.
-    for E in (0.0, 0.5, 1.0, 2.44, 3.0, 9.21):
+    for E in (0.0, 0.5, 1.0, 2.39, 2.44, 3.0, 9.21):
         expected = ("ALERT" if E >= ig.BURST_ALERT_K else
                     "WATCH" if E >= ig.BURST_WATCH_K else "DORMANT")
         assert ic.burst_level(E) == expected, E

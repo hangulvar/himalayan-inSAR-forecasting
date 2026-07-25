@@ -1190,7 +1190,7 @@ see CF16.**
 🔗 **In our project: Milestones 48–49 / §55 & §58.** `imerg_gate.py` (incremental cached
 half-hourly fetch + daily E), the "sub-daily burst check" card, and a non-fatal hook in
 `live_alarm.py`. The arm was then CALIBRATED on six verified events (§58): burst ALERT at
-**E ≥ 3** (every fatal event stays caught, flagged days halve), with a measured caveat that
+**E ≥ 3** — later lowered to **E ≥ 2.4** (§64, see CF16) — with a measured caveat that
 drives the choice — IMERG read only **0.16–0.22×** the Katra gauge on the two worst 24-h
 anchors (an 11-km pixel average vs a point gauge under a cloudburst), so E is biased LOW in
 the events that matter and the threshold must never be pushed high. Per-zone rain was probed
@@ -1271,10 +1271,39 @@ mean/longest episode length, and the bound side by side.
 
 **The bonus finding — a new event can move a fixed point.** Adding the 7th verified event (the
 fatal 22 Jul 2026 boulder strike) dropped the *same-day fatal floor* from E=3.07 to **2.44**:
-the shipped ALERT threshold of 3 no longer reaches every fatal event on the day it happens (it
-had alerted 4 days earlier and never gone quiet). The disciplined response is not to quietly
-re-tune the live gate but to **price the change** — lowering k to 2.4 buys that catch for ~50%
-more alarm days — and leave the operating point to whoever owns the consequences.
+the then-shipped ALERT threshold of 3 no longer reached every fatal event on the day it happens
+(it had alerted 4 days earlier and never gone quiet). The disciplined response is not to quietly
+re-tune the live gate but to **price the change** first — and then let whoever owns the
+consequences decide. That decision was taken (§64): **k lowered 3.0 → 2.4**.
+
+**How to justify a threshold move without overfitting it (the §64 argument).** The tempting
+justification — "set it just below the event we missed" — is fitting the rule to the newest
+failure, and it ratchets with no floor: the next fatal event reads 1.8 and the same logic demands
+1.8. The defensible version asks a different question. Sort the event exceedances (0.99, 1.09,
+**2.44**, 3.07, 3.90, 4.19, 9.21). *Any* k in the open band **(1.09, 2.44]** catches the identical
+set of events — recall is a **step function**, flat across the whole band. So the only real
+choice is *within* the band, where the criterion is selectivity: higher k, fewer false alarms.
+2.4 is the top of the band, hence the **cheapest threshold that achieves the recall step** (63
+alarm days vs 81 at k=2.0). Two supports: it moves in the direction the gauge-bias measurement
+already pointed (IMERG under-reads extremes ~4.5–6×, so E is biased low where it matters), and
+the arm still flags fewer days than the validated daily arm.
+
+> **Rule of thumb:** before defending a threshold, plot recall against it. If recall is flat over
+> a range, your evidence does not pick a point in that range — only a *cost* criterion can. If
+> recall is *not* flat and you land exactly beside your newest data point, you are overfitting.
+
+**The fragility that comes with it.** k=2.4 sits **1.6%** below the fatal floor of 2.44. A data
+re-fetch or product reprocessing that nudges that E down silently un-catches the very event that
+justified the move. The fix is not a comment but a **tripwire**: a test asserting
+`min(fatal burst_E) ≥ BURST_ALERT_K` that fails loudly and says *re-derive k, do not edit this
+test*. Any operating point chosen with a thin margin needs one.
+
+**A trap found while regenerating (worth its own line).** Re-running a *past* season's alarm
+report is not reproduction — the tool took the season from its arguments but the hazard footprint
+and event inventory from **today's** disk, so it recomputed 2025 against the present and
+overwrote published historical numbers, while reporting complete success. Only a byte-comparison
+against a pre-change backup caught it. **"Idempotent" means same inputs → same outputs, and it
+fails silently the moment one of the inputs is "the current state of the repo."**
 
 🔗 **In our project: Milestone 51 / §63.** `imerg_calibration.py` gained the episode
 measurement (`episodes`, `false_alarm_profile`), run over four AOI-seasons for both arms, and
@@ -1782,13 +1811,17 @@ never reached (CF16).
 
 **Q: A fatal event happened and your fast gate only said WATCH. Doesn't that sink it?**
 A: It's the most useful thing that has happened to it. The 22 Jul 2026 boulder strike (2
-deaths) read E=2.44 — below the ALERT line of 3 — on the day. The arm wasn't asleep: it had
-raised ALERT four days earlier and held WATCH continuously through the strike. But it does mean
-the same-day fatal floor is 2.44, not 3.07, so a threshold picked from six events may sit
-slightly too high. The disciplined response isn't to quietly re-tune a live gate to fit the
-newest data point — it's to *price* the change (lowering to 2.4 buys that catch for ~50% more
-alarm days, still fewer than the daily arm flags) and hand the operating point to whoever owns
-the consequences. Overfitting a threshold to the last event is how alarms lose their meaning.
+deaths) read E=2.44 — below the then-current ALERT line of 3 — on the day. The arm wasn't
+asleep: it had raised ALERT four days earlier and held WATCH continuously through the strike.
+But it did mean the same-day fatal floor was 2.44, not 3.07, so a threshold picked from six
+events sat slightly too high. The disciplined response isn't to quietly re-tune a live gate to
+fit the newest data point — it's to *price* the change first, then let whoever owns the
+consequences decide. We did both: the cost is +47% alarm days, and the threshold was lowered
+to 2.4 (§64). Crucially the justification is **not** "2.44 minus epsilon" — recall is flat
+across the whole band (1.09, 2.44], so every threshold in it catches the same events, and 2.4
+is simply the **cheapest** member of that band. When recall is flat over a range, your evidence
+can't pick a point in it; only a cost criterion can. That's the difference between choosing a
+threshold and overfitting one.
 
 **Q: Wouldn't a machine-learning susceptibility model outperform your physics map?**
 A: We tested exactly that (CF15/§60). A terrain logistic regression beat the raw physics score
@@ -1810,11 +1843,11 @@ Being able to state weaknesses is what makes you credible.
   inventory records solely reported failures. Two measured biases bound it further: IMERG reads
   only **0.16–0.22×** of the Katra gauge on extreme days (pixel-vs-point in orographic terrain,
   so E is biased LOW when it matters most), and it carries no snowmelt. Per-zone rain was
-  probed and declined at these AOI scales (~3 pixels per AOI). **Newly honest (§63):** the
-  22 Jul 2026 fatal strike read only WATCH on the day (ALERT 4 days earlier), so the shipped
-  threshold does not reach every fatal event at Δ=0; the cheaper threshold is priced but
-  deliberately **not** applied. It remains a second opinion beside the validated daily alarm,
-  not the alarm.
+  probed and declined at these AOI scales (~3 pixels per AOI). **Threshold moved (§64):** the
+  22 Jul 2026 fatal strike read only WATCH at k=3, so k was lowered to **2.4** — all 4 fatal
+  events now ALERT at Δ=0, at the cost of ~+47% alarm days and an unexplained-episode rate
+  **2.4× the validated arm's**. Its margin is thin (2.40 vs a 2.44 fatal floor), guarded by a
+  test. It remains a second opinion beside the validated daily alarm, not the alarm.
 
 - **LOS only (for now):** we measure slanted (line-of-sight) motion, not pure
   vertical/horizontal. Combining ascending + descending would fix this — but both our
