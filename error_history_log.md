@@ -1543,3 +1543,57 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   interpolation, not at ingest: the record is legitimately allowed to contain `<`, `&` and
   quotes; it is the *rendering* that must be safe.
 
+
+---
+
+## 2026-07-28 — Flood arm F1: four defects, three of which no test could have caught
+
+### 1. The plan's acceptance gate was documented, then skipped (PROCESS — the most serious)
+* **Symptom:** F0+F1 were reported complete twice (§69, §70), with the dashboard card shipped
+  and the `live_alarm.py` hook wired. The battery was green at 154.
+* **What was actually missing:** `FLOOD_EXPANSION_PLAN` F1 states the verified-event replay is
+  "the go/no-go for showing the card at all". It had never been run.
+* **Root cause:** progress was audited against my own summaries of the work rather than against
+  the plan document. Every individual claim was true; the omission was invisible from inside.
+* **What running it found:** the gate FAILED — on the 22 Jul 2026 fatal event the new arm read
+  FLOOD-WATCH where the validated arm read ALERT. The shipped card would have **under-called a
+  day two people died**.
+* **Fix:** run the gate (§71); it now passes on both fatal events at 1.6x/1.7x the AOI-mean arm.
+* **Lesson:** **a gate written into a plan is not evidence until it is executed.** Re-reading the
+  plan against the diff is the last step of a phase, not an optional audit. A green battery
+  measures the tests you wrote, not the acceptance criteria you agreed to.
+
+### 2. "Over D = 0.5–6 h matched to the response time" implemented as ONE window
+* **Symptom:** the gate failure above.
+* **Root cause:** the plan phrase describes a RANGE with t_c as its floor; it was read as
+  selecting a single duration. Because every catchment's t_c is 0.07–0.12 h, all 22 were screened
+  at 0.5 h only — structurally blind to longer accumulations, and the 22 Jul signal sits at 6 h.
+* **Fix:** `match_duration` → `match_durations` (every window ≥ t_c, take the max).
+* **Bonus:** E_f became the same max-over-durations statistic imerg_gate's k was calibrated on,
+  retiring the "threshold inherited across a change of statistic" caveat.
+* **Lesson:** when a spec sentence contains both a range and a selector, decide explicitly which
+  one governs — and write the test that would fail if you chose wrong.
+
+### 3. GEE `reduceRegion` returns null for a sub-pixel region with no pixel centre
+* **Symptom:** 3 of Ramban's 8 catchments aborted with "no rainfall steps returned".
+* **The tell that it was OUR bug, not a data void:** two boxes of the **same size** succeeded.
+* **Verified before fixing:** probed the failing bboxes directly — `null` at the native 11132 m
+  scale, real values at 2000 m and 500 m.
+* **Fix:** `sampling_scale_m()` samples finer when the region is sub-pixel. Proven a *rescue*,
+  not a perturbation: the five already-working catchments returned identical E_f afterwards.
+* **Lesson:** a guard refusing to answer is not automatically a data problem — check whether your
+  own query is malformed before blaming the source. (The mirror image of the §65 lesson.)
+
+### 4. A reference dataset sampled at the wrong point manufactures a 300x "divergence"
+* **Symptom:** the MERIT-Hydro cross-check reported our upstream areas as 10–300x MERIT's.
+* **Root cause:** sampled at the catchment **centroid** — mid-hillslope, where any flow-routing
+  product reads ~0 km². The comparable point is the **outlet**.
+* **Second root cause, after fixing the first:** at 80 m vs ~90 m the two channel rasters do not
+  align; an exact-point sample lands off MERIT's channel, while widening the window to snap onto
+  it jumps to the **Chenab mainstem** (18,000+ km²) for outlets sitting near it.
+* **Resolution:** record both samples, exclude contaminated points explicitly — and since only
+  1/8 and 4/14 survive, publish `conclusive: false` / **INCONCLUSIVE** rather than a median from
+  one point.
+* **Lesson:** before reporting a divergence against a reference dataset, prove you are comparing
+  the same quantity at the same place. A dramatic ratio is far more often a sampling error than a
+  discovery — and "the check did not resolve" is a legitimate, publishable answer.

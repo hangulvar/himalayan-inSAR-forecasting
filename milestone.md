@@ -2017,3 +2017,50 @@ carries on exactly as before.
 result files from the original system are still untouched, byte for byte. The most valuable
 output of the day wasn't a number — it was two mistakes that only appeared when we stopped
 testing and started *using* the thing.
+
+---
+
+## ✅ Milestone 57 — We checked our own homework against the plan, and found we had skipped the exam  *(audit sweep, 2026-07-28)*
+
+**What we set out to do.** Before calling the flood feature finished, re-read the plan we wrote
+at the start and compare it — line by line — against what actually got built. Not against our own
+progress notes, which had twice said "done", but against the original document.
+
+**What we found was the thing we had most needed to catch.** The plan contained one sentence we
+had written ourselves: the flood arm must be replayed against the real disasters we have records
+for, and *that result decides whether the card is allowed on the dashboard at all*. We had never
+run it. The card was already on the dashboard, wired into the daily routine, with 154 passing
+tests behind it. Every test we wrote passed. We simply hadn't written the one the plan demanded.
+
+**So we ran it, and it failed.** On the 22 July 2026 Gangroo–Ramsu disaster — two deaths — our new
+flood arm said "watch", while the older rainfall system we already trust said "alert". A brand new
+safety feature was *quietly downgrading* a day people died. That is worse than having no feature.
+
+**The cause was a single misread line.** The plan said to test each basin across rainfall windows
+"from half an hour up to six hours", starting from how fast that basin reacts. We built it to test
+*one* window — the shortest. Our basins react in about five minutes, so every basin was only ever
+judged on half-hour bursts. The rain that killed people on 22 July fell over six hours. We had
+built an instrument that was, by construction, unable to see the event it most needed to see.
+
+**Fixed, it now beats the system it sits beside.** Testing the full range of windows, both fatal
+events come out clearly:
+
+| disaster | old rainfall system | new flood arm |
+|---|---|---|
+| 20 Apr 2025 Ramban cloudburst (3 deaths) | alert | **alert, 1.6× stronger** |
+| 22 Jul 2026 Gangroo–Ramsu (2 deaths) | alert | **alert, 1.7× stronger** |
+
+That is the result the whole idea rested on: looking at rain over the *basin above* a slope really
+does see these disasters more sharply than averaging rain over the whole area.
+
+**We also admitted a check that didn't work.** We tried to verify our river-network maths against
+a published global one. First attempt compared the wrong points and suggested we were wrong by up
+to 300×. Fixed that, and a second problem appeared: our map and theirs are drawn at slightly
+different resolutions, so at these small stream sizes they simply don't line up — and near the big
+Chenab river the comparison jumps onto the wrong river entirely. Only one of eight comparisons
+survived. **So we recorded the check as "inconclusive" rather than publishing a confident number
+based on a single point.** Not every check works, and saying so is part of the job.
+
+**Bottom line:** the most valuable hour of this project was spent not writing code, but re-reading
+our own plan and discovering the test we had agreed to run and then forgotten. Checks now stand at
+**155**, all passing, and the original system's 116 result files remain untouched.

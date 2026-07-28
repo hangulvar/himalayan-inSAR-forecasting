@@ -1980,6 +1980,32 @@ one block and both entry points exit cleanly having written nothing, which is it
 where I needed a routine the validated file didn't expose, I refused to copy it silently:
 I re-derived it and *pinned* it, so the two must agree exactly on four different terrains.
 
+**Q: Tell me about a bug you shipped.**
+A: I shipped a flood-warning arm that under-called a fatal day, and the tests didn't catch it
+because the tests weren't the problem. Our plan said each catchment must be graded across
+rainfall windows from 0.5 to 6 hours, starting at its own response time. I implemented a *single*
+window at the response time. Our catchments respond in about five minutes, so every one of them
+was screened only on half-hour bursts — structurally blind to longer rain. On a verified fatal
+event whose signal sat at six hours, the new arm read WATCH while the validated arm read ALERT.
+Two things let it through: a green battery of 154 tests that all tested what I'd built rather
+than what was specified, and the fact that the plan's own acceptance gate — replay against
+verified events — was written down and then never run. I found it by re-reading the plan against
+the diff instead of against my own progress notes. Fixed, both fatal events now stage 1.6–1.7×
+above the validated arm. The lesson I actually took: a gate written into a plan is not evidence
+until it's executed, and "all tests pass" measures the tests you thought to write.
+
+**Q: What do you do when a validation check doesn't work?**
+A: Say so, and publish the non-result. I tried to corroborate our river-network maths against
+MERIT-Hydro. The first run said we were off by 10–300×, which was nonsense — I was sampling their
+data at the catchment's centroid, which sits mid-hillslope where any flow-routing product reads
+near zero. Fixed to sample at the outlet, and a second problem surfaced: our grid is 80 m, theirs
+about 90 m, so at headwater scale the two channel rasters don't align, and widening the search to
+snap onto their channel jumps onto the Chenab mainstem for outlets near it. Only one of eight
+comparisons survived as meaningful. I recorded `conclusive: false` and an explicit INCONCLUSIVE
+verdict rather than reporting a median computed from a single point. The routing's correctness is
+carried by things that are actually pinned — the catchment walk reproduces the validated
+accumulation exactly — not by a corroboration I couldn't make work.
+
 **Q: What did building the flood arm teach you that the plan didn't anticipate?**
 A: Two things, both worth admitting. First, the response-time matching — pick the rainfall window
 that fits how fast each basin reacts — is correct and unit-tested, but every one of our basins
@@ -2000,10 +2026,14 @@ Being able to state weaknesses is what makes you credible.
   would be inventing numbers. Three further limits, stated up front: (1) **only 3 of 22 zones**
   are channel-adjacent at all, so the arm addresses a minority of sites; (2) its thresholds are
   **inherited** from the burst gate (§64) and have never been tested against flood ground truth,
-  because we have none — it ships EXPERIMENTAL; (3) the rainfall-grading half has **not yet been
-  run on live data**, so no flood level is published anywhere, and nothing calls it
-  automatically. Also inherited from CF14: satellite rain is an ~11 km pixel, and most of our
-  basins span just **one** of them, so a "basin average" is really that single pixel.
+  because we have none — it ships EXPERIMENTAL, though it now **passes its own acceptance gate**:
+  replayed against the two verified fatal events it stages 1.6–1.7× *above* the validated
+  AOI-mean arm (§71), which is the evidence the idea rested on; (3) its geometry corroboration
+  against MERIT-Hydro is **INCONCLUSIVE**, not confirmatory — at 80 m vs 90 m the two channel
+  rasters don't align at headwater scale, so only 1/8 and 4/14 comparison points survived and the
+  artifact says so rather than quoting a median from one point. Also inherited from CF14:
+  satellite rain is an ~11 km pixel, and most of our basins span just **one** of them, so a
+  "basin average" is really that single pixel.
 
 - **The sub-daily burst gate (CF14 / §55, calibrated §58, false-alarm-priced §63) is still
   provisional:** its ALERT threshold is evidence-based — now seven verified events — and its

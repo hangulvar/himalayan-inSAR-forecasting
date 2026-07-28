@@ -294,6 +294,12 @@ def _catchment_record(acc, targets, dem, valid, px_m, outlet, fc: FloodConfig, t
     xs, ys = rasterio.transform.xy(transform, rows, cols)
     lons, lats = tr.transform(np.asarray(xs), np.asarray(ys))
     stageable = coverage_ok(coverage_pct, fc.min_catchment_coverage_pct)
+    # The OUTLET's lon/lat — the only point where "upstream area" is comparable to another
+    # routing product. (Sampling a reference grid at the catchment CENTROID instead compares
+    # our outlet area against a mid-hillslope cell and manufactures a 10-300x "divergence";
+    # measured and corrected 2026-07-28, §71.)
+    ox, oy = rasterio.transform.xy(transform, r, c)
+    olon, olat = pyproj.Transformer.from_crs(crs, 4326, always_xy=True).transform(ox, oy)
     rec.update(
         n_cells=n_cells,
         mask_area_km2=round(n_cells * px_m * px_m / 1e6, 3),
@@ -304,6 +310,7 @@ def _catchment_record(acc, targets, dem, valid, px_m, outlet, fc: FloodConfig, t
         bbox_lonlat=[round(float(np.min(lons)), 5), round(float(np.min(lats)), 5),
                      round(float(np.max(lons)), 5), round(float(np.max(lats)), 5)],
         centroid_lonlat=[round(float(np.mean(lons)), 5), round(float(np.mean(lats)), 5)],
+        outlet_lonlat=[round(float(olon), 5), round(float(olat), 5)],
         refusal=None if stageable else (
             "catchment touches the edge of the DEM's valid data — its true upstream area is "
             "larger than measured here, so it is not graded (coverage unknown)"),
@@ -312,32 +319,88 @@ def _catchment_record(acc, targets, dem, valid, px_m, outlet, fc: FloodConfig, t
 
 
 # ── optional MERIT-Hydro cross-check (NON-FATAL, needs GEE) ──────────────────────────
-def merit_crosscheck(points: list[dict], project: str | None = None):
+MERIT_SNAP_M = 150.0    # ~1.7 MERIT cells: enough to land on its channel, not another basin
+
+
+def merit_crosscheck(points: list[dict], project: str | None = None,
+                     snap_m: float = MERIT_SNAP_M):
     """Compare our D8 upstream areas against MERIT-Hydro's precomputed global flow accumulation
-    at the same lon/lat. Returns None when GEE is unavailable — this is corroboration, and its
-    absence must never stop the probe (the radar_watch NISAR-block pattern)."""
+    AT THE OUTLET. Returns None when GEE is unavailable — this is corroboration, and its absence
+    must never stop the probe (the radar_watch NISAR-block pattern).
+
+    Two things this has to get right, both learned the hard way (§71):
+      • sample at the OUTLET, not the catchment centroid — a centroid sits mid-hillslope, where
+        any routing product reports a near-zero upstream area, which manufactured a bogus
+        10-300x "divergence" on the first run;
+      • take the MAX within a small snap radius rather than the value at the exact point. Our
+        grid is 80 m and MERIT's is ~90 m, so the two channel rasters are offset by up to a
+        cell; sampling a single point routinely lands one cell OFF MERIT's channel and reads
+        hillslope instead. Snapping to the local maximum is the standard cross-resolution
+        comparison for flow-accumulation grids.
+    """
     if not points:
         return None
     try:
         from fetch_chirps import ee_init
         ee, proj = ee_init(project)
         img = ee.Image("MERIT/Hydro/v1_0_1").select("upa")     # upstream area, km^2
-        fc = ee.FeatureCollection([
+        # TWO samples per outlet: the value AT the point, and the max within the snap radius.
+        # Comparing them is what makes the check honest — see the contamination rule below.
+        pts = ee.FeatureCollection([
             ee.Feature(ee.Geometry.Point([p["lon"], p["lat"]]), {"id": p["id"]})
             for p in points])
-        vals = img.reduceRegions(fc, ee.Reducer.first(), 92).getInfo()["features"]
-        got = {f["properties"]["id"]: f["properties"].get("first") for f in vals}
+        buf = ee.FeatureCollection([
+            ee.Feature(ee.Geometry.Point([p["lon"], p["lat"]]).buffer(snap_m), {"id": p["id"]})
+            for p in points])
+        at_pt = {f["properties"]["id"]: f["properties"].get("first")
+                 for f in img.reduceRegions(pts, ee.Reducer.first(), 92).getInfo()["features"]}
+        snapped = {f["properties"]["id"]: f["properties"].get("max")
+                   for f in img.reduceRegions(buf, ee.Reducer.max(), 92).getInfo()["features"]}
         rows = []
         for p in points:
-            m = got.get(p["id"])
+            mp, ms = at_pt.get(p["id"]), snapped.get(p["id"])
+            # CONTAMINATED: the snap window also touches a channel an order of magnitude larger
+            # than the one we are on (the Chenab mainstem runs within 150 m of several of our
+            # outlets). Those points cannot be compared at this resolution — they are EXCLUDED
+            # from the headline and counted, never quietly averaged in.
+            contaminated = bool(mp and ms and ms > 10 * mp)
             rows.append({"id": p["id"], "ours_km2": p["area_km2"],
-                         "merit_km2": round(float(m), 3) if m is not None else None,
-                         "ratio": (round(p["area_km2"] / float(m), 3)
-                                   if m else None)})
-        ratios = [r["ratio"] for r in rows if r["ratio"]]
-        return {"ee_project": proj, "n_points": len(rows), "points": rows,
-                "median_ratio_ours_over_merit": (round(float(np.median(ratios)), 3)
-                                                 if ratios else None)}
+                         "merit_at_point_km2": round(float(mp), 3) if mp is not None else None,
+                         "merit_snap_max_km2": round(float(ms), 3) if ms is not None else None,
+                         "ratio_ours_over_merit": (round(p["area_km2"] / float(mp), 3)
+                                                   if mp else None),
+                         "excluded": contaminated,
+                         "exclusion_reason": ("snap window straddles a channel >10x larger — "
+                                              "not comparable at 80 m vs 90 m"
+                                              if contaminated else None)})
+        clean = [r["ratio_ours_over_merit"] for r in rows
+                 if r["ratio_ours_over_merit"] and not r["excluded"]]
+        spread = (max(clean) / min(clean)) if clean and min(clean) > 0 else None
+        # A verdict on the CHECK ITSELF before any verdict on the routing (§65 rule: refuse to
+        # publish a number the evidence cannot carry). At Regime-A scale an 80 m and a 90 m
+        # channel raster simply do not align well enough for an outlet-point comparison: the
+        # exact point usually lands on MERIT's hillslope, and widening the window jumps to a
+        # mainstem. When most points are unusable or the survivors disagree wildly, this is
+        # INCONCLUSIVE — not a measurement of our routing.
+        conclusive = bool(clean and len(clean) >= max(3, len(rows) // 2)
+                          and spread is not None and spread <= 3.0)
+        return {"ee_project": proj, "snap_m": snap_m, "n_points": len(rows),
+                "n_excluded": sum(1 for r in rows if r["excluded"]),
+                "n_compared": len(clean), "points": rows,
+                "conclusive": conclusive,
+                "verdict": (
+                    f"median ours/MERIT = {round(float(np.median(clean)), 3)} over "
+                    f"{len(clean)} comparable outlets" if conclusive else
+                    "INCONCLUSIVE at Regime-A scale — an 80 m vs 90 m channel raster does not "
+                    "align well enough at headwater outlets (the exact point lands on MERIT's "
+                    "hillslope; widening the window jumps to a mainstem). This says nothing "
+                    "about our routing either way; its internal consistency is pinned instead "
+                    "by tests (BFS catchment == accumulation) and by sharing the validated "
+                    "§67 criterion."),
+                "median_ratio_ours_over_merit": (round(float(np.median(clean)), 3)
+                                                 if clean else None),
+                "ratio_range": ([round(min(clean), 3), round(max(clean), 3)]
+                                if clean else None)}
     except Exception as e:  # noqa: BLE001 — corroboration only
         return {"skipped": f"{type(e).__name__}: {e}"}
 
@@ -387,8 +450,13 @@ def _write_md(path: Path, rep: dict) -> None:
     elif mc.get("skipped"):
         md.append(f"_skipped: {mc['skipped']}_ — corroboration only; the probe stands without it.")
     else:
-        md.append(f"{mc['n_points']} channel points; median ratio ours/MERIT = "
-                  f"**{mc['median_ratio_ours_over_merit']}** (1.0 = agreement).")
+        md.append(f"Sampled at each catchment **outlet** (not its centroid), snap "
+                  f"{mc.get('snap_m')} m. {mc['n_compared']} of {mc['n_points']} points "
+                  f"comparable; **{mc.get('n_excluded', 0)} excluded** where the snap window "
+                  f"straddles a channel >10x larger (a mainstem passing close by — not "
+                  f"comparable at 80 m vs 90 m).")
+        md.append("")
+        md.append(f"**{mc.get('verdict')}**")
     md += ["", f"**{rep['verdict']}**", ""]
     path.write_text("\n".join(md) + "\n", encoding="utf-8")
 
@@ -440,9 +508,9 @@ def main(argv=None) -> int:
             rec["catchment"] = _catchment_record(acc, targets, dem, valid, px_m, outlet, fc,
                                                  transform, crs)
             cm = rec["catchment"]
-            if cm.get("centroid_lonlat") and cm.get("area_km2"):
-                merit_points.append({"id": f"zone{i}", "lon": cm["centroid_lonlat"][0],
-                                     "lat": cm["centroid_lonlat"][1],
+            if cm.get("outlet_lonlat") and cm.get("area_km2"):
+                merit_points.append({"id": f"zone{i}", "lon": cm["outlet_lonlat"][0],
+                                     "lat": cm["outlet_lonlat"][1],
                                      "area_km2": cm["area_km2"]})
         out_zones.append(rec)
         print(f"  zone {i:>2} ({z['severity']:>8}): channel "

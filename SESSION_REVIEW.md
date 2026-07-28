@@ -15,10 +15,28 @@
 
 ## Current state
 
-- **★ NEW (§70) — F1 is RUN LIVE on both sites: 22/22 catchments staged, 0 aborts.** Today
-  (2026-07-27, provisional) **both sites are all-DORMANT**; season peaks are Ramban `zone2`
-  E_f 8.06 (01 Jul) and VD `zone10` E_f 5.22 (18 Jul). Per-day texture is sane, not saturated
-  (Ramban zone 1: 99 DORMANT / 15 WATCH / 4 ALERT of 118 days). Numbers §70.
+- **★★ NEW (§71) — an audit sweep against the plan found its ACCEPTANCE GATE had been skipped,
+  and the gate FAILED.** The plan calls the verified-event replay "the go/no-go for showing the
+  card at all"; the card had shipped twice without it. Running it: on the **22 Jul 2026 fatal
+  event the arm read FLOOD-WATCH where the validated arm read ALERT** — it **downgraded a fatal
+  day**. Cause: the plan says screen "over D = 0.5–6 h" (a RANGE floored at t_c); it was built as
+  a SINGLE t_c window, so all 22 catchments were screened at 0.5 h and were blind to the 6 h
+  accumulation that mattered. **Fixed; the gate now PASSES on both fatal events, with the
+  catchment arm reading HIGHER than the validated arm** — 20 Apr 2025: 4.97 vs 3.07 (1.6×);
+  22 Jul 2026: 4.11 vs 2.44 (1.7×). Side benefit: E_f is now the same max-over-durations
+  statistic k=2.4 was calibrated on, retiring §70's inheritance caveat.
+- **★ NEW (§71) — the MERIT-Hydro cross-check is recorded as INCONCLUSIVE, not as a number.**
+  Two corrections were needed before it meant anything (sample at the **outlet**, not the
+  centroid — the centroid version manufactured a 10–300× "divergence"; then measure point-vs-snap
+  contamination, because the snap jumps onto the Chenab mainstem). Only **1/8 and 4/14** points
+  survive, so the artifact carries `conclusive: false`. Routing consistency rests on what is
+  actually pinned: BFS catchment == validated accumulation, and the shared §67 criterion.
+- **★ (§70) — F1 RUNS LIVE on both sites: 22/22 catchments staged, 0 aborts.** Today
+  (2026-07-27, provisional) **both sites all-DORMANT**; season peaks (post-§71 fix) Ramban
+  `zone2` **E_f 12.37** (01 Jul), VD `zone10` **E_f 8.69** (03 Jul). Per-day texture is sane, not
+  saturated. Two §70 bugs a hermetic suite could not catch: sub-pixel GEE nulls falsely aborting
+  3 real catchments, and `level_counts` grading on the SEASON PEAK so the card announced
+  "8/8 FLOOD-ALERT" on a day everything was dormant. Both fixed and regression-tested.
 - **★ The live run found TWO bugs a hermetic suite could not (§70).** (1) Three real catchments
   were falsely reported unmeasurable — Earth Engine returns null for a sub-pixel region with no
   pixel centre; the tell was that two boxes of the *same size* succeeded. Probed before fixing;
@@ -29,10 +47,12 @@
 - **★ The `live_alarm.py` hook IS WIRED (§70 — reverses §69's deferral, on the user's call).**
   Non-fatal, between the IMERG and radar hooks, **before** the dashboard render; writes only to
   `data/flood/`. Test `R9` pins the try/except, the SKIPPED message and the ordering.
-- **★ (§69) — the additive claim is MACHINE-CHECKED and still holds after all live runs.** The
+- **★ (§69) — the additive claim is MACHINE-CHECKED and still holds after every live run.** The
   baseline freeze written **before any flood code ran** hashes **116 protected artifacts** —
-  **all 116 byte-identical**. The card is a proven *pure insertion*. Battery **114 → 154 green**
+  **all 116 byte-identical**. The card is a proven *pure insertion*. Battery **114 → 155 green**
   in the container. Guards carry negative controls.
+- **Docs gaps closed (§71):** `docs/runbooks/FLOOD_ARM_RUNBOOK.md` (a plan §5 deliverable that
+  had never been written) and `docs/INDEX.md` entries for the plan + runbook.
 - **★ F0 geometry MEASURED on both sites (§69):** 22 zones → **22 catchments, all Regime A,
   0 truncated, 0 mainstem**, 0.51–2.29 km². **The plan's premise is a number now: the frame DEMs
   already span every catchment, so the InSAR AOI was never enlarged.** Only **3/22** zones are
@@ -100,6 +120,17 @@ and the one that makes the 3/22 exposure count actionable). User-side (standing)
 
 §68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
 delta is §70 only.
+
+**§71 — the audit sweep (on top of §70, same working tree):**
+- `workflows/flood_gate.py` — `match_durations()` (RANGE screening; the gate fix) and
+  `catchment_daily_E` now takes a duration list and records the winning window.
+- `workflows/flood_domain.py` — `outlet_lonlat` in the catchment record; MERIT sampled at the
+  outlet with point-vs-snap contamination exclusion and a `conclusive` verdict.
+- `tests/test_flood_gate.py` 17→18 (range-screening regression; the pin now also requires both
+  arms to agree on the winning duration).
+- NEW `docs/runbooks/FLOOD_ARM_RUNBOOK.md`; `docs/INDEX.md` (+2 entries);
+  `RESULTS_AND_KPIS.md` (§71); `error_history_log.md` (4 defects); `session_journey.md` S31d.
+- Git-ignored data: `data/flood/` regenerated (both sites 2026 + Ramban **2025** for the replay).
 
 **§70 — F1 run live, two bug fixes, and the hook:**
 - `workflows/flood_gate.py` — `sampling_scale_m()` (the sub-pixel null fix) + the

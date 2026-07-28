@@ -32,6 +32,10 @@ restructure that gathered all *reading* material under `docs/`. The **functional
 ### runbooks/ — how to operate
 - **NEW_AOI_PLAYBOOK.md** — deterministic recipe for onboarding a new AOI (automated steps + the manual M1–M4). Referenced by `workflows/aoi_status.py`'s next-step hints.
 - **Publishing Checklist - Live Dashboard (2026-07-11).md** — what to check before publishing the dashboard publicly.
+- **FLOOD_ARM_RUNBOOK.md** — run/re-run/interpret/disable the flash-flood arm (F0 geometry +
+  F1 catchment staging): the `flood:` config gate, what each abort reason means, how to read
+  `latest` vs `season_peak`, the known limitations to state out loud, and what to do when the
+  baseline-freeze test flags a protected artifact.
 
 *Day-to-day ops need no runbook anymore:* the scheduled cycle (`workflows/monsoon_cycle.ps1`)
 runs unattended, and `control_panel.bat` (root) gives one-click refresh + a results hub.
@@ -46,6 +50,10 @@ runs unattended, and `control_panel.bat` (root) gives one-click refresh + a resu
 - **STRENGTHENING_PLAN_2026-07-18.md** — the ACTIVE data+science plan (Tier 0–4: S1-handover
   triage, in-monsoon rain science, NISAR L-band pilot, validation depth, structural items);
   successor to the archived Science Upgrade Plan.
+- **FLOOD_EXPANSION_PLAN_2026-07-28.md** — the ACTIVE flash-flood plan (F0 geometry probe →
+  F1 catchment burst staging → F2 creep×flood undercut coupling → F3 deferred menu), with the
+  scope verdict (Regime-A tributary floods only; no inundation depth, no mainstem forecasting)
+  and the additive test contract. F0+F1 are BUILT and RUN (§69–§71); F2 is the next phase.
 - **RAMBAN_REBUILD_MANIFEST_2026-07-19.md** — the dry-run-verified 3-pair submission
   manifest for the unblocked Ramban cadence rebuild (frame-renumbering finding, ~30-credit
   cost, one-command submit + the post-landing rebuild loop).

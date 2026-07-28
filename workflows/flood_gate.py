@@ -76,21 +76,28 @@ MIN_STEPS_FOR_WINDOW = 2          # a window graded on one step is noise, not a 
 
 
 # ── window matching ──────────────────────────────────────────────────────────────────
-def match_duration(tc_hours: float | None, choices: list[float] = None) -> float:
-    """The trailing window to grade a catchment on: the shortest offered window that is at
-    least as long as its time of concentration (capped at the longest offered).
+def match_durations(tc_hours: float | None, choices: list[float] = None) -> list[float]:
+    """The trailing windows to grade a catchment on: every offered window at least as long as
+    its time of concentration (always at least one).
 
-    Rationale: rain falling for less than t_c has not yet produced the catchment's peak flow,
-    so a shorter window under-reads the flood signal; a much longer one dilutes the burst back
-    into the AOI-mean behaviour this arm exists to escape. t_c unknown -> the middle default.
+    t_c sets where the range STARTS, it does not select a single window. Rain lasting less than
+    t_c has not yet produced the catchment's peak flow, so shorter windows under-read the flood
+    signal — but longer ones are not noise, they are the larger-volume events, and a flash flood
+    is perfectly capable of arriving on the back of a 6-hour soaking.
+
+    THIS WAS THE F1 GATE FAILURE (§71). Grading a SINGLE t_c-matched window meant every one of
+    our 22 catchments (t_c 0.07-0.12 h) was screened at 0.5 h only — structurally blind to
+    longer accumulations. On the 22 Jul 2026 fatal event, whose signal sits at D = 6 h, the arm
+    read FLOOD-WATCH where the validated AOI-mean arm read ALERT: the new arm DOWNGRADED a
+    fatal day. Screening the range and taking the max fixes that, and has a second benefit —
+    E_f becomes the same max-over-durations statistic imerg_gate's k was calibrated on, so the
+    inherited threshold is no longer being applied across a change of statistic.
     """
     ch = sorted(choices or DUR_CHOICES)
     if tc_hours is None or not np.isfinite(tc_hours) or tc_hours <= 0:
-        return ch[1] if len(ch) > 1 else ch[0]
-    for d in ch:
-        if d >= tc_hours:
-            return d
-    return ch[-1]
+        return list(ch)                       # unknown response time -> screen everything
+    out = [d for d in ch if d >= tc_hours]
+    return out or [ch[-1]]                    # t_c beyond the cap -> the longest window
 
 
 # ── health guard (the §65 abort-don't-fabricate rule) ────────────────────────────────
@@ -120,46 +127,52 @@ def series_health(series, duration_h: float) -> tuple[bool, str | None, dict]:
 
 
 # ── the graded series (pure numpy — hermetically unit-tested) ────────────────────────
-def catchment_daily_E(series, a: float, b: float, duration_h: float) -> list[dict]:
-    """Per calendar day: the peak exceedance E_f over trailing windows of `duration_h` ENDING
-    that day, graded against the regional I-D curve.
+def catchment_daily_E(series, a: float, b: float, durations_h) -> list[dict]:
+    """Per calendar day: the peak exceedance E_f over trailing windows ENDING that day, screened
+    across `durations_h` and graded against the regional I-D curve. The winning duration is
+    recorded per day, so the report says WHICH window carried the signal.
 
-    This is imerg_gate.daily_subdaily_E's math restricted to ONE catchment-matched duration
-    instead of screening a fixed menu. It is not a copy by convenience: the shared science —
-    `threshold_intensity` — is imported, and tests/test_flood_gate.py PINS this function
-    against imerg_gate.daily_subdaily_E (they must agree exactly when this one is run over
-    imerg_gate's full duration menu), so the two cannot silently diverge.
+    This is imerg_gate.daily_subdaily_E's math over a catchment-matched duration RANGE instead
+    of the fixed AOI menu. It is not a copy by convenience: the shared science —
+    `threshold_intensity` — is imported, and tests/test_flood_gate.py PINS this function against
+    imerg_gate.daily_subdaily_E (they must agree exactly when run over imerg_gate's own menu),
+    so the two cannot silently diverge.
 
     Windows cross midnight, so an overnight burst is credited to the day it ends in rather
     than split at 00:00 — the same invariant the daily-E series already honours.
     """
     if not series:
         return []
+    durs = [float(d) for d in (durations_h if isinstance(durations_h, (list, tuple))
+                               else [durations_h])]
     times = [t for t, _ in series]
     rates = np.array([r for _, r in series], dtype=float)
     depth = np.nan_to_num(rates, nan=0.0) * STEP_H            # mm per 30-min step
     csum = np.insert(np.cumsum(depth), 0, 0.0)
     day_of = np.array([t.date() for t in times])
-    k = max(1, int(round(duration_h / STEP_H)))
-    thr_I = float(threshold_intensity(np.array([duration_h]), a, b)[0])
     out = []
     for d in sorted(set(day_of)):
         idx = np.where(day_of == d)[0]
         best_E, best = 0.0, None
-        for i in idx:                                          # window ENDS at step i
-            j0 = max(0, i + 1 - k)
-            accum = float(csum[i + 1] - csum[j0])
-            E = (accum / duration_h) / thr_I
-            if E > best_E:
-                best_E = E
-                best = {"burst_mm": round(accum, 1), "peak_mmph": round(accum / duration_h, 2),
-                        "window_end": times[i].strftime("%Y-%m-%d %H:%M")}
+        for D in durs:
+            k = max(1, int(round(D / STEP_H)))
+            thr_I = float(threshold_intensity(np.array([D]), a, b)[0])
+            for i in idx:                                      # window ENDS at step i
+                j0 = max(0, i + 1 - k)
+                accum = float(csum[i + 1] - csum[j0])
+                E = (accum / D) / thr_I
+                if E > best_E:
+                    best_E = E
+                    best = {"duration_h": D, "burst_mm": round(accum, 1),
+                            "peak_mmph": round(accum / D, 2),
+                            "window_end": times[i].strftime("%Y-%m-%d %H:%M")}
         lvl = ("FLOOD-ALERT" if best_E >= FLOOD_ALERT_K else
                "FLOOD-WATCH" if best_E >= FLOOD_WATCH_K else "FLOOD-DORMANT")
         out.append({"date": d.isoformat(), "n_steps": int(idx.size),
                     "provisional": bool(idx.size < STEPS_PER_DAY),
-                    "duration_h": duration_h, "E_f": round(best_E, 2), "level": lvl,
-                    **(best or {"burst_mm": 0.0, "peak_mmph": 0.0, "window_end": None})})
+                    "E_f": round(best_E, 2), "level": lvl,
+                    **(best or {"duration_h": durs[0], "burst_mm": 0.0, "peak_mmph": 0.0,
+                                "window_end": None})})
     return out
 
 
@@ -360,24 +373,25 @@ def main(argv=None) -> int:
                                   "abort_reason": cm.get("refusal") or "not stageable (F0)"})
             print(f"  {name}: ABORT — {base['abort_reason'] if 'abort_reason' in base else cm.get('refusal')}")
             continue
-        dur = match_duration(cm.get("tc_hours"))
+        durs = match_durations(cm.get("tc_hours"))
+        base["durations_h"] = durs
         cache = RAIN_CACHE / f"{slug}_zone{z['zone']}_halfhourly{sfx}.csv"
         try:
             series = fetch_catchment_series(cache, cm["bbox_lonlat"], start, end, args.project)
         except Exception as e:  # noqa: BLE001 — a fetch failure is an abort with a reason
-            per_catchment.append({**base, "aborted": True, "duration_h": dur,
+            per_catchment.append({**base, "aborted": True, "duration_h": None,
                                   "abort_reason": f"rainfall fetch failed: {type(e).__name__}: {e}"})
             print(f"  {name}: ABORT — fetch failed ({type(e).__name__})")
             continue
-        ok, reason, stats = series_health(series, dur)
+        ok, reason, stats = series_health(series, min(durs))
         if not ok:
-            per_catchment.append({**base, "aborted": True, "duration_h": dur,
+            per_catchment.append({**base, "aborted": True, "duration_h": None,
                                   "abort_reason": reason, "series_stats": stats})
             print(f"  {name}: ABORT — {reason}")
             continue
-        days = catchment_daily_E(series, a, b, dur)
+        days = catchment_daily_E(series, a, b, durs)
         peak = max(days, key=lambda d: d["E_f"])
-        per_catchment.append({**base, "aborted": False, "duration_h": dur,
+        per_catchment.append({**base, "aborted": False, "duration_h": peak["duration_h"],
                               "abort_reason": None, "series_stats": stats,
                               "n_days": len(days), "date": peak["date"], "E_f": peak["E_f"],
                               "level": peak["level"], "burst_mm": peak["burst_mm"],
@@ -386,7 +400,8 @@ def main(argv=None) -> int:
                               "provisional": peak["provisional"],
                               "latest": days[-1], "days": days})
         print(f"  {name}: {peak['level']} E_f={peak['E_f']} on {peak['date']} "
-              f"({dur} h window, {base['area_km2']} km^2, {base['imerg_pixels']} IMERG px)")
+              f"(best {peak['duration_h']} h of {durs}, {base['area_km2']} km^2, "
+              f"{base['imerg_pixels']} IMERG px)")
 
     if not per_catchment:
         print("flood_gate: F0 found no catchment to grade — nothing written.")

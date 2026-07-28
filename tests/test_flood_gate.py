@@ -51,7 +51,7 @@ def _series(day0: datetime, n_days: int, rate_at: dict[int, float]):
 # ------------------------------------------------------------------------------
 def test_U8_known_burst_gives_the_hand_computed_exceedance():
     day0 = datetime(2026, 6, 1)
-    days = fg.catchment_daily_E(_series(day0, 2, {20: 30.0, 21: 30.0}), A, B, 1.0)
+    days = fg.catchment_daily_E(_series(day0, 2, {20: 30.0, 21: 30.0}), A, B, [1.0])
     d1 = days[0]
     expect = 30.0 / float(threshold_intensity(np.array([1.0]), A, B)[0])   # 30 mm in 1 h
     assert abs(d1["E_f"] - round(expect, 2)) < 0.01, d1
@@ -62,7 +62,7 @@ def test_U8_known_burst_gives_the_hand_computed_exceedance():
 
 def test_U9_burst_spanning_midnight_is_not_split():
     day0 = datetime(2026, 6, 1)
-    days = fg.catchment_daily_E(_series(day0, 2, {47: 30.0, 48: 30.0}), A, B, 1.0)
+    days = fg.catchment_daily_E(_series(day0, 2, {47: 30.0, 48: 30.0}), A, B, [1.0])
     d2 = days[1]
     assert d2["burst_mm"] == 30.0, ("the overnight burst was split at midnight", d2)
     assert d2["level"] == "FLOOD-ALERT"
@@ -72,19 +72,19 @@ def test_U10_incomplete_day_is_provisional_and_E_only_rises():
     day0 = datetime(2026, 6, 1)
     partial = _series(day0, 1, {}) + [(day0 + timedelta(days=1, minutes=30 * i), 8.0)
                                       for i in range(6)]
-    days = fg.catchment_daily_E(partial, A, B, 1.0)
+    days = fg.catchment_daily_E(partial, A, B, [1.0])
     assert days[0]["provisional"] is False and days[1]["provisional"] is True
     assert days[1]["n_steps"] == 6
     e_partial = days[1]["E_f"]
     # More of the same day arrives (still raining): E must not fall.
     fuller = partial + [(day0 + timedelta(days=1, minutes=30 * i), 8.0) for i in range(6, 12)]
-    e_fuller = fg.catchment_daily_E(fuller, A, B, 1.0)[1]["E_f"]
+    e_fuller = fg.catchment_daily_E(fuller, A, B, [1.0])[1]["E_f"]
     assert e_fuller >= e_partial, (e_partial, e_fuller)
 
 
 def test_U10b_dry_season_is_dormant_everywhere():
     """I4 — a dry week must produce no card noise at all."""
-    days = fg.catchment_daily_E(_series(datetime(2026, 1, 5), 7, {}), A, B, 3.0)
+    days = fg.catchment_daily_E(_series(datetime(2026, 1, 5), 7, {}), A, B, [3.0])
     assert len(days) == 7
     assert {d["level"] for d in days} == {"FLOOD-DORMANT"}
     assert max(d["E_f"] for d in days) == 0.0
@@ -107,14 +107,20 @@ def test_pins_to_the_shared_burst_math():
     for shape in shapes:
         series = _series(day0, 3, shape)
         ref = ig.daily_subdaily_E(series, A, B)
-        mine = {}
-        for D in ig.DUR_H:
-            for d in fg.catchment_daily_E(series, A, B, float(D)):
-                mine[d["date"]] = max(mine.get(d["date"], 0.0), d["E_f"])
+        # Run the flood grading over imerg_gate's OWN menu in ONE call — with the range fix
+        # (§71) both sides are now the same max-over-durations statistic, so they must agree
+        # day-for-day AND pick the same winning duration.
+        mine = {d["date"]: d for d in
+                fg.catchment_daily_E(series, A, B, [float(D) for D in ig.DUR_H])}
         for r in ref:
-            assert abs(mine[r["date"]] - r["max_E"]) < 0.011, (
-                f"shape {shape}: day {r['date']} flood arm says {mine[r['date']]}, "
+            got = mine[r["date"]]
+            assert abs(got["E_f"] - r["max_E"]) < 0.011, (
+                f"shape {shape}: day {r['date']} flood arm says {got['E_f']}, "
                 f"validated burst math says {r['max_E']}")
+            if r["max_E"] > 0:
+                assert got["duration_h"] == r["duration_h"], (
+                    f"shape {shape}: day {r['date']} winning duration diverged "
+                    f"({got['duration_h']} vs {r['duration_h']})")
 
 
 def test_thresholds_are_literally_inherited_not_copied():
@@ -126,7 +132,7 @@ def test_thresholds_are_literally_inherited_not_copied():
 
     def level_for(target_E):
         rate = target_E * thr_1h                     # mm/h sustained for exactly 1 h
-        days = fg.catchment_daily_E(_series(day0, 1, {20: rate, 21: rate}), A, B, 1.0)
+        days = fg.catchment_daily_E(_series(day0, 1, {20: rate, 21: rate}), A, B, [1.0])
         return days[0]["level"]
 
     eps = 0.02
@@ -164,7 +170,7 @@ def test_U11b_a_void_is_never_graded_dormant():
     FLOOD-DORMANT — a fabricated 'no flood risk' from no data. The guard must be what stops it."""
     day0 = datetime(2026, 6, 1)
     void = [(day0 + timedelta(minutes=30 * i), float("nan")) for i in range(48)]
-    graded_anyway = fg.catchment_daily_E(void, A, B, 1.0)
+    graded_anyway = fg.catchment_daily_E(void, A, B, [1.0])
     assert graded_anyway and graded_anyway[0]["level"] == "FLOOD-DORMANT", (
         "the grader no longer produces the dangerous answer — re-check this control")
     ok, _reason, _ = fg.series_health(void, 1.0)
@@ -174,18 +180,43 @@ def test_U11b_a_void_is_never_graded_dormant():
 # ------------------------------------------------------------------------------
 # U13 — response-time window matching
 # ------------------------------------------------------------------------------
-def test_U13_window_matches_the_catchment_response_time():
-    assert fg.match_duration(0.2) == 0.5          # flashy headwater -> shortest window
-    assert fg.match_duration(0.5) == 0.5          # exactly on a boundary -> that window
-    assert fg.match_duration(0.9) == 1.0
-    assert fg.match_duration(2.5) == 3.0
-    assert fg.match_duration(99.0) == 6.0         # capped: beyond this it is the daily arm's job
-    assert fg.match_duration(None) == 1.0         # unknown t_c -> a stated default, not a guess
-    assert fg.match_duration(float("nan")) == 1.0
-    # Monotone: a slower catchment never gets a shorter window.
-    tcs = [0.1, 0.4, 0.6, 1.5, 4.0, 8.0]
-    windows = [fg.match_duration(t) for t in tcs]
-    assert windows == sorted(windows), windows
+def test_U13_response_time_sets_where_the_window_range_STARTS():
+    """t_c is the FLOOR of the screened range, not a single pick (§71). A flashy headwater is
+    screened at every window; a slow catchment drops the short ones it cannot respond to."""
+    assert fg.match_durations(0.2) == [0.5, 1.0, 3.0, 6.0]   # flashy -> screen everything
+    assert fg.match_durations(0.5) == [0.5, 1.0, 3.0, 6.0]   # boundary is inclusive
+    assert fg.match_durations(0.9) == [1.0, 3.0, 6.0]
+    assert fg.match_durations(2.5) == [3.0, 6.0]
+    assert fg.match_durations(99.0) == [6.0]                 # beyond the cap -> longest only
+    assert fg.match_durations(None) == [0.5, 1.0, 3.0, 6.0]  # unknown -> screen everything
+    assert fg.match_durations(float("nan")) == [0.5, 1.0, 3.0, 6.0]
+    # A slower catchment never gains a shorter window, and the set never empties.
+    prev = None
+    for tc in [0.1, 0.4, 0.6, 1.5, 4.0, 8.0, 99.0]:
+        got = fg.match_durations(tc)
+        assert got, f"t_c={tc} produced an empty duration set"
+        assert min(got) >= (min(prev) if prev else 0), (tc, got, prev)
+        prev = got
+
+
+def test_U13b_range_screening_cannot_underread_a_single_window():
+    """REGRESSION for the F1 gate failure (§71): grading only the t_c window made the arm blind
+    to longer accumulations, so on the 22 Jul 2026 fatal event (signal at D=6 h) it read
+    FLOOD-WATCH where the validated AOI-mean arm read ALERT — the new arm DOWNGRADED a fatal
+    day. Screening the range can only ever raise E_f, never lower it."""
+    day0 = datetime(2026, 6, 1)
+    # A long, gentle 6-hour soaking: invisible at 0.5 h, obvious at 6 h.
+    soak = _series(day0, 2, {i: 9.0 for i in range(20, 32)})
+    short_only = fg.catchment_daily_E(soak, A, B, [0.5])[0]
+    full_range = fg.catchment_daily_E(soak, A, B, [0.5, 1.0, 3.0, 6.0])[0]
+    assert full_range["E_f"] > short_only["E_f"], (short_only, full_range)
+    assert full_range["duration_h"] > 0.5, "the long window should have won this day"
+    # And the general property, on every fixture shape.
+    for shape in ({20: 30.0, 21: 30.0}, {i: 2.0 for i in range(48)}, {47: 30.0, 48: 30.0}, {}):
+        s = _series(day0, 2, shape)
+        for d_short, d_full in zip(fg.catchment_daily_E(s, A, B, [0.5]),
+                                   fg.catchment_daily_E(s, A, B, [0.5, 1.0, 3.0, 6.0])):
+            assert d_full["E_f"] >= d_short["E_f"] - 1e-9, (shape, d_short, d_full)
 
 
 # ------------------------------------------------------------------------------

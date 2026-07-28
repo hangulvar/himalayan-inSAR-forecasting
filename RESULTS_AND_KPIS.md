@@ -3437,6 +3437,78 @@ run had not re-executed those suites. Suites: flood invariants **10**, F0 **13**
 
 ---
 
+## 71. Audit sweep against the plan — the F1 GATE had been skipped, it FAILED, and fixing it changed the arm  `[MEASURED]`
+*(2026-07-28, session 31 cont. — a deliberate re-read of `FLOOD_EXPANSION_PLAN_2026-07-28.md`
+against what actually shipped. `flood_gate.py` (duration RANGE), `flood_domain.py` (MERIT at
+outlets + conclusiveness verdict), NEW `docs/runbooks/FLOOD_ARM_RUNBOOK.md`, `docs/INDEX.md`,
+suite 17→18.)*
+
+**★ THE MISS THAT MATTERED: the plan named the event replay "the go/no-go for showing the card
+at all", and the card shipped (§69/§70) without it ever being run.** Running it exposed a real
+defect — the arm as shipped **DOWNGRADED a fatal day**:
+
+| verified event | AOI-mean burst arm (validated) | catchment arm, as shipped | verdict |
+|---|---|---|---|
+| 22 Jul 2026 Gangroo–Ramsu (2 deaths) | **E = 2.44 ALERT** (D = 6 h) | E_f = 2.15 **FLOOD-WATCH** (D = 0.5 h) | **LOWER — gate FAILED** |
+
+**Root cause: a mis-implementation of the plan, not a science problem.** The plan says
+"trailing-window burst depth **over D = 0.5–6 h** matched to the catchment's response time" — a
+RANGE, with t_c setting where it starts. It was implemented as a **single** t_c-matched window;
+since every catchment's t_c is 0.07–0.12 h, all 22 were screened at 0.5 h only and were
+structurally blind to longer accumulations. The 22 Jul event's signal sits at D = 6 h.
+
+**Fixed** (`match_duration` → `match_durations`: screen every window ≥ t_c, take the max).
+**Re-run, the gate now PASSES on both verified fatal events, and the catchment arm reads HIGHER
+than the arm we already trust — which is the whole point of aggregating over the catchment:**
+
+| verified event | AOI-mean arm | catchment arm (best) | verdict |
+|---|---|---|---|
+| **20 Apr 2025** Ramban cloudburst (3 deaths, §12g) | E = 3.07 ALERT (D = 12 h) | **E_f = 4.97 FLOOD-ALERT** (zone1, D = 6 h) | **HIGHER (1.6×)** — 6/8 catchments ALERT |
+| **22 Jul 2026** Gangroo–Ramsu (2 deaths, §62) | E = 2.44 ALERT (D = 6 h) | **E_f = 4.11 FLOOD-ALERT** (zone2, D = 3 h) | **HIGHER (1.7×)** — 4/8 catchments ALERT |
+| 18 Jul 2026 VD (context) | E = 7.06 ALERT | E_f = 8.12 FLOOD-ALERT (zone10, D = 6 h) | HIGHER |
+
+**Second benefit, and it closes §70's open caveat:** E_f is now the *same* max-over-durations
+statistic `imerg_gate`'s k = 2.4 was calibrated on, so the inherited threshold is no longer being
+applied across a change of statistic. The pin test was tightened to require both arms to agree
+on the **winning duration**, not just the value.
+
+Season peaks moved with the fix (Ramban `zone2` 8.06 → **12.37**; VD `zone10` 5.22 → **8.69**,
+now 03 Jul). Today (2026-07-27) both sites remain **all-DORMANT** — the fix raises sensitivity to
+long events, it does not manufacture alarms.
+
+**★ MERIT-Hydro cross-check: run at last, and the honest answer is INCONCLUSIVE.** The F0
+deliverable "cross-check upstream areas vs MERIT-Hydro; record divergence" had been implemented
+but never executed. Running it took **two corrections before the number meant anything**:
+1. it sampled MERIT at the catchment **centroid** — mid-hillslope, where any routing product
+   reads ~0 — manufacturing a bogus **10–300×** "divergence". Now sampled at the **outlet**
+   (`outlet_lonlat` added to the F0 record);
+2. an exact-point sample lands off MERIT's channel (0.02–0.08 km² = hillslope) because our grid
+   is 80 m and MERIT's ~90 m; widening the window to snap onto its channel instead jumps onto
+   the **Chenab mainstem** (18,000+ km²) for outlets that sit near it.
+
+Both samples are now recorded per point, contaminated points are **excluded and counted** rather
+than averaged in — and only **1/8 (Ramban) and 4/14 (VD)** points survive. **That is too few to
+support a corroboration claim, so the artifact records `conclusive: false` and an explicit
+INCONCLUSIVE verdict rather than a median from one point.** Routing consistency rests instead on
+what is actually pinned: the BFS catchment equals the validated accumulation exactly, and the
+channel criterion is the shared §67 function.
+
+**Other gaps closed in the same sweep:** `docs/runbooks/FLOOD_ARM_RUNBOOK.md` (a plan §5
+deliverable, "written at F1 ship" — it had not been) and `docs/INDEX.md` (the plan and runbook
+were unindexed). Verified still fine: `data/flood/` is covered by the `data/*` gitignore rule.
+
+**Verified:** battery **154 → 155 green** in the container (new: the range-screening regression,
+which asserts screening a range can never read lower than a single window, on five fixtures).
+The 116 protected artifacts remain byte-identical through every re-run.
+
+**Process lesson (logged):** the plan's own acceptance gate was documented, then skipped, and the
+work was reported as complete twice before anyone ran it. **A gate written into a plan is not
+evidence until it is executed** — and the shipped-but-ungated card would have under-called a
+fatal day. Re-reading the plan against the diff is now the last step of a phase, not an optional
+audit.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
