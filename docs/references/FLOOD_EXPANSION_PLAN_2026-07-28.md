@@ -1,5 +1,37 @@
 # Flash-Flood Expansion Plan — the third leg of the warning system (drafted 2026-07-28)
 
+> ## ⚑ STATUS AS BUILT — read this before the plan text below (updated 2026-07-29)
+>
+> **F0 ✅ and F1 ✅ are BUILT, RUN on all four AOI-seasons, and gated.** Ledger §69 (built),
+> §70 (run live + 2 bugs), §71 (audit: the gate below had been SKIPPED and FAILED), §72
+> (four-season set + skill table). Battery 114 → **157 green**. F2 is the next phase.
+>
+> **Three corrections to this document, recorded so the next session inherits reality:**
+>
+> 1. **§6/F1 "trailing-window burst depth over D = 0.5–6 h matched to the catchment's response
+>    time" means a RANGE floored at t_c — NOT a single t_c-matched window.** It was first built
+>    as a single window; because every catchment's t_c is 0.07–0.12 h that screened all 22 at
+>    0.5 h only, and on the 22 Jul 2026 fatal event (signal at D = 6 h) the arm read FLOOD-WATCH
+>    where the validated arm read ALERT — it **downgraded a fatal day** (§71). `match_durations()`
+>    now screens every window ≥ t_c and takes the max.
+> 2. **§5 says the sanctioned touch-points in existing files are "the ONLY ones" (two). There
+>    are now THREE**, both additions made on the user's explicit instruction:
+>    `operational_alarm.py` (planned), `live_alarm.py` (the non-fatal hook — §70; a flood level
+>    is a WHEN-answer and goes stale silently if left manual), and `imerg_calibration.py`
+>    (3 additive columns in the generated skill table — §72). `build_3d_dashboard.py` remains
+>    untouched and is **F2's** touch-point, pinned by a test.
+> 3. **§6/F1's replay is an ACCEPTANCE GATE and is now a TEST**
+>    (`test_I2_I3_verified_event_replay_gate`), not something to run by hand. It was documented,
+>    skipped, and the card shipped twice before anyone ran it. Never again: see the
+>    "CLOSE THE PLAN" rule added to `CLAUDE.md`.
+>
+> **Where F0/F1 landed:** 22/22 catchments Regime-A, 0 truncated, 0 mainstem; only 3/22 zones
+> channel-adjacent at 120 m; all 4 verified fatal events FLOOD-ALERT with 4/8–14/14 catchments
+> alerting, both non-fatal events FLOOD-WATCH with 0/8 — but n=7 on the burst arm's own
+> calibration set, so that is a description, not an independent validation. The MERIT-Hydro
+> cross-check is recorded **INCONCLUSIVE** (§71). Operating guide:
+> `docs/runbooks/FLOOD_ARM_RUNBOOK.md`.
+
 Companion to the *Strengthening Plan (2026-07-18)* (`STRENGTHENING_PLAN_2026-07-18.md`), not a
 successor: that plan hardens the existing creep+rainfall product; this one adds a **new,
 strictly additive capability** — per-AOI flash-flood / river-undercutting risk that runs in

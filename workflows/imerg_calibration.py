@@ -274,6 +274,15 @@ def temporal_skill_rows(events: list[dict]) -> list[dict]:
             caught = "burst" if burst_alert else "daily" if daily_alert else "neither"
         verified_by, ref = PROVENANCE.get((e["site"], e["date"]), ("", ""))
         delta = nearest_burst_alert_delta(e["site"], e["date"])
+        # THIRD arm (§71): the catchment flash-flood gate. Read non-fatally and left BLANK when
+        # that arm has no record for the day — an empty cell means "not measured", which is not
+        # the same as DORMANT. The flood arm is EXPERIMENTAL and deliberately does NOT feed
+        # `caught_at_alert_by`, which stays the two validated/calibrated arms' verdict.
+        try:
+            from flood_gate import event_flood_level
+            fl = event_flood_level(e["site"], e["date"])
+        except Exception:  # noqa: BLE001 — the flood arm is optional and never breaks this table
+            fl = None
         rows.append({
             "site": e["site"], "date": e["date"], "event": e["event"], "deaths": e["deaths"],
             "verified_by": verified_by,
@@ -283,6 +292,10 @@ def temporal_skill_rows(events: list[dict]) -> list[dict]:
             "caught_at_alert_by": caught,
             "delta_days": "0" if caught not in ("neither", "pending") else "",
             "burst_alert_lead_days": "" if delta is None else str(delta),
+            "flood_E_f": "" if fl is None else f"{fl['E_f']:.2f}",
+            "flood_level": "" if fl is None else fl["level"],
+            "flood_catchments_alert": ("" if fl is None
+                                       else f"{fl['n_alert']}/{fl['n_catchments']}"),
             "ledger_ref": ref,
         })
     return rows

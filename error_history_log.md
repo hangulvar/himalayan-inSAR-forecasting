@@ -1597,3 +1597,19 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
 * **Lesson:** before reporting a divergence against a reference dataset, prove you are comparing
   the same quantity at the same place. A dramatic ratio is far more often a sampling error than a
   discovery — and "the check did not resolve" is a legitimate, publishable answer.
+
+### 5. Deliverables that produce no code fail SILENTLY (the fourth miss)
+* **Symptom:** none. Nothing errored, no test failed, the battery was green.
+* **What was missing:** two plan deliverables that generate no artifact and therefore cannot
+  break anything by being absent — `docs/runbooks/FLOOD_ARM_RUNBOOK.md` (plan §5, explicitly
+  "written at F1 ship") and the `docs/INDEX.md` entries for the plan and runbook. A third,
+  the MERIT-Hydro cross-check, was worse: it was fully *implemented* behind a `--merit` flag
+  and simply never *invoked*, so it looked done in the diff.
+* **Root cause:** code-shaped deliverables announce their own absence (import errors, failing
+  tests); prose-shaped and run-shaped ones do not. Reviewing the diff shows what was written,
+  never what was omitted.
+* **Fix:** grep the plan for every deliverable that yields no code — runbooks, index entries,
+  recorded cross-checks, ledger numbers — and tick each one explicitly before claiming a phase.
+  Now rule 3 of the "CLOSE THE PLAN" entry in `CLAUDE.md`.
+* **Lesson:** "implemented" is not "run", and "written" is not "linked". A flag nobody has ever
+  passed is not a feature; it is untested code with a confident-looking docstring.

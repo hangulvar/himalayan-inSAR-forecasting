@@ -320,6 +320,40 @@ def write_outputs(summary: dict, sfx: str) -> Path:
     return csv_path
 
 
+def event_flood_level(slug: str, event_iso: str) -> dict | None:
+    """This arm's verdict on ONE day, for the Tier-3c temporal-skill table (§60 3c/§63).
+
+    Returns the WORST catchment's grade that day plus how many catchments reached FLOOD-ALERT,
+    or None when this arm has no season record covering the day. None means "not measured" and
+    must render as an EMPTY cell — never as DORMANT, which would read as "the flood arm saw the
+    day and found it quiet" (the §70 mistake, in a different costume).
+
+    Lives here rather than in imerg_calibration so the flood logic stays inside the flood
+    module; the calibration script only imports and calls it.
+    """
+    year = int(event_iso[:4])
+    f = FLOOD_DIR / f"flood_gate_summary{season_suffix(slug, year)}.json"
+    if not f.exists():
+        return None
+    try:
+        s = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt summary is "not measured", not a crash
+        return None
+    rows = []
+    for c in s.get("catchments", []):
+        if c.get("aborted"):
+            continue
+        for d in c.get("days", []):
+            if d["date"] == event_iso:
+                rows.append((c["catchment"], d["E_f"], d["level"], d.get("duration_h")))
+    if not rows:
+        return None
+    name, e_f, lvl, dur = max(rows, key=lambda r: r[1])
+    return {"catchment": name, "E_f": e_f, "level": lvl, "duration_h": dur,
+            "n_catchments": len(rows),
+            "n_alert": sum(1 for r in rows if r[2] == "FLOOD-ALERT")}
+
+
 def season_suffix(slug: str, year: int) -> str:
     """The project-wide suffix rule (live_alarm/imerg_gate): ramban is grandfathered onto the
     plain _<year> form, every other site carries its slug."""

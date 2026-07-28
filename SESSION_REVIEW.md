@@ -11,9 +11,30 @@
 
 ---
 
-# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-07-28
+# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-07-29
 
 ## Current state
+
+- **★ NEWEST (§72) — the flood arm is complete across all four AOI-seasons and is now IN the
+  committed temporal-skill table.** VD 2025 was the missing quarter: 14/14 staged, season peak
+  **2025-08-26 = the Ardhkuwari disaster (34 deaths), E_f 13.80** — the strongest flood reading
+  in the record. Three additive columns (`flood_E_f`, `flood_level`, `flood_catchments_alert`)
+  written **through the generator**, never by hand (the §63 rule). **All 4 fatal events are
+  FLOOD-ALERT (4/8–14/14 catchments alerting); both non-fatal events are FLOOD-WATCH with 0/8.**
+  Honest limit: n=7 on the burst arm's own calibration set — a description, not an independent
+  validation, and the flood arm deliberately does not feed `caught_at_alert_by`.
+- **★ The §71 acceptance gate is now a TEST** (`test_I2_I3_verified_event_replay_gate` + a
+  negative control that rebuilds the broken single-duration screening and requires rejection).
+  It was a one-off run, which is precisely how it got skipped. Plan IDs U12/I2/I3 now appear in
+  test names so the plan↔test mapping is greppable.
+- **★ The protected artifact changed DELIBERATELY and was proven additive before re-freezing:**
+  backup → column-by-column diff (3 added, 0 removed, **0 existing cells changed**) → R1
+  confirmed it was the ONLY file that moved → re-froze (**still 116**). R1's message now names
+  this as the second and only other legitimate cause of drift.
+- **★ The PLAN DOC is reconciled with reality** (status block at its top): the range-vs-single
+  correction, touch-points 2 → 3 (both on the user's instruction), and the gate now being a test.
+  **`CLAUDE.md` gained the "CLOSE THE PLAN" rule** (4 steps) plus two more, so the §70/§71 miss
+  classes cannot silently repeat. Battery **157 green**.
 
 - **★★ NEW (§71) — an audit sweep against the plan found its ACCEPTANCE GATE had been skipped,
   and the gate FAILED.** The plan calls the verified-event replay "the go/no-go for showing the
@@ -120,6 +141,21 @@ and the one that makes the 3/22 exposure count actionable). User-side (standing)
 
 §68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
 delta is §70 only.
+
+**§72 — four-season set, skill table, and the anti-recurrence work:**
+- `workflows/flood_gate.py` — `event_flood_level()` (the skill-table lookup, blank = not measured).
+- `workflows/imerg_calibration.py` — 3 additive columns in the generated table (**a 3rd
+  existing-file touch-point**, on the user's instruction; flood logic stays in `flood_gate`).
+- `tests/test_flood_gate.py` 18→20 (I2/I3 replay gate as a permanent test + its negative
+  control; U12 renamed for traceability), `tests/test_tier34.py` (flood-column schema, levels
+  re-derived from the imported constants), `tests/test_flood_invariants.py` (R1 message names
+  the second legitimate drift cause).
+- `CLAUDE.md` (+3 rules: CLOSE THE PLAN; suspect-your-own-query; worst-ever vs right-now vs
+  not-measured), `error_history_log.md` (+5th failure class: silent no-code deliverables),
+  `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (STATUS AS BUILT block),
+  `RESULTS_AND_KPIS.md` (§72), `SESSION_REVIEW.md`, `session_journey.md` S31e.
+- Git-ignored data: `data/flood/` (VD 2025 added — four seasons complete),
+  `data/inventory/temporal_skill_table.csv` (**tracked**; +3 columns, re-frozen).
 
 **§71 — the audit sweep (on top of §70, same working tree):**
 - `workflows/flood_gate.py` — `match_durations()` (RANGE screening; the gate fix) and

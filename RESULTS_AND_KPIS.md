@@ -3509,6 +3509,60 @@ audit.
 
 ---
 
+## 72. Flood arm completed to the four-season set + folded into the temporal-skill table — and it separates fatal from non-fatal events  `[MEASURED]`
+*(2026-07-28/29, session 31 cont. — VD 2025 season fetched; `flood_gate.event_flood_level()`;
+3 additive columns in the generated Tier-3c table via `imerg_calibration.py`; `test_tier34.py`
+schema extended; `test_flood_gate.py` 18→20 (the acceptance gate is a TEST now).)*
+
+**The four-AOI-season set is complete.** VD 2025 was the missing quarter: **14/14 catchments
+staged**, and its season peak lands on **2025-08-26 — the Ardhkuwari disaster (34 deaths)** at
+**E_f 13.80**, the strongest flood reading anywhere in the record. Ramban 2025/2026 and VD 2026
+were already staged (§70/§71).
+
+**★ The flood arm now appears in the committed temporal-skill table, and it discriminates.**
+Three columns added (`flood_E_f`, `flood_level`, `flood_catchments_alert`):
+
+| site | date | deaths | burst arm | daily arm | **flood arm** | E_f | catchments at ALERT |
+|---|---|---|---|---|---|---|---|
+| vaishnodevi | 2025-08-26 | **34** | ALERT | ALERT | **FLOOD-ALERT** | **13.80** | **14/14** |
+| vaishnodevi | 2025-07-21 | 1 | ALERT | ALERT | **FLOOD-ALERT** | 5.51 | 12/14 |
+| ramban | 2025-04-20 | 3 | ALERT | ALERT | **FLOOD-ALERT** | 4.97 | 6/8 |
+| ramban | 2026-07-22 | 2 | ALERT | PENDING | **FLOOD-ALERT** | 4.11 | 4/8 |
+| vaishnodevi | 2026-07-08 | 0 | ALERT | WATCH | FLOOD-ALERT | 4.50 | 10/14 |
+| ramban | 2025-05-08 | 0 | WATCH | DORMANT | FLOOD-WATCH | 2.39 | **0/8** |
+| ramban | 2026-04-07 | 0 | DORMANT | ALERT | FLOOD-WATCH | 1.14 | **0/8** |
+
+**All 4 fatal events are FLOOD-ALERT; both zero-death events are FLOOD-WATCH with 0/8
+catchments at ALERT**, and E_f orders the fatal events by severity (34 deaths → 13.80, top of
+the table). The `flood_catchments_alert` count is the sharper discriminator than the level
+alone — it is 0/8 on both non-fatal days and 4/8–14/14 on every fatal one.
+
+**Honest limits on that, stated because the table looks better than the evidence is:** n=7, and
+these are the SAME events the burst arm was calibrated on (§58/§63/§64) — so this is a
+**calibration-set description, not an independent validation**, and no independence claim is
+made. The flood arm deliberately does **not** feed `caught_at_alert_by`, which remains the two
+validated/calibrated arms' verdict. An **empty** flood cell means "this arm has no season record
+for that day" and must never render as DORMANT — pinned by the schema test.
+
+**★ The acceptance gate is now a TEST, not a one-off run (the §71 lesson, made permanent).**
+`test_I2_I3_verified_event_replay_gate` asserts, for every verified fatal event, that the
+catchment arm reaches FLOOD-ALERT **and** reads ≥ the AOI-mean burst arm; it skips with a printed
+reason when the git-ignored season artifacts are absent, never silently passes. A negative
+control (`test_I2b`) rebuilds §71's broken single-duration screening on a synthetic 6-hour
+soaking and requires the gate to reject it. Plan case IDs `U12`, `I2`, `I3` are now carried in
+test names, so the plan↔test mapping is greppable.
+
+**★ The protected artifact changed — deliberately, and proven additive before re-freezing.**
+`temporal_skill_table.csv` is in the freeze. Verified column-by-column against a backup:
+**3 columns added, 0 removed, 0 existing cells changed, row count identical**; R1 confirmed it
+was the ONLY protected artifact that moved (nothing else drifted). Only then was the baseline
+re-frozen — still **116 artifacts**. R1's failure message now names this as the second (and
+only other) legitimate cause of drift, with "proven additive" spelled out as the bar.
+
+**Verified:** battery **155 → 157 green** across 13 suites in the container.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

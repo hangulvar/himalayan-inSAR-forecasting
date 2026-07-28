@@ -139,6 +139,29 @@ def test_temporal_skill_table_schema_and_consistency():
                 assert r["caught_at_alert_by"] != "neither", r
         if r["caught_at_alert_by"] not in ("neither", "pending"):
             assert r["delta_days"] == "0"
+        # THIRD arm (§71): the catchment flash-flood gate. EXPERIMENTAL, so it is recorded
+        # alongside the two validated arms and deliberately does NOT participate in the
+        # `caught_at_alert_by` verdict.
+        for col in ("flood_E_f", "flood_level", "flood_catchments_alert"):
+            assert col in r, f"skill table lost the {col!r} column"
+        assert r["flood_level"] in ("", "FLOOD-DORMANT", "FLOOD-WATCH", "FLOOD-ALERT"), r
+        # An EMPTY cell means "the flood arm has no season record for this day" — it must
+        # never be rendered as DORMANT, which would claim the arm looked and saw nothing.
+        assert (r["flood_E_f"] == "") == (r["flood_level"] == ""), (
+            "flood_E_f and flood_level disagree about whether the day was measured", r)
+        assert (r["flood_catchments_alert"] == "") == (r["flood_level"] == ""), r
+        if r["flood_level"]:
+            e_f = float(r["flood_E_f"])
+            n_alert, n_tot = (int(x) for x in r["flood_catchments_alert"].split("/"))
+            assert 0 <= n_alert <= n_tot, r
+            # The recorded level must be the grading of the recorded E_f (imported constants,
+            # never copied — the §64 rule).
+            from flood_gate import FLOOD_ALERT_K, FLOOD_WATCH_K
+            expect = ("FLOOD-ALERT" if e_f >= FLOOD_ALERT_K else
+                      "FLOOD-WATCH" if e_f >= FLOOD_WATCH_K else "FLOOD-DORMANT")
+            assert r["flood_level"] == expect, (r, expect)
+            assert (n_alert > 0) == (r["flood_level"] == "FLOOD-ALERT"), (
+                "the worst catchment's level and the ALERT count disagree", r)
 
     # §64 margin guard. The ALERT threshold (2.4) sits only 1.6% below the WEAKEST fatal
     # event's burst E (2.44) — that is the whole justification for the value. A future IMERG

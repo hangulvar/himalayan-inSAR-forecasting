@@ -123,7 +123,7 @@ def test_pins_to_the_shared_burst_math():
                     f"({got['duration_h']} vs {r['duration_h']})")
 
 
-def test_thresholds_are_literally_inherited_not_copied():
+def test_U12_thresholds_are_literally_inherited_not_copied():
     """U12 boundaries, asserted RELATIVE to the imported constants (the §64 rule): a future
     recalibration of the burst arm must flow through, and must never require editing a test."""
     assert fg.FLOOD_ALERT_K is ig.BURST_ALERT_K and fg.FLOOD_WATCH_K is ig.BURST_WATCH_K
@@ -485,6 +485,75 @@ def test_I5_fetch_outage_aborts_that_catchment_without_crashing():
             assert "quota exceeded" in s["catchments"][0]["abort_reason"]
         finally:
             fg.FLOOD_DIR, fg.RAIN_CACHE, fg.fetch_catchment_series = saved
+
+
+# ------------------------------------------------------------------------------
+# I2 / I3 — THE ACCEPTANCE GATE, as a permanent regression
+# ------------------------------------------------------------------------------
+# The plan calls the verified-event replay "the go/no-go for showing the card at all". It was
+# skipped once (§71) and, when finally run, FAILED — the arm read FLOOD-WATCH on a fatal day the
+# validated arm called ALERT. Running it by hand is what let that hide, so it is a TEST now.
+#
+# Data-dependent by nature: it reads the season artifacts, which are git-ignored. On a fresh
+# clone it SKIPS with a printed reason (never silently passes) — the same contract the other
+# data-dependent checks in this project use.
+_REPLAY_EVENTS = [
+    # (slug, season year, event date, description, deaths, ledger ref)
+    ("ramban", 2025, "2025-04-20", "Ramban cloudburst (Seri Bagna/Kela Morh)", 3, "§12g"),
+    ("ramban", 2026, "2026-07-22", "Gangroo-Ramsu boulder strike", 2, "§62"),
+]
+
+
+def _aoi_mean_max_E(slug: str, year: int, day: str):
+    sfx = f"_{year}" if slug == "ramban" else f"_{slug}_{year}"
+    p = PROJECT_ROOT / "data" / "rainfall" / f"{slug}_imerg_daily_E{sfx}.csv"
+    if not p.exists():
+        return None
+    import csv as _csv
+    for r in _csv.DictReader(p.open(encoding="utf-8")):
+        if r["date"] == day:
+            return float(r["max_E"]), r["level"]
+    return None
+
+
+def test_I2_I3_verified_event_replay_gate():
+    """On every verified FATAL event, the catchment arm must (a) reach FLOOD-ALERT and (b) read
+    at least as high as the AOI-mean burst arm — otherwise aggregating over the catchment is
+    buying nothing, and a card that under-calls a fatal day must not ship."""
+    checked = 0
+    for slug, year, day, name, deaths, ref in _REPLAY_EVENTS:
+        got = fg.event_flood_level(slug, day)
+        aoi = _aoi_mean_max_E(slug, year, day)
+        if got is None or aoi is None:
+            print(f"      [I2/I3] SKIP {slug} {day} — season artifacts absent "
+                  f"(flood={got is not None}, aoi={aoi is not None})")
+            continue
+        aoi_E, aoi_level = aoi
+        assert got["level"] == "FLOOD-ALERT", (
+            f"{name} ({deaths} deaths, {ref}): catchment arm graded {got['level']} "
+            f"(E_f={got['E_f']}) on a verified fatal day — the plan's go/no-go gate FAILS. "
+            f"Do NOT ship the card; re-derive the arm, do not edit this test.")
+        assert got["E_f"] >= aoi_E, (
+            f"{name}: catchment arm E_f={got['E_f']} is BELOW the AOI-mean arm's E={aoi_E} "
+            f"({aoi_level}) — the new arm downgrades a fatal day relative to the arm we "
+            f"already trust. This is exactly the §71 regression.")
+        checked += 1
+    if checked == 0:
+        print("      [I2/I3] no season artifacts on disk — gate not evaluated this run")
+
+
+def test_I2b_gate_is_not_vacuous():
+    """NEGATIVE CONTROL for the gate above: the single-duration screening that FAILED in §71
+    must still fail if it ever returns. Rebuild that behaviour on a synthetic 6-hour soaking —
+    the shape of the 22 Jul event — and require the gate's own assertion to reject it."""
+    day0 = datetime(2026, 6, 1)
+    soak = _series(day0, 2, {i: 9.0 for i in range(20, 32)})     # 54 mm over 6 h
+    single = fg.catchment_daily_E(soak, A, B, [0.5])[0]          # the §71 implementation
+    ranged = fg.catchment_daily_E(soak, A, B, [0.5, 1.0, 3.0, 6.0])[0]
+    assert ranged["level"] == "FLOOD-ALERT", ranged
+    assert single["level"] != "FLOOD-ALERT", (
+        "the 6 h soaking now ALERTs even at 0.5 h — this control no longer distinguishes the "
+        "broken implementation from the fixed one; rebuild it with a longer, gentler event")
 
 
 # ------------------------------------------------------------------------------

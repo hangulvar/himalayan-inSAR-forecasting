@@ -114,11 +114,16 @@ def test_R1_protected_artifacts_are_byte_identical():
     assert not changed, (
         f"protected artifact(s) CHANGED — the flood arm is not additive: {changed[:5]}\n"
         f"        Restore from backup, find what wrote them, and only then re-freeze.\n"
-        f"        ONE legitimate cause: a `live_alarm.py` run refreshes the CURRENT season's\n"
-        f"        daily-arm files (operational_alarm_report_<year>.*, calendars) on purpose.\n"
-        f"        If and only if every changed path is one of those, that is the daily arm\n"
-        f"        doing its job — confirm nothing else moved, then delete\n"
-        f"        data/flood/_baseline_freeze.json to re-freeze the new baseline.")
+        f"        TWO legitimate causes, and nothing else:\n"
+        f"        (1) a `live_alarm.py` run refreshes the CURRENT season's daily-arm files\n"
+        f"            (operational_alarm_report_<year>.*, calendars) on purpose;\n"
+        f"        (2) a DELIBERATE, additive schema extension of a generated artifact — e.g.\n"
+        f"            temporal_skill_table.csv gaining the flood columns (§72). Additive means\n"
+        f"            PROVEN additive: same row count, no column removed, ZERO existing cells\n"
+        f"            changed. Verify that column-by-column before you accept it.\n"
+        f"        In either case: confirm NOTHING ELSE moved (this message lists everything\n"
+        f"        that did), then delete data/flood/_baseline_freeze.json to re-freeze.\n"
+        f"        Any other cause: restore from backup and find what wrote it FIRST.")
     touched = [k for k in set(frozen) & set(now) if frozen[k]["mtime"] != now[k]["mtime"]]
     if touched:
         print(f"      [R1] note: {len(touched)} file(s) re-written with IDENTICAL content")

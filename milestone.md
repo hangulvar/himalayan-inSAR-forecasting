@@ -2064,3 +2064,54 @@ based on a single point.** Not every check works, and saying so is part of the j
 **Bottom line:** the most valuable hour of this project was spent not writing code, but re-reading
 our own plan and discovering the test we had agreed to run and then forgotten. Checks now stand at
 **155**, all passing, and the original system's 116 result files remain untouched.
+
+---
+
+## ✅ Milestone 58 — The flood arm meets the disaster record, and we made our mistakes unrepeatable  *(2026-07-29)*
+
+**What we set out to do.** Finish the flood feature properly: cover all four seasons of data the
+rest of the project uses, put its verdicts next to the two rainfall systems we already trust in
+the project's scorecard, and — most importantly — make sure the four mistakes we'd made building
+it cannot happen again to anyone.
+
+**The missing quarter, and what it found.** We had never run the flood arm over Vaishno Devi's
+2025 season. Doing so, its worst reading of the entire season lands on **26 August 2025** — the
+Ardhkuwari disaster, 34 deaths, the deadliest event in our records — and it is the strongest
+flood signal anywhere in the whole dataset, with **every one of the 14 basins on alert that day**.
+
+**The scorecard now has three columns, and it separates the serious from the ordinary.**
+
+| what happened | deaths | flood arm | basins on alert |
+|---|---|---|---|
+| Ardhkuwari, 26 Aug 2025 | 34 | ALERT | **14 of 14** |
+| Banganga, 21 Jul 2025 | 1 | ALERT | 12 of 14 |
+| Ramban cloudburst, 20 Apr 2025 | 3 | ALERT | 6 of 8 |
+| Gangroo–Ramsu, 22 Jul 2026 | 2 | ALERT | 4 of 8 |
+| two non-fatal slips | 0 | watch only | **0 of 8** |
+
+Every fatal event alerts; neither non-fatal event does. **We are being deliberately careful about
+how much that proves**: it's seven events, and they're the same seven the older system was tuned
+on. It describes the arm; it doesn't independently validate it. We've written that limitation
+next to the table rather than letting the table speak for itself.
+
+**Making the mistakes unrepeatable — the real work of the day.** We had made four errors: we
+skipped our own plan's pass/fail exam; we misread one sentence and built an instrument blind to
+the rain that kills; we blamed the data source for a bug in our own query; and we compared our
+map to a reference map at the wrong place and "found" a 300× disagreement that never existed.
+
+Rather than just fixing them, we made each one structurally impossible to repeat:
+- the exam we skipped is now an **automatic test** that runs with every check, and it has its own
+  self-test that deliberately rebuilds the broken version and demands it be rejected;
+- the four lessons are written into the project's standing instructions, so the next session
+  starts by re-reading the plan against the actual work — not against its own progress notes;
+- the plan document itself now opens with a plain statement of what was actually built and where
+  it differs from what was written, so it can never quietly mislead whoever reads it next.
+
+**One thing we were careful about.** Adding columns to the scorecard meant changing a file our
+own safety net protects. We backed it up, proved the change added three columns and altered
+**zero existing values**, confirmed nothing else had moved, and only then updated the safety net.
+Changing a protected file should be a decision, never a side effect.
+
+**Bottom line:** checks now stand at **157**, all passing. The flood arm covers all four seasons,
+sits in the project scorecard, and — for the first time — cannot silently break the promise it
+was built to keep.
