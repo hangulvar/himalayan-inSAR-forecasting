@@ -1367,6 +1367,53 @@ now *generates* the temporal-skill table it used to have typed by hand (which is
 event went missing from it). `imerg_gate.py`'s `BURST_ALERT_K` is deliberately **unchanged**
 pending the user's call.
 
+## CF18. Catchments, response time, and why a flood question needs a different map
+
+**The idea.** Every point on a river has an invisible territory behind it: the **catchment** (or
+basin) — all the land whose rain eventually flows past that point. A slope's landslide risk is
+about the slope itself; a *flood* at the channel below that slope is about the whole catchment
+upstream, which may reach far away and much higher up. Two different questions, two different
+maps.
+
+**Everyday analogy.** A landslide question is "is this one roof tile loose?" A flood question is
+"how big is the roof that drains into this one gutter?" You cannot answer the second by looking
+harder at the tile.
+
+**How you find a catchment.** Water runs downhill, so from an elevation map you can compute, for
+every cell, which of its 8 neighbours it drains into (**D8 flow routing**). Follow those arrows
+downhill and you get **flow accumulation** — how many cells drain through each point. High
+accumulation = a channel. Follow the arrows *backwards* from a point and you sweep out its
+catchment.
+
+$$A_{\text{upstream}} = (\text{number of cells draining through the point}) \times (\text{cell area})$$
+
+**Response time — how fast the basin reacts.** A small steep basin delivers its water almost at
+once; a large gentle one spreads it over hours. The standard first-order estimate is **Kirpich's
+time of concentration**, using flow length $L$ and slope $S$:
+
+$$t_c \;\approx\; 0.0195 \; L^{0.77} S^{-0.385} \quad (\text{minutes, } L \text{ in m})$$
+
+This matters because it tells you *which rainfall window to grade*. Rain lasting less than $t_c$
+hasn't yet produced the basin's peak flow; rain averaged over far longer dilutes the burst away.
+
+**The honesty boundary — and it is a hard one.** Everything above is geometry and timing, and is
+trustworthy. What it does **not** give you is how *deep* the water gets. Depth needs the shape of
+the channel bed (bathymetry) and real gauge measurements to calibrate against. Without those, a
+"flood depth" number would be invented. So the correct product is a **staged level and a ranking
+between catchments**, never metres of water — the same discipline as CF17: state what the data
+can carry, and refuse the rest out loud.
+
+🔗 **In our project (Milestone 55 / §69):** `flood_domain.py` computes D8 channels and catchments
+on the **full-frame elevation maps we already had** (~290 × 230 km — far bigger than the radar
+study box), which is why no larger, costlier study area was needed: all 22 basins fit inside,
+with **none** running off the edge. It reuses the *same* routing function already validated for
+the downstream-flag swap (§67). `flood_gate.py` then grades each basin's own rainfall over its
+$t_c$-matched window. Two guards refuse to answer rather than guess — one for a basin cut off by
+the edge of the map, one for a basin with no rainfall record — and each was verified by
+deliberately switching it off and confirming the tests fail. Measured limitation: every one of
+our basins responds in 0.07–0.12 h, so the window matching currently returns the same answer for
+all of them.
+
 ---
 
 # Part C-quinquies — A Second Mountain: Transfer, Route Risk & a Real Disaster (Milestones 31–36)
@@ -1914,9 +1961,49 @@ feature and the advantage vanishes. On a corridor-biased inventory, an ML map la
 reporting bias into apparent skill; the physics map can't do that, which is its point. The
 right use of ML here is as a bias detector and a challenger — not as the product.
 
+**Q: You added flood modelling. Didn't that need a much larger, more expensive study area?**
+A: That was my first assumption too, and measuring it proved it wrong — because "study area"
+means two different things. The *radar* area is expensive: more scenes, more processing credits,
+a worse noise floor, more to validate. The *hydrological* area is just an elevation map and a
+global rainfall grid, and the elevation maps shipping with every radar product already cover
+roughly 290 × 230 km — about a hundred times the radar box. So I derived the catchments on data
+already on disk and never touched the radar area. The measurement that settles it: all 22 basins
+are fully contained, **zero** truncated by the map edge (§69).
+
+**Q: How do you add a feature to a validated system without risking it?**
+A: Make "it changed nothing" a *test*, not a claim. Before writing any flood code I hashed the
+116 files that constitute the validated product — hazard rasters, alert unions, alarm reports,
+back-test scores — and froze the manifest. Every later run re-hashes and fails on any drift.
+The new dashboard panel is proven a pure insertion: delete its markup from the rendered page and
+the result is byte-identical to the page without it. The feature is also config-gated — delete
+one block and both entry points exit cleanly having written nothing, which is itself a test. And
+where I needed a routine the validated file didn't expose, I refused to copy it silently:
+I re-derived it and *pinned* it, so the two must agree exactly on four different terrains.
+
+**Q: What did building the flood arm teach you that the plan didn't anticipate?**
+A: Two things, both worth admitting. First, the response-time matching — pick the rainfall window
+that fits how fast each basin reacts — is correct and unit-tested, but every one of our basins
+responds in 4–7 minutes, so it currently returns the same window for all 22. It works; it isn't
+earning its keep yet. Second, only 3 of 22 zones sit near a significant channel, so the arm
+speaks to a minority of sites. Both went into the ledger and the limitations section rather than
+being quietly omitted — a feature that addresses 3 zones is still useful, but only if you say so.
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
+
+- **The flash-flood arm (CF18 / Milestone 55 / §69) is geometry now, and a promise later.**
+  What is measured and solid: the channel network, which zones sit near one, and each basin's
+  area/relief/response time — all 22 basins fully inside our existing elevation maps, none
+  truncated. What is *not* delivered, deliberately: **no water depth, no inundated area, no
+  discharge**. Those need channel bathymetry and river gauges we do not have, so publishing them
+  would be inventing numbers. Three further limits, stated up front: (1) **only 3 of 22 zones**
+  are channel-adjacent at all, so the arm addresses a minority of sites; (2) its thresholds are
+  **inherited** from the burst gate (§64) and have never been tested against flood ground truth,
+  because we have none — it ships EXPERIMENTAL; (3) the rainfall-grading half has **not yet been
+  run on live data**, so no flood level is published anywhere, and nothing calls it
+  automatically. Also inherited from CF14: satellite rain is an ~11 km pixel, and most of our
+  basins span just **one** of them, so a "basin average" is really that single pixel.
 
 - **The sub-daily burst gate (CF14 / §55, calibrated §58, false-alarm-priced §63) is still
   provisional:** its ALERT threshold is evidence-based — now seven verified events — and its

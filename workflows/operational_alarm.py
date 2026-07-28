@@ -277,6 +277,85 @@ def _imerg_card(im: dict, as_of: str) -> str:
   </div>"""
 
 
+def load_flood_summary(sfx: str):
+    """The flood arm's season summary (flood_gate.py, FLOOD_EXPANSION_PLAN F1), or None — the
+    card is skipped entirely when the flood arm has not run for this season. The flood arm is
+    OPTIONAL and config-gated: a site without a `flood:` block never produces this file."""
+    f = PROJECT_ROOT / "data" / "flood" / f"flood_gate_summary{sfx}.json"
+    if not f.exists():
+        return None
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt summary must not break the dashboard
+        return None
+
+
+def _flood_card(fl: dict) -> str:
+    """The 'catchment flash-flood check' card (FLOOD_EXPANSION_PLAN F1).
+
+    Deliberately parallel to _imerg_card in tone and honesty: it reports a staged LEVEL per
+    upstream catchment and never a depth, an extent or a discharge (plan §1 — those need gauges
+    and bathymetry this project does not have). Its thresholds are INHERITED from the burst arm,
+    not flood-calibrated, and the card says so.
+
+    SECURITY: catchment identifiers originate in generated artifacts, but this page is served
+    same-origin as control_panel.py's control API (§66), so every interpolation goes through
+    _esc() exactly like the historical-events record.
+    """
+    if fl.get("aborted"):
+        return f"""  <div class="card" id="flood-card">
+    <h2>WHEN — catchment flash-flood check <span style="font-weight:400;font-size:12px">(GPM
+      IMERG x D8 catchments · experimental)</span></h2>
+    <div class="sub2">This arm grades the rain falling on the CATCHMENT above each slope, not
+      the AOI average — the upstream basin is what drives a flash flood.</div>
+    <div class="big" style="color:#666">NO VERDICT</div>
+    <div style="font-size:13px;color:#444">The flood arm <b>aborted</b> rather than publish a
+      number it could not stand behind: {_esc(fl.get("abort_reason") or "no gradeable catchment")}.
+      A catchment with no usable rainfall record is <b>not</b> the same as a dry one.</div>
+  </div>
+  <!--/flood-card-->"""
+    worst = fl.get("worst") or {}
+    counts = fl.get("level_counts", {})
+    lvl = worst.get("level", "FLOOD-DORMANT")
+    chip_color = {"FLOOD-ALERT": LEVEL_COLOR.get("ALERT", "#aa0000"),
+                  "FLOOD-WATCH": LEVEL_COLOR.get("WATCH", "#e08800")}.get(lvl, "#cccccc")
+    chip = (f'<span class="pill" style="background:{chip_color}'
+            f'{";color:#333" if lvl == "FLOOD-DORMANT" else ""}">{_esc(lvl)}</span>')
+    px = worst.get("imerg_pixels") or 0
+    px_note = (" — this catchment spans about <b>one</b> satellite rain pixel, so its "
+               "&#39;catchment mean&#39; is effectively that single pixel"
+               if px <= 1 else
+               f" — catchment spans about <b>{_esc(px)}</b> satellite rain pixels")
+    return f"""  <div class="card" id="flood-card">
+    <h2>WHEN — catchment flash-flood check <span style="font-weight:400;font-size:12px">(GPM
+      IMERG x D8 catchments · experimental)</span></h2>
+    <div class="sub2">The two rainfall cards above ask "is it raining hard enough to trigger a
+      landslide, here". This one asks a different question: <b>how hard is it raining on the
+      catchment UPSTREAM of each slope</b> — the basin whose water arrives as a torrent in the
+      channel below. It is the flash-flood and toe-undercutting view, graded over a window
+      matched to each catchment&#39;s own response time.</div>
+    <div class="big">E<sub>f</sub> = {_esc(worst.get("E_f", "?"))} {chip}</div>
+    <div style="font-size:13px;color:#444">worst catchment
+      <b>{_esc(worst.get("catchment", "?"))}</b> (zone {_esc(worst.get("zone", "?"))},
+      {_esc(worst.get("area_km2", "?"))} km&sup2;) on <b>{_esc(worst.get("date", "?"))}</b> ·
+      {_esc(worst.get("burst_mm", "?"))} mm in a {_esc(worst.get("duration_h", "?"))} h window
+      (response time t<sub>c</sub> &asymp; {_esc(worst.get("tc_hours", "?"))} h){px_note}.</div>
+    <p style="font-size:13px;margin:8px 0 2px"><b>Catchments this season:</b>
+      {_esc(counts.get("FLOOD-ALERT", 0))} reached FLOOD-ALERT ·
+      {_esc(counts.get("FLOOD-WATCH", 0))} FLOOD-WATCH, of
+      {_esc(fl.get("n_staged", 0))} graded ({_esc(fl.get("n_aborted", 0))} refused for
+      incomplete geometry or rainfall).</p>
+    <p style="font-size:12px;color:#888;margin:6px 0 0"><b>Experimental, and narrower than it
+      looks.</b> This is a staged TRIGGER level, not a flood forecast: it publishes no water
+      depth, no inundated area and no discharge — those need river gauges and channel survey
+      data this project does not have. Its thresholds are inherited from the burst arm
+      (project ledger §64) and have <b>not</b> been calibrated against flood ground truth, so
+      treat the ranking between catchments as the useful signal, not the absolute level.
+      Mainstem-river catchments are deliberately excluded.</p>
+  </div>
+  <!--/flood-card-->"""
+
+
 def alarm_level(E: np.ndarray, watch_k: float, alert_k: float) -> list[str]:
     out = []
     for e in E:
@@ -394,9 +473,12 @@ def main() -> int:
     imerg = load_imerg_summary(sfx)
     # Radar provenance/freshness pill (radar_watch.py, plan Tier 0b/0c) — hidden when unknown.
     radar = radar_status(Path(args.footprint))
+    # Catchment flash-flood arm (flood_gate.py, FLOOD_EXPANSION_PLAN F1) — card skipped when
+    # the arm is off for this site or has not run for this season.
+    flood = load_flood_summary(sfx)
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
-                    hist, imerg, radar)
+                    hist, imerg, radar, flood)
     if radar:
         newer = (f"; NEWER at ASF through {radar['newer_at_asf']} ({radar['new_scenes']} scenes)"
                  if radar.get("new_scenes") else "")
@@ -786,7 +868,7 @@ def _hist_panel(hist, lvl, as_of) -> str:
 
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
                     alert_tier: dict, watch_tier=None, per_zone=None, hist=None,
-                    imerg=None, radar=None) -> None:
+                    imerg=None, radar=None, flood=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -1002,6 +1084,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
 {ev_rows}</table>
   </div>
 {_imerg_card(imerg, as_of) if imerg else ""}
+{_flood_card(flood) if flood else ""}
 </div>
 {per_zone_html}
 

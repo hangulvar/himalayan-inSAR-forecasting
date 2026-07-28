@@ -34,6 +34,15 @@ kappa: 0.06
 # ADOPTED 2026-07-25 (§67) — the post-merge swap fired (master took the merge 2026-07-19).
 llof_routing: d8
 
+# Flash-flood arm (FLOOD_EXPANSION_PLAN_2026-07-28, F0/F1). OPTIONAL: delete this block
+# and the flood arm is fully OFF for this site — flood_domain.py / flood_gate.py exit 0 and
+# write nothing (pinned by tests/test_flood_invariants.py R2). It adds no warning of its own
+# to the validated product: the flood level is published on its own dashboard card only.
+flood:
+  channel_upstream_km2: 0.5   # channel definition = the validated LLOF threshold (§60 4c/§67)
+  channel_buffer_m: 120       # a zone this close to a channel counts as flood-exposed
+  min_catchment_coverage_pct: 95  # refuse to grade a catchment truncated by the DEM edge
+
 # HyP3 job-name prefix. Every submitted job is named
 #   "<job_name_prefix>_<DIRECTION>_path<P>_frame<F>"
 # and downstream steps filter on this prefix.

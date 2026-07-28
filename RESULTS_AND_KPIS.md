@@ -3286,6 +3286,89 @@ stands; the flood plan's R1/R7 make re-pinning it the first act of any flood ses
 
 ---
 
+## 69. Flood arm F0 + F1 BUILT — geometry measured on both sites, staging arm code-complete and unrun  `[MEASURED]` (F0) / `[REAL]` (F1 mechanism)
+*(2026-07-28, session 31 cont. — NEW `workflows/flood_domain.py`, `workflows/flood_gate.py`,
+3 new suites (`test_flood_invariants.py`, `test_flood_domain.py`, `test_flood_gate.py`),
+`flood:` block in both registry files, one card in `operational_alarm.py`. Executing
+`FLOOD_EXPANSION_PLAN_2026-07-28.md` F0-F1.)*
+
+**The additive claim is now MACHINE-CHECKED, not asserted.** A baseline freeze
+(`data/flood/_baseline_freeze.json`) was written **before any flood code ran**, hashing
+**116 protected artifacts** — both sites' operational/watch alert unions, all 82 hazard +
+velocity rasters, the daily arm's reports/calendars for all four AOI-seasons, the scored
+back-test reports, and the temporal skill table. After F0 ran for real on both sites, all
+**116 are byte-identical (sha256)**. The dashboard card is proven a *pure insertion*: deleting
+its markup from the rendered page reproduces the no-flood page byte-for-byte.
+
+**F0 geometry `[MEASURED]` — the plan's central premise holds, and is now a number.**
+
+| site | zones | channel-adjacent (≤120 m) | catchments | area range (km²) | relief (m) | t_c (h) | truncated | stageable |
+|---|---|---|---|---|---|---|---|---|
+| Ramban | 8 | **1** | 8 (all Regime A) | 0.557–1.536 | 521–1418 | 0.070–0.118 | **0** | **8** |
+| Vaishno Devi | 14 | **2** | 14 (all Regime A) | 0.512–2.291 | — | — | **0** | **14** |
+
+- **0/22 catchments are truncated by the DEM edge** — the §68 claim that the frame DEMs
+  (74.71–77.86°E × 31.45–33.50°N) already span the catchment terrain is now **measured**, not
+  inferred. **The InSAR AOI was never enlarged, and does not need to be.**
+- **0/22 are Regime B** — no mainstem catchment was picked up, so the plan §2 scope line held
+  in practice without needing the bail-out (which is still enforced and unit-tested).
+- **Only 3/22 zones are channel-adjacent at the 120 m buffer.** The flood-exposure signal is
+  *sparse*, which is a result worth stating plainly: on today's footprints this arm speaks to a
+  minority of zones, and pretending otherwise would oversell it.
+
+**★ Honest limitation found by building it: the response-time matching does not yet
+differentiate.** Because each catchment is the basin above the *nearest* channel — a headwater
+tributary just over the 0.5 km² threshold — every measured t_c is **0.07–0.12 h**, so all 22
+catchments map to the SAME shortest (0.5 h) window. The window-matching machinery is correct
+and unit-tested (`match_duration` monotone, boundary-exact), but at these catchment sizes it is
+currently a constant. It will only earn its keep on larger or gentler basins.
+
+**F1 staging arm — code-complete, and NOT yet run on live rainfall `[REAL]` (mechanism only).**
+`flood_gate.py` grades each catchment's own IMERG rainfall over its matched window. It has
+**not** been executed against GEE (Docker deliberately left down — see the start/stop rule), so
+**no flood level has been published for either site and no `flood_gate_summary*.json` exists on
+disk**. What IS proven: an end-to-end synthetic site (real GeoTIFF → F0 → F1 with the fetch
+stubbed) reaches `FLOOD-ALERT E_f=7.5` on a known 30 mm/h burst, and the abort paths fire on
+void/short series and on a simulated GEE outage (run still exits 0).
+
+**Thresholds are inherited, literally.** `FLOOD_WATCH_K`/`FLOOD_ALERT_K` are Python *imports*
+of `imerg_gate.BURST_WATCH_K`/`BURST_ALERT_K` (§64), so a future recalibration flows through and
+cannot drift into a look-alike copy; a test asserts the `is` identity. There is no flood ground
+truth, so the arm ships **EXPERIMENTAL** and its card says so — the §55→§64 lifecycle, restarted
+for floods.
+
+**Two guards with negative controls** (a guard that cannot fail is not a guard): the truncation
+guard (`coverage_ok(None, ...)` is False — unknown coverage is never staged) and the void guard
+(`series_health`) — the latter's control demonstrates that the *grader alone* would return a
+confident `FLOOD-DORMANT` for an all-NaN catchment, i.e. "no data" published as "no flood risk",
+and that the guard is what stops it (the §65 failure mode, pre-empted).
+
+**Shared-function discipline.** The channel criterion is `flow_routing_probe.routed_llof_flag`
+and the accumulation is `d8_accumulation` — imported, with an identity test. The one thing that
+had to be re-derived (the D8 receiver map, which the probe computes internally but does not
+expose, and the plan forbids editing that file) is **pinned**: accumulating over
+`flood_domain.d8_targets` must equal `flow_routing_probe.d8_accumulation` exactly, on four DEMs
+including one with nodata. Likewise `catchment_daily_E` is pinned against
+`imerg_gate.daily_subdaily_E` across five rainfall shapes.
+
+**⚠ Deliberate deviation from the plan, flagged for the user's call:** plan F1's bullet mentions
+a non-fatal hook in `live_alarm.py`, but plan §5 lists the sanctioned touch-points in existing
+files as *exactly two* ("the ONLY ones") and `live_alarm.py` is not among them. The stricter
+constraint was applied: **nothing calls the flood arm automatically**; it is standalone-runnable.
+Wiring it in is a one-line addition, deliberately not made.
+
+**Cost/housekeeping:** `data/flood/` is **318 MB**, of which 318 MB is the four per-stack D8
+accumulation caches (`_cache/*.npy`, ~80 MB each, regenerable in ~1 min per stack). The reports
+themselves are a few KB. Safe to delete the cache at any time.
+
+**Verified:** three NEW suites — invariants **9**, F0 **13**, F1 **15** = **37 new tests**.
+Full battery **114 → 151 green, 0 failed** across 13 suites (counts re-derived per suite:
+9+10+11+12+13+15+21+10+5+8 = 114 pre-existing, unchanged). Native runs need the conda env
+ACTIVATED (`conda run -n insar_qa_env`) — importing matplotlib after rasterio by absolute
+interpreter path reproduces the documented `0xC06D007F` DLL-load crash.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

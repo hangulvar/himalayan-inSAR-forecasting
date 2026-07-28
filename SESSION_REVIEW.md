@@ -15,7 +15,28 @@
 
 ## Current state
 
-- **★ NEW (§68) — the FLASH-FLOOD EXPANSION is PLANNED, nothing built.** Committed plan:
+- **★ NEW (§69) — flood arm F0 + F1 are BUILT to the plan; the additive claim is
+  MACHINE-CHECKED.** A baseline freeze written **before any flood code ran** hashes **116
+  protected artifacts** (both sites' alert unions, all hazard+velocity rasters, the daily arm's
+  four AOI-seasons, the scored back-tests, the skill table) — **all 116 byte-identical** after
+  F0 ran for real. The dashboard card is proven a *pure insertion*. Battery **114 → 151 green**
+  (37 new tests in 3 new suites). Both guards carry negative controls.
+- **★ F0 geometry is MEASURED on both sites (§69):** 22 zones → **22 catchments, all Regime A,
+  0 truncated, 0 mainstem**, areas 0.51–2.29 km². **The plan's premise is now a number, not an
+  inference: the frame DEMs already span every catchment, so the InSAR AOI was never enlarged.**
+  Sparse-signal honesty: only **3/22** zones are channel-adjacent at the 120 m buffer.
+- **⚠ F1 is CODE-COMPLETE but UNRUN on live rainfall (§69).** It needs GEE via the container and
+  Docker was deliberately left down. **No flood level is published for either site; no
+  `flood_gate_summary*.json` exists on disk.** Proven instead on a synthetic site end-to-end
+  (real GeoTIFF → F0 → F1, fetch stubbed → `FLOOD-ALERT E_f=7.5`) plus void/short/outage aborts.
+- **⚠ Deliberate deviation, awaiting the user's call (§69):** plan F1 mentions a `live_alarm.py`
+  hook, but plan §5 names exactly two sanctioned touch-points and that is not one. The stricter
+  rule was applied — **nothing calls the flood arm automatically**. Wiring it is a one-liner.
+- **⚠ Limitation found by building it (§69):** every catchment's t_c is 0.07–0.12 h, so the
+  response-time window matching currently returns the same 0.5 h window for all 22 — correct and
+  tested, but not yet differentiating. `data/flood/` is **318 MB**, almost all regenerable D8
+  cache (`_cache/*.npy`), safe to delete.
+- **★ (§68) — the FLASH-FLOOD EXPANSION PLAN is the document of record.** Committed plan:
   `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` — an additive-only, config-gated
   (`flood:` block absent = off) arm: **F0** geometry probe (D8 channels/catchments via the
   *shared* `flow_routing_probe` functions + coverage guard) → **F1** catchment-aggregated
@@ -56,21 +77,35 @@
 
 ## Recommended next step
 
-**Cheapest first: re-run `live_alarm.py` to settle §62's daily-arm verdict** (its ERA5-Land
-window has now published). Then either (a) the standing **§61 S1A-only rebuild rescore in a
-focused session WITH the user** (design decision on the f105/f103 chain-join first), or
-(b) **start the flood arm at F0** per the plan — in which case the FIRST act is
-`tests/test_flood_invariants.py` + the baseline-freeze manifest (needs Docker for the
-battery). User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to
+**Run F1 once against live rainfall** (`docker desktop start`, then
+`docker compose run --rm insar python workflows/flood_gate.py` per site) — that is the only
+thing standing between the flood arm and a first real staged result, and the abort paths are
+already proven. Decide at the same time whether to accept the **`live_alarm.py` hook**
+(deliberately not made — §69). Also cheap and pending: re-run `live_alarm.py` to settle §62's
+daily-arm verdict (its ERA5-Land window has now published). Then the standing **§61 S1A-only
+rebuild rescore in a focused session WITH the user** (design decision on the f105/f103
+chain-join first). User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to
 `master`; publish the dashboard.
 
 ## Uncommitted delta
 
-**Docs only — no code, no data products, no config:**
-- `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (NEW — plan, scope verdict, test contract),
-- `RESULTS_AND_KPIS.md` (§68), `SESSION_REVIEW.md` (this LIVE block + one STABLE §4 line),
-- `session_journey.md` (git-ignored) S31 entry.
-Scratch ASF probes stayed in the session scratchpad (never entered the repo).
+Batch A (§68 — the plan doc + NISAR re-check) is **already committed** by the user as `2fe49aa`,
+so the uncommitted delta is Batch B only.
+
+**Batch B — F0 + F1 implementation (§69):**
+- NEW `workflows/flood_domain.py`, `workflows/flood_gate.py`; NEW `tests/test_flood_invariants.py`
+  (9), `tests/test_flood_domain.py` (13), `tests/test_flood_gate.py` (15).
+- `config/ramban.yaml` + `config/vaishnodevi.yaml` (`flood:` block — delete it and the arm is off).
+- `operational_alarm.py`: `load_flood_summary()` + `_flood_card()` + a `flood=None` kwarg on
+  `write_dashboard` and one line in `main()` — the ONLY existing-file change (plan §5).
+- `RESULTS_AND_KPIS.md` (§69), `milestone.md` (M55), the primer (CF18 + 3 Part-D answers +
+  Part-E entry), `SESSION_REVIEW.md` (this LIVE block), `session_journey.md` (git-ignored) S31b.
+- Git-ignored data: `data/flood/` (318 MB — reports are KB, the rest is regenerable D8 cache).
+
+**Not touched (verified by hash, §69 R1):** all 116 protected artifacts — every alert union,
+hazard/velocity raster, daily-arm report/calendar, back-test report and the skill table.
+`build_3d_dashboard.py` is untouched and pinned so by a test (F2's touch-point, not F1's).
+Scratch ASF/battery probes stayed in the session scratchpad (never entered the repo).
 
 ---
 

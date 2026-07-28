@@ -1923,3 +1923,50 @@ you nothing.
 **Bottom line:** we went looking for weaknesses in our own work, found a genuine one, proved it
 was real, fixed it, and proved the fix — including proving that our proof works. All four live
 dashboards now come back clean, and the official alarm figures are untouched, byte for byte.
+
+---
+
+## ✅ Milestone 55 — We taught the system to look at the water, not just the slope  *(flash-flood arm F0+F1 built, 2026-07-28)*
+
+**What we set out to do.** Until now the tool answered one question: *is this slope creeping, and
+is it raining hard enough to push it over?* But a slope can also fail because a flash flood in
+the stream below scours away its foot — the hillside doesn't slide so much as lose the ground it
+was standing on. We wanted to add that second story, without disturbing anything already working.
+
+**The honest re-scoping first.** The natural request is "tell me how much flooding to expect".
+We can't — not truthfully. Predicting water depth needs river gauges and a survey of the channel
+bed, and we have neither. So we built what the data *can* support: where water concentrates,
+which of our slopes sit next to those channels, and how hard it is raining on the basin
+upstream of each one. Levels and rankings, never metres of water. Saying that plainly was the
+first deliverable.
+
+**The thing we were most worried about turned out to be free.** A flood at a point is driven by
+rain falling far upstream, often much higher in the mountains — so surely we'd need a much
+bigger, more expensive area of study? No. The elevation maps that already ship with every radar
+product cover roughly 290 × 230 km, while our study area is a small box inside that. We measured
+it: **all 22 upstream basins fit comfortably inside the maps we already had, with none running
+off the edge.** The expensive radar area was never touched.
+
+**We proved we broke nothing — we didn't just say it.** Before writing a single line of flood
+code, we took a fingerprint of **116 existing result files** — every hazard map, every alarm
+report, every validation score. After the new code ran, all 116 fingerprints matched exactly.
+We also proved the new panel on the dashboard is a pure addition: delete it from the page and
+what's left is the old page, character for character.
+
+**Two safety catches, each deliberately tested by switching it off.** One refuses to grade a
+basin that runs off the edge of the map, because we'd be measuring only part of it. The other
+refuses to grade a basin whose rainfall record is missing — because "we have no data" and "it
+didn't rain" are completely different answers, and quietly confusing them is exactly how a
+system reports "all clear" when it actually knows nothing. We showed that without that catch,
+the code really does return a confident all-clear on empty data.
+
+**What we found, including the disappointing bit.** Only **3 of our 22 slopes** sit close enough
+to a significant channel to be flood-exposed at all — so this arm speaks to a minority of sites,
+and we've said so rather than dressing it up. We also found that every basin responds in about
+4–7 minutes, so the clever "match the rainfall window to how fast this basin reacts" machinery
+currently gives every basin the same answer. It works; it just isn't earning its keep yet.
+
+**Where it stands.** The geometry is measured and real for both sites. The rainfall-grading half
+is written and fully tested, but has **not** been run on live rainfall yet, so no flood level is
+published anywhere — and nothing calls it automatically. Our test suite grew from **114 checks
+to 151**, all passing.
