@@ -1970,3 +1970,50 @@ currently gives every basin the same answer. It works; it just isn't earning its
 is written and fully tested, but has **not** been run on live rainfall yet, so no flood level is
 published anywhere — and nothing calls it automatically. Our test suite grew from **114 checks
 to 151**, all passing.
+
+---
+
+## ✅ Milestone 56 — We switched the flood arm on, and it immediately taught us two things  *(first live run, 2026-07-28)*
+
+**What we set out to do.** Milestone 55 built the flood machinery but had never fed it real
+rainfall. This was the moment of truth: point it at four months of actual satellite rain over
+both sites and see what came back.
+
+**It worked — and then it didn't, in an interesting way.** Three of Ramban's eight basins came
+back with "no rainfall data". Our safety catch had done its job and refused to guess. But
+something looked wrong: two *other* basins of exactly the same size had worked fine. If the
+satellite genuinely had no data over that patch of mountain, size wouldn't be the deciding
+factor — and identical sizes wouldn't give opposite answers.
+
+**The cause was us, not the satellite.** The rain data comes in roughly 11 km squares. Our
+basins are about half a kilometre across — far smaller than one square. When you ask the data
+service for an average over an area smaller than its own grid, it only answers if the tiny area
+happens to contain the exact centre point of a square. Whether it does is pure luck of position.
+Three of our basins were unlucky. We proved it by asking the same question three different ways
+and watching the answer flip from "nothing" to a real number. The fix tells the service to look
+more finely inside small areas. Importantly, this invents nothing: the underlying measurement is
+still an 11 km average, and every page we produce says so. We confirmed the fix was a *rescue*
+and not a distortion — the five basins that already worked returned exactly the same numbers
+afterwards, to the decimal.
+
+**The second lesson was almost worse, because nothing was broken.** Our first summary announced
+"8 of 8 basins on FLOOD-ALERT". Every number in it was correct. But it was reporting the *worst
+half-hour of the entire monsoon* as though it were today's situation. In reality about 84% of
+days were quiet, and that very day was completely dry. On a warning page, that's not an untidy
+label — it's telling someone there's an emergency when there isn't. We split the two apart: the
+page now leads with **today**, and shows the season's worst separately and clearly labelled as
+history.
+
+**What the real numbers say.** Across the monsoon, a typical basin had **4 alert-grade days, 15
+watch-grade days, and 99 quiet days** out of 118. On the day we ran it, every basin at both sites
+was quiet. The worst moment of the season was 1 July at Ramban and 18 July at Vaishno Devi.
+
+**We also connected it to the daily routine.** Previously you had to run the flood check by hand.
+Now it refreshes automatically whenever the alarm updates — because a flood warning that isn't
+current isn't a warning. If the rain service is unavailable, it's skipped and everything else
+carries on exactly as before.
+
+**Bottom line:** our checks grew from **114 to 154**, all passing, and the 116 fingerprinted
+result files from the original system are still untouched, byte for byte. The most valuable
+output of the day wasn't a number — it was two mistakes that only appeared when we stopped
+testing and started *using* the thing.

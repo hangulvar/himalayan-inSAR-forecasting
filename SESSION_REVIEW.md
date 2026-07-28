@@ -15,27 +15,36 @@
 
 ## Current state
 
-- **★ NEW (§69) — flood arm F0 + F1 are BUILT to the plan; the additive claim is
-  MACHINE-CHECKED.** A baseline freeze written **before any flood code ran** hashes **116
-  protected artifacts** (both sites' alert unions, all hazard+velocity rasters, the daily arm's
-  four AOI-seasons, the scored back-tests, the skill table) — **all 116 byte-identical** after
-  F0 ran for real. The dashboard card is proven a *pure insertion*. Battery **114 → 151 green**
-  (37 new tests in 3 new suites). Both guards carry negative controls.
-- **★ F0 geometry is MEASURED on both sites (§69):** 22 zones → **22 catchments, all Regime A,
-  0 truncated, 0 mainstem**, areas 0.51–2.29 km². **The plan's premise is now a number, not an
-  inference: the frame DEMs already span every catchment, so the InSAR AOI was never enlarged.**
-  Sparse-signal honesty: only **3/22** zones are channel-adjacent at the 120 m buffer.
-- **⚠ F1 is CODE-COMPLETE but UNRUN on live rainfall (§69).** It needs GEE via the container and
-  Docker was deliberately left down. **No flood level is published for either site; no
-  `flood_gate_summary*.json` exists on disk.** Proven instead on a synthetic site end-to-end
-  (real GeoTIFF → F0 → F1, fetch stubbed → `FLOOD-ALERT E_f=7.5`) plus void/short/outage aborts.
-- **⚠ Deliberate deviation, awaiting the user's call (§69):** plan F1 mentions a `live_alarm.py`
-  hook, but plan §5 names exactly two sanctioned touch-points and that is not one. The stricter
-  rule was applied — **nothing calls the flood arm automatically**. Wiring it is a one-liner.
-- **⚠ Limitation found by building it (§69):** every catchment's t_c is 0.07–0.12 h, so the
-  response-time window matching currently returns the same 0.5 h window for all 22 — correct and
-  tested, but not yet differentiating. `data/flood/` is **318 MB**, almost all regenerable D8
-  cache (`_cache/*.npy`), safe to delete.
+- **★ NEW (§70) — F1 is RUN LIVE on both sites: 22/22 catchments staged, 0 aborts.** Today
+  (2026-07-27, provisional) **both sites are all-DORMANT**; season peaks are Ramban `zone2`
+  E_f 8.06 (01 Jul) and VD `zone10` E_f 5.22 (18 Jul). Per-day texture is sane, not saturated
+  (Ramban zone 1: 99 DORMANT / 15 WATCH / 4 ALERT of 118 days). Numbers §70.
+- **★ The live run found TWO bugs a hermetic suite could not (§70).** (1) Three real catchments
+  were falsely reported unmeasurable — Earth Engine returns null for a sub-pixel region with no
+  pixel centre; the tell was that two boxes of the *same size* succeeded. Probed before fixing;
+  the fix is a proven rescue (the five working catchments returned identical E_f). (2) The
+  summary said "8/8 FLOOD-ALERT" by grading each catchment on its **season peak** while today
+  was E_f 0.0 — a false statement of current risk on a warning page. Now split into `latest`
+  (headline) and `season_peak` (labelled context), matching the IMERG card's contract.
+- **★ The `live_alarm.py` hook IS WIRED (§70 — reverses §69's deferral, on the user's call).**
+  Non-fatal, between the IMERG and radar hooks, **before** the dashboard render; writes only to
+  `data/flood/`. Test `R9` pins the try/except, the SKIPPED message and the ordering.
+- **★ (§69) — the additive claim is MACHINE-CHECKED and still holds after all live runs.** The
+  baseline freeze written **before any flood code ran** hashes **116 protected artifacts** —
+  **all 116 byte-identical**. The card is a proven *pure insertion*. Battery **114 → 154 green**
+  in the container. Guards carry negative controls.
+- **★ F0 geometry MEASURED on both sites (§69):** 22 zones → **22 catchments, all Regime A,
+  0 truncated, 0 mainstem**, 0.51–2.29 km². **The plan's premise is a number now: the frame DEMs
+  already span every catchment, so the InSAR AOI was never enlarged.** Only **3/22** zones are
+  channel-adjacent at 120 m — the exposure signal is sparse, and stated as such.
+- **⚠ Carried limitations (§69/§70):** every t_c is 0.07–0.12 h so window-matching returns the
+  same 0.5 h window for all 22 (correct, not yet differentiating); the inherited k=2.4 was
+  calibrated on a **max-over-durations** statistic while this arm grades **one** duration, so
+  the inheritance is provisional; still **no flood ground truth** → EXPERIMENTAL.
+  `data/flood/` is **318 MB**, almost all regenerable D8 cache, safe to delete.
+- **⚠ Note for the next session:** a real `live_alarm.py` run legitimately refreshes the current
+  season's daily-arm files, which R1 will flag. Its failure message now spells out that this is
+  the one acceptable cause and how to re-freeze.
 - **★ (§68) — the FLASH-FLOOD EXPANSION PLAN is the document of record.** Committed plan:
   `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` — an additive-only, config-gated
   (`flood:` block absent = off) arm: **F0** geometry probe (D8 channels/catchments via the
@@ -77,35 +86,38 @@
 
 ## Recommended next step
 
-**Run F1 once against live rainfall** (`docker desktop start`, then
-`docker compose run --rm insar python workflows/flood_gate.py` per site) — that is the only
-thing standing between the flood arm and a first real staged result, and the abort paths are
-already proven. Decide at the same time whether to accept the **`live_alarm.py` hook**
-(deliberately not made — §69). Also cheap and pending: re-run `live_alarm.py` to settle §62's
-daily-arm verdict (its ERA5-Land window has now published). Then the standing **§61 S1A-only
-rebuild rescore in a focused session WITH the user** (design decision on the f105/f103
-chain-join first). User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to
-`master`; publish the dashboard.
+**Run `live_alarm.py` for the current season on both sites** — it now settles three things at
+once: §62's pending daily-arm verdict (its ERA5-Land window has published), the first
+end-to-end render of the flood card through the wired hook, and a real exercise of the
+non-fatal contract. Expect R1 to flag the current season's daily-arm files as changed — that is
+the one legitimate cause; confirm nothing else moved, then re-freeze. After that, the standing
+**§61 S1A-only rebuild rescore in a focused session WITH the user** (design decision on the
+f105/f103 chain-join first), or **F2** (creep×flood undercut coupling — the plan's next phase,
+and the one that makes the 3/22 exposure count actionable). User-side (standing): settle the
+2 §52 rows; GACOS form + soil lab; merge to `master`; publish the dashboard.
 
 ## Uncommitted delta
 
-Batch A (§68 — the plan doc + NISAR re-check) is **already committed** by the user as `2fe49aa`,
-so the uncommitted delta is Batch B only.
+§68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
+delta is §70 only.
 
-**Batch B — F0 + F1 implementation (§69):**
-- NEW `workflows/flood_domain.py`, `workflows/flood_gate.py`; NEW `tests/test_flood_invariants.py`
-  (9), `tests/test_flood_domain.py` (13), `tests/test_flood_gate.py` (15).
-- `config/ramban.yaml` + `config/vaishnodevi.yaml` (`flood:` block — delete it and the arm is off).
-- `operational_alarm.py`: `load_flood_summary()` + `_flood_card()` + a `flood=None` kwarg on
-  `write_dashboard` and one line in `main()` — the ONLY existing-file change (plan §5).
-- `RESULTS_AND_KPIS.md` (§69), `milestone.md` (M55), the primer (CF18 + 3 Part-D answers +
-  Part-E entry), `SESSION_REVIEW.md` (this LIVE block), `session_journey.md` (git-ignored) S31b.
-- Git-ignored data: `data/flood/` (318 MB — reports are KB, the rest is regenerable D8 cache).
+**§70 — F1 run live, two bug fixes, and the hook:**
+- `workflows/flood_gate.py` — `sampling_scale_m()` (the sub-pixel null fix) + the
+  `latest`/`season_peak` split + `alert_days_per_catchment` + a two-line run summary.
+- `workflows/operational_alarm.py` — `_flood_card()` now leads with **today** and labels the
+  season peak as context (still the only existing-file change on the dashboard side).
+- `workflows/live_alarm.py` — the non-fatal flood hook, before the render (**a second
+  existing-file touch-point, deliberately added on the user's instruction**; §69 had deferred it).
+- `tests/test_flood_gate.py` 15→17 (sampling-scale regression, TODAY-vs-peak regression),
+  `tests/test_flood_invariants.py` 9→10 (R9 hook contract + re-freeze guidance in R1).
+- `RESULTS_AND_KPIS.md` (§70), `milestone.md` (M56), `SESSION_REVIEW.md` (this LIVE block),
+  `session_journey.md` (git-ignored) S31c.
+- Git-ignored data: first real `data/flood/flood_gate_summary{,_vaishnodevi}_2026.json` +
+  `flood_catchment_E*.csv` + per-catchment `_rain/` caches (rebuilt at the fixed sampling scale).
 
-**Not touched (verified by hash, §69 R1):** all 116 protected artifacts — every alert union,
-hazard/velocity raster, daily-arm report/calendar, back-test report and the skill table.
-`build_3d_dashboard.py` is untouched and pinned so by a test (F2's touch-point, not F1's).
-Scratch ASF/battery probes stayed in the session scratchpad (never entered the repo).
+**Not touched (verified by hash, R1, after every live run):** all 116 protected artifacts.
+`build_3d_dashboard.py` remains untouched and pinned so by a test (F2's touch-point, not F1's).
+Scratch EE/battery probes stayed in the session scratchpad (never entered the repo).
 
 ---
 

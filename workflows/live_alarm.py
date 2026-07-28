@@ -162,6 +162,19 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> N
     except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
         print(f"imerg gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
               f"a stale sub-daily card")
+    # Catchment flash-flood arm (flood_gate.py, FLOOD_EXPANSION_PLAN F1) — same NON-FATAL
+    # contract as the two hooks either side of it. WHY IT IS WIRED HERE: the flood level is a
+    # WHEN-answer, and a WHEN-answer is only worth anything if it refers to today. Left manual,
+    # its card would silently age against the daily arm beside it and quietly show a stale
+    # "dormant" through the very storm the page exists to warn about — a stale safety number
+    # is worse than an absent one. It writes ONLY to data/flood/ and feeds ONLY its own card,
+    # so the validated daily alarm is untouched whether this succeeds, fails, or is disabled.
+    # Config-gated: a site without a `flood:` block exits 0 immediately and writes nothing.
+    try:
+        run("flood_gate.py", "--threshold", threshold, "--start", start.isoformat())
+    except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
+        print(f"flood gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
+              f"a stale flood card")
     # Radar watcher (radar_watch.py, plan Tier 0c §56) — same non-fatal contract: ASF being
     # unreachable must never break the alarm chain (the freshness pill shows last known state).
     try:

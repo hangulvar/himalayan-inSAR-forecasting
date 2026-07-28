@@ -113,7 +113,12 @@ def test_R1_protected_artifacts_are_byte_identical():
     assert not missing, f"protected artifact(s) DISAPPEARED: {missing[:5]}"
     assert not changed, (
         f"protected artifact(s) CHANGED — the flood arm is not additive: {changed[:5]}\n"
-        f"        Restore from backup, find what wrote them, and only then re-freeze.")
+        f"        Restore from backup, find what wrote them, and only then re-freeze.\n"
+        f"        ONE legitimate cause: a `live_alarm.py` run refreshes the CURRENT season's\n"
+        f"        daily-arm files (operational_alarm_report_<year>.*, calendars) on purpose.\n"
+        f"        If and only if every changed path is one of those, that is the daily arm\n"
+        f"        doing its job — confirm nothing else moved, then delete\n"
+        f"        data/flood/_baseline_freeze.json to re-freeze the new baseline.")
     touched = [k for k in set(frozen) & set(now) if frozen[k]["mtime"] != now[k]["mtime"]]
     if touched:
         print(f"      [R1] note: {len(touched)} file(s) re-written with IDENTICAL content")
@@ -201,9 +206,13 @@ def _flood_summary(name: str = "Catchment 1") -> dict:
             "flood_watch_k": 1.0, "flood_alert_k": 2.4,
             "season": {"start": "2026-06-01", "end": "2026-06-02", "days": 2},
             "n_catchments": 1, "n_staged": 1, "n_aborted": 0,
-            "worst": {"catchment": name, "zone": 1, "level": "FLOOD-WATCH", "E_f": 1.4,
-                      "date": "2026-06-02", "duration_h": 1.0, "burst_mm": 12.3,
-                      "area_km2": 8.4, "tc_hours": 0.9, "imerg_pixels": 1},
+            "latest": {"catchment": name, "zone": 1, "level": "FLOOD-WATCH", "E_f": 1.4,
+                       "date": "2026-06-02", "provisional": False},
+            "latest_date": "2026-06-02",
+            "season_peak": {"catchment": name, "zone": 1, "level": "FLOOD-ALERT", "E_f": 8.1,
+                            "date": "2026-06-01", "duration_h": 1.0, "burst_mm": 12.3,
+                            "area_km2": 8.4, "tc_hours": 0.9, "imerg_pixels": 1},
+            "alert_days_per_catchment": {name: 1},
             "level_counts": {"FLOOD-DORMANT": 0, "FLOOD-WATCH": 1, "FLOOD-ALERT": 0},
             "catchments": [{"catchment": name, "zone": 1, "level": "FLOOD-WATCH", "E_f": 1.4,
                             "area_km2": 8.4, "tc_hours": 0.9, "duration_h": 1.0,
@@ -267,6 +276,31 @@ def test_R5_three_d_dashboard_is_untouched_at_F1():
 # ------------------------------------------------------------------------------
 # R6 — the channel criterion is the VALIDATED one, shared not copied
 # ------------------------------------------------------------------------------
+def test_R9_live_alarm_hook_is_non_fatal_and_cannot_reorder_the_daily_arm():
+    """The flood arm is wired into live_alarm.py's regen (§70). Two properties must hold, and
+    both are cheap to assert on the source (running the chain needs CDS + GEE credentials):
+
+      1. the call is inside a try/except, like the imerg and radar hooks either side of it —
+         a flood/GEE failure must never break the validated daily alarm;
+      2. it runs BEFORE operational_alarm.py, so the card it feeds is current, and it is not
+         placed after the dashboard render where it could only ever be stale.
+    """
+    src = (PROJECT_ROOT / "workflows" / "live_alarm.py").read_text(encoding="utf-8")
+    assert 'run("flood_gate.py"' in src, "the flood hook is missing from live_alarm.py"
+    i_flood = src.index('run("flood_gate.py"')
+    # The nearest `try:` above the call must be closer than the nearest `run(` above it,
+    # i.e. the call is the first statement of its own try block.
+    try_at = src.rfind("try:", 0, i_flood)
+    assert try_at != -1 and src.count("run(", try_at, i_flood) == 0, (
+        "the flood_gate call is not wrapped in its own try/except — a GEE outage would take "
+        "the validated daily alarm down with it")
+    except_at = src.index("except", i_flood)
+    assert "SKIPPED" in src[i_flood:except_at + 300], (
+        "the flood hook's failure path must say it was skipped, not fail silently")
+    assert i_flood < src.index('run("operational_alarm.py"'), (
+        "flood_gate must run BEFORE the dashboard render, or its card is always a run behind")
+
+
 def test_R6_channel_criterion_is_the_shared_validated_function():
     import flood_domain as fd
     import flow_routing_probe as frp

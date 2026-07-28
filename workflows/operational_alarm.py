@@ -314,18 +314,25 @@ def _flood_card(fl: dict) -> str:
       A catchment with no usable rainfall record is <b>not</b> the same as a dry one.</div>
   </div>
   <!--/flood-card-->"""
-    worst = fl.get("worst") or {}
+    # LEAD WITH TODAY, not the season peak. The season peak grades every catchment ALERT for
+    # any site that had one bad half-hour in four months (measured §70), which on a warning
+    # page would read as "everything is on alert right now" — false. Same contract as the
+    # IMERG card above: current state big, season context underneath.
+    latest = fl.get("latest") or {}
+    peak = fl.get("season_peak") or {}
     counts = fl.get("level_counts", {})
-    lvl = worst.get("level", "FLOOD-DORMANT")
+    lvl = latest.get("level", "FLOOD-DORMANT")
     chip_color = {"FLOOD-ALERT": LEVEL_COLOR.get("ALERT", "#aa0000"),
                   "FLOOD-WATCH": LEVEL_COLOR.get("WATCH", "#e08800")}.get(lvl, "#cccccc")
     chip = (f'<span class="pill" style="background:{chip_color}'
             f'{";color:#333" if lvl == "FLOOD-DORMANT" else ""}">{_esc(lvl)}</span>')
-    px = worst.get("imerg_pixels") or 0
-    px_note = (" — this catchment spans about <b>one</b> satellite rain pixel, so its "
-               "&#39;catchment mean&#39; is effectively that single pixel"
+    prov = (' <span style="color:#888">(provisional — the day is still arriving; E can only '
+            'rise)</span>' if latest.get("provisional") else "")
+    px = peak.get("imerg_pixels") or 0
+    px_note = ("Each catchment spans about <b>one</b> satellite rain pixel, so its "
+               "&#39;catchment mean&#39; is effectively that single pixel."
                if px <= 1 else
-               f" — catchment spans about <b>{_esc(px)}</b> satellite rain pixels")
+               f"The worst catchment spans about <b>{_esc(px)}</b> satellite rain pixels.")
     return f"""  <div class="card" id="flood-card">
     <h2>WHEN — catchment flash-flood check <span style="font-weight:400;font-size:12px">(GPM
       IMERG x D8 catchments · experimental)</span></h2>
@@ -334,17 +341,20 @@ def _flood_card(fl: dict) -> str:
       catchment UPSTREAM of each slope</b> — the basin whose water arrives as a torrent in the
       channel below. It is the flash-flood and toe-undercutting view, graded over a window
       matched to each catchment&#39;s own response time.</div>
-    <div class="big">E<sub>f</sub> = {_esc(worst.get("E_f", "?"))} {chip}</div>
-    <div style="font-size:13px;color:#444">worst catchment
-      <b>{_esc(worst.get("catchment", "?"))}</b> (zone {_esc(worst.get("zone", "?"))},
-      {_esc(worst.get("area_km2", "?"))} km&sup2;) on <b>{_esc(worst.get("date", "?"))}</b> ·
-      {_esc(worst.get("burst_mm", "?"))} mm in a {_esc(worst.get("duration_h", "?"))} h window
-      (response time t<sub>c</sub> &asymp; {_esc(worst.get("tc_hours", "?"))} h){px_note}.</div>
-    <p style="font-size:13px;margin:8px 0 2px"><b>Catchments this season:</b>
-      {_esc(counts.get("FLOOD-ALERT", 0))} reached FLOOD-ALERT ·
-      {_esc(counts.get("FLOOD-WATCH", 0))} FLOOD-WATCH, of
-      {_esc(fl.get("n_staged", 0))} graded ({_esc(fl.get("n_aborted", 0))} refused for
-      incomplete geometry or rainfall).</p>
+    <div class="big">E<sub>f</sub> = {_esc(latest.get("E_f", "?"))} {chip}</div>
+    <div style="font-size:13px;color:#444">newest satellite day
+      <b>{_esc(latest.get("date", "?"))}</b>{prov} · worst catchment right now:
+      <b>{_esc(latest.get("catchment", "?"))}</b> (zone {_esc(latest.get("zone", "?"))}).
+      Today across {_esc(fl.get("n_staged", 0))} graded catchments —
+      {_esc(counts.get("FLOOD-ALERT", 0))} ALERT · {_esc(counts.get("FLOOD-WATCH", 0))} WATCH ·
+      {_esc(counts.get("FLOOD-DORMANT", 0))} dormant.</div>
+    <p style="font-size:13px;margin:8px 0 2px"><b>Season peak (not current state):</b>
+      {_esc(peak.get("catchment", "—"))} reached E<sub>f</sub> =
+      {_esc(peak.get("E_f", "—"))} on {_esc(peak.get("date", "—"))} —
+      {_esc(peak.get("burst_mm", "?"))} mm in a {_esc(peak.get("duration_h", "?"))} h window
+      over {_esc(peak.get("area_km2", "?"))} km&sup2; (response time t<sub>c</sub> &asymp;
+      {_esc(peak.get("tc_hours", "?"))} h). {_esc(fl.get("n_aborted", 0))} catchment(s) refused
+      for incomplete geometry or rainfall.</p>
     <p style="font-size:12px;color:#888;margin:6px 0 0"><b>Experimental, and narrower than it
       looks.</b> This is a staged TRIGGER level, not a flood forecast: it publishes no water
       depth, no inundated area and no discharge — those need river gauges and channel survey

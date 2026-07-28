@@ -200,7 +200,14 @@ def _fake_catchment(name="catchment_zone1", level="FLOOD-WATCH", E=1.4, aborted=
             "imerg_pixels": 1, "aborted": False, "abort_reason": None, "duration_h": 1.0,
             "date": "2026-06-02", "E_f": E, "level": level, "burst_mm": 12.3,
             "peak_mmph": 12.3, "window_end": "2026-06-02 14:00", "provisional": False,
-            "n_days": 2}
+            "n_days": 2,
+            # The newest day is QUIET even though the season peak was ALERT-grade — the exact
+            # shape that made the old season-peak headline misleading (§70).
+            "latest": {"date": "2026-06-02", "E_f": 0.0, "level": "FLOOD-DORMANT",
+                       "provisional": False, "duration_h": 1.0, "burst_mm": 0.0,
+                       "peak_mmph": 0.0, "window_end": None, "n_steps": 48},
+            "days": [{"date": "2026-06-01", "level": level, "E_f": E},
+                     {"date": "2026-06-02", "level": "FLOOD-DORMANT", "E_f": 0.0}]}
 
 
 def test_U15_summary_schema_is_pinned():
@@ -209,18 +216,35 @@ def test_U15_summary_schema_is_pinned():
                                               "days": 2})
     for key in ("slug", "experimental", "aborted", "threshold", "flood_watch_k",
                 "flood_alert_k", "thresholds_inherited_from", "durations_h", "season",
-                "n_catchments", "n_staged", "n_aborted", "level_counts", "worst", "catchments"):
+                "n_catchments", "n_staged", "n_aborted", "level_counts", "latest",
+                "latest_date", "season_peak", "alert_days_per_catchment", "catchments"):
         assert key in s, f"summary lost the {key!r} field the dashboard/tests rely on"
     assert s["experimental"] is True, "this arm must never ship claiming to be validated"
     assert s["aborted"] is False and s["n_staged"] == 1 and s["n_aborted"] == 1
-    assert s["worst"]["catchment"] == "catchment_zone1"
-    assert s["level_counts"]["FLOOD-WATCH"] == 1
+    assert s["season_peak"]["catchment"] == "catchment_zone1"
     assert "not flood-calibrated" in s["thresholds_inherited_from"].lower()
+    assert s["alert_days_per_catchment"] == {"catchment_zone1": 0}
     # Every catchment aborted -> the whole summary aborts and carries NO level.
     allbad = fg.build_summary("ramban", [_fake_catchment(aborted=True)], "nwhimalaya", A, B,
                               {"start": "2026-06-01", "end": "2026-06-02", "days": 0})
-    assert allbad["aborted"] is True and allbad["worst"] is None
-    assert allbad["abort_reason"]
+    assert allbad["aborted"] is True and allbad["season_peak"] is None
+    assert allbad["latest"] is None and allbad["abort_reason"]
+
+
+def test_level_counts_describe_TODAY_not_the_season_peak():
+    """REGRESSION (§70). The first live run reported '8/8 catchments FLOOD-ALERT' while ~84% of
+    each catchment's individual days were DORMANT and the newest day was quiet — because the
+    counts were taken over each catchment's SEASON PEAK. On a warning page that reads as
+    'everything is on alert right now'. level_counts must describe the newest day."""
+    peaked_but_quiet_today = _fake_catchment(level="FLOOD-ALERT", E=8.06)
+    s = fg.build_summary("ramban", [peaked_but_quiet_today], "nwhimalaya", A, B,
+                         {"start": "2026-06-01", "end": "2026-06-02", "days": 2})
+    assert s["level_counts"] == {"FLOOD-DORMANT": 1, "FLOOD-WATCH": 0, "FLOOD-ALERT": 0}, (
+        "level_counts followed the season peak instead of the newest day", s["level_counts"])
+    assert s["latest"]["level"] == "FLOOD-DORMANT" and s["latest"]["E_f"] == 0.0
+    assert s["latest_date"] == "2026-06-02"
+    # …while the season peak is still reported, separately and labelled as such.
+    assert s["season_peak"]["level"] == "FLOOD-ALERT" and s["season_peak"]["E_f"] == 8.06
 
 
 def test_U14_outputs_are_idempotent():
@@ -252,6 +276,45 @@ def test_I6_season_suffix_follows_the_project_rule():
             assert fg.season_suffix(slug, 2025) == ig.season_suffix(2025), slug
     finally:
         ig.SLUG = saved
+
+
+def test_sampling_scale_rescues_sub_pixel_catchments():
+    """REGRESSION (2026-07-28, live run): at IMERG's native ~11 km scale, Earth Engine returns
+    NULL for a region containing no pixel centre. Three of Ramban's eight real catchments hit
+    that and aborted as 'no rainfall steps' — while two boxes of the SAME SIZE returned data,
+    which is what exposed it as a position lottery rather than a void. Probed directly: null at
+    11132 m, real values at 2000 m and 500 m.
+
+    So: a sub-pixel catchment must be sampled FINER than native, and a comfortably large region
+    must still use native (no gratuitous extra computation)."""
+    tiny = [75.15033, 33.26973, 75.15721, 33.27983]        # real zone-3 bbox that aborted
+    assert fg.sampling_scale_m(tiny) < fg.IMERG_SCALE_M
+    assert fg.sampling_scale_m(tiny) >= 500.0, "never sample absurdly fine"
+    big = [75.0, 33.0, 76.0, 34.0]                          # ~110 km across
+    assert fg.sampling_scale_m(big) == fg.IMERG_SCALE_M
+    # Monotone in region size, and never above native.
+    spans = [0.005, 0.01, 0.05, 0.2, 1.0]
+    scales = [fg.sampling_scale_m([75.0, 33.0, 75.0 + s, 33.0 + s]) for s in spans]
+    assert scales == sorted(scales), scales
+    assert max(scales) <= fg.IMERG_SCALE_M
+    # Every one of the 22 REAL catchments must be sampled at a scale strictly SMALLER than the
+    # catchment itself — the minimal condition for the region to contain a sample point.
+    # (The decisive evidence is empirical and stronger than any inequality here: with this
+    # function in place the live run staged 22/22 catchments with zero null series, where the
+    # native scale had aborted 3 of Ramban's 8.)
+    for slug in ("ramban", "vaishnodevi"):
+        dom = PROJECT_ROOT / "data" / "flood" / f"flood_domain_{slug}.json"
+        if not dom.exists():
+            continue                                        # fresh clone: nothing to check
+        for z in json.loads(dom.read_text(encoding="utf-8"))["zones"]:
+            bb = (z.get("catchment") or {}).get("bbox_lonlat")
+            if not bb:
+                continue
+            span_m = min(abs(bb[2] - bb[0]) * 111320.0 * np.cos(np.radians(bb[1])),
+                         abs(bb[3] - bb[1]) * 110540.0)
+            assert fg.sampling_scale_m(bb) < span_m, (
+                f"{slug} zone {z['zone']}: sampling scale {fg.sampling_scale_m(bb)} m is not "
+                f"smaller than the catchment span {span_m:.0f} m — it would return null again")
 
 
 def test_imerg_pixel_span_is_reported_honestly():
@@ -347,7 +410,9 @@ def test_I1_end_to_end_synthetic_site():
                               .read_text("utf-8"))
             if cm["stageable"]:
                 assert summ["aborted"] is False and summ["n_staged"] == 1
-                assert summ["worst"]["level"] == "FLOOD-ALERT", summ["worst"]
+                assert summ["season_peak"]["level"] == "FLOOD-ALERT", summ["season_peak"]
+                # …and the newest day is reported separately from that peak.
+                assert summ["latest"] is not None and summ["latest_date"]
                 assert summ["experimental"] is True
             else:
                 # A truncated synthetic catchment must ABORT, never grade.

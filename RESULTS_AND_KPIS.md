@@ -3369,6 +3369,74 @@ interpreter path reproduces the documented `0xC06D007F` DLL-load crash.
 
 ---
 
+## 70. Flood arm F1 RUN LIVE on both sites — two bugs that only a real run could expose, and the live_alarm hook wired  `[MEASURED]`
+*(2026-07-28, session 31 cont. — `flood_gate.py` (adaptive sampling scale + latest/season-peak
+split), `operational_alarm.py` (card leads with today), `live_alarm.py` (non-fatal hook),
+suites 15→17 and 9→10. First real flood artifacts:
+`data/flood/flood_gate_summary{,_vaishnodevi}_2026.json`.)*
+
+**F1 is now RUN, not just built (§69 said it was unrun): 22/22 catchments staged, 0 aborts.**
+
+| site | staged | today (2026-07-27, provisional) | season peak |
+|---|---|---|---|
+| Ramban | **8/8** | all 8 FLOOD-DORMANT, E_f 0.0 | `zone2` **E_f 8.06** on 2026-07-01 |
+| Vaishno Devi | **14/14** | all 14 FLOOD-DORMANT, E_f 0.0 | `zone10` **E_f 5.22** on 2026-07-18 |
+
+Per-day texture (Ramban zone 1, 118-day season): **99 DORMANT / 15 WATCH / 4 ALERT** — i.e.
+**3.4% ALERT-grade days**. The staging is not saturated; it behaves like a plausible operating
+point. That is a *description*, not a validation — there is still no flood ground truth.
+
+**★ BUG 1 (ours, silent, and only a live run could find it): three real catchments were
+reported unmeasurable when they were not.** The first live run aborted 3 of Ramban's 8 with
+"no rainfall steps returned". The guard was right to refuse — but the CAUSE was our own code.
+Earth Engine's `reduceRegion` returns **null** when a region smaller than the requested scale
+contains no pixel **centre**; a Regime-A catchment is ~0.007° across against IMERG's 0.1° cell,
+so catching a centre is a lottery on position. The tell: **two boxes of the same size succeeded
+while three failed.** Probed directly — those three return `null` at 11132 m and a real value at
+2000 m and 500 m. Fixed with `sampling_scale_m()` (sample finer than native when the region is
+sub-pixel; native otherwise). **Verification that it is a rescue and not a perturbation: after
+the fix the five already-working catchments returned byte-identically the same E_f
+(3.07 / 8.06 / 3.07 / 3.46 / 3.46), and the three nulls became real values.** Sampling finer adds
+**no** information — the observation is still an ~11 km average, and every artifact says so.
+The `_rain` cache was deleted before re-running, because a series must not mix sampling methods.
+
+**★ BUG 2 (presentation, and it would have shipped a false alarm state): "8/8 catchments
+FLOOD-ALERT".** `level_counts` graded each catchment by its **season peak**, so any site with one
+bad half-hour in four months read as fully alerted — while 84% of that catchment's individual
+days were DORMANT and *today* was E_f = 0.0. On a warning page that is not a cosmetic flaw; it is
+a false statement of current risk. Fixed by splitting the summary into **`latest`** (the newest
+day — what the card now headlines, with the provisional note) and **`season_peak`** (context,
+explicitly labelled "not current state"), plus `alert_days_per_catchment` for texture. This
+mirrors `_imerg_card`'s existing contract. Pinned by
+`test_level_counts_describe_TODAY_not_the_season_peak`.
+
+**⚠ Threshold-inheritance caveat, now sharper.** `imerg_gate`'s k=2.4 was calibrated on a
+**max-over-durations** statistic (D = 0.5…24 h). This arm grades **one** t_c-matched duration,
+so E_f and the burst arm's E are *not the same quantity*, and k is inherited across a change of
+statistic. Direction of the bias is at least the safe one — a single short window is ≤ the max
+over many — but the inheritance stays **provisional** until flood ground truth exists.
+
+**The `live_alarm.py` hook IS wired (a reversal of §69's deferral, on the user's instruction).**
+Placed between the IMERG and radar hooks with the identical non-fatal contract, and *before*
+`operational_alarm.py` so the card it feeds is current. Rationale recorded in-code: a flood
+level is a WHEN-answer, and left manual its card would age silently against the daily arm beside
+it — showing a stale "dormant" through the very storm the page exists to warn about. **A stale
+safety number is worse than an absent one.** It writes only to `data/flood/` and feeds only its
+own card. New test `R9` pins all three properties (own try/except, "SKIPPED" message, ordering
+before the render) on the source, since running the chain needs CDS + GEE credentials.
+
+**Additivity re-confirmed after all live runs:** the **116** protected artifacts remain
+byte-identical. Note for future sessions: a `live_alarm.py` run legitimately refreshes the
+current season's daily-arm files — R1's failure message now spells out that this is the one
+acceptable cause and how to re-freeze.
+
+**Verified:** battery **114 → 154 green, 0 failed** across 13 suites, run **in the container**
+(`docker compose run --rm insar`). Two of the four new tests failed there first and caught real
+breakage from the `worst`→`season_peak` rename plus an over-strict scale assertion — the native
+run had not re-executed those suites. Suites: flood invariants **10**, F0 **13**, F1 **17**.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

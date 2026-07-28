@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -162,6 +163,31 @@ def catchment_daily_E(series, a: float, b: float, duration_h: float) -> list[dic
     return out
 
 
+def sampling_scale_m(bbox_lonlat, native_m: float = IMERG_SCALE_M,
+                     floor_m: float = 500.0) -> float:
+    """The scale to reduce IMERG at over a catchment bbox.
+
+    WHY THIS IS NOT JUST `native_m` (measured 2026-07-28, and it cost three catchments):
+    Earth Engine's reduceRegion returns **null** when a region smaller than `scale` happens to
+    contain no pixel CENTRE. A Regime-A catchment is ~0.007 deg across against IMERG's 0.1 deg
+    cell, so whether a box catches a centre is a lottery on position — three of Ramban's eight
+    catchments returned an empty series at the native scale while two boxes of the SAME SIZE
+    returned data. Probed directly: those three yield null at 11132 m and a real value at
+    2000/500 m.
+
+    Sampling finer makes the reducer place sample points inside the region and resample the
+    same coarse pixels onto them. It adds NO information — the underlying observation is still
+    an ~11 km average, and every product this arm writes says so (`imerg_pixels`, the card's
+    resolution note). It only stops a measurable catchment from being reported as unmeasurable.
+    """
+    lo1, la1, lo2, la2 = bbox_lonlat
+    lat = math.radians((la1 + la2) / 2.0)
+    span_m = min(abs(lo2 - lo1) * 111320.0 * math.cos(lat), abs(la2 - la1) * 110540.0)
+    if span_m >= 2 * native_m:          # comfortably larger than a pixel: nothing to fix
+        return float(native_m)
+    return float(max(floor_m, min(native_m, span_m / 4.0)))
+
+
 def imerg_pixels_spanned(bbox_lonlat: list[float]) -> int:
     """How many ~0.1 deg IMERG cells the catchment bbox covers. Printed on every product: at
     Regime-A sizes this is often 1, which means the 'catchment mean' is really one satellite
@@ -187,10 +213,11 @@ def fetch_catchment_series(cache: Path, bbox_lonlat, start: date, end: date, pro
     ee, _proj = ee_init(project)
     lo1, la1, lo2, la2 = bbox_lonlat
     geom = ee.Geometry.Rectangle([lo1, la1, lo2, la2])
+    scale = sampling_scale_m(bbox_lonlat)
     col = ee.ImageCollection(IMERG_ASSET).select(IMERG_BAND)
 
     def reduce_step(img):
-        mean = img.reduceRegion(ee.Reducer.mean(), geom, IMERG_SCALE_M,
+        mean = img.reduceRegion(ee.Reducer.mean(), geom, scale,
                                 maxPixels=int(1e8), bestEffort=True)
         return ee.Feature(None, {"t": img.date().format("YYYY-MM-dd HH:mm:ss"),
                                  "r": mean.get(IMERG_BAND)})
@@ -217,10 +244,21 @@ def fetch_catchment_series(cache: Path, bbox_lonlat, start: date, end: date, pro
 def build_summary(slug: str, per_catchment: list[dict], thr_id: str, a: float, b: float,
                   season: dict) -> dict:
     graded = [c for c in per_catchment if not c.get("aborted")]
+    # CURRENT state = the newest day, per catchment. This is what the dashboard leads with.
+    # Counting catchments by their SEASON PEAK instead would report "every catchment on ALERT"
+    # for any site that saw one bad half-hour in four months — measured 2026-07-28: all 22
+    # catchments peak at ALERT while ~84% of their individual days are DORMANT. Peak and
+    # present are different questions and are reported as different fields.
+    latest_rows = [{"catchment": c["catchment"], "zone": c["zone"], **c["latest"]}
+                   for c in graded if c.get("latest")]
+    worst_latest = max(latest_rows, key=lambda r: r["E_f"], default=None)
     counts = {lv: 0 for lv in LEVELS}
-    for c in graded:
-        counts[c["level"]] = counts.get(c["level"], 0) + 1
-    worst = max(graded, key=lambda c: c["E_f"], default=None)
+    for r in latest_rows:
+        counts[r["level"]] = counts.get(r["level"], 0) + 1
+    season_peak = max(graded, key=lambda c: c["E_f"], default=None)
+    # Season texture: how many ALERT-grade days each catchment actually had.
+    alert_days = {c["catchment"]: sum(1 for d in c.get("days", [])
+                                      if d["level"] == "FLOOD-ALERT") for c in graded}
     return {
         "slug": slug, "experimental": True,
         "aborted": not graded,
@@ -236,12 +274,19 @@ def build_summary(slug: str, per_catchment: list[dict], thr_id: str, a: float, b
         "season": season,
         "n_catchments": len(per_catchment), "n_staged": len(graded),
         "n_aborted": len(per_catchment) - len(graded),
+        # CURRENT state (the newest day) — what the card headlines.
         "level_counts": counts,
-        "worst": ({"catchment": worst["catchment"], "zone": worst["zone"],
-                   "level": worst["level"], "E_f": worst["E_f"], "date": worst["date"],
-                   "duration_h": worst["duration_h"], "burst_mm": worst["burst_mm"],
-                   "area_km2": worst["area_km2"], "tc_hours": worst["tc_hours"],
-                   "imerg_pixels": worst["imerg_pixels"]} if worst else None),
+        "latest": worst_latest,
+        "latest_date": worst_latest["date"] if worst_latest else None,
+        # SEASON PEAK (the worst half-hour anywhere this season) — context, not current state.
+        "season_peak": ({"catchment": season_peak["catchment"], "zone": season_peak["zone"],
+                         "level": season_peak["level"], "E_f": season_peak["E_f"],
+                         "date": season_peak["date"], "duration_h": season_peak["duration_h"],
+                         "burst_mm": season_peak["burst_mm"],
+                         "area_km2": season_peak["area_km2"],
+                         "tc_hours": season_peak["tc_hours"],
+                         "imerg_pixels": season_peak["imerg_pixels"]} if season_peak else None),
+        "alert_days_per_catchment": alert_days,
         "catchments": per_catchment,
     }
 
@@ -307,7 +352,9 @@ def main(argv=None) -> int:
         name = f"catchment_zone{z['zone']}"
         base = {"catchment": name, "zone": z["zone"], "area_km2": cm.get("area_km2"),
                 "tc_hours": cm.get("tc_hours"), "regime": cm.get("regime"),
-                "imerg_pixels": imerg_pixels_spanned(cm.get("bbox_lonlat"))}
+                "imerg_pixels": imerg_pixels_spanned(cm.get("bbox_lonlat")),
+                "imerg_sampling_scale_m": (round(sampling_scale_m(cm["bbox_lonlat"]))
+                                           if cm.get("bbox_lonlat") else None)}
         if not cm.get("stageable"):
             per_catchment.append({**base, "aborted": True, "duration_h": None,
                                   "abort_reason": cm.get("refusal") or "not stageable (F0)"})
@@ -353,10 +400,15 @@ def main(argv=None) -> int:
         print("flood_gate: ABORTED — no catchment produced a gradeable series; "
               "no level published (reasons in the summary).")
     else:
-        w = summary["worst"]
+        lt, sp = summary["latest"], summary["season_peak"]
+        c = summary["level_counts"]
         print(f"flood gate ({thr['label']}): {summary['n_staged']}/{summary['n_catchments']} "
-              f"catchments staged · worst {w['catchment']} {w['level']} E_f={w['E_f']} "
-              f"on {w['date']}")
+              f"catchments staged")
+        print(f"  TODAY ({lt['date']}{', provisional' if lt.get('provisional') else ''}): "
+              f"worst {lt['catchment']} {lt['level']} E_f={lt['E_f']} | "
+              f"ALERT {c['FLOOD-ALERT']} · WATCH {c['FLOOD-WATCH']} · "
+              f"DORMANT {c['FLOOD-DORMANT']}")
+        print(f"  season peak: {sp['catchment']} {sp['level']} E_f={sp['E_f']} on {sp['date']}")
     print(f"  -> {csv_path.name} , flood_gate_summary{sfx}.json")
     return 0
 
