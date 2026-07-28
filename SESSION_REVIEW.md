@@ -11,175 +11,66 @@
 
 ---
 
-# LIVE — Session 30 · branch `aoi-vaishnodevi` · updated 2026-07-25
+# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-07-28
 
 ## Current state
 
-- **★ NEW (§63) — the IMERG burst arm's FALSE-ALARM RATE is measured; the risk register's
-  "burst arm cries wolf" blocker is CLOSED.** Flagged days clustered into **episodes** (one
-  episode = one decision asked of a human), attributed to verified events, and the identical
-  measurement run on the validated daily arm over the four AOI-seasons on disk. Verdict: at its
-  shipped threshold the burst arm costs **less than half the alarm days** of the arm we already
-  trust while interrupting somewhat more often — **acute vs chronic** (the daily arm's WATCH
-  includes one unbroken 92-day spell). Reported as a strict/generous **bound**, never an
-  absolute score, because the inventory only records reported failures. Numbers §63.
-- **★ DECIDED + SHIPPED (§64) — burst ALERT threshold LOWERED 3.0 → 2.4 (user's call), all
-  artifacts regenerated.** Every day's `max_E` is **byte-identical**; only the grading line
-  moved — all **20** day-flips are WATCH→ALERT, none the other way. Result: **all 4 fatal
-  verified events now ALERT at Δ=0** (was 3/4 — the §62 Gangroo–Ramsu strike flips on its own
-  day). Cost and the "is this sound?" assessment: §64. Justification is *not* "2.44 minus
-  epsilon" — recall is flat across the band (1.09, 2.44], so 2.4 is the **cheapest** threshold
-  achieving the recall step. **The validated daily arm is untouched, byte-for-byte, all four
-  AOI-seasons.**
-- **⚠ Known fragility, guarded:** k=2.40 sits **1.6%** below the fatal floor (2.44), so an IMERG
-  re-fetch/reprocessing could silently un-catch that event. `tests/test_tier34.py` asserts
-  `min(fatal burst_E) >= BURST_ALERT_K` and fails loudly telling the reader to **re-derive k,
-  not edit the test**.
-- **★ NEW (§67) — the routed-LLOF swap is ADOPTED (§60 4c CLOSED); its "post-merge" gate had
-  been satisfied since 2026-07-19** (`master` = `dc9ba1e`, PR #2 — the LIVE block was stale, the
-  item had been actionable for six days). `llof_routing: d8` on **both** sites, alerts + unions
-  regenerated. Zone sets **identical**; only the downstream flag moves (Ramban operational 6/8
-  zones flip, VD 3/14). **Re-score confirms the swap is CONFINED: AUC 0.676 unchanged**, hazard
-  rasters never touched. Honest limit: no LLOF ground truth exists, so this is an adoption on
-  mechanism quality, not a skill score (§67). New test pins `d8` on every registry site.
-- **⚠ Process failure logged (§67b):** re-running `backtest_inventory.py` with **default**
-  arguments (11-event inventory) clobbered both stored reports (138-event GSI). The
-  load-bearing `backtest_operational_report.*` was restored and verified identical; the monsoon
-  arm's prior on-disk state is lost (git-ignored; numbers survive in §16b). **Rule: never
-  re-run a scoring script with defaults to verify something — look up the producing invocation,
-  back up, run those args, diff.**
-- **★ NEW (§66) — a codebase-wide SECURITY SCAN found a HIGH stored XSS; it is now FIXED and
-  regression-tested.** The dashboards rendered the historical-events record (`name`, `damage`,
-  source `label`/`url` — the last inside `href`) with **zero** escaping; proven with 4/4
-  payloads. HIGH because `control_panel.py` serves those pages **same-origin** as its control
-  API → injected script inherits `POST /run` + read access to all of `data/`, and the record is
-  untrusted by our own §36–38 rule. Fixed with `_esc()` everywhere + an http/https `_safe_url()`
-  allow-list (non-conforming sources render as plain text, never dropped). **Verified by PARSING
-  the DOM, not substring matching** (which gave false alarms), with a **negative control** that
-  disables the escaper and requires the tests to fail. All 4 dashboards on disk audit CLEAN;
-  daily-arm artifacts byte-identical. Battery **109 → 113 green**.
-- **⚠ Still open from that scan (LOW, NOT fixed):** no CSRF/`Origin` check on the panel's
-  `POST /run` (unwanted compute only — `action`/`aoi` are allow-listed); `_serve_file` reads
-  whole files into memory; base image `mambaorg/micromamba:1.5.10` is an old pinned tag.
-- **★ NEW (§65) — the NISAR forward stream ARRIVED (the plan's dated Tier-2c trigger fired) and
-  the first monsoon granules are VOID over both AOIs.** `stream_started: true`, newest acq
-  2026-07-19; **NISAR is now the freshest radar over Ramban by ~10 weeks** (C-band library ends
-  2026-05-06; S1A ceased ops 29 Jun). The §59 pilot is now two-season (`--season winter|monsoon`,
-  same track, 12-day baselines both bands). **Monsoon = honest ABORT, not a result:** both ASC
-  granules are 0% valid over Ramban / ~19% over VD (n=2 → systematic, not a bad granule).
-- **⚠ The pilot had published a FABRICATED number before the guard existed** — "L recovers 0.0%",
-  which would have INVERTED §59's validated 75–87%. Proven a void (not physics) three ways: C-band
-  healthy at 0.72–0.85 on the same dates; the granule's own connectedComponents claims valid data
-  where coherence is NaN; 64,496/64,496 NaN with zero pixels in (0, 0.05]. `l_window_health()`
-  now aborts without a verdict. **Note: NASA's QA marks these granules PASS at 46–63% NaN**
-  (its threshold is 99%) — a vendor QA PASS says nothing about your AOI. §59 reproduces
-  byte-identically. L-band case unchanged; monsoon confirmation deferred on DATA, not physics.
-- **⚠ TRAP FOUND (error log 2026-07-25): `operational_alarm.py` is NOT safely re-runnable for a
-  PAST season.** It takes the season from its arguments but the hazard footprint + inventory
-  from *today's* disk, so regenerating 2025 recomputed it against the present (Ramban footprint
-  12→8 zones, VD 21→14, VD events 4→5) and overwrote §-cited historical numbers — while
-  reporting complete success. Caught only by byte-diffing against a pre-change backup; **fully
-  reverted**. Only the two **2026** dashboards were kept; the 2025 burst cards still show
-  k=3-era counts and are correct as historical snapshots.
-- **★ The Tier-3c temporal-skill table is now GENERATED, not hand-typed** — it had silently gone
-  stale (the §62 event never landed in it). Its schema test was *tightened* around the new
-  `PENDING`/`pending` state (a latency-blind verdict), not loosened. Battery **98 → 105 green**.
-- **DEFERRED, deliberately: the S1A-only Ramban rebuild rescore (§61) is still the standing next
-  step and was NOT run this session.** It is not a headless task — the manifest doc says
-  "judgment-heavy, not run headlessly"; the f105→f106 / f103→f102 **cross-frame merge it needs
-  has no mechanism in the code** (a stack is strictly direction/path/frame; the rescue "bridges"
-  are within-stack), so it needs a design decision first; and its accept/reject is the user's
-  call. Nothing about it changed — the validated product stays live and untouched.
-- **(§62 carried) The 22 Jul 2026 Gangroo–Ramsu fatal strike stands as a prospective near-catch
-  by the burst arm**; the validated daily arm's confirmation is still **pending ERA5-Land
-  latency** (its 2026 record ends 18–19 Jul; expected to confirm ~27 Jul via `live_alarm.py`).
-- **⚠ USER REVIEW still open (§52): 2 rows, evidence gathered.** Himkoti casualty row →
-  recommend **30 Jun 2017**; 2008 Bhawan Aug-vs-Dec → cannot be settled online (keep 30 Aug or
-  keep flagged pending a GSI report request). Inventory rows untouched pending the verdict.
-- **(§55–§61 carried):** NISAR pilot confirms L-band recovers 75–87% of C-band's failure-class
-  pixels (§59); radar watcher + freshness pill live (§57); the 3 rebuild products are QA-passed
-  and the S1A×S1D seam de-risked but S1D dropped (§61).
-  Active plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
-- **Plan status after this session:** Tier 0 ✅, Tier 1 ✅ (§58/§63/§64), Tier 2 ✅ + stream
-  arrived (§59/§65), Tier 3 ✅ (3b GACOS = user), Tier 4: **4c ✅ CLOSED (§67)**, 4a ✅, 4e ✅
-  (merged 2026-07-19); **4b soil lab = user**, **4d frames-101/102 ERA5 rescue = still deferred**
-  (only f106 has an ERA5 config/script; 101/102 needs multi-session MintPy compute + real CDS
-  credentials — genuinely not a headless task).
-- **BOTH sites in WATCH (§54)**; Ramban COMPLETE/scored/LIVE (§21b, §44), Vaishno Devi validated
-  + site-tuned (§26–§32). Merge `aoi-vaishnodevi` → `master` remains the user's call.
-- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss at the disaster
-  site (§31/§51); soils literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS
-  discrepancy pair open. Archival (§48): the Drive copy of the raw zips is the only archival source.
+- **★ NEW (§68) — the FLASH-FLOOD EXPANSION is PLANNED, nothing built.** Committed plan:
+  `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` — an additive-only, config-gated
+  (`flood:` block absent = off) arm: **F0** geometry probe (D8 channels/catchments via the
+  *shared* `flow_routing_probe` functions + coverage guard) → **F1** catchment-aggregated
+  IMERG burst staging (EXPERIMENTAL framing, the §55 lifecycle) → **F2** creep×flood
+  undercut coupling (read-only against `alerts_operational.json`) → **F3** deferred menu.
+  **Scope verdict recorded:** Regime A only (tributary flash floods / toe erosion — a
+  landslide *trigger*, so it deepens the core product); mainstem Chenab + calibrated
+  inundation depth EXCLUDED; the **InSAR AOI is never enlarged** — the frame DEMs already
+  span the catchment terrain (§68) and a data-only "hydrological support domain" does the
+  rest. Test contract (plan §7): baseline-freeze byte-identity manifest written FIRST,
+  hermetic units, negative-controlled guards, verified-event replays.
+- **★ NISAR "fresh batch" VERIFIED as old news (§68).** The 20 Jul 2026 announcement is the
+  public release of the provisional `P05023` stream **§65 already ingested**: 0 new
+  acquisitions / 0 reprocessing over either AOI as of 2026-07-28; newest GUNW still ASC-156
+  07 Jul×19 Jul. The monsoon void re-score stays **blocked on data** (next ASC-156 pass
+  ~early Aug; reprocessed/back-catalog releases promised through end-2026). Bonus find:
+  **11 NISAR L3 SME2 soil-moisture products** over the AOIs (flood-plan F3 option).
+- **Session 30's five batches (§63–§67) are ALL COMMITTED** (`2a13fd0`…`7df55e0`); the tree
+  was clean before this session's doc-only delta. Battery not re-run this session (docs
+  only; Docker down by preference) — the committed **114-green** state (§67) stands.
+- **⚠ Known fragility, guarded (carried §64):** burst k=2.40 sits 1.6% under the fatal floor;
+  the `test_tier34.py` margin guard is the tripwire — re-derive k, don't edit the test.
+- **(§62 carried, now PAST its expected latency)** — the 22 Jul Gangroo–Ramsu daily-arm
+  confirmation expected ~27 Jul via ERA5-Land; a `live_alarm.py` re-run is now the cheapest
+  pending action on the board (the skill table picks it up automatically).
+- **DEFERRED, deliberately (carried §61):** the S1A-only Ramban rebuild rescore — judgment-
+  heavy, needs the cross-frame-merge design decision, run WITH the user; not headless.
+- **⚠ USER REVIEW still open (§52):** 2 inventory rows, evidence gathered, verdict pending.
+- **⚠ Still open from the §66 scan (LOW):** no CSRF/`Origin` check on the panel's `POST /run`;
+  `_serve_file` whole-file reads; old pinned micromamba base tag.
+- **BOTH sites in WATCH (§54)**; Ramban COMPLETE/scored/LIVE (§21b, §44), VD validated +
+  site-tuned (§26–§32); merge `aoi-vaishnodevi` → `master` remains the user's call. Active
+  hardening plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md` (Tiers 0–4 ✅ except
+  4b soil lab = user, 4d frames-101/102 ERA5 rescue = deferred).
+- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss (§31/§51);
+  soils literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS pair open;
+  Drive copy of raw zips is the only archival source (§48).
 
 ## Recommended next step
 
-**The deferred S1A-only rebuild rescore (§61) — a focused session WITH the user**, because
-it needs a design decision first: how f105/f103 join the f106/f102 chains (a stack is strictly
-direction/path/frame today). Then the recorded plan:
-back up `_quarantine_list.csv` + `_stack_manifest.json` → `consolidate →
-apply_connectivity_rescues → run_multistack` (S1A-only, NO S1D seam) → GSI rescore → **compare
-new AUC/recall vs §21b/§44 before accepting**; revert via the backup on a regression.
-Also cheap and pending: re-run `live_alarm.py` after ~27 Jul to settle §62's daily-arm verdict
-(the skill table will pick it up automatically — the row is machine-generated now). User-side
-(standing): settle the 2 §52 rows; GACOS form + soil lab; merge to `master`; publish the dashboard.
+**Cheapest first: re-run `live_alarm.py` to settle §62's daily-arm verdict** (its ERA5-Land
+window has now published). Then either (a) the standing **§61 S1A-only rebuild rescore in a
+focused session WITH the user** (design decision on the f105/f103 chain-join first), or
+(b) **start the flood arm at F0** per the plan — in which case the FIRST act is
+`tests/test_flood_invariants.py` + the baseline-freeze manifest (needs Docker for the
+battery). User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to
+`master`; publish the dashboard.
 
 ## Uncommitted delta
 
-Session 30 is **five logical batches**; §63 (`2a13fd0`) and §64 (`533082b`) are already
-committed by the user, so the uncommitted delta is C + D:
-
-**Batch A — §63, measure the burst arm's false-alarm cost:**
-- `workflows/imerg_calibration.py` (Q4 episode false-alarm section, both arms; generated Tier-3c
-  table; 7th verified event; derived — no longer hardcoded — rationale counts),
-  `tests/test_imerg_gate.py` (+7 hermetic tests, 14→21), `tests/test_tier34.py` (schema tightened
-  for `PENDING`), `data/inventory/temporal_skill_table.csv` (generated, 7 rows, new
-  `burst_alert_lead_days` column), `RESULTS_AND_KPIS.md` (§63), `error_history_log.md` (4 entries),
-  `milestone.md` (M51), the primer (CF16 + Part D/E).
-
-**Batch B — §64, adopt k=2.4 and regenerate:**
-- `workflows/imerg_gate.py` (`BURST_ALERT_K` 3.0→2.4 + rationale comment),
-  `tests/test_imerg_gate.py` (boundary test rewritten to be constant-relative; pinning test now
-  asserts both sides of 2.4), `tests/test_tier34.py` (fatal-floor margin guard),
-  `data/inventory/temporal_skill_table.csv` (22 Jul row `pending`→`burst`),
-  `RESULTS_AND_KPIS.md` (§64), `error_history_log.md` (past-season regeneration trap),
-  `milestone.md` (M52), the primer (threshold-choice rule of thumb), `SESSION_REVIEW.md`.
-- Git-ignored regenerated data: 4× `*_imerg_daily_E_*.csv`, 4× `imerg_gate_summary_*.json`,
-  `imerg_calibration_report.{json,md}`, the **2026** dashboards only.
-
-**Batch C — §65, NISAR forward stream + the void guard:**
-- `workflows/nisar_coherence_pilot.py` (winter/monsoon season presets; `l_window_health()`
-  coverage guard; ABORT path that writes evidence and no verdict; tagged outputs),
-  `tests/test_radar_watch.py` (6→10: season-preset integrity, renamed-frame admission, the
-  guard's 5 cases, the abort artifact), `RESULTS_AND_KPIS.md` (§65), `error_history_log.md`
-  (void-scored-as-result), `milestone.md` (M53), the primer (CF17 + a Part D answer),
-  `SESSION_REVIEW.md`.
-- Git-ignored data: `data/nisar/` — the 25 Jun×07 Jul GUNW **kept** (the monsoon preset points
-  at it; the ABORT must reproduce) + `nisar_coherence_pilot_monsoon.json`; the 07 Jul×19 Jul
-  granule was measured then deleted (numbers in §65; ~4 min to re-fetch). `data/nisar` now 4.0 GB.
-
-**Batch D — §66, the stored-XSS fix:**
-- `workflows/operational_alarm.py` (`_esc()` + `_safe_url()` and every untrusted interpolation:
-  the Past-events panel, the today-cell, the per-event table, the radar pill's ASF-sourced
-  `data-*`), `tests/test_historical_events.py` (11→15: panel + whole-page DOM audits, the
-  `_safe_url` allow-list, and the negative control), `RESULTS_AND_KPIS.md` (§66),
-  `error_history_log.md` (XSS + the substring-vs-parse gotcha), `milestone.md` (M54), the primer
-  (a Part D answer), `SESSION_REVIEW.md`.
-- Git-ignored regenerated data: the two **2026** dashboards only (re-rendered with the fix; all
-  four on disk audit clean).
-
-**Batch E — §67, routed-LLOF swap adopted:**
-- `config/ramban.yaml` + `config/vaishnodevi.yaml` (`llof_routing: d8`),
-  `tests/test_config_registry.py` (8→9: pins the adopted state), `RESULTS_AND_KPIS.md`
-  (§67 + §67b), `error_history_log.md` (default-arguments clobber), `SESSION_REVIEW.md`.
-- Git-ignored regenerated data: `data/alerts*/` per-stack + union alert JSONs/briefings for both
-  sites, `data/inventory/backtest{,_operational}_report.*`. Pre-swap backup kept at
-  `data/llof_swap/backup/` (25 MB) — delete once the swap is accepted.
-
-**Not touched (verified byte-identical):** every daily-arm report/calendar for all four
-AOI-seasons (re-checked after the XSS regen), the 2025 dashboards (deliberately reverted),
-all velocity/hazard rasters (§67 mtime check), the operational GSI back-test score (AUC 0.676),
-and §59's winter NISAR result.
-`session_journey.md` (git-ignored) has the S30 entry covering all five batches.
+**Docs only — no code, no data products, no config:**
+- `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (NEW — plan, scope verdict, test contract),
+- `RESULTS_AND_KPIS.md` (§68), `SESSION_REVIEW.md` (this LIVE block + one STABLE §4 line),
+- `session_journey.md` (git-ignored) S31 entry.
+Scratch ASF probes stayed in the session scratchpad (never entered the repo).
 
 ---
 
@@ -287,6 +178,8 @@ The core vision is fully built and scored above chance. Remaining work:
    voids over both AOIs in the provisional (`_PR_`/`P05023`) granules — n=2, systematic. Re-check
    after NASA reprocesses, or when an acquisition lands with our footprint outside the void; scoring
    is one command (`nisar_coherence_pilot.py --season monsoon`) and aborts honestly if still void.
+   (2026-07-28 §68: the publicized "fresh batch" = the 20 Jul public release of this same stream —
+   nothing new over our AOIs yet.)
    Also newly available and unexploited: **DESC track-135 L-band GUNWs** — a possible route back to
    the ASC/DESC vertical+EW decomposition that C-band DESC was too noisy for (Area 2).
 
@@ -322,6 +215,9 @@ validation); a static-vs-worst-case hazard map; recall-limited validation on two
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
   #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve BUILT + evaluated §46 —
   rejected on identifiability, config-gated for when lab/temporal data exists).
+- **Area 8 — Flash-flood & undercut arm (PLANNED 2026-07-28, §68):** additive, config-gated,
+  Regime-A-only (tributary flash floods / toe erosion); plan of record =
+  `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (F0–F3 phases, scope exclusions, test contract).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
   decorrelation, our worst enemy); operational window from Jul 2026.
 

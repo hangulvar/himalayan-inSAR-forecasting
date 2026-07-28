@@ -3242,6 +3242,50 @@ perfectly successful.
 
 ---
 
+## 68. Flash-flood expansion PLANNED (additive-only) + NISAR "fresh batch" verified as the already-ingested stream  `[MEASURED]` (checks) / plan = document only
+*(2026-07-28, session 31 — planning + verification session, NO code or data products changed.
+NEW `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md`; ASF probes run natively
+(asf_search 12.2.2, read-only search).)*
+
+**NISAR re-check `[MEASURED]` (both AOIs, 2026-07-28):** the publicized "fresh batch" is
+NASA's **20 Jul 2026 PUBLIC release** of the provisional stream (CRID `P05023`, acquisitions
+≥ 17 Jun 2026, 100k+ files) — i.e. **the same stream §65 already ingested five days earlier**.
+Over our footprints there is **nothing new**: 104 non-ECMWF products per AOI (identical sets),
+**0 acquisitions newer than 2026-07-19**, **0 products processed after the §65 check
+(2026-07-25)**; newest GUNW remains ASC track 156 07 Jul×19 Jul (processed 2026-07-23,
+`P05023`). The monsoon void re-score (§65) therefore still **waits on data**; next ASC-156
+acquisition expected ~early Aug at the 12-day cadence, and earlier-mission + reprocessed
+releases are promised "over the coming months" (full record by end-2026). Correct programmatic
+fetch path confirmed = exactly what `radar_watch.py` already does (`asf_search`,
+`dataset=NISAR`, `intersectsWith=<AOI WKT>`, ECMWF aux excluded); identity guards for any
+download: scene-name track/frame/direction (`156_A_018`), level `GUNW`, CRID, then the
+per-AOI `l_window_health()` void guard before any scoring (§65 rule).
+- **Newly noticed `[MEASURED]`:** **11 NISAR L3 SME2 soil-moisture products** intersect the
+  AOIs — a future antecedent-wetness input (flood-plan F3 option; provisional grade today).
+
+**Frame-DEM extent `[MEASURED]` (3 stacks sampled):** every HyP3 product DEM spans
+**74.71–77.86°E × 31.45–33.50°N at 80 m** (~290 × 230 km) — the whole Regime-A catchment
+terrain (and most of the upstream Chenab) is already on disk. This is the fact the flood
+plan's "hydrological support domain" stands on: **the InSAR AOI never needs enlarging for
+flood purposes.**
+
+**The plan (document only, nothing built):** `FLOOD_EXPANSION_PLAN_2026-07-28.md` — an
+additive, config-gated (`flood:` block absent = off, the §60 4c pattern) flash-flood/undercut
+arm: F0 geometry probe (D8 channels + catchments via the *shared* `flow_routing_probe`
+functions, coverage guard) → F1 catchment-aggregated IMERG burst staging (EXPERIMENTAL
+framing, §55 lifecycle) → F2 creep×flood undercut coupling (stream-power ranking; never
+writes into `alerts_operational.json`) → F3 deferred menu. Scope verdict recorded: Regime A
+(tributary flash floods / toe erosion) only; mainstem Chenab and calibrated inundation depth
+**excluded** — staged levels and geometric exposure are what the data can honestly support.
+Test contract: baseline-freeze byte-identity manifest written FIRST, hermetic units,
+negative-controlled guards, verified-event replays (full spec in the plan §7).
+
+**Battery:** not re-run (docs-only session; pytest lives in the Docker images and Docker was
+left down per the user's start/stop preference). Last committed state **114 green** (§67)
+stands; the flood plan's R1/R7 make re-pinning it the first act of any flood session.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
