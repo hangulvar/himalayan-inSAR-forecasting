@@ -2115,3 +2115,35 @@ Changing a protected file should be a decision, never a side effect.
 **Bottom line:** checks now stand at **157**, all passing. The flood arm covers all four seasons,
 sits in the project scorecard, and — for the first time — cannot silently break the promise it
 was built to keep.
+
+---
+
+## ⚠️ Correction to Milestone 58, and a verdict two years of work waited on  *(claims audit, 2026-07-29)*
+
+**We got something wrong in Milestone 58, and the user's instinct is what caught it.** Asked to
+re-check the session for silent errors, we re-verified every claim against the actual data files
+— and found the summary above says "every fatal event alerts; neither non-fatal event does."
+That second half is **false**. There are *three* non-fatal events in our records, not two, and
+one of them — the Himkoti landslide of July 2026 — does trigger a flood alert. The table in
+M58 silently omitted it. So the honest statement is weaker: all four fatal events alert, and
+the only two events that stay below alert are the two weakest ones by *every* measure we have.
+The flood arm follows our rainfall-burst system closely; it does not magically tell deadly
+events from harmless ones. We also overclaimed that the flood arm's number is now "the same
+statistic" as the calibrated one — it's the same *kind* of number, but computed over a narrower
+set of time windows, and we've corrected that too.
+
+**How could this happen with 169 passing checks?** Because every check tests the *data*, and
+the data was right. The wrong part was the English sentences we wrote about the data — and no
+test re-reads prose. Both errors came from summarising from memory instead of counting from the
+file. The project's standing rules now require every number in a written conclusion to be
+re-derived by a command at the moment of writing — and forbid comparing two metrics as "the
+same" without putting their definitions side by side.
+
+**And one genuinely good piece of news from the same night.** While we were auditing, the
+project's scheduled overnight run fired on its own — and our safety net immediately flagged
+that four protected files had changed. Investigating *before* reacting showed it was exactly
+the legitimate nightly refresh, running the new flood check unattended for the first time,
+correctly and in the right order. Better still: the fresh weather data finally covered 22 July
+2026 — the fatal boulder-strike day whose official verdict had been "pending" for a week. The
+verified daily system reads it as a clear **ALERT**. That closes the last open question:
+**every deadly event in our records is now flagged, on the day, by both trusted systems.**

@@ -3471,6 +3471,8 @@ than the arm we already trust — which is the whole point of aggregating over t
 statistic `imerg_gate`'s k = 2.4 was calibrated on, so the inherited threshold is no longer being
 applied across a change of statistic. The pin test was tightened to require both arms to agree
 on the **winning duration**, not just the value.
+*(↪ §74: OVERSTATED — same family, but the menus differ: flood caps at 6 h vs the burst arm's
+24 h. The caveat is reduced, not closed.)*
 
 Season peaks moved with the fix (Ramban `zone2` 8.06 → **12.37**; VD `zone10` 5.22 → **8.69**,
 now 03 Jul). Today (2026-07-27) both sites remain **all-DORMANT** — the fix raises sensitivity to
@@ -3536,6 +3538,9 @@ Three columns added (`flood_E_f`, `flood_level`, `flood_catchments_alert`):
 catchments at ALERT**, and E_f orders the fatal events by severity (34 deaths → 13.80, top of
 the table). The `flood_catchments_alert` count is the sharper discriminator than the level
 alone — it is 0/8 on both non-fatal days and 4/8–14/14 on every fatal one.
+*(↪ §74: WRONG as written — there are THREE zero-death events in this very table, and one of
+them (Himkoti, 2026-07-08) is FLOOD-ALERT at 10/14. The clean fatal/non-fatal split claimed
+here does not exist; see §74 for the corrected statement.)*
 
 **Honest limits on that, stated because the table looks better than the evidence is:** n=7, and
 these are the SAME events the burst arm was calibrated on (§58/§63/§64) — so this is a
@@ -3610,6 +3615,91 @@ fabricating (all-aborted season / corrupt JSON / missing file all return None).
 **Verified:** battery **157 → 169 green** across 13 suites in the container (flood suites now
 16 + 27 + 12 = 55). One test failed first and was itself the bug — the assertion, not the code
 — caught because the probe had already documented the true behaviour.
+
+---
+
+## 74. Claims audit of session 31 (user-prompted) — 5 claims verified, 2 CORRECTED  `[MEASURED]`
+*(2026-07-29, session 31 close — a re-verification of every headline claim this session put in
+the ledger, run against the artifacts on disk as if someone else had written them. Prompted by
+the user's judgment that the session had produced silent errors and wrong assessments — a
+judgment this audit CONFIRMS: it found two wrong conclusions that all 169 tests and two prior
+review passes had let through.)*
+
+**Verified and standing (re-derived from disk, not from session notes):**
+1. 22/22 catchments Regime-A, 0 truncated, 0 mainstem, 22 stageable (§69) ✓
+2. Skill-table flood columns byte-agree with the live season summaries (§72) ✓
+3. Replay gate: 20 Apr 2025 flood 4.97 vs AOI-mean 3.07; 22 Jul 2026 flood 4.11 vs 2.44 —
+   both FLOOD-ALERT, both HIGHER (§71) ✓
+4. All four season summaries lead with the latest day; peaks labelled as history (§70 fix) ✓
+5. MERIT carry-forward intact after the re-run cycle; still `conclusive: false` (§73) ✓
+6. The 116 protected artifacts byte-identical; 2025 dashboards + imerg summaries untouched ✓
+
+**★ CORRECTION 1 — §71/§72 claimed E_f "is now the SAME max-over-durations statistic k = 2.4
+was calibrated on", closing the inheritance caveat. OVERSTATED.** The two statistics are the
+same *family* (a max over a trailing-window menu) but the menus differ: the flood arm
+deliberately caps at **6 h** (plan: beyond that is the daily arm's job) while the burst arm
+screens to **24 h**. Measured consequence: on **2 of the 7** verified event days the burst
+arm's winning window was **12 h (20 Apr 2025)** and **24 h (Ardhkuwari)** — outside the flood
+menu entirely. The correct statement: the change-of-statistic mismatch is **REDUCED, not
+retired**, and the k-inheritance stays provisional until flood ground truth exists. Docstring
+corrected; ↪ pointer added at §71.
+
+**★ CORRECTION 2 — §72 claimed "all 4 fatal events FLOOD-ALERT; both zero-death events
+FLOOD-WATCH with 0/8" — a clean fatal/non-fatal separation. WRONG, and disproven by the very
+table it sat under.** There are **three** zero-death events in that table, and one of them —
+**Himkoti 2026-07-08 — is FLOOD-ALERT at E_f 4.50 with 10/14 catchments alerting.** The same
+error was copied into milestone M58 ("neither non-fatal event does") and the LIVE block. The
+correct, weaker statement: **4/4 fatal events are FLOOD-ALERT; the two events that stay
+sub-ALERT on the flood arm are the two weakest on every arm** (2025-05-08 and 2026-04-07 —
+the only rows where no arm reaches a unanimous ALERT); Himkoti alerts on the flood arm exactly
+as it does on the burst arm (E 3.90 ALERT), so the flood arm *tracks the burst arm* rather
+than separating fatal from non-fatal. Nothing about the fatal-event floor changes; the
+discrimination claim does. ↪ pointer added at §72; M58 correction appended.
+
+**How both errors happened (same root cause):** the prose was written from a mental summary of
+the table instead of being re-derived from it — and a metric-identity claim was made without
+diffing the two definitions. Neither is catchable by the battery: the numbers in the artifacts
+were all correct; only the *sentences about them* were wrong. Also caught during this audit:
+naive comma-splitting (`awk -F','`) undercounts the skill table because quoted event names
+contain commas — Himkoti vanishes, which is precisely how a hand-count would have "confirmed"
+the wrong claim. Parse CSVs with a CSV parser, always.
+
+**Verified:** battery re-run green in-container after the docstring correction (no code
+behaviour changed — see run record below). New CLAUDE.md rules: re-derive every numeric
+sentence from the artifact at writing time; diff definitions before claiming two metrics are
+the same; never suppress the output of a run treated as successful.
+
+---
+
+## 75. The overnight cycle fired mid-audit — §62's daily-arm verdict SETTLED (E=4.61 ALERT), and the flood hook's first unattended production run succeeded  `[MEASURED]`
+*(2026-07-29, session 31 close, immediately after §74. Detected because R1 went red during the
+final battery; forensics before touching anything.)*
+
+**What happened:** the scheduled `monsoon_cycle.ps1` ran at **02:31–02:42 UTC** and refreshed
+the whole 2026 regen family on both sites (ERA5-Land fetch → imerg gate → **flood gate, via the
+§70 hook** → radar watch → operational alarm + dashboards). The freeze caught it: exactly **4
+protected files changed, all current-season daily-arm calendars/reports, nothing else** — the
+precise legitimate cause R1's failure message documents. Verified by mtime forensics + the full
+changed-file list before any re-freeze.
+
+**★ §62 is SETTLED — the last open verdict on a fatal event.** ERA5-Land now publishes through
+2026-07-23, and the validated daily arm reads **E = 4.611, ALERT, on 22 Jul 2026** (won
+duration 3 d; VD read 6.84 the same day). The skill table's PENDING row was settled through its
+generator (backup → default-args run → cell-level diff): **exactly 3 cells changed, all on the
+2026-07-22 row** (`daily_E` ''→4.61, `daily_level` PENDING→ALERT, `caught_at_alert_by`
+burst→**both**), 0 other cells touched. **Every fatal event in the record — 20 Apr 2025,
+21 Jul 2025, 26 Aug 2025, 22 Jul 2026 — is now caught at Δ=0 by BOTH validated arms.**
+
+**★ The flood hook's first unattended run worked**, and in the R9-required order: flood gate
+02:32/02:38 → dashboards 02:36/02:42. Both sites non-aborted (8 + 14 staged, latest
+2026-07-28). The non-fatal wiring decision (§70) has now been exercised by production, not just
+by tests.
+
+**Bookkeeping:** battery green through the drift (168/169 with only R1 red, listing exactly the
+5 verified-legitimate files — 4 daily-arm + the settled skill table); baseline re-frozen (116);
+final invariants **12/12**. Note for §74's item 6: "2025 dashboards + imerg summaries
+untouched" was true when written (37–81 h old at that check) — the cycle ran *after* it, and
+touched only 2026-season files, as it should.
 
 ---
 

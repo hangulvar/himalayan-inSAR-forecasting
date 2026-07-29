@@ -15,7 +15,27 @@
 
 ## Current state
 
-- **★ NEWEST (§73) — an ADVERSARIAL test round found 4 more silent defects, all fixed and
+- **★★ NEWEST (§74) — a user-prompted CLAIMS AUDIT found TWO WRONG CONCLUSIONS in this very
+  session's ledger entries, both now corrected with ↪ pointers.** (1) §72's "both zero-death
+  events are FLOOD-WATCH" was **disproven by its own table**: there are THREE zero-death
+  events and Himkoti (2026-07-08) is FLOOD-ALERT at 10/14 — the flood arm **tracks the burst
+  arm**, it does not separate fatal from non-fatal; the true statement is that the two
+  sub-ALERT events are the two weakest on every arm. (2) §71's "E_f is now the SAME statistic
+  k was calibrated on" is **overstated**: same family, but the menus differ (flood caps at 6 h
+  vs burst 24 h; 2 of 7 event days had burst winning windows beyond the flood cap) — the
+  inheritance caveat is REDUCED, not retired. Root cause of both: prose narrated from memory
+  instead of re-derived from the artifact. **CLAUDE.md now has rules for exactly this** (derive
+  every numeric sentence; diff definitions before claiming metric identity; CSV parser always —
+  `awk -F','` drops Himkoti's quoted-comma row and would have "confirmed" the error).
+- **★ NEW (§75) — the overnight cycle fired mid-audit and DELIVERED:** the freeze went red,
+  forensics identified the scheduled `monsoon_cycle` (02:31–02:42 UTC, exactly the documented
+  legitimate cause, only 2026 daily-arm files). Payoff: ERA5-Land now reaches 23 Jul and
+  **§62 is SETTLED — the daily arm reads E=4.611 ALERT on the 22 Jul fatal day; every fatal
+  event in the record is now caught at Δ=0 by BOTH validated arms** (skill-table row settled
+  via the generator, 3 cells changed, verified). And the **flood hook's first unattended
+  production run succeeded**, in the R9-required order. Baseline re-frozen (116); battery
+  **169 green**.
+- **★ (§73) — an ADVERSARIAL test round found 4 silent defects, all fixed and
   pinned.** Probe-first (hunt for crashes/wrong answers, assert nothing), then encode: no config
   validation (`channel_upstream_km2 <= 0` makes every cell a channel; `coverage_pct > 100` makes
   the arm publish **no flood risk anywhere and look calm**), a guard that crashed instead of
@@ -29,9 +49,10 @@
   **2025-08-26 = the Ardhkuwari disaster (34 deaths), E_f 13.80** — the strongest flood reading
   in the record. Three additive columns (`flood_E_f`, `flood_level`, `flood_catchments_alert`)
   written **through the generator**, never by hand (the §63 rule). **All 4 fatal events are
-  FLOOD-ALERT (4/8–14/14 catchments alerting); both non-fatal events are FLOOD-WATCH with 0/8.**
-  Honest limit: n=7 on the burst arm's own calibration set — a description, not an independent
-  validation, and the flood arm deliberately does not feed `caught_at_alert_by`.
+  FLOOD-ALERT (4/8–14/14 catchments alerting)** *(↪ §74: the rest of this bullet's original
+  claim — a clean fatal/non-fatal split — was WRONG; Himkoti, zero deaths, is also
+  FLOOD-ALERT)*. Honest limit: n=7 on the burst arm's own calibration set — a description, not
+  an independent validation, and the flood arm deliberately does not feed `caught_at_alert_by`.
 - **★ The §71 acceptance gate is now a TEST** (`test_I2_I3_verified_event_replay_gate` + a
   negative control that rebuilds the broken single-duration screening and requires rejection).
   It was a one-off run, which is precisely how it got skipped. Plan IDs U12/I2/I3 now appear in
@@ -53,8 +74,9 @@
   a SINGLE t_c window, so all 22 catchments were screened at 0.5 h and were blind to the 6 h
   accumulation that mattered. **Fixed; the gate now PASSES on both fatal events, with the
   catchment arm reading HIGHER than the validated arm** — 20 Apr 2025: 4.97 vs 3.07 (1.6×);
-  22 Jul 2026: 4.11 vs 2.44 (1.7×). Side benefit: E_f is now the same max-over-durations
-  statistic k=2.4 was calibrated on, retiring §70's inheritance caveat.
+  22 Jul 2026: 4.11 vs 2.44 (1.7×). Side benefit *(as corrected by §74)*: E_f is now the same
+  FAMILY of statistic k=2.4 was calibrated on — the mismatch is reduced, **not** retired (the
+  flood menu caps at 6 h vs the burst arm's 24 h).
 - **★ NEW (§71) — the MERIT-Hydro cross-check is recorded as INCONCLUSIVE, not as a number.**
   Two corrections were needed before it meant anything (sample at the **outlet**, not the
   centroid — the centroid version manufactured a 10–300× "divergence"; then measure point-vs-snap
@@ -136,20 +158,34 @@
 
 ## Recommended next step
 
-**Run `live_alarm.py` for the current season on both sites** — it now settles three things at
-once: §62's pending daily-arm verdict (its ERA5-Land window has published), the first
-end-to-end render of the flood card through the wired hook, and a real exercise of the
-non-fatal contract. Expect R1 to flag the current season's daily-arm files as changed — that is
-the one legitimate cause; confirm nothing else moved, then re-freeze. After that, the standing
-**§61 S1A-only rebuild rescore in a focused session WITH the user** (design decision on the
-f105/f103 chain-join first), or **F2** (creep×flood undercut coupling — the plan's next phase,
-and the one that makes the 3/22 exposure count actionable). User-side (standing): settle the
-2 §52 rows; GACOS form + soil lab; merge to `master`; publish the dashboard.
+~~Run `live_alarm.py` to settle §62~~ — **the scheduled overnight cycle did all of it on its
+own (§75):** §62 SETTLED (daily arm E=4.611 ALERT on the 22 Jul fatal day — every fatal event
+now caught at Δ=0 by both validated arms), the flood hook's first unattended production run
+succeeded in the R9 order, and the drift was caught by the freeze, forensically verified, and
+re-frozen. Next is therefore either the standing **§61 S1A-only rebuild rescore in a focused
+session WITH the user** (design decision on the f105/f103 chain-join first), or **F2**
+(creep×flood undercut coupling — the plan's next phase, and the one that makes the 3/22
+exposure count actionable; consider sweeping `channel_buffer_m` first, §71's untested default).
+User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to `master`; publish
+the dashboard.
 
 ## Uncommitted delta
 
 §68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
 delta is §70 only.
+
+**§74/§75 — the claims audit + the overnight settlement:**
+- `workflows/flood_gate.py` — `match_durations` docstring corrected ("same FAMILY, menus
+  differ" — no behaviour change).
+- `RESULTS_AND_KPIS.md` (§74 corrections + §75; ↪ pointers at §71/§72), `milestone.md` (M58
+  correction + the §62 verdict), `CLAUDE.md` (+2 rules: re-derive every numeric sentence /
+  never suppress output of a run treated as successful), `error_history_log.md` (4 entries),
+  `SESSION_REVIEW.md`, `session_journey.md` S31f.
+- **`data/inventory/temporal_skill_table.csv` (tracked): the 2026-07-22 row SETTLED via the
+  generator** — 3 cells (`daily_E` ''→4.61, `daily_level` PENDING→ALERT, `caught_at_alert_by`
+  burst→both), 0 other cells; backup + cell-diff before accepting; baseline re-frozen.
+- Git-ignored data refreshed by the OVERNIGHT CYCLE (not by this session's code): 2026
+  daily-arm calendars/reports, imerg summaries, flood summaries, radar watch, 2026 dashboards.
 
 **§73 — the adversarial test round:**
 - `workflows/flood_domain.py` — config validation (raises with the consequence named), the

@@ -89,9 +89,12 @@ def match_durations(tc_hours: float | None, choices: list[float] = None) -> list
     our 22 catchments (t_c 0.07-0.12 h) was screened at 0.5 h only — structurally blind to
     longer accumulations. On the 22 Jul 2026 fatal event, whose signal sits at D = 6 h, the arm
     read FLOOD-WATCH where the validated AOI-mean arm read ALERT: the new arm DOWNGRADED a
-    fatal day. Screening the range and taking the max fixes that, and has a second benefit —
-    E_f becomes the same max-over-durations statistic imerg_gate's k was calibrated on, so the
-    inherited threshold is no longer being applied across a change of statistic.
+    fatal day. Screening the range and taking the max fixes that, and REDUCES — not removes
+    (§74) — the threshold-inheritance mismatch: E_f is now the same FAMILY of statistic as the
+    one imerg_gate's k was calibrated on (a max over a trailing-window menu), but the menus
+    still differ: this arm deliberately caps at 6 h where the burst arm screens to 24 h, and
+    two of the seven verified event days had their burst-arm winning window at 12 h / 24 h,
+    beyond this cap. The inheritance stays provisional until flood ground truth exists.
     """
     # `choices=[]` deliberately falls back to the module default rather than returning an empty
     # set: a caller computing an empty duration list must not silently produce a catchment that

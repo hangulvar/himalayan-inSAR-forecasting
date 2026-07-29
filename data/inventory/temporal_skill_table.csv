@@ -2,7 +2,7 @@ site,date,event,deaths,verified_by,burst_E,burst_level,daily_E,daily_level,caugh
 ramban,2025-04-20,Ramban cloudburst (Seri Bagna/Kela Morh),3,peer-reviewed + multi-outlet (§12g),3.07,ALERT,2.89,ALERT,both,0,0,4.97,FLOOD-ALERT,6/8,§58
 ramban,2025-05-08,Chamba Seri mudslide (MEDIUM confidence),0,single outlet (§51),1.09,WATCH,0.67,DORMANT,neither,,,2.39,FLOOD-WATCH,0/8,§58
 ramban,2026-04-07,Digdol-Khooni Nallah slide (NH-44 both directions),0,user review + 4 dated outlets (§52),0.99,DORMANT,2.13,ALERT,daily,0,,1.14,FLOOD-WATCH,0/8,§58
-ramban,2026-07-22,Gangroo-Ramsu boulder strike (NH-44),2,"3 outlets, HIGH confidence (§62)",2.44,ALERT,,PENDING,burst,0,0,4.11,FLOOD-ALERT,4/8,§62
+ramban,2026-07-22,Gangroo-Ramsu boulder strike (NH-44),2,"3 outlets, HIGH confidence (§62)",2.44,ALERT,4.61,ALERT,both,0,0,4.11,FLOOD-ALERT,4/8,§62
 vaishnodevi,2025-07-21,"Banganga landslide, old track",1,3+ outlets + gauge anchor (§51),4.19,ALERT,2.51,ALERT,both,0,0,5.51,FLOOD-ALERT,12/14,§58
 vaishnodevi,2025-08-26,Ardhkuwari disaster,34,GSI primary + press (§51),9.21,ALERT,9.94,ALERT,both,0,0,13.80,FLOOD-ALERT,14/14,§58
 vaishnodevi,2026-07-08,"Himkoti landslide, new track",0,TOI + 5 outlets (§52),3.90,ALERT,1.06,WATCH,burst,0,0,4.50,FLOOD-ALERT,10/14,§58

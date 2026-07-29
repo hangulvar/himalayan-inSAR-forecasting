@@ -1645,3 +1645,55 @@ Found by probing paths the test suites did not cover, then encoded as permanent 
   with no assertions at all — and only then encoding findings, is what surfaced them.
 * **Second lesson:** when a new test fails, suspect the test. One of these "failures" was my
   assertion being wrong about correct behaviour; the probe output was the record that settled it.
+
+---
+
+## 2026-07-29 — User-prompted claims audit: two WRONG CONCLUSIONS in the ledger (and the traps around them)
+
+The user judged that this session had produced silent errors and wrong assessments. A
+re-verification of every headline claim against the artifacts CONFIRMED that judgment: two
+conclusions were wrong while all 169 tests were green — the artifacts were correct, the
+sentences about them were not.
+
+### 1. Prose contradicted by its own table (§72 → corrected §74)
+* **Symptom:** none. The claim "all 4 fatal events FLOOD-ALERT; both zero-death events
+  FLOOD-WATCH with 0/8" sat directly beneath a table listing THREE zero-death events — one of
+  which (Himkoti 2026-07-08) is FLOOD-ALERT at 10/14. The false clean-separation claim then
+  propagated verbatim into milestone M58 and the LIVE block.
+* **Root cause:** the summary sentence was narrated from a mental picture of the table, not
+  derived from it. Nothing re-counts prose.
+* **Trap that would have "confirmed" it:** `awk -F','` on the skill table drops Himkoti
+  entirely, because its quoted event name contains a comma. A naive hand-check agrees with the
+  wrong claim. **Parse CSVs with a CSV parser.**
+* **Fix:** §74 correction + ↪ pointers at §72 and M58; corrected statement: 4/4 fatal events
+  alert, and the two sub-ALERT events are the two weakest on EVERY arm — the flood arm tracks
+  the burst arm; it does not separate fatal from non-fatal.
+* **Lesson:** every numeric sentence must trace to a command output produced at writing time.
+
+### 2. "Same statistic" claimed without diffing the definitions (§71/§72 → corrected §74)
+* **Symptom:** the ledger said the range fix made E_f "the same max-over-durations statistic
+  k=2.4 was calibrated on", retiring the inheritance caveat.
+* **Reality:** same FAMILY, different menus — the flood arm caps at 6 h (by design), the burst
+  arm screens to 24 h. On 2 of the 7 verified event days the burst arm's winning window was
+  12 h / 24 h, outside the flood menu entirely. The caveat is reduced, not retired.
+* **Lesson:** a claim that two metrics are identical requires a side-by-side diff of their
+  definitions, not a resemblance.
+
+### 3. Suppressed output nearly turned a SyntaxError into a "result" (process, §71)
+* **Symptom:** a probe run piped through `Out-Null`/`Select-String` showed nothing; the next
+  display step then read the STALE pre-fix artifact, which was one careless glance away from
+  being reported as the fixed run's output. (Caught because the numbers were identical to the
+  pre-fix values.) Related: multi-line `python -c` here-strings in PowerShell 5.1 can fail
+  producing NO output and a nonsense exit code.
+* **Fix/lesson:** now a CLAUDE.md rule — check exit codes when filtering display output; treat
+  "no output" as failure until proven otherwise; use scratch .py files for multi-line python.
+
+### 4. Mid-audit drift was EXTERNAL and legitimate — and forensics before action paid (§75)
+* **Symptom:** R1 went red during the final battery: 4 protected daily-arm files changed.
+* **Cause (proven by mtimes + changed-list before touching anything):** the scheduled
+  monsoon_cycle ran at 02:31–02:42 UTC — the exact legitimate cause R1's message documents.
+  Bonus findings: the flood hook's first unattended production run succeeded in the correct
+  order, and ERA5-Land now reaches 23 Jul, settling §62 (daily arm E=4.611 ALERT on the
+  22 Jul fatal day — every fatal event now caught at delta=0 by BOTH validated arms).
+* **Lesson:** a red guard is a question, not an instruction to re-freeze. Identify the writer
+  first; the freeze exists precisely so that surprise changes get forensics, not shrugs.
