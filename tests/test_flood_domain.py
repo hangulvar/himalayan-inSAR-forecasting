@@ -256,6 +256,86 @@ def test_flood_config_absent_block_returns_none_and_present_block_parses():
 
 
 # ------------------------------------------------------------------------------
+# Config validation — every one of these fails SILENTLY without it
+# ------------------------------------------------------------------------------
+def _cfg_with(tmp: Path, body: str):
+    from config import load_config
+    p = tmp / "c.yaml"
+    p.write_text("aoi_path: config/aoi/ramban_aoi.geojson\njob_name_prefix: T\n"
+                 "search_start: 2025-05-01\nsearch_end: 2025-10-31\n" + body, encoding="utf-8")
+    return load_config(p)
+
+
+def test_config_validation_rejects_silently_broken_values():
+    """Found by an adversarial probe, 2026-07-29. None of these raise on their own — they
+    produce a confident WRONG answer, which is the failure class this project cares about:
+      * channel_upstream_km2 <= 0  -> every cell is a channel, catchments meaningless;
+      * channel_buffer_m < 0       -> nothing is ever channel-adjacent;
+      * min_catchment_coverage_pct > 100 -> nothing is ever stageable, so the arm publishes
+        no flood risk anywhere and looks CALM rather than broken.
+    """
+    import tempfile
+    bad = [
+        ("flood:\n  channel_upstream_km2: -5\n", "channel_upstream_km2"),
+        ("flood:\n  channel_upstream_km2: 0\n", "channel_upstream_km2"),
+        ("flood:\n  channel_upstream_km2: 0.5\n  channel_buffer_m: -10\n", "channel_buffer_m"),
+        ("flood:\n  channel_upstream_km2: 0.5\n  min_catchment_coverage_pct: 500\n",
+         "min_catchment_coverage_pct"),
+        ("flood:\n  channel_upstream_km2: 0.5\n  min_catchment_coverage_pct: 0\n",
+         "min_catchment_coverage_pct"),
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        for body, key in bad:
+            try:
+                fd.load_flood_config(_cfg_with(Path(td), body))
+            except ValueError as e:
+                assert key in str(e), (body, str(e))
+            else:
+                raise AssertionError(f"accepted a silently-broken config: {body!r}")
+        # …and the shipped values still load.
+        ok = fd.load_flood_config(_cfg_with(
+            Path(td), "flood:\n  channel_upstream_km2: 0.5\n  channel_buffer_m: 120\n"
+                      "  min_catchment_coverage_pct: 95\n"))
+        assert (ok.channel_upstream_km2, ok.channel_buffer_m,
+                ok.min_catchment_coverage_pct) == (0.5, 120.0, 95.0)
+        # A boundary value that IS legitimate must not be rejected.
+        edge = fd.load_flood_config(_cfg_with(
+            Path(td), "flood:\n  channel_upstream_km2: 0.5\n  channel_buffer_m: 0\n"
+                      "  min_catchment_coverage_pct: 100\n"))
+        assert edge.channel_buffer_m == 0.0 and edge.min_catchment_coverage_pct == 100.0
+
+
+def test_merit_crosscheck_is_not_destroyed_by_an_unrelated_rerun():
+    """Found 2026-07-29: a plain re-run (no --merit) overwrote a computed cross-check with null,
+    losing a measurement as a side effect. It is now carried forward when the sampled outlets
+    are unchanged — and DROPPED when they are not, so old numbers can never be shown against
+    new geometry."""
+    prev = {"ee_project": "p", "n_points": 2, "conclusive": False,
+            "points": [{"id": "zone1"}, {"id": "zone2"}]}
+    same = [{"id": "zone1"}, {"id": "zone2"}]
+    got = fd.carry_forward_merit(prev, same)
+    assert got is not None and got["carried_forward"] is True
+    assert got["points"] == prev["points"] and got["conclusive"] is False
+    assert "re-run with --merit" in got["carried_note"]
+    # Footprint moved -> the old points describe different places -> drop, never re-label.
+    assert fd.carry_forward_merit(prev, [{"id": "zone1"}, {"id": "zone9"}]) is None
+    assert fd.carry_forward_merit(prev, [{"id": "zone1"}]) is None
+    # Nothing to carry, or a previously-skipped check, carries nothing.
+    assert fd.carry_forward_merit(None, same) is None
+    assert fd.carry_forward_merit({"skipped": "no GEE"}, same) is None
+
+
+def test_coverage_guard_fails_closed_on_junk():
+    """A guard must decline, never crash: raising mid-run would abort the whole site instead of
+    refusing one catchment. Every unusable value means 'unknown coverage' -> not stageable."""
+    for junk in (None, "", "abc", float("nan"), [], {}):
+        assert fd.coverage_ok(junk, 95) is False, junk
+    assert fd.coverage_ok(100.0, 95) is True
+    assert fd.coverage_ok("100", 95) is True          # numeric string is still a number
+    assert fd.coverage_ok(94.9, 95) is False
+
+
+# ------------------------------------------------------------------------------
 # Regime split (plan §2 scope boundary)
 # ------------------------------------------------------------------------------
 def test_regime_b_ceiling_stops_delineation():

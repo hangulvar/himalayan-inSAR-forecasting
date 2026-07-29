@@ -1613,3 +1613,35 @@ Not bugs — data-quality findings worth recording so we don't repeat the evalua
   Now rule 3 of the "CLOSE THE PLAN" entry in `CLAUDE.md`.
 * **Lesson:** "implemented" is not "run", and "written" is not "linked". A flag nobody has ever
   passed is not a feature; it is untested code with a confident-looking docstring.
+
+---
+
+## 2026-07-29 — Adversarial test round: four silent defects in the flood arm
+
+Found by probing paths the test suites did not cover, then encoded as permanent tests.
+**None of these raised an error** — every one produced a confident wrong answer.
+
+* **No config validation.** `flood.channel_upstream_km2 <= 0` was accepted, which makes every
+  DEM cell a "channel": the nearest channel to a zone becomes its own pixel and all catchments
+  are meaningless. `min_catchment_coverage_pct > 100` was accepted, which makes nothing
+  stageable — the arm then publishes **no flood risk anywhere and looks calm rather than
+  broken**. Negative buffers were accepted too. **Fix:** validate on load and raise with the
+  consequence named (matching `config._llof_routing`'s house style).
+* **A guard that crashed instead of declining.** `coverage_ok()` raised `ValueError` on a
+  non-numeric coverage. Unreachable today, but a guard raising mid-run aborts the whole site
+  instead of refusing one catchment. **Fix:** any unusable value = UNKNOWN coverage = not
+  stageable. **A guard must fail closed, never loudly.**
+* **An unrelated re-run destroyed a measurement.** `flood_domain.py` without `--merit`
+  overwrote a previously computed MERIT cross-check with `null`. **Fix:** carry it forward when
+  the sampled outlets are unchanged, drop it when they are not (old numbers must never be shown
+  against new geometry), and tag it `carried_forward` so it cannot pass as fresh.
+* **The real card had never been rendered.** Every dashboard test used a hand-built summary, so
+  the genuine artifact had never been through the renderer. Now `R10` renders all four real
+  season summaries and asserts the page tells the truth about them.
+
+* **Lesson:** *tests written alongside code inherit its blind spots.* Every one of these lived
+  in a path the author never considered, so no amount of adding tests in the same frame of mind
+  would have found them. Probing adversarially FIRST — hunting for crashes and wrong answers
+  with no assertions at all — and only then encoding findings, is what surfaced them.
+* **Second lesson:** when a new test fails, suspect the test. One of these "failures" was my
+  assertion being wrong about correct behaviour; the probe output was the record that settled it.

@@ -15,7 +15,16 @@
 
 ## Current state
 
-- **★ NEWEST (§72) — the flood arm is complete across all four AOI-seasons and is now IN the
+- **★ NEWEST (§73) — an ADVERSARIAL test round found 4 more silent defects, all fixed and
+  pinned.** Probe-first (hunt for crashes/wrong answers, assert nothing), then encode: no config
+  validation (`channel_upstream_km2 <= 0` makes every cell a channel; `coverage_pct > 100` makes
+  the arm publish **no flood risk anywhere and look calm**), a guard that crashed instead of
+  failing closed, and a plain re-run **destroying** the MERIT cross-check. **The biggest gap was
+  an integration one: the real card had never been rendered** — every test used a hand-built
+  summary. `R10` now renders all four real season summaries and asserts the page tells the truth
+  (latest headlined, peak labelled as history, injection-clean); `R11` pins the aborted path.
+  `live_alarm`'s argument contract is now *executed*, not just read. Battery **157 → 169**.
+- **★ (§72) — the flood arm is complete across all four AOI-seasons and is now IN the
   committed temporal-skill table.** VD 2025 was the missing quarter: 14/14 staged, season peak
   **2025-08-26 = the Ardhkuwari disaster (34 deaths), E_f 13.80** — the strongest flood reading
   in the record. Three additive columns (`flood_E_f`, `flood_level`, `flood_catchments_alert`)
@@ -141,6 +150,15 @@ and the one that makes the 3/22 exposure count actionable). User-side (standing)
 
 §68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
 delta is §70 only.
+
+**§73 — the adversarial test round:**
+- `workflows/flood_domain.py` — config validation (raises with the consequence named), the
+  coverage guard fails closed on junk, `carry_forward_merit()` so a plain re-run stops
+  destroying the cross-check.
+- `workflows/flood_gate.py` — the `choices=[]` fallback documented and pinned.
+- `tests/test_flood_domain.py` 13→16, `tests/test_flood_gate.py` 20→27,
+  `tests/test_flood_invariants.py` 10→12 (**R10** real-summary render + **R11** aborted path).
+- `RESULTS_AND_KPIS.md` (§73), `error_history_log.md`, `SESSION_REVIEW.md`.
 
 **§72 — four-season set, skill table, and the anti-recurrence work:**
 - `workflows/flood_gate.py` — `event_flood_level()` (the skill-table lookup, blank = not measured).

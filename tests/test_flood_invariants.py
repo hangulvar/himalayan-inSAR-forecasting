@@ -281,6 +281,73 @@ def test_R5_three_d_dashboard_is_untouched_at_F1():
 # ------------------------------------------------------------------------------
 # R6 — the channel criterion is the VALIDATED one, shared not copied
 # ------------------------------------------------------------------------------
+def test_R10_real_summary_renders_a_truthful_card():
+    """INTEGRATION gap closed 2026-07-29: every card test so far used a HAND-BUILT summary, so
+    the real artifact had never actually been rendered. Feed the genuine on-disk summary through
+    the real card and assert the page tells the truth about it:
+      • the headline level/E_f are the LATEST day's, not the season peak's (the §70 bug);
+      • the season peak appears, explicitly labelled as not-current;
+      • the page is injection-clean;
+      • an ABORTED summary publishes NO VERDICT and no number.
+    Skips cleanly when the git-ignored artifacts are absent."""
+    import operational_alarm as oa
+    seen = 0
+    for sfx in ("_2026", "_vaishnodevi_2026", "_2025", "_vaishnodevi_2025"):
+        f = DATA / "flood" / f"flood_gate_summary{sfx}.json"
+        if not f.exists():
+            continue
+        fl = json.loads(f.read_text(encoding="utf-8"))
+        card = oa._flood_card(fl)
+        assert not _third_party(_audit_html(card)), f"{sfx}: real summary rendered unsafe markup"
+        if fl.get("aborted"):
+            assert "NO VERDICT" in card and "aborted" in card
+            assert "E<sub>f</sub> =" not in card, f"{sfx}: aborted card still shows a number"
+            seen += 1
+            continue
+        latest, peak = fl["latest"], fl["season_peak"]
+        assert f'E<sub>f</sub> = {latest["E_f"]}' in card, (
+            f"{sfx}: headline is not the latest day's E_f ({latest['E_f']})")
+        assert latest["level"] in card and latest["date"] in card
+        assert "Season peak (not current state)" in card, f"{sfx}: peak not labelled as history"
+        assert str(peak["E_f"]) in card and peak["date"] in card
+        # The season peak must NOT be what the big headline shows (unless they coincide).
+        if peak["E_f"] != latest["E_f"]:
+            assert f'E<sub>f</sub> = {peak["E_f"]} <span' not in card, (
+                f"{sfx}: the SEASON PEAK is being headlined as current state — the §70 bug")
+        assert "not been calibrated against flood ground truth" in card.lower() or \
+               "experimental" in card.lower(), f"{sfx}: card dropped its honesty framing"
+        # Whole-page render with the real summary.
+        with tempfile.TemporaryDirectory() as td:
+            page = _render(Path(td), fl)
+        assert not _third_party(_audit_html(page)), f"{sfx}: real summary unsafe in full page"
+        assert 'id="flood-card"' in page
+        seen += 1
+    if seen == 0:
+        print("      [R10] no flood summaries on disk — skipped")
+    else:
+        print(f"      [R10] {seen} REAL season summary/ies rendered and audited")
+
+
+def test_R11_aborted_summary_publishes_no_number():
+    """Constructed abort (not data-dependent): a refused run must render NO VERDICT and must
+    never leak an E_f — 'we could not measure' must not look like 'it is calm'."""
+    import operational_alarm as oa
+    aborted = {"slug": "ramban", "experimental": True, "aborted": True,
+               "abort_reason": "no catchment had a gradeable rainfall series",
+               "n_catchments": 8, "n_staged": 0, "n_aborted": 8,
+               "level_counts": {lv: 0 for lv in ("FLOOD-DORMANT", "FLOOD-WATCH", "FLOOD-ALERT")},
+               "latest": None, "season_peak": None, "catchments": []}
+    card = oa._flood_card(aborted)
+    assert "NO VERDICT" in card
+    assert "E<sub>f</sub> =" not in card
+    for lvl in ("FLOOD-DORMANT", "FLOOD-WATCH", "FLOOD-ALERT"):
+        assert f'">{lvl}<' not in card, f"aborted card displayed a {lvl} chip"
+    assert not _third_party(_audit_html(card))
+    with tempfile.TemporaryDirectory() as td:
+        page = _render(Path(td), aborted)
+    assert 'id="flood-card"' in page and "NO VERDICT" in page
+
+
 def test_R9_live_alarm_hook_is_non_fatal_and_cannot_reorder_the_daily_arm():
     """The flood arm is wired into live_alarm.py's regen (§70). Two properties must hold, and
     both are cheap to assert on the source (running the chain needs CDS + GEE credentials):

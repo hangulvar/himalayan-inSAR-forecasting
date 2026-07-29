@@ -100,12 +100,32 @@ def load_flood_config(cfg=None) -> FloodConfig | None:
     f = raw.get("flood")
     if not f:
         return None
-    return FloodConfig(
+    fc = FloodConfig(
         channel_upstream_km2=float(f.get("channel_upstream_km2",
                                          DEFAULT_CHANNEL_UPSTREAM_KM2)),
         channel_buffer_m=float(f.get("channel_buffer_m", 120)),
         min_catchment_coverage_pct=float(f.get("min_catchment_coverage_pct", 95)),
     )
+    # VALIDATE, don't trust (house style — config._llof_routing does the same). Each of these
+    # fails SILENTLY and produces a confident wrong answer rather than an error:
+    #   * channel_upstream_km2 <= 0 makes EVERY cell a channel, so the "nearest channel" is the
+    #     zone's own pixel and every catchment is meaningless;
+    #   * channel_buffer_m < 0 makes nothing channel-adjacent, so the exposure layer is empty;
+    #   * min_catchment_coverage_pct > 100 makes nothing stageable, so the arm publishes NO
+    #     flood risk anywhere and looks calm rather than broken.
+    where = Path(cfg.source_path).name
+    if not fc.channel_upstream_km2 > 0:
+        raise ValueError(f"Config {where}: flood.channel_upstream_km2 must be > 0, got "
+                         f"{fc.channel_upstream_km2} (a non-positive threshold makes every "
+                         f"cell a channel)")
+    if fc.channel_buffer_m < 0:
+        raise ValueError(f"Config {where}: flood.channel_buffer_m must be >= 0, got "
+                         f"{fc.channel_buffer_m} (negative makes nothing channel-adjacent)")
+    if not 0 < fc.min_catchment_coverage_pct <= 100:
+        raise ValueError(f"Config {where}: flood.min_catchment_coverage_pct must be in (0, "
+                         f"100], got {fc.min_catchment_coverage_pct} (>100 makes every "
+                         f"catchment unstageable, which reads as 'no flood risk')")
+    return fc
 
 
 # ── D8 geometry ──────────────────────────────────────────────────────────────────────
@@ -189,8 +209,15 @@ def coverage_ok(coverage_pct, min_pct: float) -> bool:
     coverage_pct is None for a truncated catchment — its true area cannot be measured from this
     DEM, so it is refused rather than graded on a partial area (the §65 abort-don't-fabricate
     rule). None is never silently treated as 0 or 100.
+
+    Anything non-numeric is treated as UNKNOWN coverage and refused too: a guard that raises
+    mid-run would abort the whole site instead of declining one catchment, and "I could not
+    tell" must always fail closed.
     """
-    return coverage_pct is not None and float(coverage_pct) >= float(min_pct)
+    try:
+        return coverage_pct is not None and float(coverage_pct) >= float(min_pct)
+    except (TypeError, ValueError):
+        return False
 
 
 def time_of_concentration_h(area_km2: float, relief_m: float) -> float | None:
@@ -461,6 +488,27 @@ def _write_md(path: Path, rep: dict) -> None:
     path.write_text("\n".join(md) + "\n", encoding="utf-8")
 
 
+def carry_forward_merit(previous: dict | None, merit_points: list[dict]) -> dict | None:
+    """Reuse a PREVIOUS MERIT cross-check when this run did not request one.
+
+    Without this, a plain `flood_domain.py` re-run silently overwrites a computed corroboration
+    with null — destroying a measurement as a side effect of an unrelated re-run, which is the
+    same class of quiet data loss the rest of this project guards against.
+
+    It is only carried when the sampled OUTLETS are unchanged; if the footprint moved, the old
+    numbers describe different points and are dropped rather than shown against new geometry.
+    Carried results are tagged so a reader can never mistake them for fresh ones.
+    """
+    if not previous or previous.get("skipped"):
+        return None
+    prev_ids = {p["id"] for p in previous.get("points", [])}
+    if prev_ids != {p["id"] for p in merit_points}:
+        return None
+    return {**previous, "carried_forward": True,
+            "carried_note": ("not recomputed this run — re-run with --merit to refresh "
+                             "(outlets unchanged, so these still describe the same points)")}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -540,8 +588,20 @@ def main(argv=None) -> int:
         "n_catchments": len(cats), "n_regime_a": n_a, "n_regime_b": n_b,
         "n_stageable": n_stage, "n_truncated": n_trunc,
         "zones": out_zones,
-        "merit_crosscheck": merit_crosscheck(merit_points, args.project) if args.merit else None,
+        "merit_crosscheck": None,      # filled below
     }
+    out_json = FLOOD_DIR / f"flood_domain_{slug}.json"
+    if args.merit:
+        rep["merit_crosscheck"] = merit_crosscheck(merit_points, args.project)
+    elif out_json.exists():
+        try:
+            prev = json.loads(out_json.read_text(encoding="utf-8")).get("merit_crosscheck")
+        except Exception:  # noqa: BLE001 — an unreadable previous run is simply no previous run
+            prev = None
+        rep["merit_crosscheck"] = carry_forward_merit(prev, merit_points)
+        if rep["merit_crosscheck"]:
+            print("  (MERIT cross-check carried forward from the previous run — "
+                  "re-run with --merit to refresh)")
     rep["verdict"] = (
         f"{n_adj}/{len(out_zones)} operational zones sit within {fc.channel_buffer_m} m of a "
         f"channel draining >= {fc.channel_upstream_km2} km^2; {n_stage} catchment(s) are "
@@ -549,7 +609,6 @@ def main(argv=None) -> int:
         + (f", {n_trunc} refused as truncated" if n_trunc else "")
         + (f", {n_b} are mainstem (Regime B, out of scope)" if n_b else "") + ".")
     FLOOD_DIR.mkdir(parents=True, exist_ok=True)
-    out_json = FLOOD_DIR / f"flood_domain_{slug}.json"
     out_json.write_text(json.dumps(rep, indent=2), encoding="utf-8")
     _write_md(FLOOD_DIR / f"flood_domain_{slug}.md", rep)
     print(f"VERDICT: {rep['verdict']}")

@@ -3563,6 +3563,56 @@ only other) legitimate cause of drift, with "proven additive" spelled out as the
 
 ---
 
+## 73. Adversarial test round on the flood arm — 4 real defects found, all silent-wrong-answer class  `[MEASURED]`
+*(2026-07-29, session 31 cont. — a deliberate hunt for defects in paths the suites did not
+cover, then every finding encoded as a permanent test. `flood_domain.py` (config validation,
+fail-closed guard, MERIT carry-forward), `flood_gate.py` (documented fallback), suites
+157 → **169**.)*
+
+**Method: probe first, then encode.** An adversarial script exercised argument contracts,
+cross-artifact consistency, and ~15 edge cases against the live artifacts. It made no
+assertions — it hunted for crashes and wrong answers, and everything it found became a test.
+
+**★ Four defects, none of which would have raised an error.** All four are the failure class
+this project cares about most: a confident wrong answer rather than a crash.
+
+| # | Defect | Why it was dangerous |
+|---|---|---|
+| 1 | **No config validation.** `channel_upstream_km2 <= 0` accepted | makes EVERY cell a channel, so the "nearest channel" is the zone's own pixel and all 22 catchments become meaningless — silently |
+| 2 | **`min_catchment_coverage_pct > 100` accepted** | nothing is ever stageable, so the arm publishes **no flood risk anywhere** and reads as CALM rather than broken |
+| 3 | **`coverage_ok()` raised on junk input** | a guard that crashes aborts the whole site run instead of declining one catchment; it must fail **closed** |
+| 4 | **A plain `flood_domain.py` re-run destroyed the MERIT cross-check** | overwrote a computed corroboration with `null` as a side effect of an unrelated re-run — quiet loss of a measurement |
+
+**Fixes:** validation now raises with the specific consequence named in the message (house
+style — `config._llof_routing` does the same); the coverage guard treats any unusable value as
+UNKNOWN and refuses; MERIT results are **carried forward** when the sampled outlets are
+unchanged and **dropped** when they are not (old numbers can never be shown against new
+geometry), tagged `carried_forward: true` so a reader cannot mistake them for fresh.
+
+**★ The integration gap that mattered most: the real card had never been rendered.** Every card
+test used a HAND-BUILT summary. `R10` now feeds the genuine on-disk summaries through the real
+renderer and asserts the page tells the truth about them — headline is the LATEST day (not the
+season peak, the §70 bug), the peak appears explicitly labelled "not current state", the honesty
+framing survives, and the page is injection-clean. **All four real season summaries pass.**
+`R11` pins the aborted-summary path: NO VERDICT, no E_f, no level chip.
+
+**Also newly pinned:** `live_alarm.py`'s argument contract is now executed, not just read — the
+hook is non-fatal, so an argparse mismatch would be swallowed as "flood gate SKIPPED" and the
+card would silently never appear. Plus cross-artifact consistency (skill table vs live
+summaries; gate vs domain geometry; domain vs the operational footprint), order-independence of
+grading, CSV round-trip through a hostile catchment name, and `event_flood_level` never
+fabricating (all-aborted season / corrupt JSON / missing file all return None).
+
+**Regression, verified outside the freeze too:** the 2025 dashboards and all four
+`imerg_gate_summary` files are untouched (37–81 h old, i.e. predating every flood run) — the
+§64 past-season trap was not tripped. The 116 protected artifacts remain byte-identical.
+
+**Verified:** battery **157 → 169 green** across 13 suites in the container (flood suites now
+16 + 27 + 12 = 55). One test failed first and was itself the bug — the assertion, not the code
+— caught because the probe had already documented the true behaviour.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -488,6 +488,136 @@ def test_I5_fetch_outage_aborts_that_catchment_without_crashing():
 
 
 # ------------------------------------------------------------------------------
+# Robustness + cross-artifact consistency (adversarial probe, 2026-07-29)
+# ------------------------------------------------------------------------------
+def test_live_alarm_argument_contract():
+    """live_alarm.py invokes this script as a subprocess, NON-FATALLY — so an argparse mismatch
+    would be swallowed as 'flood gate SKIPPED' and the card would silently never appear. R9
+    checks the source shape; this checks the ARGS actually parse, by running them."""
+    import re
+    src = (PROJECT_ROOT / "workflows" / "live_alarm.py").read_text(encoding="utf-8")
+    i = src.index('run("flood_gate.py"')
+    call = src[i:src.index(")", i) + 1]
+    flags = re.findall(r'"(--[a-z-]+)"', call)
+    assert flags, "could not parse the flags live_alarm passes"
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "noflood.yaml"          # no flood: block -> main() no-ops, exits 0
+        p.write_text("aoi_path: config/aoi/ramban_aoi.geojson\njob_name_prefix: T\n"
+                     "search_start: 2025-05-01\nsearch_end: 2025-10-31\n", encoding="utf-8")
+        argv = ["--config", str(p)]
+        for f in flags:                        # feed each flag a plausible value
+            argv += [f, {"--threshold": "nwhimalaya", "--start": "2026-04-01",
+                         "--end": "2026-07-01", "--project": "x"}.get(f, "x")]
+        assert fg.main(argv) == 0, f"flood_gate rejected live_alarm's arguments: {argv}"
+
+
+def test_match_durations_empty_choices_falls_back_not_empty():
+    """A caller computing an empty duration list must never yield a catchment graded on
+    NOTHING — which would surface as a confident DORMANT. `choices=[]` falls back to the module
+    default menu, which is then filtered by t_c exactly as an explicit menu would be."""
+    assert fg.match_durations(1.0, []) == fg.match_durations(1.0) == [1.0, 3.0, 6.0]
+    assert fg.match_durations(None, []) == fg.DUR_CHOICES
+    for tc in (None, 0.1, 1.0, 99.0):
+        assert fg.match_durations(tc, []), f"t_c={tc} with empty choices produced no windows"
+
+
+def test_grading_is_independent_of_series_order():
+    day0 = datetime(2026, 6, 1)
+    s = _series(day0, 2, {20: 30.0, 21: 30.0})
+    assert (fg.catchment_daily_E(s, A, B, [1.0])[0]["E_f"]
+            == fg.catchment_daily_E(list(reversed(s)), A, B, [1.0])[0]["E_f"])
+
+
+def test_csv_survives_a_hostile_catchment_name():
+    """Names reach a CSV; a comma/quote/newline must round-trip, not split the row."""
+    evil = 'evil,name"with\nnewline'
+    row = dict(_fake_catchment(name=evil))
+    s = fg.build_summary("ramban", [row], "nwhimalaya", A, B,
+                         {"start": "2026-06-01", "end": "2026-06-02", "days": 2})
+    saved = fg.FLOOD_DIR
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            fg.FLOOD_DIR = Path(td)
+            p = fg.write_outputs(s, "_probe")
+            import csv as _csv
+            rows = list(_csv.DictReader(p.open(encoding="utf-8")))
+            assert len(rows) == 1 and rows[0]["catchment"] == evil, rows
+    finally:
+        fg.FLOOD_DIR = saved
+
+
+def test_event_lookup_never_fabricates():
+    """None means 'not measured'. An all-aborted season, a corrupt file, and a missing day must
+    ALL return None — never a level, which would read as 'the arm looked and saw calm'."""
+    saved = fg.FLOOD_DIR
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            fg.FLOOD_DIR = Path(td)
+            f = Path(td) / "flood_gate_summary_2026.json"
+            f.write_text(json.dumps({"catchments": [
+                {"catchment": "c1", "zone": 1, "aborted": True, "abort_reason": "x"}]}),
+                encoding="utf-8")
+            assert fg.event_flood_level("ramban", "2026-07-01") is None
+            f.write_text("{not json", encoding="utf-8")
+            assert fg.event_flood_level("ramban", "2026-07-01") is None
+            f.unlink()
+            assert fg.event_flood_level("ramban", "2026-07-01") is None
+    finally:
+        fg.FLOOD_DIR = saved
+
+
+def _summaries_on_disk():
+    for tag in ("_2025", "_2026", "_vaishnodevi_2025", "_vaishnodevi_2026"):
+        p = PROJECT_ROOT / "data" / "flood" / f"flood_gate_summary{tag}.json"
+        if p.exists():
+            yield tag, json.loads(p.read_text(encoding="utf-8"))
+
+
+def test_summaries_are_internally_consistent():
+    """Every real season artifact must agree with itself: staged counts, level counts, and one
+    shared 'latest' date across catchments. Skips cleanly on a fresh clone."""
+    n = 0
+    for tag, s in _summaries_on_disk():
+        n += 1
+        graded = [c for c in s["catchments"] if not c["aborted"]]
+        assert len(graded) == s["n_staged"], tag
+        assert len(s["catchments"]) - len(graded) == s["n_aborted"], tag
+        assert sum(s["level_counts"].values()) == len(graded), tag
+        for c in graded:
+            assert c["latest"]["date"] == s["latest_date"], (tag, c["catchment"])
+            assert c["E_f"] >= c["latest"]["E_f"] - 1e-9, (
+                f"{tag} {c['catchment']}: season peak below its own latest day")
+            assert c["level"] in fg.LEVELS and c["latest"]["level"] in fg.LEVELS
+        if graded:
+            assert s["season_peak"]["E_f"] == max(c["E_f"] for c in graded), tag
+            assert s["latest"]["E_f"] == max(c["latest"]["E_f"] for c in graded), tag
+    if n == 0:
+        print("      [consistency] no season artifacts on disk — skipped")
+
+
+def test_skill_table_agrees_with_the_live_summaries():
+    """The committed skill table must not drift from the artifacts it was generated from —
+    the §63 staleness failure, in its flood incarnation."""
+    import csv as _csv
+    f = PROJECT_ROOT / "data" / "inventory" / "temporal_skill_table.csv"
+    if not f.exists():
+        return
+    checked = 0
+    for r in _csv.DictReader(f.open(encoding="utf-8")):
+        if not r.get("flood_level"):
+            continue
+        got = fg.event_flood_level(r["site"], r["date"])
+        if got is None:
+            print(f"      [skill] {r['site']} {r['date']}: artifacts absent, skipped")
+            continue
+        assert f"{got['E_f']:.2f}" == r["flood_E_f"], (r, got)
+        assert got["level"] == r["flood_level"], (r, got)
+        assert f"{got['n_alert']}/{got['n_catchments']}" == r["flood_catchments_alert"], (r, got)
+        checked += 1
+    print(f"      [skill] {checked} flood row(s) verified against live artifacts")
+
+
+# ------------------------------------------------------------------------------
 # I2 / I3 — THE ACCEPTANCE GATE, as a permanent regression
 # ------------------------------------------------------------------------------
 # The plan calls the verified-event replay "the go/no-go for showing the card at all". It was

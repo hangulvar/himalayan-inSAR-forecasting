@@ -93,6 +93,9 @@ def match_durations(tc_hours: float | None, choices: list[float] = None) -> list
     E_f becomes the same max-over-durations statistic imerg_gate's k was calibrated on, so the
     inherited threshold is no longer being applied across a change of statistic.
     """
+    # `choices=[]` deliberately falls back to the module default rather than returning an empty
+    # set: a caller computing an empty duration list must not silently produce a catchment that
+    # is graded on nothing (which would read as DORMANT). Pinned by test.
     ch = sorted(choices or DUR_CHOICES)
     if tc_hours is None or not np.isfinite(tc_hours) or tc_hours <= 0:
         return list(ch)                       # unknown response time -> screen everything
