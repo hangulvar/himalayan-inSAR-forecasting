@@ -11,11 +11,21 @@
 
 ---
 
-# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-07-29
+# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-08-01
 
 ## Current state
 
-- **★★ NEWEST (§74) — a user-prompted CLAIMS AUDIT found TWO WRONG CONCLUSIONS in this very
+- **★★ NEWEST (§76) — three user asks answered.** (1) The VD dashboard's late-July E spike is
+  **REAL weather, not a bug**: re-derived from the raw ERA5-Land (Δ=0.0005), cross-confirmed by
+  the independent IMERG satellite (both show a ~147 mm/day burst on 21 Jul = the 22 Jul fatal
+  storm), no artifacts; the elevated tail is correct max-over-durations decay. Now a permanent CI
+  guard. (2) A VD hazard refresh = **5 new InSAR pairs, ~50 credits of 8,000** (dry-run priced),
+  but then a **judgment-heavy multi-session MintPy rebuild + S1A→S1D seam** — the §61-class
+  user-present operation; **NOT executed** (the go button is the user's). (3) NEW read-only
+  **`file_disposition.py`** maps `data/`+`logs/` into 4 tiers (PROTECTED 16 MB / ARCHIVE_FIRST
+  47 GB / REGENERABLE 4.8 GB reclaimable / REVIEW = 3 ground-truth files); it **cannot delete**
+  (test-asserted) and confirms freeze integrity. Numbers §76. Battery **169 → 181**.
+- **★★ (§74) — a user-prompted CLAIMS AUDIT found TWO WRONG CONCLUSIONS in this very
   session's ledger entries, both now corrected with ↪ pointers.** (1) §72's "both zero-death
   events are FLOOD-WATCH" was **disproven by its own table**: there are THREE zero-death
   events and Himkoti (2026-07-08) is FLOOD-ALERT at 10/14 — the flood arm **tracks the burst
@@ -171,8 +181,19 @@ the dashboard.
 
 ## Uncommitted delta
 
-§68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the uncommitted
-delta is §70 only.
+**§76 — three user asks (this is the newest, uncommitted delta on top of everything below):**
+- NEW `workflows/file_disposition.py` (read-only 4-tier disposition map; never deletes),
+  `tests/test_file_disposition.py` (11).
+- `tests/test_science_verification.py` (+1: `test_calendar_E_matches_rederivation_from_raw_rainfall`
+  — the spike-verification turned permanent guard). 13→14.
+- `RESULTS_AND_KPIS.md` (§76), `milestone.md` (M59), `docs/INDEX.md` (+file_disposition),
+  `SESSION_REVIEW.md`, `session_journey.md` S31g.
+- Git-ignored data: NEW `data/file_disposition_report.{md,json}`; baseline re-frozen after the
+  overnight cycle (4 current-season daily-arm files, forensically verified). No code touched the
+  validated products; Task 1 (hazard refresh) spent 0 credits — dry-run only.
+
+§68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the older
+uncommitted delta is §70 onward.
 
 **§74/§75 — the claims audit + the overnight settlement:**
 - `workflows/flood_gate.py` — `match_durations` docstring corrected ("same FAMILY, menus

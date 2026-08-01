@@ -269,6 +269,48 @@ def test_season_series_and_calendar_wellformed() -> None:
         assert lv <= VALID_LEVELS, f"{cal.name}: unknown levels {lv - VALID_LEVELS}"
 
 
+def test_calendar_E_matches_rederivation_from_raw_rainfall() -> None:
+    """The dashboard's rainfall-danger curve must show what the RAW data says — re-derive the
+    calendar's exceedance_E straight from the raw ERA5-Land daily source and require a match.
+
+    This guards the exact worry a human has looking at a spike: 'is that number real, or a
+    reporting bug?' (asked 2026-08-01 about VD's ~7.6 late-July E; verified real — a genuine
+    ~147 mm/day burst, cross-confirmed by IMERG). A stored calendar that drifts from its source
+    (a stale/partially-failed cycle, a units change) would fail here. Skips a site whose raw
+    source is absent (fresh clone)."""
+    from rainfall_id_threshold import THRESHOLDS, load_daily
+    from rainfall_specificity import peak_exceedance
+    a, b = THRESHOLDS["nwhimalaya"]["a"], THRESHOLDS["nwhimalaya"]["b"]
+    checked = 0
+    for site, (_, _, _, _, sfx) in SITES.items():
+        cal = _latest_season(sfx, "operational_alarm_calendar{sfx}_2*.csv")
+        if cal is None:
+            continue
+        year = cal.stem.rsplit("_", 1)[-1]
+        raw = PROJECT_ROOT / "data/rainfall" / (
+            f"{site}_era5land_daily{sfx}_{year}.csv" if sfx else f"{site}_era5land_daily_{year}.csv")
+        if not raw.exists():
+            continue
+        dates, rain, snow, _, _ = load_daily(raw)
+        water = np.nan_to_num(rain) + np.nan_to_num(snow)
+        E, _ = peak_exceedance(water, a, b)
+        by_date = {d.isoformat(): e for d, e in zip(dates, E)}
+        rows = list(csv.DictReader(cal.open(encoding="utf-8")))
+        # Compare only days the raw source covers (the calendar can lag the raw tail or vice
+        # versa across a partial cycle); require at least a season's worth of overlap.
+        overlap = [r for r in rows if r["date"] in by_date]
+        assert len(overlap) >= 30, f"{site} {year}: only {len(overlap)} overlapping days"
+        for r in overlap:
+            got = float(r["exceedance_E"])
+            exp = round(float(by_date[r["date"]]), 3)
+            assert abs(got - exp) < 0.02, (
+                f"{site} {year} {r['date']}: calendar E={got} but re-derivation from "
+                f"{raw.name} gives {exp} — the published curve disagrees with the raw rainfall")
+        checked += 1
+    if checked == 0:
+        print("      [calendar-E] no site had both a calendar and its raw source — skipped")
+
+
 def test_alarm_artifacts_cross_consistent() -> None:
     for site, (cfgp, _, _, _, sfx) in SITES.items():
         cal = _latest_season(sfx, "operational_alarm_calendar{sfx}_2*.csv")

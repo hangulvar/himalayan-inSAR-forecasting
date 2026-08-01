@@ -2147,3 +2147,40 @@ correctly and in the right order. Better still: the fresh weather data finally c
 2026 — the fatal boulder-strike day whose official verdict had been "pending" for a week. The
 verified daily system reads it as a clear **ALERT**. That closes the last open question:
 **every deadly event in our records is now flagged, on the day, by both trusted systems.**
+
+---
+
+## ✅ Milestone 59 — We answered three practical questions: a scary graph, an ageing map, and a cluttered disk  *(2026-08-01)*
+
+**A scary-looking spike turned out to be the system working.** You noticed the rainfall-danger
+graph on the Vaishno Devi dashboard shooting up in late July and asked: is that a bug? We
+checked it the careful way — recomputed the number straight from the raw weather data (it
+matched to four decimals), and then cross-checked a *completely separate* rain source, the GPM
+satellite, which showed the same burst. It's real: about **147 mm of rain in a single day on 21
+July 2026** — the same storm that caused the fatal boulder strike a day later. The graph even
+stays high for a week afterward, which is correct, not stuck: it's the "ground is still soaked"
+memory doing its job. We turned this one-off check into a permanent automatic test, so next time
+a number looks surprising, the computer confirms it against the raw data instead of us having to
+investigate by hand.
+
+**The ageing hazard map: we priced the refresh, and it's your call.** The dashboard honestly
+flags that the Vaishno Devi hazard map is built from radar that's now ~37 days old, and that
+newer radar has arrived. We checked exactly what a refresh would take (without spending
+anything): **5 new radar image-pairs** need processing, costing about **50 of our 8,000
+processing credits** — trivially cheap. The catch isn't the credits; it's that turning those
+into a new map is a heavy, multi-hour, multi-session computation that needs you at the wheel
+(it involves stitching two different satellites together, a judgement call). So we've laid out
+the exact plan and cost, and left the "go" button for you.
+
+**A tidy-up tool that refuses to be dangerous.** The project's data folder has grown to ~52 GB,
+mixing three very different things: irreplaceable downloads that cost credits to obtain,
+validated results that must never be touched, and cheap throwaway caches. Deleting the wrong one
+is a real risk. So we built a **read-only map** of every file that sorts them into four buckets —
+*never touch* (16 MB of validated/committed results), *upload before deleting* (47 GB of
+raw downloads), *delete freely* (4.8 GB of rebuildable caches — an easy win), and *ask a human*
+(just 3 ground-truth files it wisely refuses to guess about). By design the tool **cannot delete
+anything** — it only tells you what's safe; you do the deleting. It even double-checks that all
+116 protected results are still present and accounted for.
+
+**Bottom line:** all three questions answered, one new safety tool, and our automatic checks grew
+to **181**, all passing.

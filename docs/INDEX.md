@@ -40,6 +40,11 @@ restructure that gathered all *reading* material under `docs/`. The **functional
 *Day-to-day ops need no runbook anymore:* the scheduled cycle (`workflows/monsoon_cycle.ps1`)
 runs unattended, and `control_panel.bat` (root) gives one-click refresh + a results hub.
 
+*Disk cleanup:* `workflows/file_disposition.py` (§76) writes `data/file_disposition_report.md`
+— a READ-ONLY map sorting every file under `data/`+`logs/` into PROTECTED / ARCHIVE_FIRST
+(upload before deleting) / REGENERABLE (delete-safe) / REVIEW (decide by hand). It never
+deletes; acting on it is manual.
+
 ### briefs/ — site-specific field material
 - **Field Brief - Bhairon NE flank creep target (2026-07-07).md** — the printable field-check brief for the NE-flank CORE target.
 - **Vaishno_Devi_Watchlist/** — Bhavan overhang brief, soil parameter research brief, GSI/geotech PDFs, the overhang KML.

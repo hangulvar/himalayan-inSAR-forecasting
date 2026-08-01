@@ -3703,6 +3703,64 @@ touched only 2026-season files, as it should.
 
 ---
 
+## 76. Three user asks: the VD rainfall spike is REAL, a hazard refresh costs ~50 credits + a user-present rebuild, and a file-disposition map now exists  `[MEASURED]`
+*(2026-08-01, session 31 cont. — verification (task 3), dry-run investigation (task 1), and a
+new tool + suite (task 2). NEW `workflows/file_disposition.py`, `tests/test_file_disposition.py`
+(11); NEW `test_calendar_E_matches_rederivation_from_raw_rainfall` in the science suite.)*
+
+**★ TASK 3 — the VD dashboard's late-July E spike is REAL weather, not a reporting bug.**
+Re-derived the calendar's `exceedance_E` straight from the raw ERA5-Land daily source: it
+matches to **max |Δ| = 0.0005** (rounding). The spike is a genuine **146.813 mm/day** rainfall
+burst on **2026-07-21** → E **7.631** (won at the 1-day window). Corroboration and artifact
+checks:
+- **Independent sensor agrees:** GPM IMERG (separate satellite + pipeline) reads **E 6.08 → 6.09
+  → 7.47 ALERT** on 19–21 Jul — same burst. A reanalysis artifact would not appear in the
+  satellite too.
+- **No computational artifact:** 0 duplicate dates, 0 calendar gaps, snowmelt correctly 0 in
+  July (no double-count), 0 negative/implausible (>400 mm) days.
+- **The elevated *tail* (E 6.8→4.8 on 22–26 Jul as daily rain falls to 1–30 mm) is CORRECT**,
+  not a stuck value: it is the max-over-durations exceedance's multi-day windows still holding
+  the burst — the won-duration column walks 1 d → 3 d → 7 d → 10 d as the short windows dry out.
+This is the same late-July 2026 monsoon that produced the 22 Jul Gangroo–Ramsu fatal strike
+(§62/§75). **The system is working correctly — it flagged a real, deadly event.** The one-off
+verification is now a permanent CI guard (re-derives the published curve from the raw rainfall;
+skips a site whose raw source is absent).
+
+**★ TASK 1 — a VD hazard-map refresh: the freshness pill is honest, and the cost is now exact.**
+The pill ("radar through 2026-06-25, 6 new S1D scenes at ASF, rebuild unblocked") is accurate.
+A **credit-free dry-run** priced the rebuild: **41 pairs planned, 36 already-processed
+duplicates → 5 NEW InSAR pairs** (the S1A→S1D seam + S1D×S1D continuations on paths 27/100).
+At ~10 credits/pair that is **~50 credits of 8,000 (0.6%)** — trivial. **But the credits are
+not the blocker:** the 5 pairs then need a multi-hour HyP3 wait and a **judgment-heavy,
+multi-session MintPy/SBAS rebuild** that includes the S1A→S1D cross-satellite seam — the same
+§61-class operation the project reserves for a session with the user present. **NOT executed:**
+spending credits + starting a rebuild that cannot finish headlessly is the user's call. The
+exact plan and cost are recorded here for that decision.
+
+**★ TASK 2 — a read-only local-file disposition map (`file_disposition.py`).** Classifies every
+file under `data/` + `logs/` into four tiers; **it never deletes anything** (a test asserts the
+source references no removal API). Measured on the real tree (~52 GB):
+
+| class | disk | files | action |
+|---|---:|---:|---|
+| PROTECTED | 16.2 MB | 124 | never delete — in the baseline freeze (116) or git-tracked (9, overlap) |
+| ARCHIVE_FIRST | **47.0 GB** | 2684 | verify a Drive/ASF/CDS copy, THEN delete (processed_tiffs 41.8 GB, nisar 3.9 GB, raw_zips, DEMs, mintpy, grib) |
+| REGENERABLE | **4.8 GB** | 2555 | delete freely — a workflow rebuilds it (qa_masks 4.4 GB is the big reclaim) |
+| REVIEW | 77.7 KB | 3 | decide by hand — the 3 `gsi_inventory_aoi.*` ground-truth files, deliberately not guessed |
+
+Authority order is freeze/git first, so a validated raster inside an otherwise-regenerable dir
+stays PROTECTED (the report shows `velocity/` split: 5.6 MB frozen-protected vs 3.8 KB
+regenerable). It also runs a **freeze-integrity check** (all 116 present) and carries a
+dependency note (REGENERABLE assumes its ARCHIVE_FIRST inputs are still on disk). Report:
+`data/file_disposition_report.{md,json}`; runbook path is one command.
+
+**Housekeeping/regression:** another overnight cycle had run (Ramban daily arm → 07-31, VD →
+08-01); R1 went red, forensics confirmed **exactly 4 current-season daily-arm files changed,
+nothing else** (the documented legitimate cause), baseline re-frozen (**116**). Battery
+**169 → 181 green** across 14 suites (new: 11 disposition + 1 calendar-E re-derivation).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
