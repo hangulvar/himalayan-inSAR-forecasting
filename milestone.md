@@ -2182,5 +2182,14 @@ raw downloads), *delete freely* (4.8 GB of rebuildable caches — an easy win), 
 anything** — it only tells you what's safe; you do the deleting. It even double-checks that all
 116 protected results are still present and accounted for.
 
+**We also taught it what our data is *for*.** After you asked what the biggest pile (a 42 GB
+folder of processed radar) is actually used for, we traced it through the code and wrote the
+answer straight into the tool's report: a plain map of what feeds what, and the key insight that
+the day-to-day dashboard doesn't need that raw pile at all — only a from-scratch *rebuild* does.
+The report even counts, live, that we'd need 238 radar zips to rebuild it but only have 3 on
+disk (the rest safely on Google Drive), so it can't be recreated locally. So the map now doubles
+as a plain-language guide to how the whole thing fits together — useful for an informed cleanup
+later, whenever you decide.
+
 **Bottom line:** all three questions answered, one new safety tool, and our automatic checks grew
 to **181**, all passing.

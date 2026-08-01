@@ -140,6 +140,35 @@ def test_build_report_totals_and_freeze_integrity():
     assert rep["freeze_missing"] == ["data/velocity/GONE.tif"]
 
 
+def test_data_flow_awareness_is_documented_and_rendered():
+    """The report must carry the §76 data-flow awareness so a future cleanup is informed —
+    including the load-bearing distinction that day-to-day ops don't need the raw layer but
+    rebuilds do."""
+    assert fdp.DATA_FLOW, "the data-flow awareness block went missing"
+    blob = " ".join(ln for _, lines in fdp.DATA_FLOW for ln in lines).lower()
+    for must in ("processed_tiffs", "velocity", "flood_domain f0", "nisar", "rebuild",
+                 "day-to-day"):
+        assert must in blob, f"data-flow awareness dropped mention of {must!r}"
+    # And it renders into the markdown, not just the source.
+    rep = fdp.build_report({"rows": [
+        {"path": "data/processed_tiffs/a.tif", "class": "ARCHIVE_FIRST", "reason": "r",
+         "bytes": 1, "group": "data/processed_tiffs"}]}, set())
+    fdp.write_report(rep)
+    md = (fdp.PROJECT_ROOT / "data" / f"{fdp.REPORT_STEM}.md").read_text(encoding="utf-8")
+    assert "Data flow & usage" in md and "Local-regeneration check" in md
+
+
+def test_regen_feasibility_reports_honestly():
+    """The live check must state whether processed_tiffs can be rebuilt locally — a string that
+    names the actual counts, never a hardcoded claim."""
+    note = fdp.regen_feasibility()
+    assert "processed_tiffs holds" in note and "raw_zips has" in note
+    # On this repo the zips were Drive-archived, so it should read NOT locally regenerable;
+    # but the assertion is only on the SHAPE (it must commit to one verdict), so the test holds
+    # on any checkout, including a fresh one where both counts are 0.
+    assert ("NOT locally regenerable" in note) or ("Locally regenerable" in note)
+
+
 def test_human_readable_sizes():
     assert fdp._human(0) == "0.0 B"
     assert fdp._human(1024) == "1.0 KB"

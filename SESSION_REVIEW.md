@@ -24,7 +24,10 @@
   user-present operation; **NOT executed** (the go button is the user's). (3) NEW read-only
   **`file_disposition.py`** maps `data/`+`logs/` into 4 tiers (PROTECTED 16 MB / ARCHIVE_FIRST
   47 GB / REGENERABLE 4.8 GB reclaimable / REVIEW = 3 ground-truth files); it **cannot delete**
-  (test-asserted) and confirms freeze integrity. Numbers §76. Battery **169 → 181**.
+  (test-asserted) and confirms freeze integrity. **The report now also carries a "Data flow &
+  usage" awareness block** (what feeds what; day-to-day ops don't need the raw layer, only
+  rebuilds do; a live 238-pairs-vs-3-zips regen check) — traced from the "what are
+  processed_tiffs for?" question. Numbers + battery **169 → 183** in §76.
 - **★★ (§74) — a user-prompted CLAIMS AUDIT found TWO WRONG CONCLUSIONS in this very
   session's ledger entries, both now corrected with ↪ pointers.** (1) §72's "both zero-death
   events are FLOOD-WATCH" was **disproven by its own table**: there are THREE zero-death
@@ -181,19 +184,18 @@ the dashboard.
 
 ## Uncommitted delta
 
-**§76 — three user asks (this is the newest, uncommitted delta on top of everything below):**
-- NEW `workflows/file_disposition.py` (read-only 4-tier disposition map; never deletes),
-  `tests/test_file_disposition.py` (11).
-- `tests/test_science_verification.py` (+1: `test_calendar_E_matches_rederivation_from_raw_rainfall`
-  — the spike-verification turned permanent guard). 13→14.
-- `RESULTS_AND_KPIS.md` (§76), `milestone.md` (M59), `docs/INDEX.md` (+file_disposition),
-  `SESSION_REVIEW.md`, `session_journey.md` S31g.
-- Git-ignored data: NEW `data/file_disposition_report.{md,json}`; baseline re-frozen after the
-  overnight cycle (4 current-season daily-arm files, forensically verified). No code touched the
-  validated products; Task 1 (hazard refresh) spent 0 credits — dry-run only.
-
-§68 (`2fe49aa`) and §69 (`9308de4`) are **already committed** by the user, so the older
-uncommitted delta is §70 onward.
+§76's first batch — the three user asks — is **already committed** (`a25fe5c`: NEW
+`file_disposition.py` + `test_file_disposition.py`, the calendar-E guard, M59, docs INDEX, the
+prior LIVE block). The **uncommitted delta is the §76 follow-up only** — data-flow awareness
+baked into the disposition tool (the "what are processed_tiffs for?" answer, made durable):
+- `workflows/file_disposition.py` — `DATA_FLOW` awareness block + `regen_feasibility()` live
+  check + its render in the report.
+- `tests/test_file_disposition.py` — +2 (awareness content renders; regen check reports
+  honestly). 11 → 13.
+- `RESULTS_AND_KPIS.md` — §76 append (data-flow awareness paragraph + battery → 183).
+- `milestone.md` (M59 append), `session_journey.md` S31g (append). Git-ignored:
+  `data/file_disposition_report.{md,json}` regenerated with the awareness section.
+- **No validated product touched; battery re-verified 183/183, R1 green (no drift this run).**
 
 **§74/§75 — the claims audit + the overnight settlement:**
 - `workflows/flood_gate.py` — `match_durations` docstring corrected ("same FAMILY, menus

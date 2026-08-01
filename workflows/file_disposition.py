@@ -45,12 +45,19 @@ REPORT_STEM = "file_disposition_report"             # excluded from its own scan
 # ── classification rules (DATA — project-specific, documented above) ─────────────────────
 # ARCHIVE_FIRST: top-level dir under data/ (or a filename trait) -> how it is re-created.
 ARCHIVE_FIRST_DIRS = {
-    "raw_zips": "Google Drive archive (§48) — ASF copies expired; re-download costs HyP3 credits",
-    "processed_tiffs": "re-extract from the Drive-archived raw zips, or re-process via HyP3 (credits)",
-    "nisar": "re-fetch the GUNW granules from ASF (~4 min each, §65) — bandwidth, not credits",
-    "dem_alos_12m": "re-download the ALOS 12 m DEM from ASF",
-    "dem_alos_12m_vaishnodevi": "re-download the ALOS 12 m DEM from ASF",
-    "mintpy": "re-run MintPy (multi-session compute; the §61-class rebuild)",
+    "raw_zips": "the HyP3 SLC-pair products; extracted into processed_tiffs. Recreate: Google "
+                "Drive archive (§48) — ASF copies expired, so re-download costs HyP3 credits",
+    "processed_tiffs": "the extracted InSAR layers (unw_phase/corr/dem/lv_*/water_mask) — the "
+                       "MEASUREMENT INPUT for velocity, geomechanics (dem->slope), the flood arm "
+                       "F0 (dem->D8), slope_velocity (lv_*) and the NISAR C-vs-L pilot (corr). "
+                       "Recreate: re-extract from the Drive raw zips, or re-process via HyP3 "
+                       "(credits) — NOT locally regenerable (see the data-flow note below)",
+    "nisar": "L-band GUNW granules; the NISAR coherence pilot's L side. Recreate: re-fetch from "
+             "ASF (~4 min each, §65) — bandwidth, not credits",
+    "dem_alos_12m": "the standalone ALOS 12 m DEM tiles. Recreate: re-download from ASF",
+    "dem_alos_12m_vaishnodevi": "the standalone ALOS 12 m DEM tiles. Recreate: re-download from ASF",
+    "mintpy": "the MintPy inversion work dir + outputs. Recreate: re-run MintPy over "
+              "processed_tiffs (multi-session compute; the §61-class rebuild)",
 }
 ARCHIVE_FIRST_SUFFIXES = {".grib"}                  # raw ERA5-Land pulls (CDS); also *.grib.idx etc.
 
@@ -83,6 +90,49 @@ REGENERABLE_NAMES = {"radar_watch.json", "aoi_status.json"}
 # inventory's ground-truth DATA (gsi_inventory_aoi.geojson/csv) — that stays REVIEW so a human
 # decides, per the "inventory is load-bearing ground truth" rule in CLAUDE.md.
 REGENERABLE_NAME_SUBSTRINGS = {"report", "validation_stats", "susceptibility_crosscheck"}
+
+# ── data-flow awareness (§76 investigation, 2026-08-01) ──────────────────────────────────
+# Documented here so the report explains WHY the tiers are what they are and what depends on
+# the big data classes — general awareness for a future, informed cleanup. Rendered verbatim
+# into the report (no logic depends on it).
+DATA_FLOW = [
+    ("The dependency chain (bottom = raw download, top = what a human looks at)", [
+        "raw_zips  (HyP3 SLC-pair products; Drive-archived, §48)",
+        "  -> processed_tiffs  (extracted InSAR layers: unw_phase, corr, dem, lv_theta/phi, water_mask)",
+        "     -> velocity/  (SBAS + MintPy invert unw_phase over the WHOLE pair-network)",
+        "        -> hazard/  (geomechanical Factor-of-Safety from slope + velocity)",
+        "           -> alerts/  (the zone products the dashboard shows)",
+        "  rainfall *.grib  (raw ERA5-Land, CDS)  -> rainfall/ derived CSVs  -> daily alarm + IMERG burst arm",
+        "  processed_tiffs/_dem  -> flood_domain F0 (D8 catchments)  -> flood_gate F1 staging",
+        "  nisar/*.h5 (L-band)  x  processed_tiffs/_corr (C-band)  -> the NISAR coherence pilot",
+    ]),
+    ("The distinction that actually decides deletability", [
+        "DAY-TO-DAY ops do NOT read the archive-first raw layer. The alarm dashboard, the live "
+        "rainfall cycle, and the flood F1 staging all run off the ALREADY-COMPUTED velocity/ + "
+        "hazard/ rasters (PROTECTED, frozen) plus live rainfall. Deleting processed_tiffs does "
+        "not break the dashboard.",
+        "REBUILDS do need it: a fresh run, a velocity/hazard rebuild, a cadence update with new "
+        "radar (e.g. the pending VD refresh — 5 new pairs, §76), a flood-arm F0 re-run (reads "
+        "each stack's _dem.tif at run time even with its D8 cache), and the NISAR C-vs-L pilot.",
+        "So ARCHIVE_FIRST is deliberate: not a cache (nothing live depends on it), but the "
+        "irreplaceable input for any rebuild.",
+    ]),
+]
+
+
+def regen_feasibility() -> str:
+    """A LIVE check (not a hardcoded number): can processed_tiffs be rebuilt locally? It can only
+    if the raw zips are still on disk — most were Drive-archived and deleted (§48)."""
+    prod = PROJECT_ROOT / "data" / "processed_tiffs"
+    zips = PROJECT_ROOT / "data" / "raw_zips"
+    n_prod = sum(1 for p in prod.iterdir() if p.is_dir()) if prod.exists() else 0
+    n_zip = len(list(zips.glob("*.zip"))) if zips.exists() else 0
+    ok = n_zip >= n_prod and n_prod > 0
+    return (f"processed_tiffs holds {n_prod} pair(s); raw_zips has {n_zip} zip(s) locally. "
+            + ("Locally regenerable by re-extract." if ok else
+               f"**NOT locally regenerable** — {n_prod - n_zip} pair(s) have no local zip "
+               f"(Drive-archived, §48); re-create = pull from Drive + re-extract, or re-process "
+               f"via HyP3 credits."))
 
 
 def load_freeze_set() -> set[str]:
@@ -213,6 +263,12 @@ def write_report(rep: dict) -> Path:
            "exists; `rainfall/` derived CSVs rebuild only from the `*.grib`. Delete the "
            "regenerable layer freely, but do not delete a REGENERABLE dir AND its ARCHIVE_FIRST "
            "input in the same breath unless you are done with that AOI-season."]
+    # Data-flow awareness (§76) — why the tiers are what they are, for an informed cleanup later.
+    md += ["", "## Data flow & usage (awareness — not a delete instruction)"]
+    for topic, lines in DATA_FLOW:
+        md += ["", f"**{topic}**", ""]
+        md += [f"- {ln}" for ln in lines]
+    md += ["", f"**Local-regeneration check (live):** {regen_feasibility()}"]
     for c in ("ARCHIVE_FIRST", "REGENERABLE", "PROTECTED", "REVIEW"):
         gs = sorted(((k[1], v) for k, v in rep["groups"].items() if k[0] == c),
                     key=lambda kv: -kv[1]["bytes"])

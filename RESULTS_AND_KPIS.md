@@ -3754,10 +3754,23 @@ regenerable). It also runs a **freeze-integrity check** (all 116 present) and ca
 dependency note (REGENERABLE assumes its ARCHIVE_FIRST inputs are still on disk). Report:
 `data/file_disposition_report.{md,json}`; runbook path is one command.
 
+**★ Data-flow awareness baked into the report (user request, same day).** After tracing what
+consumes `processed_tiffs` (the 42 GB question), the report now carries a **"Data flow & usage"**
+section: the dependency chain (raw_zips → processed_tiffs → velocity → hazard → alerts; rainfall
+grib → daily arm; processed_tiffs/_dem → flood F0; nisar × processed_tiffs/_corr → the NISAR
+pilot) and the load-bearing distinction — **day-to-day ops (dashboard, live rainfall, flood F1)
+run off the already-computed velocity/hazard rasters and do NOT read the raw layer; only REBUILDS
+do** (fresh run, cadence update, flood-arm F0 re-run, NISAR C-vs-L). A **live** regeneration
+check (not a hardcoded number) reports `processed_tiffs holds 238 pairs; raw_zips has 3 zips
+locally → NOT locally regenerable — 235 pairs Drive-archived (§48)`. This is why processed_tiffs
+is ARCHIVE_FIRST not a cache, and why it must be kept if the VD refresh is on the table. Suite
+11 → 13.
+
 **Housekeeping/regression:** another overnight cycle had run (Ramban daily arm → 07-31, VD →
 08-01); R1 went red, forensics confirmed **exactly 4 current-season daily-arm files changed,
 nothing else** (the documented legitimate cause), baseline re-frozen (**116**). Battery
-**169 → 181 green** across 14 suites (new: 11 disposition + 1 calendar-E re-derivation).
+**169 → 183 green** across 14 suites (new: 13 disposition — incl. 2 data-flow awareness — + 1
+calendar-E re-derivation; R1 re-verified green on the final run, no further drift).
 
 ---
 
