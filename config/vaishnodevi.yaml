@@ -55,7 +55,7 @@ job_name_prefix: VaishnoDevi_Trikuta
 # baseline from the archive through the 2026 monsoon (extend search_end and
 # re-run the submitter to append pairs — it is idempotent/deduplicating).
 search_start: 2026-01-01
-search_end: 2026-07-31
+search_end: 2026-08-08
 
 # --- Soil shear-strength (Phase 3 infinite-slope engine) ---------------------
 # Site-corroborated by the literature pass (RESULTS_AND_KPIS.md §37): Kumar &
