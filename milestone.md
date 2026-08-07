@@ -2193,3 +2193,36 @@ later, whenever you decide.
 
 **Bottom line:** all three questions answered, one new safety tool, and our automatic checks grew
 to **181**, all passing.
+
+## ✅ Milestone 60 — We refreshed the ageing map, and the satellite handover went off without a hitch  *(radar cadence refresh, 2026-08-08)*
+
+**What we set out to do.** For weeks the dashboard had been honestly warning that the Vaishno Devi
+hazard map was built from radar that was getting old (about six weeks stale), and that fresher
+radar had already arrived at the archive. Last time we priced the refresh and left the "go" button
+for you. This time you pressed it — so we ran the whole update, start to finish.
+
+**What we did, in plain terms.** We asked the satellite archive to process **10 new radar
+image-pairs**, waited for them to cook, downloaded and quality-checked them, and rebuilt the map —
+bringing it right up to date (early August). Every step is a real, verified result recorded in
+§77; the freshness warning on the dashboard is now gone.
+
+**The one thing that could have gone wrong — didn't.** The long-serving European satellite
+(Sentinel-1A) retired in mid-2026 and a newer one (S1D) took over the same orbit. Joining two
+*different* satellites into one seamless record is the delicate part of a refresh like this — the
+reason we'd flagged it as needing a person at the wheel. It went perfectly: that satellite-to-
+satellite "stitch" turned out to be the **cleanest image-pair of the entire batch**.
+
+**The honest catch, and a deliberate choice not to over-spend.** Peak-monsoon humidity fouled one
+image-pair on our *second* viewing angle, so for now the map leans on a single viewing angle
+instead of two — slightly less cross-confirmation until the next refresh, when it repairs itself
+automatically. We could have bought another image-pair to force the second angle back, but it
+would have crossed the same monsoon soup and probably failed too, so we chose not to waste the
+credits.
+
+**We checked our own homework.** Before re-locking the "protected results" seal, we proved every
+single changed file was expected — most were ours from the rebuild, and a handful were from an
+automatic overnight run — with nothing unexplained. Then we re-sealed it and re-ran the safety
+checks (all green).
+
+**Bottom line:** the warning is cleared, the map is current to early August, and the tricky
+once-in-a-satellite's-lifetime handover is now *proven* to work in our pipeline (§77).

@@ -1697,3 +1697,19 @@ sentences about them were not.
   22 Jul fatal day — every fatal event now caught at delta=0 by BOTH validated arms).
 * **Lesson:** a red guard is a question, not an instruction to re-freeze. Identify the writer
   first; the freeze exists precisely so that surprise changes get forensics, not shrugs.
+
+## 2026-08-08 — VD radar cadence refresh (§77): one process gotcha, no code bugs
+
+### 1. Piping a long run through `grep | tail` hides ALL progress once it auto-backgrounds
+* **Symptom:** `phase_elevation_audit` was run as `… 2>&1 | grep -v … | tail -40`; it exceeded the
+  foreground timeout and moved to the background, but the captured output file stayed **0 bytes**
+  until the process finished — `tail` buffers to EOF, so there was no way to see whether it was
+  progressing or hung. Cost one diagnostic round-trip (had to check the audit's own output-file
+  mtimes + `docker ps` instead).
+* **Root cause:** the same family as §71's "never suppress output" rule, new manifestation —
+  a `grep`/`tail` pipe defers all output, and when the harness auto-backgrounds a slow command the
+  progress you'd have watched live is gone.
+* **Fix/lesson:** for any run that might be slow, do **not** pipe through `grep`/`tail` — run it
+  plain so the (possibly background) output file streams line-by-line; filter *after* it completes.
+  The submit `--submit` itself was correctly re-run unfiltered after the classifier flagged the
+  piped version (a second, independent nudge toward the same rule).

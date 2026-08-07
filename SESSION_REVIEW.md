@@ -11,257 +11,69 @@
 
 ---
 
-# LIVE — Session 31 · branch `aoi-vaishnodevi` · updated 2026-08-01
+# LIVE — Session 32 · branch `aoi-vaishnodevi` · updated 2026-08-08
 
 ## Current state
 
-- **★★ NEWEST (§76) — three user asks answered.** (1) The VD dashboard's late-July E spike is
-  **REAL weather, not a bug**: re-derived from the raw ERA5-Land (Δ=0.0005), cross-confirmed by
-  the independent IMERG satellite (both show a ~147 mm/day burst on 21 Jul = the 22 Jul fatal
-  storm), no artifacts; the elevated tail is correct max-over-durations decay. Now a permanent CI
-  guard. (2) A VD hazard refresh = **5 new InSAR pairs, ~50 credits of 8,000** (dry-run priced),
-  but then a **judgment-heavy multi-session MintPy rebuild + S1A→S1D seam** — the §61-class
-  user-present operation; **NOT executed** (the go button is the user's). (3) NEW read-only
-  **`file_disposition.py`** maps `data/`+`logs/` into 4 tiers (PROTECTED 16 MB / ARCHIVE_FIRST
-  47 GB / REGENERABLE 4.8 GB reclaimable / REVIEW = 3 ground-truth files); it **cannot delete**
-  (test-asserted) and confirms freeze integrity. **The report now also carries a "Data flow &
-  usage" awareness block** (what feeds what; day-to-day ops don't need the raw layer, only
-  rebuilds do; a live 238-pairs-vs-3-zips regen check) — traced from the "what are
-  processed_tiffs for?" question. Numbers + battery **169 → 183** in §76.
-- **★★ (§74) — a user-prompted CLAIMS AUDIT found TWO WRONG CONCLUSIONS in this very
-  session's ledger entries, both now corrected with ↪ pointers.** (1) §72's "both zero-death
-  events are FLOOD-WATCH" was **disproven by its own table**: there are THREE zero-death
-  events and Himkoti (2026-07-08) is FLOOD-ALERT at 10/14 — the flood arm **tracks the burst
-  arm**, it does not separate fatal from non-fatal; the true statement is that the two
-  sub-ALERT events are the two weakest on every arm. (2) §71's "E_f is now the SAME statistic
-  k was calibrated on" is **overstated**: same family, but the menus differ (flood caps at 6 h
-  vs burst 24 h; 2 of 7 event days had burst winning windows beyond the flood cap) — the
-  inheritance caveat is REDUCED, not retired. Root cause of both: prose narrated from memory
-  instead of re-derived from the artifact. **CLAUDE.md now has rules for exactly this** (derive
-  every numeric sentence; diff definitions before claiming metric identity; CSV parser always —
-  `awk -F','` drops Himkoti's quoted-comma row and would have "confirmed" the error).
-- **★ NEW (§75) — the overnight cycle fired mid-audit and DELIVERED:** the freeze went red,
-  forensics identified the scheduled `monsoon_cycle` (02:31–02:42 UTC, exactly the documented
-  legitimate cause, only 2026 daily-arm files). Payoff: ERA5-Land now reaches 23 Jul and
-  **§62 is SETTLED — the daily arm reads E=4.611 ALERT on the 22 Jul fatal day; every fatal
-  event in the record is now caught at Δ=0 by BOTH validated arms** (skill-table row settled
-  via the generator, 3 cells changed, verified). And the **flood hook's first unattended
-  production run succeeded**, in the R9-required order. Baseline re-frozen (116); battery
-  **169 green**.
-- **★ (§73) — an ADVERSARIAL test round found 4 silent defects, all fixed and
-  pinned.** Probe-first (hunt for crashes/wrong answers, assert nothing), then encode: no config
-  validation (`channel_upstream_km2 <= 0` makes every cell a channel; `coverage_pct > 100` makes
-  the arm publish **no flood risk anywhere and look calm**), a guard that crashed instead of
-  failing closed, and a plain re-run **destroying** the MERIT cross-check. **The biggest gap was
-  an integration one: the real card had never been rendered** — every test used a hand-built
-  summary. `R10` now renders all four real season summaries and asserts the page tells the truth
-  (latest headlined, peak labelled as history, injection-clean); `R11` pins the aborted path.
-  `live_alarm`'s argument contract is now *executed*, not just read. Battery **157 → 169**.
-- **★ (§72) — the flood arm is complete across all four AOI-seasons and is now IN the
-  committed temporal-skill table.** VD 2025 was the missing quarter: 14/14 staged, season peak
-  **2025-08-26 = the Ardhkuwari disaster (34 deaths), E_f 13.80** — the strongest flood reading
-  in the record. Three additive columns (`flood_E_f`, `flood_level`, `flood_catchments_alert`)
-  written **through the generator**, never by hand (the §63 rule). **All 4 fatal events are
-  FLOOD-ALERT (4/8–14/14 catchments alerting)** *(↪ §74: the rest of this bullet's original
-  claim — a clean fatal/non-fatal split — was WRONG; Himkoti, zero deaths, is also
-  FLOOD-ALERT)*. Honest limit: n=7 on the burst arm's own calibration set — a description, not
-  an independent validation, and the flood arm deliberately does not feed `caught_at_alert_by`.
-- **★ The §71 acceptance gate is now a TEST** (`test_I2_I3_verified_event_replay_gate` + a
-  negative control that rebuilds the broken single-duration screening and requires rejection).
-  It was a one-off run, which is precisely how it got skipped. Plan IDs U12/I2/I3 now appear in
-  test names so the plan↔test mapping is greppable.
-- **★ The protected artifact changed DELIBERATELY and was proven additive before re-freezing:**
-  backup → column-by-column diff (3 added, 0 removed, **0 existing cells changed**) → R1
-  confirmed it was the ONLY file that moved → re-froze (**still 116**). R1's message now names
-  this as the second and only other legitimate cause of drift.
-- **★ The PLAN DOC is reconciled with reality** (status block at its top): the range-vs-single
-  correction, touch-points 2 → 3 (both on the user's instruction), and the gate now being a test.
-  **`CLAUDE.md` gained the "CLOSE THE PLAN" rule** (4 steps) plus two more, so the §70/§71 miss
-  classes cannot silently repeat. Battery **157 green**.
-
-- **★★ NEW (§71) — an audit sweep against the plan found its ACCEPTANCE GATE had been skipped,
-  and the gate FAILED.** The plan calls the verified-event replay "the go/no-go for showing the
-  card at all"; the card had shipped twice without it. Running it: on the **22 Jul 2026 fatal
-  event the arm read FLOOD-WATCH where the validated arm read ALERT** — it **downgraded a fatal
-  day**. Cause: the plan says screen "over D = 0.5–6 h" (a RANGE floored at t_c); it was built as
-  a SINGLE t_c window, so all 22 catchments were screened at 0.5 h and were blind to the 6 h
-  accumulation that mattered. **Fixed; the gate now PASSES on both fatal events, with the
-  catchment arm reading HIGHER than the validated arm** — 20 Apr 2025: 4.97 vs 3.07 (1.6×);
-  22 Jul 2026: 4.11 vs 2.44 (1.7×). Side benefit *(as corrected by §74)*: E_f is now the same
-  FAMILY of statistic k=2.4 was calibrated on — the mismatch is reduced, **not** retired (the
-  flood menu caps at 6 h vs the burst arm's 24 h).
-- **★ NEW (§71) — the MERIT-Hydro cross-check is recorded as INCONCLUSIVE, not as a number.**
-  Two corrections were needed before it meant anything (sample at the **outlet**, not the
-  centroid — the centroid version manufactured a 10–300× "divergence"; then measure point-vs-snap
-  contamination, because the snap jumps onto the Chenab mainstem). Only **1/8 and 4/14** points
-  survive, so the artifact carries `conclusive: false`. Routing consistency rests on what is
-  actually pinned: BFS catchment == validated accumulation, and the shared §67 criterion.
-- **★ (§70) — F1 RUNS LIVE on both sites: 22/22 catchments staged, 0 aborts.** Today
-  (2026-07-27, provisional) **both sites all-DORMANT**; season peaks (post-§71 fix) Ramban
-  `zone2` **E_f 12.37** (01 Jul), VD `zone10` **E_f 8.69** (03 Jul). Per-day texture is sane, not
-  saturated. Two §70 bugs a hermetic suite could not catch: sub-pixel GEE nulls falsely aborting
-  3 real catchments, and `level_counts` grading on the SEASON PEAK so the card announced
-  "8/8 FLOOD-ALERT" on a day everything was dormant. Both fixed and regression-tested.
-- **★ The live run found TWO bugs a hermetic suite could not (§70).** (1) Three real catchments
-  were falsely reported unmeasurable — Earth Engine returns null for a sub-pixel region with no
-  pixel centre; the tell was that two boxes of the *same size* succeeded. Probed before fixing;
-  the fix is a proven rescue (the five working catchments returned identical E_f). (2) The
-  summary said "8/8 FLOOD-ALERT" by grading each catchment on its **season peak** while today
-  was E_f 0.0 — a false statement of current risk on a warning page. Now split into `latest`
-  (headline) and `season_peak` (labelled context), matching the IMERG card's contract.
-- **★ The `live_alarm.py` hook IS WIRED (§70 — reverses §69's deferral, on the user's call).**
-  Non-fatal, between the IMERG and radar hooks, **before** the dashboard render; writes only to
-  `data/flood/`. Test `R9` pins the try/except, the SKIPPED message and the ordering.
-- **★ (§69) — the additive claim is MACHINE-CHECKED and still holds after every live run.** The
-  baseline freeze written **before any flood code ran** hashes **116 protected artifacts** —
-  **all 116 byte-identical**. The card is a proven *pure insertion*. Battery **114 → 155 green**
-  in the container. Guards carry negative controls.
-- **Docs gaps closed (§71):** `docs/runbooks/FLOOD_ARM_RUNBOOK.md` (a plan §5 deliverable that
-  had never been written) and `docs/INDEX.md` entries for the plan + runbook.
-- **★ F0 geometry MEASURED on both sites (§69):** 22 zones → **22 catchments, all Regime A,
-  0 truncated, 0 mainstem**, 0.51–2.29 km². **The plan's premise is a number now: the frame DEMs
-  already span every catchment, so the InSAR AOI was never enlarged.** Only **3/22** zones are
-  channel-adjacent at 120 m — the exposure signal is sparse, and stated as such.
-- **⚠ Carried limitations (§69/§70):** every t_c is 0.07–0.12 h so window-matching returns the
-  same 0.5 h window for all 22 (correct, not yet differentiating); the inherited k=2.4 was
-  calibrated on a **max-over-durations** statistic while this arm grades **one** duration, so
-  the inheritance is provisional; still **no flood ground truth** → EXPERIMENTAL.
-  `data/flood/` is **318 MB**, almost all regenerable D8 cache, safe to delete.
-- **⚠ Note for the next session:** a real `live_alarm.py` run legitimately refreshes the current
-  season's daily-arm files, which R1 will flag. Its failure message now spells out that this is
-  the one acceptable cause and how to re-freeze.
-- **★ (§68) — the FLASH-FLOOD EXPANSION PLAN is the document of record.** Committed plan:
-  `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` — an additive-only, config-gated
-  (`flood:` block absent = off) arm: **F0** geometry probe (D8 channels/catchments via the
-  *shared* `flow_routing_probe` functions + coverage guard) → **F1** catchment-aggregated
-  IMERG burst staging (EXPERIMENTAL framing, the §55 lifecycle) → **F2** creep×flood
-  undercut coupling (read-only against `alerts_operational.json`) → **F3** deferred menu.
-  **Scope verdict recorded:** Regime A only (tributary flash floods / toe erosion — a
-  landslide *trigger*, so it deepens the core product); mainstem Chenab + calibrated
-  inundation depth EXCLUDED; the **InSAR AOI is never enlarged** — the frame DEMs already
-  span the catchment terrain (§68) and a data-only "hydrological support domain" does the
-  rest. Test contract (plan §7): baseline-freeze byte-identity manifest written FIRST,
-  hermetic units, negative-controlled guards, verified-event replays.
-- **★ NISAR "fresh batch" VERIFIED as old news (§68).** The 20 Jul 2026 announcement is the
-  public release of the provisional `P05023` stream **§65 already ingested**: 0 new
-  acquisitions / 0 reprocessing over either AOI as of 2026-07-28; newest GUNW still ASC-156
-  07 Jul×19 Jul. The monsoon void re-score stays **blocked on data** (next ASC-156 pass
-  ~early Aug; reprocessed/back-catalog releases promised through end-2026). Bonus find:
-  **11 NISAR L3 SME2 soil-moisture products** over the AOIs (flood-plan F3 option).
-- **Session 30's five batches (§63–§67) are ALL COMMITTED** (`2a13fd0`…`7df55e0`); the tree
-  was clean before this session's doc-only delta. Battery not re-run this session (docs
-  only; Docker down by preference) — the committed **114-green** state (§67) stands.
-- **⚠ Known fragility, guarded (carried §64):** burst k=2.40 sits 1.6% under the fatal floor;
-  the `test_tier34.py` margin guard is the tripwire — re-derive k, don't edit the test.
-- **(§62 carried, now PAST its expected latency)** — the 22 Jul Gangroo–Ramsu daily-arm
-  confirmation expected ~27 Jul via ERA5-Land; a `live_alarm.py` re-run is now the cheapest
-  pending action on the board (the skill table picks it up automatically).
-- **DEFERRED, deliberately (carried §61):** the S1A-only Ramban rebuild rescore — judgment-
-  heavy, needs the cross-frame-merge design decision, run WITH the user; not headless.
-- **⚠ USER REVIEW still open (§52):** 2 inventory rows, evidence gathered, verdict pending.
-- **⚠ Still open from the §66 scan (LOW):** no CSRF/`Origin` check on the panel's `POST /run`;
-  `_serve_file` whole-file reads; old pinned micromamba base tag.
-- **BOTH sites in WATCH (§54)**; Ramban COMPLETE/scored/LIVE (§21b, §44), VD validated +
-  site-tuned (§26–§32); merge `aoi-vaishnodevi` → `master` remains the user's call. Active
-  hardening plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md` (Tiers 0–4 ✅ except
-  4b soil lab = user, 4d frames-101/102 ERA5 rescue = deferred).
-- **Honest limits carried:** creep core 0 vs corridor inventory (CV3); 598 m miss (§31/§51);
-  soils literature-corroborated not lab-measured (§37/§39/§42/§47); §40 GACOS pair open;
-  Drive copy of raw zips is the only archival source (§48).
+- **★★ NEWEST (§77) — the VD radar cadence refresh is DONE, end to end.** The §76-priced,
+  user-present operation: 10 new pairs acquired, both **S1A→S1D cross-satellite seams landed
+  CLEAN** (the path100 operational seam was the *best* pair of the batch), `run_multistack` rebuilt
+  `path100_frame103` to **08-05**, and the dashboard freshness pill is **cleared** (`library_through`
+  06-25 → 08-05, `new_asc_scenes` 0). First run of the cadence-rebuild loop and the first VD
+  constellation handover ever processed. Numbers in §77.
+- **⚠ Trade-off, stated not hidden (§77):** the rebuild **dropped `path27_frame105`** (a monsoon
+  quarantine of its new `07-07→07-19` pair fragmented it), so the operational mosaic is now
+  **single-look** (was 2-look; 0 ≥2-look confirmations). The validated **ALERT AUC 0.757 is
+  unchanged**; it self-heals next cadence cycle. A `07-07→07-31` bridge pair could restore the 2nd
+  look now but spans peak monsoon — deferred by choice, not oversight.
+- **★ Baseline re-frozen the §75 way (§77):** 16 protected files changed → forensics BEFORE deleting
+  the manifest proved 12 were the VD refresh + 4 a pre-session `monsoon_cycle` (documented
+  legitimate cause); 0 missing/added; `test_flood_invariants` **12/12** (R1 CREATED 116),
+  `test_plumbing` 11/11.
+- **⚠ OPEN — this session's honest gap:** the **full 183-test battery was NOT re-run**. The rebuild
+  changed VD scenario zone counts, so a next-pass full run should confirm no test pinned a
+  pre-refresh value (the unchanged AUC is reassuring, not proof). Cheapest next action.
+- **⚠ Ramban now carries the standing staleness warning:** `radar_watch` shows Ramban **16 new ASC
+  scenes** (S1A/S1D) through 08-05, its cadence rebuild UNBLOCKED — the SAME operation just proven
+  on VD, and it folds in the long-deferred §61 S1A-only rescore (needs the cross-frame-merge design
+  decision). User-present; not done.
+- **Flood arm (§69–§76) is complete and IN the committed skill table** (four AOI-seasons, all
+  additive-proven); **F2** (creep×flood undercut coupling) is its next phase and the one that makes
+  the 3/22 channel-adjacency count actionable (consider sweeping `channel_buffer_m` first, §71).
+- **Both sites in WATCH (§54);** Ramban COMPLETE/scored/LIVE, VD validated + site-tuned (§26–§32) and
+  now radar-current (§77). Merge `aoi-vaishnodevi` → `master` and publishing the dashboard remain the
+  user's call. Active hardening plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
+- **Carried honest limits:** VD operational mosaic single-look until path27 reconnects (§77); creep
+  core 0 vs corridor inventory; 598 m miss (§31/§51); soils literature-corroborated not lab
+  (§37/§42/§47); §40 GACOS pair open; Drive copy of raw zips is the only archival source (§48).
+- **⚠ Still open (standing):** §52 — 2 inventory rows, evidence gathered, verdict pending; GACOS form
+  + soil lab; the §66 LOW web findings (panel CSRF/`Origin`, `_serve_file` whole-file reads).
 
 ## Recommended next step
 
-~~Run `live_alarm.py` to settle §62~~ — **the scheduled overnight cycle did all of it on its
-own (§75):** §62 SETTLED (daily arm E=4.611 ALERT on the 22 Jul fatal day — every fatal event
-now caught at Δ=0 by both validated arms), the flood hook's first unattended production run
-succeeded in the R9 order, and the drift was caught by the freeze, forensically verified, and
-re-frozen. Next is therefore either the standing **§61 S1A-only rebuild rescore in a focused
-session WITH the user** (design decision on the f105/f103 chain-join first), or **F2**
-(creep×flood undercut coupling — the plan's next phase, and the one that makes the 3/22
-exposure count actionable; consider sweeping `channel_buffer_m` first, §71's untested default).
-User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge to `master`; publish
-the dashboard.
+**Re-run the full 183 battery in-container** — the one open item from §77: confirm the VD rebuild
+didn't break a test that hard-coded a pre-refresh zone count. Then either **run the Ramban cadence
+refresh** (its 16-scene warning is now the standing one, and it carries the §61 deferred S1A-only
+rescore — the same loop just proven on VD, user-present) or advance the flood arm to **F2**.
+User-side (standing): settle the 2 §52 rows; GACOS + soil lab; merge to `master`; publish the
+dashboard.
 
 ## Uncommitted delta
 
-§76's first batch — the three user asks — is **already committed** (`a25fe5c`: NEW
-`file_disposition.py` + `test_file_disposition.py`, the calendar-E guard, M59, docs INDEX, the
-prior LIVE block). The **uncommitted delta is the §76 follow-up only** — data-flow awareness
-baked into the disposition tool (the "what are processed_tiffs for?" answer, made durable):
-- `workflows/file_disposition.py` — `DATA_FLOW` awareness block + `regen_feasibility()` live
-  check + its render in the report.
-- `tests/test_file_disposition.py` — +2 (awareness content renders; regen check reports
-  honestly). 11 → 13.
-- `RESULTS_AND_KPIS.md` — §76 append (data-flow awareness paragraph + battery → 183).
-- `milestone.md` (M59 append), `session_journey.md` S31g (append). Git-ignored:
-  `data/file_disposition_report.{md,json}` regenerated with the awareness section.
-- **No validated product touched; battery re-verified 183/183, R1 green (no drift this run).**
-
-**§74/§75 — the claims audit + the overnight settlement:**
-- `workflows/flood_gate.py` — `match_durations` docstring corrected ("same FAMILY, menus
-  differ" — no behaviour change).
-- `RESULTS_AND_KPIS.md` (§74 corrections + §75; ↪ pointers at §71/§72), `milestone.md` (M58
-  correction + the §62 verdict), `CLAUDE.md` (+2 rules: re-derive every numeric sentence /
-  never suppress output of a run treated as successful), `error_history_log.md` (4 entries),
-  `SESSION_REVIEW.md`, `session_journey.md` S31f.
-- **`data/inventory/temporal_skill_table.csv` (tracked): the 2026-07-22 row SETTLED via the
-  generator** — 3 cells (`daily_E` ''→4.61, `daily_level` PENDING→ALERT, `caught_at_alert_by`
-  burst→both), 0 other cells; backup + cell-diff before accepting; baseline re-frozen.
-- Git-ignored data refreshed by the OVERNIGHT CYCLE (not by this session's code): 2026
-  daily-arm calendars/reports, imerg summaries, flood summaries, radar watch, 2026 dashboards.
-
-**§73 — the adversarial test round:**
-- `workflows/flood_domain.py` — config validation (raises with the consequence named), the
-  coverage guard fails closed on junk, `carry_forward_merit()` so a plain re-run stops
-  destroying the cross-check.
-- `workflows/flood_gate.py` — the `choices=[]` fallback documented and pinned.
-- `tests/test_flood_domain.py` 13→16, `tests/test_flood_gate.py` 20→27,
-  `tests/test_flood_invariants.py` 10→12 (**R10** real-summary render + **R11** aborted path).
-- `RESULTS_AND_KPIS.md` (§73), `error_history_log.md`, `SESSION_REVIEW.md`.
-
-**§72 — four-season set, skill table, and the anti-recurrence work:**
-- `workflows/flood_gate.py` — `event_flood_level()` (the skill-table lookup, blank = not measured).
-- `workflows/imerg_calibration.py` — 3 additive columns in the generated table (**a 3rd
-  existing-file touch-point**, on the user's instruction; flood logic stays in `flood_gate`).
-- `tests/test_flood_gate.py` 18→20 (I2/I3 replay gate as a permanent test + its negative
-  control; U12 renamed for traceability), `tests/test_tier34.py` (flood-column schema, levels
-  re-derived from the imported constants), `tests/test_flood_invariants.py` (R1 message names
-  the second legitimate drift cause).
-- `CLAUDE.md` (+3 rules: CLOSE THE PLAN; suspect-your-own-query; worst-ever vs right-now vs
-  not-measured), `error_history_log.md` (+5th failure class: silent no-code deliverables),
-  `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (STATUS AS BUILT block),
-  `RESULTS_AND_KPIS.md` (§72), `SESSION_REVIEW.md`, `session_journey.md` S31e.
-- Git-ignored data: `data/flood/` (VD 2025 added — four seasons complete),
-  `data/inventory/temporal_skill_table.csv` (**tracked**; +3 columns, re-frozen).
-
-**§71 — the audit sweep (on top of §70, same working tree):**
-- `workflows/flood_gate.py` — `match_durations()` (RANGE screening; the gate fix) and
-  `catchment_daily_E` now takes a duration list and records the winning window.
-- `workflows/flood_domain.py` — `outlet_lonlat` in the catchment record; MERIT sampled at the
-  outlet with point-vs-snap contamination exclusion and a `conclusive` verdict.
-- `tests/test_flood_gate.py` 17→18 (range-screening regression; the pin now also requires both
-  arms to agree on the winning duration).
-- NEW `docs/runbooks/FLOOD_ARM_RUNBOOK.md`; `docs/INDEX.md` (+2 entries);
-  `RESULTS_AND_KPIS.md` (§71); `error_history_log.md` (4 defects); `session_journey.md` S31d.
-- Git-ignored data: `data/flood/` regenerated (both sites 2026 + Ramban **2025** for the replay).
-
-**§70 — F1 run live, two bug fixes, and the hook:**
-- `workflows/flood_gate.py` — `sampling_scale_m()` (the sub-pixel null fix) + the
-  `latest`/`season_peak` split + `alert_days_per_catchment` + a two-line run summary.
-- `workflows/operational_alarm.py` — `_flood_card()` now leads with **today** and labels the
-  season peak as context (still the only existing-file change on the dashboard side).
-- `workflows/live_alarm.py` — the non-fatal flood hook, before the render (**a second
-  existing-file touch-point, deliberately added on the user's instruction**; §69 had deferred it).
-- `tests/test_flood_gate.py` 15→17 (sampling-scale regression, TODAY-vs-peak regression),
-  `tests/test_flood_invariants.py` 9→10 (R9 hook contract + re-freeze guidance in R1).
-- `RESULTS_AND_KPIS.md` (§70), `milestone.md` (M56), `SESSION_REVIEW.md` (this LIVE block),
-  `session_journey.md` (git-ignored) S31c.
-- Git-ignored data: first real `data/flood/flood_gate_summary{,_vaishnodevi}_2026.json` +
-  `flood_catchment_E*.csv` + per-catchment `_rain/` caches (rebuilt at the fixed sampling scale).
-
-**Not touched (verified by hash, R1, after every live run):** all 116 protected artifacts.
-`build_3d_dashboard.py` remains untouched and pinned so by a test (F2's touch-point, not F1's).
-Scratch EE/battery probes stayed in the session scratchpad (never entered the repo).
+The **§77 config change is already committed** (`e50cce3`: `config/vaishnodevi.yaml` `search_end`
+→ 08-08). The uncommitted delta is this wrap-session's documentation:
+- `RESULTS_AND_KPIS.md` — §77 append (acquisition, both clean seams, rebuild, single-look trade-off,
+  pill cleared, re-freeze).
+- `error_history_log.md` — §77 process entry (piping a slow run through `grep|tail` blanks its
+  progress once auto-backgrounded).
+- `milestone.md` — M60 (plain-language: refreshed the ageing map; the satellite handover worked).
+- `session_journey.md` (git-ignored) — Session 32 entry.
+- `SESSION_REVIEW.md` — this LIVE block; **STABLE §2 facts updated** (HyP3 credits 8000→~7,900,
+  radar library 238→248 products).
+- **Git-ignored data rebuilt this session** (NOT committed): `velocity_vaishnodevi/`,
+  `hazard_vaishnodevi/`, `alerts_vaishnodevi/`, `mosaic_vaishnodevi/` (path100_frame103);
+  `rainfall/operational_alarm_*`; `radar_watch.json`; `data/flood/_baseline_freeze.json` (re-created,
+  116). ~1.7 GB new zips in `C:\InSAR_data\raw_zips` (disposable post-extract, §48).
 
 ---
 
@@ -308,7 +120,7 @@ Scratch EE/battery probes stayed in the session scratchpad (never entered the re
   Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: **~7,430 as of 2026-07-22** (§61 — 30 spent on the Ramban rebuild; was 7,460). Radar library 238 products. Disk: ~46 GB in `data/` (§48 — raw zips Drive-archived + deleted 2026-07-15).
+- HyP3 credits: **~7,900 as of 2026-08-08** (§77 — 8000 verified pre-refresh, ~100 on the VD cadence refresh; the §61 7,430 balance replenished since). Radar library **248 products** (238 + 10 §77). Disk: ~49 GB in `data/` (§48/§77 — raw zips Drive-archivable; +~3 GB from the §77 refresh).
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
 - **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —

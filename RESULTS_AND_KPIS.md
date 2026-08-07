@@ -3774,6 +3774,69 @@ calendar-E re-derivation; R1 re-verified green on the final run, no further drif
 
 ---
 
+## 77. VD radar cadence refresh EXECUTED — 10 new pairs, both S1A→S1D seams CLEAN, hazard map advanced 06-25 → 08-05, freshness pill cleared  `[MEASURED]`
+*(2026-08-08, session 32 — the FIRST end-to-end run of the radar-cadence rebuild loop
+(SESSION_REVIEW roadmap #1) and the first VD S1A→S1D cross-satellite seam ever processed; the
+§61/§76 user-present operation, go button pressed. Producing scripts: `submit_hyp3_jobs`,
+`download_hyp3_products`, `feature_engineering`, `phase_elevation_audit`, `_consolidate_quarantine`,
+`sbas_network_graph`, `apply_connectivity_rescues`, `run_multistack`, `operational_alarm`,
+`radar_watch`, `test_flood_invariants`.)*
+
+**★ Acquisition.** Extended `config/vaishnodevi.yaml` `search_end` 07-31 → 08-08 to capture the
+newest scene, then submitted **10 new pairs** (dry-run: 62 planned, 52 dupes): **7 ASC**
+(path100_frame103 ×4 incl. the seam, path27_frame105 ×3) + **3 DESC** (path34_frame480, incl. a
+DESC seam). Credits **8000 pre-submit [verified in dry-run]**; ~100 spent (10 × ~10 cr/pair,
+≈1.25% of balance). All 10 processed at ASF, downloaded + extracted (238 → 248 products;
+~1.7 GB zips to `C:\InSAR_data\raw_zips` + ~1.4 GB tiffs to `processed_tiffs`).
+
+**★★ Both S1A→S1D cross-satellite seams landed CLEAN — the whole risk of the op.**
+- **path100 ASC seam** (`S1AD 06-23→06-30`): survivors **59.6%**, coherence **0.779** — the *best*
+  pair of the batch — atmospheric **CLEAN**. Far above §61's accepted Ramban seam (31%/0.665).
+- path34 DESC seam (`06-19→06-26`): 37.9% / 0.686, CLEAN.
+- Frame numbers are STABLE across the handover for VD (unlike Ramban's §61 frame drift), so the
+  seam pairs auto-build in-bucket — no explicit `--pair` needed.
+
+**⚠ 3 monsoon quarantines** (phase-elevation R²>0.5, peak-monsoon water vapour): DESC `06-26→07-20`
+R²=0.788, **ASC path27 `07-07→07-19` R²=0.600**, DESC `07-20→08-01` R²=0.536. Full library
+consolidation KEEP 153 / CONCERN 48 / QUARANTINE 47 (248 products). Operational stacks:
+path100_frame103 **0 quarantine** (all 4 new = KEEP), path27_frame105 1 quarantine.
+
+**★ Rebuild — path100_frame103 to 08-05, validated score preserved.** `run_multistack` processed
+only the one fully-connected stack (`sbas_network_graph`: path100 islands 2→1 CONNECTED after 10
+quality-gated rescues; all other stacks non-connected → skipped). SBAS: **8 pairs, 9 dates
+2026-05-06 … 08-05, rank 8/8**, 13,437 solvable px (38.8%). Hazard LOW 11,508 / WATCH 22,304 /
+HIGH 796 (creep 5,032). Scenario alerts: operational **0**, watch **16** (6 critical), monsoon 56
+(30). **ALERT AUC 0.757 — unchanged from the §45 kappa=0.06 validated value**; WATCH AUC 0.586,
+recall 0.957@2km. Velocity is short-baseline-noisy (46% of kept px exceed |100| mm/yr, std_hp
+74.7 mm/yr) — the known frame-drift limitation (frame103 is only the recent post-renumber window,
+§43/§61), NOT introduced by this refresh.
+
+**⚠ Trade-off — the operational mosaic dropped to single-look.** path27_frame105 (a Jul-10-inverted
+SECOND look, source_stack #2) was **skipped** because the monsoon quarantine of its new
+`07-07→07-19` pair fragmented it (islands 3→2; the 0.60-R² gap exceeds the 0.45 rescue gate). So
+the union mosaic is now **path100-only, 0 ≥2-look confirmations** (was 2-look). Freshness gained,
+one confirmation look lost; **self-heals next cadence cycle** when a clean pair reconnects path27.
+The stale Jul-10 path27 velocity is NOT mixed in (the mosaic used only the connected stack). A
+`07-07→07-31` bridge pair (~10 cr) could restore it now but spans peak monsoon — deferred.
+
+**★ Freshness pill CLEARED.** `radar_watch`: vaishnodevi **library_through 06-25 → 2026-08-05,
+new_asc_scenes 0**. Regenerated dashboard pill carries `data-acq="2026-08-05"`, `data-new=""`
+(JS-falsy → the "NEWER at ASF" clause does not render), 3 days old → below the 35-day amber
+threshold. The §76-priced warning is gone. (Ramban's own 16-scene warning is untouched — separate
+AOI, not rebuilt.)
+
+**★ Integrity.** `test_plumbing` 11/11. Re-froze the baseline (**116**): 16 protected files changed
+= **12 the VD refresh** (5 velocity + 1 hazard_class [slope/TWI/FS byte-identical, DEM+soil-derived]
++ 4 alerts + 2 unsuffixed `operational_alarm`) + **4 a pre-session scheduled `monsoon_cycle`**
+(2026 daily-arm files, Ramban + VD, mtime 18:19–18:21 UTC *before* session start — the documented
+legitimate cause, §75 pattern, proven by mtimes before touching anything); **0 missing, 0 added,
+no Ramban velocity/hazard/alerts and no back-test or skill-table moved**. `test_flood_invariants`
+12/12 (R1 CREATED 116). **Full battery (183) NOT re-run this session** — a next-pass check should
+confirm no test pinned a pre-refresh VD zone count (the unchanged ALERT AUC 0.757 is reassuring,
+but scenario zone counts moved).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.
