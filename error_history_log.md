@@ -1713,3 +1713,46 @@ sentences about them were not.
   plain so the (possibly background) output file streams line-by-line; filter *after* it completes.
   The submit `--submit` itself was correctly re-run unfiltered after the classifier flagged the
   piped version (a second, independent nudge toward the same rule).
+
+## 2026-08-08 — §78: the battery caught what the session summary missed (4 defects)
+
+### 1. A user-visible fix was VERIFIED IN THE WRONG ARTIFACT (§77 → corrected §78)
+* **Symptom:** §77 reported "the freshness pill is cleared" and proved it by reading
+  `data-acq="2026-08-05"` out of `operational_alarm_dashboard.html`. The user then opened the real
+  dashboard and saw **"347 days old snapshot"**.
+* **Root cause:** `operational_alarm.py` was run **bare**. Bare = the *default* CSV (the 2025
+  back-test season) + `--as-of` defaulting to `argmax(E)` (the season PEAK = 2025-08-26) + the
+  *unsuffixed* output path. So it regenerated the BACK-TEST page; the live
+  `..._vaishnodevi_2026.html` was never touched and still showed the old pill.
+* **Fix/lesson:** **verify a user-visible fix in the artifact the user actually opens.** For
+  anything live, use `live_alarm.py` (or replicate its exact args: season CSV, `--as-of` last
+  complete day, `--out-suffix`) — never bare `operational_alarm.py`. Note the safety net WORKED:
+  the staleness guard is what surfaced this.
+
+### 2. A stored score was advertised for a footprint it never scored (§78)
+* **Symptom:** the dashboard rendered **"AUC 0.757 · the map that beats chance"** directly beside an
+  **empty (0-zone)** ALERT footprint.
+* **Root cause:** `load_tier` read the AUC from the back-test report but never read
+  `n_flagged_zones`, so nothing could tell that the scored map (14 zones) and the displayed map
+  (0 zones) were different objects.
+* **Fix:** `scored_zones` is now carried and compared against the live count; on mismatch the score
+  is WITHDRAWN ("Not measured for this footprint…") and the "beats chance" title dropped. Pinned by
+  `test_score_is_not_advertised_for_a_footprint_it_never_scored` **with a negative control**.
+* **Lesson:** the §70 "worst-ever vs right-now vs not-measured" rule applies to **scores**, not just
+  levels. A metric must travel with the identity of what it measured.
+
+### 3. A test conflated LOGIC with live DATA STATE (§78)
+* **Symptom:** `test_loader_footprint_fallback_without_per_zone_csv` failed after a legitimate
+  rebuild — it read the REAL `alerts_operational.json` as its fixture and needed it non-empty.
+* **Fix/lesson:** split it — the logic test now uses a synthetic 2-zone footprint (an empty live map
+  can never break it), and the data-state question became its own explicit guard. **Do not delete a
+  test that fails for a real reason; work out which of the two things it was testing, and give each
+  its own test.** (The failure was genuinely valuable: it is what exposed the empty ALERT map.)
+
+### 4. A new flag compared datetimes where the operator means a DATE (§78, self-caught)
+* **Symptom:** the new `--max-date 2026-07-07` period split dropped **2** pairs, not 1 — silently
+  discarding the 07-07 acquisition the operator had just named as the period's last scene.
+* **Root cause:** acquisitions carry a time (~12:55), and `12:55 > midnight`.
+* **Fix/lesson:** compare `.date()` when the CLI argument is a calendar date. Caught only because
+  the run's output was read line-by-line instead of assumed — the same discipline as the entry
+  above it.

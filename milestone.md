@@ -2226,3 +2226,32 @@ checks (all green).
 
 **Bottom line:** the warning is cleared, the map is current to early August, and the tricky
 once-in-a-satellite's-lifetime handover is now *proven* to work in our pipeline (§77).
+
+## ⚠️ Correction to Milestone 60, and what our own tests caught  *(2026-08-08)*
+
+**We ran the full test suite — and it immediately found something we had missed.** Milestone 60
+said the refresh cost us "a bit of cross-confirmation." That was **too gentle**. The truth: the
+refresh left the site's **"act now" map completely empty** — it had 14 flagged slopes before and
+zero after. Our automated checks caught it on the first run, which is exactly what they are for.
+
+**Then we chased the cause, and found something more important than the refresh.** We proved it
+wasn't the missing viewing angle (we put it back — still empty) and wasn't the newest radar pair
+(we removed it — still empty). What the "act now" map actually needs is a **coincidence**: ground
+that is *physically fragile* AND *measurably sliding*, in the same spot. Both ingredients are
+present in healthy amounts — they just barely overlap, in a handful of scattered pixels.
+
+The uncomfortable part: with only 6–9 radar snapshots, the "is it sliding?" measurement is so noisy
+that it flags about a third of the map essentially at random. So the 14 slopes we had before were
+**probably as much luck as signal** — this is a long-standing weakness our refresh *exposed*, not
+one it caused. Honest conclusion: **that map is not reliable at this amount of radar**, and the
+real fix is more radar over time, not a cleverer threshold.
+
+**So we made the dashboard tell the truth.** It used to display a quality score — *"beats chance"* —
+right next to an empty map. That score was measured on the *old* 14-slope map and says nothing
+about today's. The page now says plainly: **"Not measured for this footprint."** We added a
+permanent check so a score can never again be shown for a map it didn't actually measure. The
+wider **"monitor" map is unaffected and healthy** (30 areas, cross-confirmation restored).
+
+**Bottom line:** a routine test run turned into the most valuable finding of the session — we
+learned our sharpest map was resting on noise, and we chose to say so on the page rather than
+quietly tune numbers until it looked good again. Checks now **184**, all passing (§78).

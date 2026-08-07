@@ -15,65 +15,83 @@
 
 ## Current state
 
-- **★★ NEWEST (§77) — the VD radar cadence refresh is DONE, end to end.** The §76-priced,
-  user-present operation: 10 new pairs acquired, both **S1A→S1D cross-satellite seams landed
-  CLEAN** (the path100 operational seam was the *best* pair of the batch), `run_multistack` rebuilt
-  `path100_frame103` to **08-05**, and the dashboard freshness pill is **cleared** (`library_through`
-  06-25 → 08-05, `new_asc_scenes` 0). First run of the cadence-rebuild loop and the first VD
-  constellation handover ever processed. Numbers in §77.
-- **⚠ Trade-off, stated not hidden (§77):** the rebuild **dropped `path27_frame105`** (a monsoon
-  quarantine of its new `07-07→07-19` pair fragmented it), so the operational mosaic is now
-  **single-look** (was 2-look; 0 ≥2-look confirmations). The validated **ALERT AUC 0.757 is
-  unchanged**; it self-heals next cadence cycle. A `07-07→07-31` bridge pair could restore the 2nd
-  look now but spans peak monsoon — deferred by choice, not oversight.
-- **★ Baseline re-frozen the §75 way (§77):** 16 protected files changed → forensics BEFORE deleting
-  the manifest proved 12 were the VD refresh + 4 a pre-session `monsoon_cycle` (documented
-  legitimate cause); 0 missing/added; `test_flood_invariants` **12/12** (R1 CREATED 116),
-  `test_plumbing` 11/11.
-- **⚠ OPEN — this session's honest gap:** the **full 183-test battery was NOT re-run**. The rebuild
-  changed VD scenario zone counts, so a next-pass full run should confirm no test pinned a
-  pre-refresh value (the unchanged AUC is reassuring, not proof). Cheapest next action.
-- **⚠ Ramban now carries the standing staleness warning:** `radar_watch` shows Ramban **16 new ASC
-  scenes** (S1A/S1D) through 08-05, its cadence rebuild UNBLOCKED — the SAME operation just proven
-  on VD, and it folds in the long-deferred §61 S1A-only rescore (needs the cross-frame-merge design
-  decision). User-present; not done.
-- **Flood arm (§69–§76) is complete and IN the committed skill table** (four AOI-seasons, all
-  additive-proven); **F2** (creep×flood undercut coupling) is its next phase and the one that makes
-  the 3/22 channel-adjacency count actionable (consider sweeping `channel_buffer_m` first, §71).
-- **Both sites in WATCH (§54);** Ramban COMPLETE/scored/LIVE, VD validated + site-tuned (§26–§32) and
-  now radar-current (§77). Merge `aoi-vaishnodevi` → `master` and publishing the dashboard remain the
-  user's call. Active hardening plan: `docs/references/STRENGTHENING_PLAN_2026-07-18.md`.
-- **Carried honest limits:** VD operational mosaic single-look until path27 reconnects (§77); creep
-  core 0 vs corridor inventory; 598 m miss (§31/§51); soils literature-corroborated not lab
-  (§37/§42/§47); §40 GACOS pair open; Drive copy of raw zips is the only archival source (§48).
-- **⚠ Still open (standing):** §52 — 2 inventory rows, evidence gathered, verdict pending; GACOS form
-  + soil lab; the §66 LOW web findings (panel CSRF/`Origin`, `_serve_file` whole-file reads).
+- **★★ NEWEST (§78) — the full battery was run and CAUGHT A REAL REGRESSION (182/183 on the first
+  run).** The §77 refresh had emptied VD's **ALERT footprint: 14 zones → 0** (validated baseline =
+  `n_flagged_zones` in the back-test that scored AUC 0.757). The failing test was truthful, not
+  stale. Battery now **184 green** across 14 suites.
+- **★★ ROOT CAUSE (§78) — the ALERT tier is NOISE-LIMITED, not broken.** Restoring path27 and
+  re-inverting at the pre-refresh cutoff both left it at 0, so neither the drop nor the new pair
+  explains it. A read-only probe shows both conditions are healthy but barely intersect (844 `FS<1`
+  px vs ~4–5k creep px → **5–7 overlapping px, 0 clusters**). σ(hp velocity) 45–75 mm/yr puts the
+  −15 mm/yr creep threshold at **0.20–0.33σ**, selecting ~37% of pixels — consistent with
+  thresholding noise. **The old 14-zone map deserves the same scepticism**; this is the standing
+  ~30 mm/yr noise floor, measured.
+- **★ ADOPTED — "not measured" is a third state (§78).** `operational_alarm.py` now carries
+  `scored_zones` and **withdraws** a score whose footprint moved: the card reads "Not measured for
+  this footprint" and drops "beats chance". Previously the page showed **AUC 0.757 beside an EMPTY
+  map**. Pinned by a new test **with a negative control**.
+- **★ NEW `custom_sbas_inverter.py --max-date` — the period split the code only ever *referred* to**
+  (`run_multistack` says "need SVD/period-split"; nothing implemented it). path27 now solves
+  6 pairs / 7 dates / 05-01…07-07, rank 6/6 → **two-look restored** (HIGH ≥2-look 0 → **150 px**,
+  WATCH 16 → **30 zones**).
+- **★ §77 CORRECTED with three ↪ pointers, never rewritten:** (1) "lost a confirmation look"
+  understated an **emptied ALERT map**; (2) the freshness pill was **verified in the wrong artifact**
+  — bare `operational_alarm.py` regenerates the *2025 back-test* page as-of the season PEAK
+  (2025-08-26 → the user's "**347 days old**" banner), not the live 2026 page; (3) the "battery not
+  re-run" hedge is resolved. The live page is now correct: `data-acq="2026-08-05"`, `data-new=""`,
+  `data-asof="2026-08-01"`.
+- **★ §77 (carried) — the cadence refresh itself was a success:** 10 new pairs, **both S1A→S1D
+  cross-satellite seams CLEAN** (the path100 operational seam was the batch's best), hazard map
+  advanced 06-25 → **08-05**, freshness pill cleared. VD frame numbers are stable across the
+  handover, so seam pairs auto-build in-bucket.
+- **⚠ OPEN #1 — VD has NO ALERT footprint on current data.** The WHERE-ALERT product is empty at
+  m=0.40; the page states this honestly. WATCH (30 zones, 2-look confirmed) is the usable tier.
+- **⚠ OPEN #2 — the path27 restoration is NOT sticky.** `connected_stacks()` still marks it
+  disconnected, so a plain `run_multistack` (no `--stacks`) will silently drop it and re-empty the
+  map. Needs a config entry (e.g. a `period_split:` cutoff per stack) or a runbook line **before the
+  next cadence cycle**.
+- **⚠ Ramban carries the standing staleness warning:** `radar_watch` shows **16 new ASC scenes**
+  through 08-05, rebuild UNBLOCKED — the same loop now proven on VD, and it folds in the deferred
+  §61 S1A-only rescore (needs the cross-frame-merge decision). User-present; not done.
+- **Flood arm (§69–§76) complete** across four AOI-seasons and in the committed skill table; **F2**
+  (creep×flood undercut coupling) is its next phase.
+- **Carried honest limits:** ALERT tier noise-limited (§78); creep core 0 vs corridor inventory;
+  598 m miss (§31/§51); soils literature-corroborated not lab (§37/§42/§47); §40 GACOS pair open;
+  Drive copy of raw zips is the only archival source (§48). **⚠ Standing:** §52 — 2 inventory rows
+  pending verdict; §66 LOW web findings.
 
 ## Recommended next step
 
-**Re-run the full 183 battery in-container** — the one open item from §77: confirm the VD rebuild
-didn't break a test that hard-coded a pre-refresh zone count. Then either **run the Ramban cadence
-refresh** (its 16-scene warning is now the standing one, and it carries the §61 deferred S1A-only
-rescore — the same loop just proven on VD, user-present) or advance the flood arm to **F2**.
-User-side (standing): settle the 2 §52 rows; GACOS + soil lab; merge to `master`; publish the
-dashboard.
+**Immediate, in this order:**
+
+1. **Make the path27 restoration sticky (OPEN #2)** — highest risk of silent regression. Either add
+   a `period_split:` cutoff to `config/vaishnodevi.yaml` that `run_multistack` honours, or (minimum)
+   a runbook line: *never run `run_multistack` for VD without
+   `--stacks ASC_path100_frame103 ASC_path27_frame105`.*
+2. **Re-score the current footprint** — run `backtest_inventory.py` against the live
+   `alerts_watch.json` so the WATCH tier carries a score measured on **this** map (ALERT cannot be
+   scored while empty). That also clears the "Not measured" banner legitimately.
+3. **Attack the noise floor (the real fix for §78)** — the 49-product `frame101/102/106` stacks are
+   long enough to cut σ materially; reconnecting path27's tail next cadence cycle also helps. This
+   is the standing roadmap item, now with a measured cost attached.
+
+Then: the **Ramban cadence refresh** (+ §61 rescore), or flood **F2**. User-side (standing): settle
+the 2 §52 rows; GACOS form + soil lab; merge `aoi-vaishnodevi` → `master`; publish the dashboard.
 
 ## Uncommitted delta
 
-The **§77 config change is already committed** (`e50cce3`: `config/vaishnodevi.yaml` `search_end`
-→ 08-08). The uncommitted delta is this wrap-session's documentation:
-- `RESULTS_AND_KPIS.md` — §77 append (acquisition, both clean seams, rebuild, single-look trade-off,
-  pill cleared, re-freeze).
-- `error_history_log.md` — §77 process entry (piping a slow run through `grep|tail` blanks its
-  progress once auto-backgrounded).
-- `milestone.md` — M60 (plain-language: refreshed the ageing map; the satellite handover worked).
-- `session_journey.md` (git-ignored) — Session 32 entry.
-- `SESSION_REVIEW.md` — this LIVE block; **STABLE §2 facts updated** (HyP3 credits 8000→~7,900,
-  radar library 238→248 products).
-- **Git-ignored data rebuilt this session** (NOT committed): `velocity_vaishnodevi/`,
-  `hazard_vaishnodevi/`, `alerts_vaishnodevi/`, `mosaic_vaishnodevi/` (path100_frame103);
-  `rainfall/operational_alarm_*`; `radar_watch.json`; `data/flood/_baseline_freeze.json` (re-created,
-  116). ~1.7 GB new zips in `C:\InSAR_data\raw_zips` (disposable post-extract, §48).
+`config/vaishnodevi.yaml` (`search_end` → 08-08) is **already committed** (`e50cce3`). Uncommitted:
+- `workflows/custom_sbas_inverter.py` — NEW `--max-date` period split (+ the date-vs-datetime fix).
+- `workflows/operational_alarm.py` — `scored_zones` carried; score **withdrawn** when the footprint
+  moved (card title + body + console line).
+- `tests/test_historical_events.py` — fallback test now uses a synthetic footprint (logic ≠ live
+  data state); NEW `test_score_is_not_advertised_for_a_footprint_it_never_scored` + negative
+  control. **183 → 184.**
+- `RESULTS_AND_KPIS.md` — §78 + **three ↪ corrections on §77**; `error_history_log.md` — 4 defects;
+  `milestone.md` — M60 correction; `session_journey.md` (git-ignored) — S32b; `SESSION_REVIEW.md`.
+- **Git-ignored data rebuilt:** `velocity_/hazard_/alerts_vaishnodevi` (path27_frame105),
+  `mosaic_vaishnodevi`, the VD 2026 dashboard/report/calendar, `data/flood/_baseline_freeze.json`
+  (re-frozen **116**; 12 changed, 0 unexpected/missing/added).
 
 ---
 

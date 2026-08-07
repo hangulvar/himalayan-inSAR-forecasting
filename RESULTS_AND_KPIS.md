@@ -3854,6 +3854,10 @@ no Ramban velocity/hazard/alerts and no back-test or skill-table moved**. `test_
 12/12 (R1 CREATED 116). **Full battery (183) NOT re-run this session** — a next-pass check should
 confirm no test pinned a pre-refresh VD zone count (the unchanged ALERT AUC 0.757 is reassuring,
 but scenario zone counts moved).
+> **↪ RESOLVED (§78, 2026-08-08):** the battery was re-run and **it caught a real regression on the
+> first try** — 182/183, the failure being the empty ALERT footprint above, not a stale pin. The
+> "unchanged AUC 0.757 is reassuring" hedge was itself misleading: the AUC was unchanged precisely
+> because it is a **stored score of the OLD footprint**, which is exactly the bug §78 fixes.
 
 ---
 

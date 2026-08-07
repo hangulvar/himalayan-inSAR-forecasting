@@ -1599,6 +1599,24 @@ the as-builts before instrumenting.
 
 Short, honest answers you can give without hand-waving.
 
+**Q: Tell me about a time your system was wrong, and how you found out.**
+A: We refreshed the radar for one site and the "act now" map went from 14 flagged slopes to **zero**
+— and the *test suite* caught it, not a person reading the page. I resisted patching the test.
+Instead I eliminated the two obvious causes by experiment (put the missing viewing geometry back —
+still zero; remove the newest image pair — still zero), which forced out the real answer: that map
+needs *fragile ground* and *measured creep* to coincide, and on a 6–9 image series the creep
+measurement is so noisy it flags ~37% of pixels essentially at random. So the 14 zones were probably
+as much luck as signal. **I did not tune the threshold until they came back** — I put "Not measured
+for this footprint" on the dashboard and wrote up why. (§78)
+
+**Q: How do you know your creep detections aren't just noise?**
+A: At the moment, for the short series, partly they are — and we can put a number on it. The
+velocity scatter is σ ≈ 45–75 mm/yr while our creep threshold is −15 mm/yr, i.e. **0.2–0.33σ**.
+Thresholding that shallowly selects roughly a third of any zero-centred field, and that is what we
+observe. The defensible products are the ones built on **longer series** (49-image stacks) and the
+wider **WATCH** tier, which has ~9× the spatial support. The fix is more acquisitions, not a
+different threshold.
+
 **Q: How can a satellite hundreds of km up measure millimetres?**
 A: It doesn't measure distance directly — it measures the *phase* (timing) of its
 radar wave, which shifts by a measurable fraction of a cycle when the ground moves
@@ -2017,6 +2035,36 @@ being quietly omitted — a feature that addresses 3 zones is still useful, but 
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
+
+- **★ The sharpest map (the ALERT footprint) is NOISE-LIMITED on short radar series — and we found
+  this the honest way (§78 / Milestone 60 correction).** A routine radar refresh took Vaishno Devi's
+  ALERT footprint from **14 zones to 0**, and our own test suite caught it. Chasing it down gave the
+  cleanest statement of the weakness we have:
+  - ALERT fires where ground is **fragile** (FS < 1) **and** **creeping** (velocity < −15 mm/yr).
+    The fragile set is fixed by terrain and soil (844 pixels, ~2.4% of the map). The creep set comes
+    from the radar.
+  - On a 6–9 image series the velocity's own scatter is **σ ≈ 45–75 mm/yr**, so the −15 mm/yr creep
+    line sits at only **0.20–0.33σ**. The everyday version: *you are calling "moving" anything that
+    dips a third of a standard deviation below average* — which, on pure noise, is about **37% of
+    the map**. Measured creep fractions were **37.4%** and **33.2%**. So the creep mask at this
+    series length is **statistically indistinguishable from thresholding noise**.
+  - Therefore the ALERT product needs a near-random mask to land on a fixed 844-pixel target in
+    3-pixel clumps. **14 → 0 is best explained as two draws from a noisy process — which also means
+    the original 14 zones deserve the same scepticism.** The refresh *exposed* this; it did not
+    cause it.
+  - **What we did about it:** we did **not** tune the threshold until the zones came back (that is
+    manufacturing a result from noise). We said so on the dashboard, and we kept the **WATCH** tier,
+    which has ~9× the spatial support and is far more stable. **The real fix is more radar over
+    time** (longer series → smaller σ), not a cleverer threshold.
+  - 🔗 **In our project:** this is the concrete, measured form of the long-standing "~30 mm/yr
+    velocity noise floor" caveat — see `RESULTS_AND_KPIS.md` §78.
+
+- **★ A validation score belongs to the map it scored (§78).** Our page once displayed
+  *"AUC 0.757 — beats chance"* next to an **empty** map, because the score was stored from an
+  earlier 14-zone footprint. A number is not a property of a *product*, it is a property of *the
+  specific thing that was measured*. The dashboard now withdraws a score whenever the footprint it
+  described has changed, and says **"Not measured for this footprint."** Treat "not measured" as a
+  first-class answer alongside "scored" and "never tested" — it is the honest third state.
 
 - **The flash-flood arm (CF18 / Milestone 55 / §69) is geometry now, and a promise later.**
   What is measured and solid: the channel network, which zones sit near one, and each basin's
