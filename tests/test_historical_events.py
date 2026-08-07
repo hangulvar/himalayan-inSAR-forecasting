@@ -242,15 +242,25 @@ def test_dashboard_page_with_and_without_hist():
 def test_loader_footprint_fallback_without_per_zone_csv():
     """When per_zone_vulnerability.csv is absent (a site where per_zone_gate.py has not run),
     the annotation must fall back to the operational-footprint centroids (severity/FS/creep,
-    no m*) instead of failing or silently skipping — and the today-cell must still render."""
+    no m*) instead of failing or silently skipping — and the today-cell must still render.
+
+    The footprint is a SYNTHETIC fixture, deliberately: this asserts the fallback LOGIC, and
+    must not depend on the live map being non-empty. (§78 — it used to read the real
+    alerts_operational.json and started failing when a radar rebuild legitimately took VD's
+    ALERT footprint to 0 zones. That data-state question is now its own test, below.)"""
     saved = (oa.SLUG, oa.ALERTS_DIR)
-    real_fp = (PROJECT_ROOT / "data" / "alerts_vaishnodevi" / "mosaic_asc"
-               / "alerts_operational.json")
     with tempfile.TemporaryDirectory() as td:
+        fp = Path(td) / "alerts_operational.json"
+        fp.write_text(json.dumps({"zones": [
+            {"centroid_lonlat": [74.9490, 33.0320], "severity": "CRITICAL",
+             "min_fs_any_look": 0.88},
+            {"centroid_lonlat": [74.9310, 32.9905], "severity": "HIGH",
+             "min_fs_any_look": 0.96},
+        ]}), encoding="utf-8")
         try:
             oa.SLUG = "vaishnodevi"
             oa.ALERTS_DIR = Path(td)          # empty: no per_zone_vulnerability.csv here
-            hist = oa.load_historical_events(real_fp)
+            hist = oa.load_historical_events(fp)
         finally:
             oa.SLUG, oa.ALERTS_DIR = saved
     assert hist is not None
@@ -261,6 +271,30 @@ def test_loader_footprint_fallback_without_per_zone_csv():
         assert isinstance(e["nearest_zone_km"], float)
         cell = oa._hist_today_cell(e)
         assert "<td>" in cell and "no zone data" not in cell, e["name"]
+
+
+def test_score_is_not_advertised_for_a_footprint_it_never_scored():
+    """§78: a back-test score describes the footprint it was computed on. When a radar rebuild
+    moves the map, the old AUC must render as NOT MEASURED — never as this map's validation.
+
+    This is the guard for the real failure: VD's ALERT tier went 14 zones -> 0 in a cadence
+    rebuild while the page still advertised 'AUC 0.757 · the map that beats chance' beside an
+    EMPTY footprint. Carries its own negative control."""
+    base = {"scenario": "operational", "m": 0.40, "n_crit": 0, "n_multi": 0,
+            "auc": 0.757, "recall": 0.70, "lift250": None, "core_zones": None,
+            "core_auc": None, "core_lift": None}
+
+    # Footprint moved (scored 14, now 0) -> the score must be withdrawn, not displayed.
+    moved = oa._tier_card({**base, "n_zones": 0, "scored_zones": 14}, "ALERT")
+    assert "Not measured for this footprint" in moved
+    assert "14-zone" in moved                      # says what WAS scored
+    assert "beats chance" not in moved             # and drops the validation claim
+    assert "0.757" not in moved.split("Not measured")[0]
+
+    # NEGATIVE CONTROL: unchanged footprint -> the score is still legitimately advertised.
+    same = oa._tier_card({**base, "n_zones": 14, "scored_zones": 14}, "ALERT")
+    assert "Not measured for this footprint" not in same
+    assert "beats chance" in same and "0.757" in same
 
 
 def test_loader_absent_record_returns_none():

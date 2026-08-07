@@ -97,15 +97,21 @@ def load_tier(path: Path, required: bool = False):
         "n_multi": sum(1 for z in zones if z.get("n_looks", 1) >= 2),
         "auc": None, "recall": None, "spec": None, "lift250": None,
         "core_zones": None, "core_auc": None, "core_lift": None,
+        # How many zones the back-test actually scored. A score describes the footprint it
+        # was computed on, so this is what makes "is that score still about THIS map?"
+        # answerable downstream (§78).
+        "scored_zones": None,
     }
     # Back-test reports are per-AOI: suffixed for non-ramban sites so another AOI's
     # dashboard can never wear ramban's validation scores (fields stay None -> omitted).
     rpt = INV_DIR / f"backtest_{scenario}{_SFX}_report.json"
     if rpt.exists():
-        sc = json.loads(rpt.read_text(encoding="utf-8")).get("scored", {})
+        _r = json.loads(rpt.read_text(encoding="utf-8"))
+        sc = _r.get("scored", {})
         ab = sc.get("at_buffer_km", {})
         tier.update(auc=sc.get("auc"), recall=ab.get("tpr"), spec=ab.get("specificity"),
-                    lift250=_lift_at(sc.get("roc", []), 0.25))
+                    lift250=_lift_at(sc.get("roc", []), 0.25),
+                    scored_zones=_r.get("n_flagged_zones"))
     # Statistical-rigor overlay (§44, validation_stats.py): bootstrap CI + permutation p.
     # When present it also supplies the AUC/recall point values (same protocol, refreshed
     # inventory), so the displayed number and its interval always come from one run.
@@ -503,8 +509,12 @@ def main() -> int:
         print(f"PAST EVENTS tab: {len(hist['events'])} documented events "
               f"({n_rev} flagged pending review)")
 
+    _asz = alert_tier.get("scored_zones")
+    _score_txt = (f"AUC NOT MEASURED for this footprint (last scored {_asz} zones)"
+                  if isinstance(_asz, int) and _asz != n_zones
+                  else f"AUC {_auc_txt(alert_tier['auc'])}")
     print(f"WHERE — ALERT ({alert_tier['scenario']} m={alert_tier['m']}): {n_zones} zones "
-          f"({n_crit} critical, {n_multi} >=2-look, AUC {_auc_txt(alert_tier['auc'])})")
+          f"({n_crit} critical, {n_multi} >=2-look, {_score_txt})")
     if watch_tier:
         print(f"WHERE — WATCH ({watch_tier['scenario']} m={watch_tier['m']}): {watch_tier['n_zones']} zones "
               f"(recall {watch_tier['recall']}@2km, AUC {_auc_txt(watch_tier['auc'])}; "
@@ -706,8 +716,15 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
         auc_txt += f" [{ci[0]:.2f}–{ci[1]:.2f}]"  # 95% bootstrap CI (§44)
     triage = ""
     unscored = not isinstance(tier.get("auc"), (int, float))
+    # A score describes the footprint it was computed on. When the current map no longer has
+    # that many zones, a radar rebuild has MOVED the map and the old score does not describe
+    # it — say "not measured", never render the number beside a map it never saw (§78: a
+    # cadence rebuild took VD's ALERT tier 14 zones -> 0 while the page still advertised
+    # "AUC 0.757 · beats chance" next to an empty footprint).
+    sz = tier.get("scored_zones")
+    stale_score = isinstance(sz, int) and sz != tier.get("n_zones")
     if role == "ALERT":
-        title = ("WHERE — ALERT footprint (act now)" if unscored else
+        title = ("WHERE — ALERT footprint (act now)" if unscored or stale_score else
                  "WHERE — ALERT footprint (act now · the map that beats chance)")
         subtitle = ("The short, high-confidence list: slopes that are already creeping (measured "
                     "from satellite radar) AND are physically fragile. When the alarm is WATCH or "
@@ -757,6 +774,12 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
                       f"<ol style='margin:4px 0 0 18px;padding:0'>{items}</ol>"
                       f"<div style='color:#888;margin-top:3px'>priority = (1−m*)×P = fragility × "
                       f"detection confidence; full ranking in <code>per_zone_triage_watch.csv</code>.</div></div>")
+    if stale_score and not unscored:
+        # NOT MEASURED — the third state, distinct from "scored" and "never back-tested".
+        scored = (f"<b>Not measured for this footprint.</b> The last back-test scored a "
+                  f"<b>{sz}-zone</b> map (AUC {auc_txt}); after a radar rebuild this map has "
+                  f"<b>{tier.get('n_zones')}</b> zone(s), so that score does not describe what "
+                  f"you are looking at. Re-run the back-test to score the current footprint.")
     links = _stack_links(tier["scenario"])
     links_html = (f'<div style="font-size:13px;margin-top:6px"><b>Zoom in</b> — interactive '
                   f'per-stack maps (one per radar viewing geometry):</div>'

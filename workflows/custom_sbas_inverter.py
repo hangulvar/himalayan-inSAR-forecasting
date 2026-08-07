@@ -460,6 +460,13 @@ def main() -> int:
                          "above this mm/yr as a sanity check.")
     ap.add_argument("--no-deramp", dest="deramp", action="store_false",
                     help="Disable per-interferogram plane deramping (default: on).")
+    ap.add_argument("--max-date", default=None, metavar="YYYY-MM-DD",
+                    help="PERIOD SPLIT: drop pairs whose secondary acquisition is after this "
+                         "date, then invert the remaining period alone. Use when a stack is "
+                         "disconnected and its LATER island is too short to solve: without this "
+                         "the whole stack is rank-deficient and the inverter refuses, so the "
+                         "stack falls out of the union mosaic entirely (§78 — a quarantined "
+                         "monsoon pair stranded a 2-scene tail and emptied VD's ALERT map).")
     ap.set_defaults(deramp=True)
     args = ap.parse_args()
 
@@ -468,6 +475,18 @@ def main() -> int:
     logger.info(f"=== SBAS inversion for stack {stack} ===")
 
     products = load_keep_products(stack)
+    if args.max_date:
+        # Compare CALENDAR DATES, not datetimes: an acquisition on the cutoff day carries a
+        # time-of-day (~12:55 here), so a naive datetime compare would silently drop the very
+        # pair the operator named as the period's last acquisition.
+        cutoff = datetime.strptime(args.max_date, "%Y-%m-%d").date()
+        kept = [p for p in products if max(parse_pair_dates(p)).date() <= cutoff]
+        dropped = len(products) - len(kept)
+        if not kept:
+            raise SystemExit(f"--max-date {args.max_date} drops every KEEP pair of {stack!r}.")
+        logger.info(f"PERIOD SPLIT at {args.max_date}: {dropped} pair(s) after the cutoff "
+                    f"dropped; inverting the {len(kept)}-pair period that remains.")
+        products = kept
     logger.info(f"{len(products)} KEEP interferograms")
 
     G, dates, t_days, vel_weights, pairs = build_design_matrix(products)

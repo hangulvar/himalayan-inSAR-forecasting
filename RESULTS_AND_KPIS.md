@@ -3816,13 +3816,33 @@ SECOND look, source_stack #2) was **skipped** because the monsoon quarantine of 
 `07-07→07-19` pair fragmented it (islands 3→2; the 0.60-R² gap exceeds the 0.45 rescue gate). So
 the union mosaic is now **path100-only, 0 ≥2-look confirmations** (was 2-look). Freshness gained,
 one confirmation look lost; **self-heals next cadence cycle** when a clean pair reconnects path27.
+> **↪ CORRECTION (§78, 2026-08-08):** "one confirmation look lost" **materially understated this.**
+> path27 was not merely a *confirmation* — it carried **every** ALERT zone, so dropping it took the
+> validated **ALERT footprint from 14 zones to 0** (and WATCH from ≥64 to 16): the VD ALERT map was
+> **empty**, not merely single-look. Root cause is deeper than the drop (§78: the tier is
+> noise-limited; restoring path27 did NOT bring the zones back). Cause of the wrong sentence: the
+> §77 entry reported "operational 0" as a bare scenario count without diffing it against the
+> validated baseline — the §74 rule ("re-derive every number") applies to counts you *carry over*,
+> not just ones you compute.
 The stale Jul-10 path27 velocity is NOT mixed in (the mosaic used only the connected stack). A
 `07-07→07-31` bridge pair (~10 cr) could restore it now but spans peak monsoon — deferred.
 
 **★ Freshness pill CLEARED.** `radar_watch`: vaishnodevi **library_through 06-25 → 2026-08-05,
 new_asc_scenes 0**. Regenerated dashboard pill carries `data-acq="2026-08-05"`, `data-new=""`
 (JS-falsy → the "NEWER at ASF" clause does not render), 3 days old → below the 35-day amber
-threshold. The §76-priced warning is gone. (Ramban's own 16-scene warning is untouched — separate
+threshold. The §76-priced warning is gone.
+> **↪ CORRECTION (§78, 2026-08-08):** the pill was verified in the **WRONG ARTIFACT**. §77 ran
+> `operational_alarm.py` **bare**, which uses the *default* CSV (the **2025 back-test** season) and
+> defaults `--as-of` to `argmax(E)` = the season PEAK — so it regenerated
+> `operational_alarm_dashboard.html` (the back-test page, as-of **2025-08-26**, which the staleness
+> guard then correctly flagged **"347 days old"**), NOT the live
+> `operational_alarm_dashboard_vaishnodevi_2026.html`, which still carried `data-acq="2026-06-25"`
+> + "7 new scenes". The radar *data* fix was always real (`radar_watch.json` is correct); only the
+> live **page** had not been regenerated. Fixed 2026-08-08 by running `operational_alarm.py` with
+> live_alarm's own arguments (`--csv <season> --as-of <last complete day> --out-suffix
+> _vaishnodevi_2026`): the live page now reads `data-acq="2026-08-05"`, `data-new=""`,
+> `data-asof="2026-08-01"`. **Lesson: verify a user-visible fix in the artifact the user actually
+> opens** — and prefer `live_alarm.py` over a bare `operational_alarm.py` for anything live. (Ramban's own 16-scene warning is untouched — separate
 AOI, not rebuilt.)
 
 **★ Integrity.** `test_plumbing` 11/11. Re-froze the baseline (**116**): 16 protected files changed
@@ -3834,6 +3854,81 @@ no Ramban velocity/hazard/alerts and no back-test or skill-table moved**. `test_
 12/12 (R1 CREATED 116). **Full battery (183) NOT re-run this session** — a next-pass check should
 confirm no test pinned a pre-refresh VD zone count (the unchanged ALERT AUC 0.757 is reassuring,
 but scenario zone counts moved).
+
+---
+
+## 78. The battery caught a REAL regression: the §77 refresh emptied VD's ALERT map (14 zones → 0) — root-caused to a noise-limited tier, not a bug  `[MEASURED]`
+*(2026-08-08, session 32 cont. — the "re-run the full battery" action §77 left open. It found a
+true failure on the first run. Probe-first investigation (§73 discipline), then three fixes.
+Producing scripts: the 14-suite battery, `custom_sbas_inverter.py --max-date` (NEW),
+`operational_alarm.py`, a read-only FS/creep probe.)*
+
+**★ The battery earned its keep: 182/183, and the one failure was NOT a stale test.**
+`test_historical_events::test_loader_footprint_fallback_without_per_zone_csv` failed with
+`nearest_zone is None` — because there were **no ALERT zones left to be near**. Measured:
+
+| footprint | validated baseline | after §77 | after this session's repair |
+|---|---:|---:|---:|
+| **operational (ALERT)** | **14** *(`backtest_operational_vaishnodevi_report.json` → `n_flagged_zones`, the run that scored AUC 0.757)* | **0** | **0** |
+| watch (WATCH) | ≥64 | 16 | **30** |
+| HIGH px confirmed ≥2-look | — | 0 | **150** |
+
+**★ Period split IMPLEMENTED (the documented-but-missing mechanism).** `run_multistack` skips
+non-connected stacks; §77's quarantined monsoon pair (`07-07→07-19`, R²=0.60) stranded a 2-scene
+tail, flipping `ASC_path27_frame105` to *disconnected* → dropped from the union → **the union lost
+the only stack carrying ALERT zones**. The code only ever *referred* to "SVD/period-split"; nothing
+implemented it. NEW `custom_sbas_inverter.py --max-date` drops pairs after a cutoff and inverts the
+remaining period: path27 now solves **6 pairs, 7 dates, 2026-05-01…07-07, rank 6/6**. (Self-caught
+bug in the new flag: it compared *datetimes*, so `--max-date 2026-07-07` silently dropped the
+07-07 acquisition itself, 12:55 > midnight — now compares calendar dates.)
+
+**★★ ROOT CAUSE — the ALERT tier is noise-limited, and 14 → 0 is two draws from a noisy process.**
+Restoring path27 restored two-look and WATCH but **not** ALERT, so the cause was neither the drop
+nor the extra pair (both eliminated by re-inverting at the pre-refresh 06-25 cutoff — still 0).
+A read-only probe replicating the orchestrator's own masks (`fs_real.fs_field`, creep on the
+HIGH-PASSED velocity < −15 mm/yr) shows **both conditions are individually healthy and simply
+barely intersect**:
+
+| | path100_frame103 | path27_frame105 |
+|---|---:|---:|
+| `FS<1.0` px @ m=0.40 | 844 | 844 *(identical — DEM+soil+TWI only, velocity-independent)* |
+| creep px | 5,032 (37.4%) | 4,090 (33.2%) |
+| **creep ∩ FS<1** | **7 px** | **5 px** |
+| **clusters ≥3 px → zones** | **0** | **0** |
+| `FS<1.0` px @ m=0.75 / zones | 7,558 → 16 | 7,558 → 18 |
+
+On the 844 unstable pixels the median high-passed velocity is **+96 / +61 mm/yr** (moving *toward*
+the sensor — the opposite of downslope creep); on the creep pixels the median FS is **3.69 / 3.92**.
+**The quantitative tell:** σ(hp velocity) = 45–75 mm/yr, so the −15 mm/yr creep threshold sits at
+only **0.20–0.33σ** — thresholding a zero-centred field that shallowly selects ~37–42% of pixels by
+chance, and the observed creep fractions are **37.4%** and **33.2%**. The creep mask is
+statistically consistent with thresholding noise at these chain lengths (6–9 dates); ALERT then
+demands it land on a fixed 844-px target (2.4% of grid) in 3-px clumps. **This is a PRE-EXISTING
+fragility the refresh exposed, not one it created** — the 14-zone footprint deserves the same
+scepticism. It is the measured form of the standing ~30 mm/yr noise-floor limitation, and of §77's
+sanity flags (46% / 60% of pixels beyond |100| mm/yr).
+
+**★ Adopted handling — "not measured" is a THIRD state.** A back-test score describes the footprint
+it was computed on. `operational_alarm.py` now carries `scored_zones` (`n_flagged_zones` from the
+report) and, when it differs from the live zone count, **withdraws the score**: the card reads
+*"Not measured for this footprint — the last back-test scored a 14-zone map; this map has 0"*, and
+the title drops "the map that beats chance". Before this, the page rendered **"AUC 0.757 · beats
+chance" beside an EMPTY map**. Console line likewise. This is the §70 "worst-ever vs right-now vs
+not-measured" rule applied to *scores*.
+
+**★ The failing test was SPLIT, not fudged.** It conflated fallback *logic* with live *data state*:
+the logic test now uses a synthetic 2-zone footprint (so an empty live map can never break it), and
+the data question became its own guard,
+`test_score_is_not_advertised_for_a_footprint_it_never_scored`, **with a negative control** (an
+unchanged footprint must still advertise AUC 0.757 / "beats chance").
+
+**Battery 183 → 184, all green** (14 suites); freeze re-verified — 12 changed artifacts, **all**
+path27 products + the VD 2026 daily-arm files, **0 unexpected / 0 missing / 0 added**, re-frozen at
+**116**. The live 2026 dashboard was regenerated correctly (see §77 correction).
+
+**⚠ Carried, unresolved:** VD has **no ALERT footprint** at m=0.40 on current data, and the
+restoration is **not sticky** — a plain `run_multistack` (no `--stacks`) still drops path27, since
+the connectivity gate marks it disconnected.
 
 ---
 
