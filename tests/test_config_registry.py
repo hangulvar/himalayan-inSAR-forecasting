@@ -174,6 +174,103 @@ def test_llof_routing_adopted_state_is_d8_everywhere() -> None:
             f"'{load_config(p).llof_routing}'")
 
 
+def test_period_split_parses_and_rejects_junk() -> None:
+    """§79: `period_split: {stack: YYYY-MM-DD}` rescues a DISCONNECTED stack by inverting one
+    period. Absent -> empty (the regression default). A malformed cutoff must fail AT LOAD,
+    loudly — a silently-ignored typo puts the stack back on the skip list, which is how the
+    ALERT footprint was emptied in the first place (§78)."""
+    import yaml
+
+    base = {"aoi_path": "config/aoi/ramban_aoi.geojson", "job_name_prefix": "X",
+            "search_start": "2025-01-01", "search_end": "2025-02-01"}
+    tmp = PROJECT_ROOT / "data" / "_test_period_split_config.yaml"
+    tmp.parent.mkdir(exist_ok=True)
+    try:
+        tmp.write_text(yaml.safe_dump(base), encoding="utf-8")
+        assert load_config(tmp).period_split == {}, "absent block must default to empty"
+
+        # Quoted string AND bare YAML date (PyYAML turns the latter into datetime.date).
+        for value in ("2026-07-07", __import__("datetime").date(2026, 7, 7)):
+            tmp.write_text(yaml.safe_dump({**base, "period_split": {"ASC_p1_f1": value}}),
+                           encoding="utf-8")
+            assert load_config(tmp).period_split == {"ASC_p1_f1": "2026-07-07"}, repr(value)
+
+        for bad in ("07-07-2026", "not-a-date", "2026-13-40"):
+            tmp.write_text(yaml.safe_dump({**base, "period_split": {"ASC_p1_f1": bad}}),
+                           encoding="utf-8")
+            try:
+                load_config(tmp)
+                raise AssertionError(f"malformed period_split cutoff {bad!r} did not raise")
+            except ValueError:
+                pass
+
+        tmp.write_text(yaml.safe_dump({**base, "period_split": ["ASC_p1_f1"]}), encoding="utf-8")
+        try:
+            load_config(tmp)
+            raise AssertionError("period_split as a list did not raise")
+        except ValueError:
+            pass
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def test_period_split_stacks_are_RUN_not_skipped() -> None:
+    """§79 REGRESSION GUARD — the whole point of the config entry.
+
+    A stack the connectivity gate calls 'disconnected' must still be RUN when the registry
+    names a period_split cutoff for it, and must be SKIPPED when it does not. Without this,
+    a plain `run_multistack` (no --stacks) silently drops the stack from the run AND from the
+    union mosaic — which took VD's ALERT footprint from 14 zones to 0 with nothing erroring.
+    """
+    import json
+    import os
+
+    import run_multistack as rm
+
+    diag = {"stacks": {"ASC_good": {"status": "connected"},
+                       "ASC_split": {"status": "disconnected"},
+                       "ASC_hopeless": {"status": "disconnected"}}}
+    tmp_diag = PROJECT_ROOT / "data" / "_test_rescue_recs.json"
+    tmp_cfg = PROJECT_ROOT / "data" / "_test_period_split_run.yaml"
+    saved_path, saved_env = rm.RESCUE_RECOMMENDATIONS, os.environ.get("INSAR_CONFIG")
+    try:
+        import yaml
+        tmp_diag.write_text(json.dumps(diag), encoding="utf-8")
+        tmp_cfg.write_text(yaml.safe_dump({
+            "aoi_path": "config/aoi/ramban_aoi.geojson", "job_name_prefix": "X",
+            "search_start": "2025-01-01", "search_end": "2025-02-01",
+            "period_split": {"ASC_split": "2026-07-07"}}), encoding="utf-8")
+        rm.RESCUE_RECOMMENDATIONS = tmp_diag
+        os.environ["INSAR_CONFIG"] = str(tmp_cfg)
+
+        got = rm.connected_stacks()
+        assert got == ["ASC_good", "ASC_split"], got
+        assert "ASC_hopeless" not in got, "a disconnected stack with NO cutoff must stay skipped"
+
+        # NEGATIVE CONTROL: drop the cutoff and the rescued stack must fall back out.
+        tmp_cfg.write_text(yaml.safe_dump({
+            "aoi_path": "config/aoi/ramban_aoi.geojson", "job_name_prefix": "X",
+            "search_start": "2025-01-01", "search_end": "2025-02-01"}), encoding="utf-8")
+        assert rm.connected_stacks() == ["ASC_good"], "no cutoff -> no rescue"
+    finally:
+        rm.RESCUE_RECOMMENDATIONS = saved_path
+        tmp_diag.unlink(missing_ok=True)
+        tmp_cfg.unlink(missing_ok=True)
+        if saved_env is None:
+            os.environ.pop("INSAR_CONFIG", None)
+        else:
+            os.environ["INSAR_CONFIG"] = saved_env
+
+
+def test_vaishnodevi_carries_the_load_bearing_period_split() -> None:
+    """§79: VD's `ASC_path27_frame105` cutoff is load-bearing — it is the only thing keeping the
+    stack (and therefore every alert zone it carries) in the union mosaic. If this fails, either
+    path27's tail reconnected and the entry was deliberately removed (update the ledger too), or
+    the config drifted and the map is about to silently empty."""
+    cfg = load_config(CONFIG_DIR / "vaishnodevi.yaml")
+    assert cfg.period_split.get("ASC_path27_frame105") == "2026-07-07", cfg.period_split
+
+
 # ------------------------------------------------------------------------------
 # CLI runner (mirrors tests/test_plumbing.py so both run the same way).
 # ------------------------------------------------------------------------------

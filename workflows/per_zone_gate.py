@@ -166,15 +166,47 @@ def main() -> int:
 
     stacks = args.stacks or product_stacks()
     zones = collect_zones(stacks)
-    if not zones:
-        raise SystemExit("No operational zones found — run run_multistack.py first.")
-    mstars = np.array([z["m_star"] for z in zones])          # intrinsic vulnerability spread
-    mstars_eff = np.array([z["m_star_eff"] for z in zones])  # activation thresholds (§45 kappa)
 
     thr = THRESHOLDS[args.threshold]
     dates, water, m = load_daily(Path(args.csv))
     E, _ = peak_exceedance(water, thr["a"], thr["b"])
     levels = regional_levels(E)
+
+    if not zones:
+        # An EMPTY operational footprint is a legitimate state, not an error (§78: the ALERT
+        # tier is noise-limited and currently flags nothing at VD). Failing hard here took the
+        # whole validated WHEN arm down with it — live_alarm calls this step with check=True,
+        # so a degraded WHERE map stopped the rainfall calendar and dashboard from updating.
+        # Publish the EMPTY state, stamped with the same as-of the rest of the cycle uses, so
+        # nothing stale is left claiming a ranking that no longer exists.
+        as_of_i = (dates.index(date.fromisoformat(args.as_of)) if args.as_of
+                   else int(np.argmax(E)))
+        as_of = dates[as_of_i]
+        report = {"n_operational_zones": 0, "stacks": stacks,
+                  "m_operational_baseline": M_OPERATIONAL, "kappa": _KAPPA,
+                  "threshold_id": args.threshold,
+                  "as_of": as_of.isoformat(),
+                  "as_of_saturation_m": round(float(m[as_of_i]), 3),
+                  "as_of_regional_level": levels[as_of_i], "as_of_n_active": 0,
+                  "peak_active_zones": 0, "top10_most_vulnerable": [],
+                  "reason": ("no operational zones in the footprint — nothing to rank "
+                             "(see RESULTS_AND_KPIS §78: the ALERT tier is noise-limited)")}
+        ALERTS_DIR.mkdir(parents=True, exist_ok=True)
+        (ALERTS_DIR / "per_zone_vulnerability.json").write_text(
+            json.dumps(report, indent=2), encoding="utf-8")
+        write_zone_table(ALERTS_DIR / "per_zone_vulnerability.csv", [])
+        write_timeline(ALERTS_DIR / "per_zone_active_timeline.csv",
+                       [{"date": d.isoformat(), "saturation_m": round(float(mi), 3),
+                         "exceedance_E": round(float(ei), 3), "regional_level": lv,
+                         "n_active_zones": 0}
+                        for d, lv, mi, ei in zip(dates, levels, m, E)])
+        print(f"per-zone gate: NO operational zones as of {as_of} — nothing to rank. "
+              f"Empty artifacts written so the cycle stays consistent; the WHERE map itself "
+              f"is reported empty on the dashboard (§78).")
+        return 0
+
+    mstars = np.array([z["m_star"] for z in zones])          # intrinsic vulnerability spread
+    mstars_eff = np.array([z["m_star_eff"] for z in zones])  # activation thresholds (§45 kappa)
 
     # Per-day active-zone count: regional gate ON (WATCH+) AND the zone's effective critical
     # saturation m*_eff reached by today's AOI-mean m(t) (m*_eff == m* when kappa=0).

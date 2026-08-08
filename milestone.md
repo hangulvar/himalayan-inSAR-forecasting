@@ -2255,3 +2255,44 @@ wider **"monitor" map is unaffected and healthy** (30 areas, cross-confirmation 
 **Bottom line:** a routine test run turned into the most valuable finding of the session — we
 learned our sharpest map was resting on noise, and we chose to say so on the page rather than
 quietly tune numbers until it looked good again. Checks now **184**, all passing (§78).
+
+## ⚠️ Milestone 61 — We asked the rebuilt map to prove itself against real landslides. It failed.  *(2026-08-08)*
+
+**What we set out to do.** Two clean-up jobs from last time: (1) make sure the repair we did by
+hand can't silently undo itself, and (2) re-mark the rebuilt map's homework — score it against the
+list of landslides that actually happened.
+
+**Job 1 — the repair is now permanent.** Last session we rescued a viewing angle by hand with a
+one-off command. Anyone re-running the normal pipeline would have silently lost it again, emptying
+the map. That instruction now lives in the site's settings file, with a comment explaining why it
+must not be deleted. We tested it both ways, including a deliberate "remove it and check it breaks"
+control.
+
+**Job 2 — and this is the hard part.** We took the rebuilt map and measured how close its flagged
+slopes are to the 47 documented landslide locations. The result:
+
+- **0 out of 47** real landslides fell within 2 km of a flagged zone.
+- Worse: we sprinkled 5,000 **random** points over the area and measured them the same way.
+  **The random points landed closer to our flagged zones (2.5 km) than the real landslides did
+  (3.6 km).**
+
+In plain terms: **the current map is not just unhelpful, it is pointing the wrong way.** Its score
+is 0.33 where 0.5 is a coin flip. This is exactly what §78 predicted — if the "is it sliding?"
+measurement is mostly noise, the map it produces won't track reality. Now we've proven it against
+ground truth instead of inferring it.
+
+**What we did NOT do.** We did not adjust the sensitivity dials until zones reappeared near known
+landslides. With this much noise, that would be fitting to luck and calling it science. We wrote
+the reason down so a future session doesn't "fix" it that way either.
+
+**What we fixed instead — four ways the page could mislead a reader.** The dashboard was asserting
+"beats chance" as fixed text; it now works the phrase out from the actual score, and currently says
+**"BELOW chance — random points score better than this map."** An older, flattering score was
+quietly overriding the newer, worse one — stopped. An empty map was **crashing the entire daily
+rainfall alarm** (a broken *where* was taking down a working *when*) — fixed. And "no zone data at
+this site yet" (sounds like we never looked) is now "today's mapped footprint is empty".
+
+**Bottom line:** the rainfall/flood side of the system is unaffected and still validated. The slope
+map needs **more radar, not better wording** — the next job is to bring in the long 49-image
+histories. Until then the map should not be published as a hazard product, and the page says so.
+Checks now **190**, all passing (§79).

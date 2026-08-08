@@ -100,6 +100,21 @@ rescue_gate:
   # but clean bridge is not discarded; raise toward 30 to also demand coverage.
   min_surviving_pct: 15
 
+# --- Period split (§78) -----------------------------------------------------
+# Stacks that are DISCONNECTED but still usable by inverting ONE period. The inverter is
+# given `--max-date <cutoff>`, dropping pairs after it so the remaining period is full rank;
+# run_multistack then treats the stack as runnable instead of skipping it.
+#
+# WHY THIS ENTRY EXISTS — it is load-bearing, do not delete casually: the 2026-07 cadence
+# refresh added a monsoon pair (07-07 -> 07-19) that quarantined on atmospheric R^2=0.60,
+# stranding a 2-scene tail (07-19, 07-31) and flipping path27_frame105 to "disconnected".
+# The stack then fell out of the union mosaic — and it carried EVERY alert zone, so the
+# site's ALERT footprint went 14 zones -> 0 with nothing erroring. Removing this line
+# silently re-empties the map. Delete it only once path27's tail reconnects (a clean pair
+# spanning the 07-07..07-19 gap), then re-run and confirm the stack is 'connected' again.
+period_split:
+  ASC_path27_frame105: 2026-07-07   # invert 2026-05-01..07-07 (6 pairs, rank 6/6)
+
 # Manual override ON TOP of the scientific gate: stacks to force-skip entirely
 # (e.g. one you have decided to period-split regardless). Canonical labels.
 # Default empty — the gate above already excludes decorrelated stacks (e.g. the

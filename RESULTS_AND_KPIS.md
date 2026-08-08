@@ -3936,6 +3936,68 @@ the connectivity gate marks it disconnected.
 
 ---
 
+## 79. Worked the §78 plan: the period split is STICKY, and re-scoring the rebuilt map found it scores BELOW CHANCE  `[MEASURED]`
+*(2026-08-08, session 32 cont. — items 1 and 2 of the §78 "immediate next steps", lowest-effort-
+first. NEW `config period_split:` + `run_multistack` wiring, `backtest_inventory` re-score,
+4 honesty fixes in `operational_alarm.py`/`per_zone_gate.py`. Battery 184 → 190.)*
+
+**★ ITEM 1 — the path27 rescue is now STICKY (the silent-regression footgun is closed).** NEW
+registry key `period_split: {stack: YYYY-MM-DD}` (validated at load; a malformed cutoff raises).
+`run_multistack.connected_stacks()` now returns connected stacks **plus** any the config rescues,
+and `run_phases_per_stack` passes `--max-date` so the cutoff survives `--force` too. Verified BOTH
+ways: a plain `run_multistack` (no `--stacks`) now runs `['ASC_path100_frame103',
+'ASC_path27_frame105']` and `--force` re-inverts path27 at **6 pairs / 7 dates / rank 6/6**,
+reproducing the union bit-for-bit (HIGH ≥2-look **150**, WATCH **30**). Pinned by 3 tests incl. a
+negative control (drop the cutoff → the stack falls back out) and a guard that VD still carries it.
+
+**★★ ITEM 2 — the re-score is the headline, and it is bad news.** Re-ran `backtest_inventory.py`
+against the live footprint with the ORIGINAL parameters (buffer 2.0 km, n_null 5000, seed
+20260606, same inventory, same default trigger report — identified from the report itself, so only
+the map changed):
+
+| WATCH footprint | scored 2026-07-13 | live now |
+|---|---:|---:|
+| zones | 102 | **30** |
+| AUC | 0.586 | **0.326** ⛔ |
+| documented locations detected @2 km | 44/46 (0.957) | **0/47 (0.0)** |
+| median nearest zone — real events | 1.33 km | **3.58 km** |
+| median nearest zone — RANDOM null points | — | **2.55 km** |
+| ≥2-look core | — | 4 zones, **AUC 0.303**, 0/47 |
+
+**Random points land CLOSER to the flagged zones than real landslides do.** Both tiers now score
+**below chance**. This is independent, quantitative confirmation of §78's noise-limited diagnosis —
+a creep mask that is statistically indistinguishable from thresholded noise produces zones that do
+not track ground truth. **ALERT cannot be scored at all** (0 zones → the scorer exits), so it stays
+"not measured".
+
+**★ Four honesty defects found and fixed, all on a page a human reads as a warning:**
+1. **Hard-coded chance claims.** The cards asserted "beats chance" (ALERT) and "≈chance overall"
+   (WATCH) as literals. At AUC 0.326 both were false. NEW `_chance_verdict(auc)` derives the phrase
+   from the number; below 0.45 it renders **"BELOW chance — random points score better than this
+   map"**, and the ALERT title drops "the map that beats chance" unless the score supports it.
+2. **A stale second score channel.** `validation_stats_<tier>_<slug>.json` overrode the back-test
+   AUC unconditionally, so the page kept showing **0.586 "beats chance"** even after the re-score
+   measured 0.326 — the older, better number masking the fresher, worse one. It records the
+   footprint it measured (`n_zones`), so it may now override only while that is still the live map.
+3. **An empty footprint took down the whole daily arm.** `per_zone_gate.py` raised `SystemExit`
+   with 0 zones and `live_alarm.py` calls it with `check=True` — so a degraded **WHERE** map
+   stopped the validated **WHEN** arm (rainfall calendar + dashboard) from updating at all. It now
+   publishes the EMPTY state stamped with the same as-of and exits 0; the full cycle runs clean.
+4. **"Nothing flagged" was captioned as "no zone data at this site *yet*"** — which reads as *never
+   mapped*. Now: *"today's mapped footprint is empty — no zones flagged anywhere at this site."*
+
+**Battery 184 → 190, 14/14 suites green.** Freeze re-verified: 10 changed artifacts — 8 mine,
+**2 Ramban 2026 daily-arm files written at 14:21 by the scheduled `monsoon_cycle`** (proven by
+mtime against the 14:18 season-CSV fetch, before any of this session's 19:33+ runs) — 0 missing,
+0 added, re-frozen at **116**.
+
+**⚠ What this means for the product.** VD's WHERE map is currently **unusable on its own merits**:
+ALERT is empty, WATCH scores below chance. The dashboard now states both plainly. The WHEN arm
+(rainfall/burst/flood) is unaffected and still validated. **The fix is not a threshold — it is more
+radar** (§78 item 3: the 49-product `frame101/102/106` stacks).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

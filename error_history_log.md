@@ -1749,6 +1749,51 @@ sentences about them were not.
   test that fails for a real reason; work out which of the two things it was testing, and give each
   its own test.** (The failure was genuinely valuable: it is what exposed the empty ALERT map.)
 
+## 2026-08-08 — §79: working the plan surfaced 5 more defects (one of them mine, in a test)
+
+### 1. A degraded WHERE map took down the validated WHEN arm (§79)
+* **Symptom:** `live_alarm.py` died mid-cycle: `per_zone_gate.py` exited 1 with "No operational
+  zones found". The rainfall calendar and dashboard then stopped updating entirely.
+* **Root cause:** an empty operational footprint is now a LEGITIMATE state (§78), but the gate
+  still treated it as fatal, and `live_alarm` calls it with `check=True`.
+* **Fix/lesson:** the gate publishes the EMPTY state (stamped with the same as-of, plus a
+  `reason`) and exits 0. **A degraded component of one arm must not be able to stop a different,
+  healthy arm** — check the blast radius of every `check=True`.
+
+### 2. Hard-coded claims about a computed number (§79)
+* **Symptom:** the dashboard rendered "AUC 0.326 … beats chance" and "≈chance overall".
+* **Root cause:** both phrases were string literals written when the scores happened to support
+  them; nothing re-derived them when the map changed.
+* **Fix/lesson:** `_chance_verdict(auc)` derives the wording from the value (incl. "BELOW chance").
+  **If a sentence characterises a number, compute it from that number** — same family as the §74
+  "re-derive every number" rule, applied to adjectives rather than digits.
+
+### 3. A stale SECOND score channel masked a fresher, worse one (§79)
+* **Symptom:** after re-scoring at AUC 0.326 the page still showed 0.586.
+* **Root cause:** `validation_stats_<tier>_<slug>.json` overrode the back-test unconditionally.
+  Two channels, independent staleness, no identity check on either.
+* **Fix/lesson:** the overlay records `n_zones`; it may override only while that matches the live
+  map. **When two sources can answer the same question, the fresher one does not automatically
+  win — make each carry the identity of what it measured.**
+
+### 4. A TEST wrote into the real data tree (§79, my own bug)
+* **Symptom:** `test_alarm_artifacts_cross_consistent` began failing with "per-zone as_of
+  2026-07-03" — a date that exists nowhere in the project. It was the synthetic date from a test
+  I had just written.
+* **Root cause:** the new empty-footprint test ran `per_zone_gate.py` as a **subprocess**, which
+  resolved `ALERTS_DIR` to the real `data/alerts_vaishnodevi/` and overwrote the live per-zone
+  artifacts.
+* **Fix/lesson:** call `main()` in-process with `ALERTS_DIR` monkeypatched to a temp dir and
+  `sys.argv` restored in a `finally`. **A test that shells out inherits production paths** — if a
+  test needs a workflow's writer, redirect the writer, don't spawn it. Caught only because another
+  test cross-checks artifact dates; the guard earned its keep.
+
+### 5. "Nothing flagged" was worded as "not yet mapped" (§79)
+* **Symptom:** with an empty footprint every historical event read "no zone data at this site yet".
+* **Fix/lesson:** now "today's mapped footprint is empty — no zones flagged anywhere at this site".
+  **Three distinct states — measured-and-empty, never-measured, and out-of-footprint — need three
+  captions** (the §70 rule, applied to absence).
+
 ### 4. A new flag compared datetimes where the operator means a DATE (§78, self-caught)
 * **Symptom:** the new `--max-date 2026-07-07` period split dropped **2** pairs, not 1 — silently
   discarding the 07-07 acquisition the operator had just named as the period's last scene.

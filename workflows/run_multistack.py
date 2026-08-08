@@ -95,7 +95,15 @@ def _stale(output: Path, *inputs: Path) -> bool:
 
 
 def connected_stacks() -> list[str]:
-    """Stacks the rescue gate marks 'connected' (eligible for least-squares)."""
+    """Stacks eligible for least-squares: those the rescue gate marks 'connected', PLUS any the
+    config rescues with a `period_split:` cutoff (§78).
+
+    Why the second group exists: a single quarantined pair can strand a short tail and flip a
+    stack to 'disconnected'. Before period_split, such a stack was silently dropped from the run
+    AND from the union mosaic — which is exactly how VD's ALERT footprint went to 0 zones after a
+    routine cadence refresh. Naming the cutoff in the registry file makes the rescue STICKY: a
+    plain `run_multistack` reproduces it, with no `--stacks` incantation to remember.
+    """
     if not RESCUE_RECOMMENDATIONS.exists():
         raise SystemExit(
             f"Missing {RESCUE_RECOMMENDATIONS}. Run "
@@ -103,10 +111,17 @@ def connected_stacks() -> list[str]:
         )
     diag = json.loads(RESCUE_RECOMMENDATIONS.read_text(encoding="utf-8")).get("stacks", {})
     conn = sorted(s for s, d in diag.items() if d.get("status") == "connected")
-    skipped = sorted(s for s, d in diag.items() if d.get("status") != "connected")
+    split = load_config().period_split
+    rescued = sorted(s for s, d in diag.items()
+                     if d.get("status") != "connected" and s in split)
+    if rescued:
+        logger.info("Period-split stacks (config `period_split:`, %s): %s",
+                    ", ".join(f"{s} -> pairs on/before {split[s]}" for s in rescued), rescued)
+    skipped = sorted(s for s, d in diag.items()
+                     if d.get("status") != "connected" and s not in split)
     if skipped:
         logger.info("Skipping non-connected stacks (need SVD/period-split): %s", skipped)
-    return conn
+    return sorted(set(conn) | set(rescued))
 
 
 # ------------------------------------------------------------------------------
@@ -120,8 +135,14 @@ def run_phases_per_stack(stack: str, force: bool) -> None:
     alert_jsons = [ALERTS_DIR / stack / f"alerts_{sc}.json" for sc in SCENARIOS]
 
     if force or _stale(vel, QUARANTINE_CSV):
-        logger.info("[%s] Phase 2 — SBAS inversion", stack)
-        _run("custom_sbas_inverter.py", "--stack", stack)
+        # A period-split stack MUST carry its cutoff here too — otherwise a --force (or any
+        # staleness re-run) re-inverts the whole disconnected network, which is rank-deficient,
+        # and the stack silently drops back out of the product (§78).
+        cutoff = load_config().period_split.get(stack)
+        extra = ["--max-date", cutoff] if cutoff else []
+        logger.info("[%s] Phase 2 — SBAS inversion%s", stack,
+                    f" (period split at {cutoff})" if cutoff else "")
+        _run("custom_sbas_inverter.py", "--stack", stack, *extra)
     else:
         logger.info("[%s] Phase 2 — up to date, skipping", stack)
 

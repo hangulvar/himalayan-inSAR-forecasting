@@ -156,13 +156,24 @@ def _run_loader(slug: str):
 
 
 def test_current_alert_annotation_both_sites():
+    """Every event must get an HONEST current standing at every site — which means covering BOTH
+    live states (§79). A site whose footprint holds zones must annotate each event with a real
+    distance + severity; a site whose footprint is EMPTY (§78 — the noise-limited ALERT tier
+    flags nothing at VD today) must say so explicitly, and must never invent a zone or imply the
+    site is unprocessed."""
     for slug in SLUGS:
         hist = _run_loader(slug)
         for e in hist["events"]:
-            assert e.get("nearest_zone") is not None, (slug, e["name"])
-            km = e["nearest_zone_km"]
+            z, km = e.get("nearest_zone"), e.get("nearest_zone_km")
+            if z is None:
+                assert e.get("mapped_but_empty") is True, (
+                    slug, e["name"], "no zone AND not flagged as a mapped-but-empty footprint "
+                                     "— the annotation would be silently missing")
+                cell = oa._hist_today_cell(e)
+                assert "mapped footprint is empty" in cell, (slug, e["name"], cell)
+                assert "yet" not in cell, (slug, "must not imply the site is unprocessed")
+                continue
             assert isinstance(km, float) and 0 <= km < 100, (slug, e["name"], km)
-            z = e["nearest_zone"]
             assert z.get("severity") in ("CRITICAL", "HIGH"), (slug, e["name"], z)
 
 
@@ -179,7 +190,11 @@ def test_hist_panel_html():
     # Every event row landed, with its today-standing cell.
     for e in hist["events"]:
         assert e["name"] in html
-    assert "to nearest hazard zone" in html or "outside today's mapped footprint" in html
+    # One of the three honest standings must appear: a real distance, outside-the-footprint, or
+    # (§79) the mapped-but-empty case where the product currently flags nothing anywhere.
+    assert ("to nearest hazard zone" in html
+            or "outside today's mapped footprint" in html
+            or "mapped footprint is empty" in html)
 
 
 def test_today_cell_inside_and_outside_footprint():
@@ -295,6 +310,113 @@ def test_score_is_not_advertised_for_a_footprint_it_never_scored():
     same = oa._tier_card({**base, "n_zones": 14, "scored_zones": 14}, "ALERT")
     assert "Not measured for this footprint" not in same
     assert "beats chance" in same and "0.757" in same
+
+
+def test_empty_footprint_does_not_take_down_the_daily_arm():
+    """§79: an EMPTY operational footprint is a legitimate state (§78 — the ALERT tier is
+    noise-limited and currently flags nothing at VD). `per_zone_gate.py` used to raise
+    SystemExit, and `live_alarm.py` calls it with check=True — so a degraded WHERE map stopped
+    the validated WHEN arm (rainfall calendar + dashboard) from updating at all.
+
+    The gate must now publish the EMPTY state, stamped with the SAME as-of the rest of the
+    cycle uses, and exit 0 — otherwise a stale ranking is left behind claiming zones that no
+    longer exist (which is what `test_alarm_artifacts_cross_consistent` catches)."""
+    import tempfile
+
+    import per_zone_gate as pzg
+
+    src = Path(pzg.__file__).read_text(encoding="utf-8")
+    assert "raise SystemExit(\"No operational zones found" not in src, (
+        "the empty footprint must not be a hard failure — it takes the daily arm down with it")
+
+    # HERMETIC: ALERTS_DIR is redirected to a temp dir. per_zone_gate writes its artifacts
+    # there, so this test can never touch the real data/alerts_<slug>/ tree — running it
+    # against the live directory once overwrote the site's per-zone files with this synthetic
+    # date and tripped the cross-consistency guard.
+    saved_dir, saved_argv = pzg.ALERTS_DIR, sys.argv
+    with tempfile.TemporaryDirectory() as td:
+        out, wet = Path(td) / "alerts", Path(td) / "wet.csv"
+        wet.write_text("date,rain_mm,snowmelt_mm,water_mm,api_mm,wetness_0_1,freeze_thaw\n"
+                       "2026-07-01,0,0,0,0.0,0.100,0\n"
+                       "2026-07-02,5,0,5,5.0,0.200,0\n"
+                       "2026-07-03,9,0,9,9.0,0.300,0\n", encoding="utf-8")
+        try:
+            pzg.ALERTS_DIR = out
+            sys.argv = ["per_zone_gate.py", "--csv", str(wet),
+                        "--stacks", "NO_SUCH_STACK", "--as-of", "2026-07-03"]
+            rc = pzg.main()
+        finally:
+            pzg.ALERTS_DIR, sys.argv = saved_dir, saved_argv
+
+        assert rc == 0, f"empty footprint must exit 0 (not break the chain), got {rc}"
+        rep = json.loads((out / "per_zone_vulnerability.json").read_text(encoding="utf-8"))
+        assert rep["n_operational_zones"] == 0 and rep["as_of"] == "2026-07-03", rep
+        assert "reason" in rep, "the empty state must say WHY, not just be empty"
+        # The ranking table is present but empty — header only, no stale rows left behind.
+        rows = (out / "per_zone_vulnerability.csv").read_text(encoding="utf-8").strip().split("\n")
+        assert len(rows) == 1 and rows[0].startswith("stack,"), rows[:3]
+    assert pzg.ALERTS_DIR == saved_dir, "the real alerts dir must be restored"
+
+
+def test_chance_claim_is_derived_from_the_auc_not_asserted():
+    """§79: the cards used to hard-code "beats chance" (ALERT) and "≈chance overall" (WATCH).
+    Re-scoring VD's rebuilt map returned AUC 0.326 with 0/47 documented locations detected —
+    random points landed CLOSER to the flagged zones than real landslides — so those phrases
+    were false on a page read as a warning. The verdict must follow the number."""
+    assert oa._chance_verdict(0.757) == "beats chance"
+    assert oa._chance_verdict(0.50) == "≈chance"
+    assert "BELOW chance" in oa._chance_verdict(0.326)
+    assert oa._chance_verdict(None) == "not scored"
+
+    base = {"scenario": "watch", "m": 0.75, "n_crit": 0, "n_multi": 0, "recall": 0.0,
+            "lift250": None, "core_zones": None, "core_auc": None, "core_lift": None}
+    bad = oa._tier_card({**base, "auc": 0.326, "n_zones": 30, "scored_zones": 30}, "WATCH")
+    assert "BELOW chance" in bad
+    assert "≈chance" not in bad and "beats chance" not in bad
+
+    # An ALERT tier that no longer beats chance must also lose the headline claim.
+    weak = oa._tier_card({**base, "scenario": "operational", "auc": 0.326,
+                          "n_zones": 30, "scored_zones": 30}, "ALERT")
+    assert "the map that beats chance" not in weak
+
+
+def test_stale_validation_overlay_cannot_mask_a_fresher_worse_score(tmp_path=None):
+    """§79: `validation_stats_<tier>_<slug>.json` is a SECOND score channel that goes stale
+    independently of the back-test report. It records the footprint it measured (`n_zones`), so
+    it may override only while that is still the live map — otherwise the page kept announcing
+    "AUC 0.586 · beats chance" from a 102-zone overlay after the live 30-zone map had been
+    re-scored at 0.326."""
+    import tempfile
+
+    saved = (oa.INV_DIR, oa._SFX)
+    with tempfile.TemporaryDirectory() as td:
+        inv = Path(td)
+        try:
+            oa.INV_DIR, oa._SFX = inv, "_testsite"
+            fp = inv / "alerts_watch.json"
+            fp.write_text(json.dumps({"scenario": "watch",
+                                      "zones": [{"severity": "HIGH"} for _ in range(30)]}),
+                          encoding="utf-8")
+            (inv / "backtest_watch_testsite_report.json").write_text(
+                json.dumps({"n_flagged_zones": 30,
+                            "scored": {"auc": 0.326, "at_buffer_km": {"tpr": 0.0}}}),
+                encoding="utf-8")
+            overlay = {"n_zones": 102,
+                       "model": {"auc": 0.586, "recall_at_buffer": 0.957,
+                                 "auc_ci95": [0.52, 0.65], "p_perm_beats_chance": 0.02}}
+            ov_path = inv / "validation_stats_watch_testsite.json"
+
+            # STALE overlay (102 != 30 live zones) -> ignored, fresh back-test wins.
+            ov_path.write_text(json.dumps(overlay), encoding="utf-8")
+            tier = oa.load_tier(fp)
+            assert tier["n_zones"] == 30, tier["n_zones"]
+            assert tier["auc"] == 0.326, tier["auc"]
+
+            # NEGATIVE CONTROL: overlay that matches the live map DOES override.
+            ov_path.write_text(json.dumps({**overlay, "n_zones": 30}), encoding="utf-8")
+            assert oa.load_tier(fp)["auc"] == 0.586
+        finally:
+            oa.INV_DIR, oa._SFX = saved
 
 
 def test_loader_absent_record_returns_none():

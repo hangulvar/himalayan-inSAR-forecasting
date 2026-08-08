@@ -117,10 +117,17 @@ def load_tier(path: Path, required: bool = False):
     # inventory), so the displayed number and its interval always come from one run.
     vs = INV_DIR / f"validation_stats_{scenario}{_SFX}.json"
     if vs.exists():
-        vm = json.loads(vs.read_text(encoding="utf-8")).get("model", {})
-        tier.update(auc=vm.get("auc", tier["auc"]),
-                    recall=vm.get("recall_at_buffer", tier["recall"]),
-                    auc_ci=vm.get("auc_ci95"), p_perm=vm.get("p_perm_beats_chance"))
+        _v = json.loads(vs.read_text(encoding="utf-8"))
+        # This overlay is a SECOND score channel and goes stale INDEPENDENTLY of the back-test
+        # report above. It records the footprint it measured (`n_zones`), so it may override
+        # only while that is still THIS map. §79: a stale overlay kept the page announcing
+        # "AUC 0.586 · beats chance" after the live 30-zone map had been re-scored at 0.326
+        # (below chance) — the fresher, worse number was being masked by the older, better one.
+        if _v.get("n_zones") in (None, tier["n_zones"]):
+            vm = _v.get("model", {})
+            tier.update(auc=vm.get("auc", tier["auc"]),
+                        recall=vm.get("recall_at_buffer", tier["recall"]),
+                        auc_ci=vm.get("auc_ci95"), p_perm=vm.get("p_perm_beats_chance"))
     core = INV_DIR / f"backtest_{scenario}{_SFX}_2look_report.json"
     if core.exists():
         c = json.loads(core.read_text(encoding="utf-8"))
@@ -195,7 +202,13 @@ def load_historical_events(footprint_path: Path):
             zones.append({"lat": lat, "lon": lon, "severity": z.get("severity"),
                           "m_star": None, "fs_0p40": z.get("min_fs_any_look"),
                           "creep_mmyr": z.get("strongest_creep_mmyr"), "confidence": None})
+    # "The map flags nothing today" and "this site was never mapped" are DIFFERENT states and
+    # must not share a caption (§79; the §70 rule). The zone list is empty in both cases, so
+    # record which one it is while we still know: a footprint that EXISTS but holds no zones is
+    # a mapped site whose current product is empty (§78 — the noise-limited ALERT tier).
+    mapped_but_empty = bool(not zones and footprint_path.exists())
     for e in events:
+        e["mapped_but_empty"] = mapped_but_empty
         best = None
         for z in zones:
             d = _haversine_km(e["lat"], e["lon"], z["lat"], z["lon"])
@@ -593,6 +606,24 @@ def _auc_txt(v) -> str:
     return f"{v:.3f}".rstrip("0").rstrip(".") if isinstance(v, (int, float)) else "n/a"
 
 
+def _chance_verdict(auc) -> str:
+    """DERIVE what the AUC says relative to chance (0.5) instead of asserting it.
+
+    §79: these cards hard-coded "beats chance" (ALERT) and "≈chance overall" (WATCH). When VD's
+    map was re-scored after the cadence rebuild it came back at AUC 0.33 with 0/47 documented
+    locations detected — random points landed CLOSER to the flagged zones than real landslides —
+    so both phrases had become false on a page a human reads as a warning. A claim about a
+    computed number must be computed from it.
+    """
+    if not isinstance(auc, (int, float)):
+        return "not scored"
+    if auc >= 0.55:
+        return "beats chance"
+    if auc > 0.45:
+        return "≈chance"
+    return "<b>BELOW chance</b> — random points score better than this map"
+
+
 def _conf_cell(v) -> str:
     """A color-coded detection-confidence (§24) table cell: green ≥0.9, amber ≥0.7, grey below."""
     try:
@@ -723,8 +754,11 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
     # "AUC 0.757 · beats chance" next to an empty footprint).
     sz = tier.get("scored_zones")
     stale_score = isinstance(sz, int) and sz != tier.get("n_zones")
+    verdict = _chance_verdict(tier.get("auc"))
     if role == "ALERT":
-        title = ("WHERE — ALERT footprint (act now)" if unscored or stale_score else
+        # The headline claim is only made when the score actually supports it (§79).
+        title = ("WHERE — ALERT footprint (act now)"
+                 if unscored or stale_score or verdict != "beats chance" else
                  "WHERE — ALERT footprint (act now · the map that beats chance)")
         subtitle = ("The short, high-confidence list: slopes that are already creeping (measured "
                     "from satellite radar) AND are physically fragile. When the alarm is WATCH or "
@@ -742,7 +776,7 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
             p = tier.get("p_perm")
             p_txt = (f", p={p:.4f}" if isinstance(p, (int, float)) else "")
             scored = (f"Scored vs the GSI field-validated inventory (random-luck control): "
-                      f"<b>AUC {auc_txt}</b> (beats chance{p_txt}), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
+                      f"<b>AUC {auc_txt}</b> ({verdict}{p_txt}), recall <b>{rec_txt}</b>@2 km{lift_txt}. "
                       f"Held FIXED — the rainfall gate changes only the alarm STATE, not the map.")
     else:
         title = "WHERE — WATCH footprint (monitor wider · higher recall)"
@@ -754,14 +788,14 @@ def _tier_card(tier: dict, role: str, compare_recall=None) -> str:
         core = ""
         if isinstance(ca, (int, float)):
             cl_txt = f", lift {cl:.2f}×@2 km" if isinstance(cl, (int, float)) else ""
-            core = (f" Its <b>≥2-look core</b> ({cz} zones) still beats chance: "
+            core = (f" Its <b>≥2-look core</b> ({cz} zones): {_chance_verdict(ca)}, "
                     f"<b>AUC {_auc_txt(ca)}</b>{cl_txt}.")
         if unscored:
             scored = ("<b>Not yet back-tested at this site</b> — a deliberately wider "
                       "monitoring net. Monitor these; act on the ALERT footprint.")
         else:
             scored = (f"Recall <b>{rec_txt}</b>@2 km{ratio}, at lower precision "
-                      f"(AUC {auc_txt}, ≈chance overall).{core} Monitor these; act on the ALERT core.")
+                      f"(AUC {auc_txt}, {verdict}).{core} Monitor these; act on the ALERT core.")
         top = tier.get("triage_top")
         if top:
             items = "\n".join(
@@ -804,6 +838,11 @@ def _hist_today_cell(e) -> str:
     that zone's live parameters (m*, FS@0.40, creep, detection confidence — whichever exist)."""
     z, km = e.get("nearest_zone"), e.get("nearest_zone_km")
     if z is None:
+        if e.get("mapped_but_empty"):
+            # Mapped, but the current product flags nothing — say that, don't imply the site
+            # is unprocessed ("yet"), and don't imply the slope is safe (§79).
+            return ("<td><span style='color:#888'>today's mapped footprint is empty — "
+                    "no zones flagged anywhere at this site</span></td>")
         return "<td><span style='color:#888'>no zone data at this site yet</span></td>"
     d_txt = f"{km * 1000:.0f} m" if km < 1 else f"{km:.1f} km"
     parts = []

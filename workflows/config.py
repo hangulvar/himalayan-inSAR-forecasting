@@ -90,6 +90,8 @@ class Config:
     rescue_gate: RescueGateConfig
     soil: SoilConfig
     exclude_from_rescue: tuple[str, ...]
+    # {stack: 'YYYY-MM-DD'} — disconnected stacks rescued by a single-period inversion (§78).
+    period_split: dict[str, str]
     source_path: Path  # the YAML this config was loaded from (after pointer resolution)
 
     @property
@@ -122,6 +124,31 @@ def _to_utc(value) -> datetime:
         return datetime(value.year, value.month, value.day, tzinfo=timezone.utc)
     # String fallback (e.g. quoted dates).
     return datetime.fromisoformat(str(value)).replace(tzinfo=timezone.utc)
+
+
+def _period_split(raw: dict, cfg_path: Path) -> dict[str, str]:
+    """Stacks that are DISCONNECTED but still usable by inverting ONE period (§78).
+
+    `{stack_name: 'YYYY-MM-DD'}` — the inverter is given `--max-date <cutoff>`, dropping pairs
+    after it so the remaining period is full rank. Without this the stack is skipped entirely
+    and silently falls out of the union mosaic (§78: that took VD's ALERT footprint to 0 zones).
+    Validated at LOAD time so a typo fails here, loudly, instead of three stages later.
+    """
+    ps = raw.get("period_split") or {}
+    if not isinstance(ps, dict):
+        raise ValueError(f"Config {cfg_path}: period_split must be a mapping of "
+                         f"stack -> YYYY-MM-DD, got {type(ps).__name__}.")
+    out: dict[str, str] = {}
+    for stack, cutoff in ps.items():
+        # PyYAML turns an unquoted 2026-07-07 into datetime.date; accept either form.
+        text = cutoff.isoformat() if isinstance(cutoff, date) else str(cutoff)
+        try:
+            datetime.strptime(text[:10], "%Y-%m-%d")
+        except ValueError as e:
+            raise ValueError(f"Config {cfg_path}: period_split[{stack!r}] must be YYYY-MM-DD, "
+                             f"got {cutoff!r}.") from e
+        out[str(stack)] = text[:10]
+    return out
 
 
 def _llof_routing(raw: dict, cfg_path: Path) -> str:
@@ -227,5 +254,6 @@ def load_config(path: str | Path | None = None) -> Config:
             depth_m=float(s.get("depth_m", 3.0)),
         ),
         exclude_from_rescue=tuple(raw.get("exclude_from_rescue") or []),
+        period_split=_period_split(raw, cfg_path),
         source_path=cfg_path,
     )
