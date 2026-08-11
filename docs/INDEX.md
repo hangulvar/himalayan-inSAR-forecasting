@@ -62,6 +62,16 @@ deletes; acting on it is manual.
 - **RAMBAN_REBUILD_MANIFEST_2026-07-19.md** — the dry-run-verified 3-pair submission
   manifest for the unblocked Ramban cadence rebuild (frame-renumbering finding, ~30-credit
   cost, one-command submit + the post-landing rebuild loop).
+- **NISAR_INGESTION_DESIGN.md** — the L-band ingestion path (§83): NISAR enters as its own
+  STACK via `nisar_ingest.py`; the verified grid match (EPSG:32643 @ 80 m), the 4.4×
+  wavelength trap the adapter avoids, and the 6 remaining integration steps each with the
+  TRIGGER that should fire before it is built. Adapter BUILT + tested; not wired live
+  (only 3 granules, all provisional).
+- **PIVOT_ANALYSIS_2026-08-11.md** — the decision record for "should slope ranking stop
+  depending on measured movement?" Verdict: **build the susceptibility model, do NOT promote
+  it** — it is already Area 4/5 work as a corroborator; promoting it spends the stated novelty
+  and inherits the §60 corridor-reporting bias (AUC 0.731 → 0.560 without elevation), and GSI
+  already publishes that product at 0.84. Includes the re-open criteria.
 
 ### archive/ — superseded, kept for the record
 - **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the scheduled cycle + control panel.

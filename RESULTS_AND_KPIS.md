@@ -4163,6 +4163,88 @@ and it doubles as the first look at the deferred ASC/DESC decomposition (roadmap
 
 ---
 
+## 83. The L-band ingestion path is BUILT (adapter + downloader + 7 tests), and the "abandon movement" pivot is analysed and REJECTED on evidence  `[MEASURED]`
+*(2026-08-11, session 33 cont. — two user asks. NEW `workflows/nisar_ingest.py`,
+`tests/test_nisar_ingest.py`, `docs/references/NISAR_INGESTION_DESIGN.md`,
+`docs/references/PIVOT_ANALYSIS_2026-08-11.md`. Battery 190 → **197**, 15 suites.)*
+
+### A — The ingestion path
+
+**★ The seam is cheaper than feared, and it was MEASURED not assumed.** A GUNW is already a
+geocoded interferogram, so NISAR enters as **its own stack** and merges only at the union mosaic
+(which already spans CRSs). Verified on the real granules:
+
+| property | NISAR GUNW | our C-band products | consequence |
+|---|---|---|---|
+| CRS | **EPSG:32643** | EPSG:32643 | no reprojection |
+| Posting | **80 m** | 80 m | no resampling |
+| Wavelength | **0.241963 m** (derived from `centerFrequency` 1.239 GHz) | 0.055466 m | **4.36×** — the trap below |
+
+**★★ The trap the adapter avoids.** `feature_engineering.phase_to_los_displacement` multiplies by a
+**hardcoded** `SENTINEL1_WAVELENGTH_M`. Routing L-band phase through it would under-report every
+displacement by **4.36×** — silently, with entirely plausible numbers. `nisar_ingest` derives λ
+from each granule, and `test_using_the_C_band_constant_on_L_band_would_underreport_4x` pins both
+the correct factor and the size of the avoided error (a negative control).
+
+**★ Adapter run on all 3 granules** → `qa_masks/<product>/{_masked_disp,_corr}.tif` + a manifest
+entry, stack `NISAR_ASC_track156_frame018`, 14–42 MB/product:
+
+| granule | survivors @ γ≥0.4 |
+|---|---:|
+| winter 2025-12-27 × 2026-01-08 | **39.95%** |
+| monsoon 2026-06-25 × 07-07 | 14.97% |
+| monsoon 2026-07-07 × 07-19 | 14.47% |
+
+(The monsoon figures are the §82 void, seen from the other side.)
+
+**★ The battery caught a design error and the fix was architectural, not cosmetic.** The first
+version wrote coherence into `data/processed_tiffs/` — which carries a HyP3 **contract** (6 layers
++ metadata txt, `test_plumbing`). A GUNW has no look-vector or DEM layers, so living there meant
+breaking the contract or **fabricating layers we do not have**. NISAR artifacts now stay entirely
+under `qa_masks/`; the manifest stays shared (the inverter resolves stacks from it) but carries a
+`source` field, and the two HyP3-contract tests scope themselves by provenance.
+
+**NOT wired live, deliberately:** a velocity series needs a connected network and we hold **3**
+granules on one track/frame, **all provisional**. The design doc lists the 6 remaining steps each
+with the **trigger** that should fire first (parser broadening ×5 files; the
+`phase_elevation_audit` DEM-glob gap that silently skips NISAR; per-band λ only if NISAR is ever
+routed through Phase 1; a registry opt-in; and ≥8 acquisitions for the inversion itself).
+
+### B — The pivot analysis: build it, don't promote it
+
+**Question asked:** would ranking slopes on terrain + rainfall, with movement as one clue rather
+than a requirement, move us away from the project we set out to build?
+
+**★ Finding 1 — it is ALREADY in the plan, twice, both times subordinate.** Area 4: "Susceptibility
+model (LR/RF) … → **independent corroboration of the physics**". Area 5: "susceptibility over the
+whole NH-44 corridor, **then focus InSAR where high**". So *building* it is zero deviation;
+*promoting it to the primary ranker* is the deviation.
+
+**★ Finding 2 — §80 is the plan WORKING, not failing.** Agent 1's original specification is to mask
+low-coherence data and "**refuse to pass noise downstream**"; the Guiding Principle is "audit noise
+*before* trusting any deformation map". That is precisely what happened — twice we declined to tune
+thresholds to make zones reappear (§80, §82).
+
+**★★ Finding 3 — the decisive evidence is our own §60.** A terrain-only logistic regression scored
+**0.731 ± 0.046**, but with **elevation removed** collapsed to **0.560 ± 0.039** — indistinguishable
+from the physics score (0.575) it was meant to beat; elevation weight **−0.98**. The model largely
+learned *where landslides get reported* (low, near the road). **VD's inventory is a narrower
+corridor still** (47 points along a pilgrimage track), so the bias there should be equal or worse.
+
+**★ Finding 4 — GSI already publishes that product, better:** meso-scale 1:10,000 LSM of the
+adjacent NH-244 corridor, **AUC 0.84**, 35 field-verified instabilities. A susceptibility pivot
+competes with an official map using a smaller, biased inventory and no field verification.
+
+**VERDICT — do not pivot; finish it in its planned role.** Keep the WHERE map withdrawn and the WHEN
+arm published (already true); finish the susceptibility model as a **corroborator with the §60 bias
+control mandatory — the elevation-ablated AUC is the headline, never the raw one**; use it for
+Area-5 targeting; put the product weight on NISAR, which fixes the cause rather than routing around
+it. **Re-open if** the NISAR monsoon void outlives NASA's reprocessing window AND a
+spatially-blocked, elevation-ablated model clears ~0.70 on the VD inventory. Full reasoning +
+the honest case FOR the pivot: `docs/references/PIVOT_ANALYSIS_2026-08-11.md`.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

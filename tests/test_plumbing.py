@@ -56,9 +56,22 @@ EXPECTED_PER_STACK_COUNTS = {
 }
 
 
+def _hyp3_manifest_products() -> dict:
+    """Manifest entries produced by the HyP3 chain ONLY.
+
+    The manifest is shared across BANDS — `nisar_ingest.py` records its GUNW products there too,
+    because the inverter resolves every product's stack from this one file (§83). But these
+    plumbing assertions are about the **HyP3 extraction contract** (6 layers + the metadata txt
+    in `processed_tiffs/`), which an L-band GUNW neither has nor should fake. So scope them by
+    provenance rather than letting a second band silently widen or break the contract.
+    """
+    man = json.loads(STACK_MANIFEST.read_text(encoding="utf-8"))
+    return {k: v for k, v in man.items() if v.get("source") != "NISAR_GUNW"}
+
+
 def _expected_product_count() -> int:
-    """Product count the pipeline itself believes in: the stack manifest."""
-    n = len(json.loads(STACK_MANIFEST.read_text(encoding="utf-8")))
+    """Product count the pipeline itself believes in: the stack manifest (HyP3 products)."""
+    n = len(_hyp3_manifest_products())
     assert n >= MIN_PRODUCT_COUNT, (
         f"Stack manifest lists only {n} products (< {MIN_PRODUCT_COUNT}, the "
         f"original Ramban library) — manifest truncated or data lost."
@@ -71,8 +84,14 @@ def _product_dirs() -> list[Path]:
 
 
 def _masked_dirs() -> list[Path]:
+    """HyP3 masked-displacement dirs. NISAR products also write `<name>_masked_disp.tif` here
+    (§83 — that is the seam), so exclude exactly those known L-band products; anything else
+    unexpected still counts, and still fails these assertions, as before."""
+    nisar = {k for k, v in json.loads(STACK_MANIFEST.read_text(encoding="utf-8")).items()
+             if v.get("source") == "NISAR_GUNW"}
     return sorted(
-        d for d in QA_MASKS.iterdir() if d.is_dir() and not d.name.startswith("_")
+        d for d in QA_MASKS.iterdir()
+        if d.is_dir() and not d.name.startswith("_") and d.name not in nisar
     )
 
 
