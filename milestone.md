@@ -2337,3 +2337,48 @@ we be worried" half — is untouched and still validated. The "which slopes" hal
 **different satellite** (NISAR) or a **different method** (rank slopes by terrain and rainfall
 history, using movement as one clue rather than a requirement). Checks now **190**, all passing
 (§80).
+
+## ✅ Milestone 63 — We asked the new satellite to look at the ground ours goes blind on. It can see it.  *(2026-08-11)*
+
+**What we set out to do.** Last milestone ended with an uncomfortable finding: over Vaishno Devi our
+radar seems to detect no real slope movement at all. Two explanations fit that. Either the slopes
+genuinely aren't moving — or **our satellite simply can't see them**. This test tells those apart.
+
+**How the test works, in one paragraph.** Our satellite (Sentinel-1) uses a short radar wavelength
+that bounces off treetops; on thickly vegetated slopes the view changes so much between passes that
+the measurement becomes meaningless. NISAR uses a wavelength about four times longer, which is
+supposed to reach *through* the canopy to the ground. So we took a matched pair of images from each
+satellite over the same patch and the same 12-day gap, and asked one question: **on the pixels where
+ours goes blind, what does NISAR see?**
+
+**The answer, on the exact viewing angle that found nothing:**
+
+- Our satellite is **blind on 29.4%** of that ground — nearly a third of it is simply unmeasurable.
+- On that same blind ground, NISAR's signal quality reads **0.655**, where **0.35** is the line
+  between usable and useless. Not marginal — comfortably good.
+- It **recovers 86.5%** of what we were losing.
+
+So the honest reading of last milestone flips in an important way: **"we detect nothing" was, in
+large part, "we cannot see."** Not proof that those slopes are moving — but strong evidence we've
+been trying to measure them with the wrong instrument.
+
+**Two things that make this trustworthy.** The other site's numbers came out **identical to the
+earlier run**, which confirms the only thing that changed was adding Vaishno Devi. And NISAR's data
+covered **100%** of both areas for this window — nothing was quietly skipped.
+
+**The honest catch.** This was measured in **winter**, when there are fewest leaves — the season
+where NISAR's advantage should be at its *smallest*. So 86.5% is a floor, not a ceiling. We wanted
+the monsoon answer too, when the canopy is thickest and the advantage should be biggest.
+
+**We tried hard for that monsoon number, and failed for a reason worth recording.** The monsoon file
+we had was mostly empty over our sites. To rule out plain bad luck, we downloaded the *next* file
+from the identical orbit — and got the same emptiness (0% over one site, 18% over the other, where
+we require at least 40%). Two files, same story, while the winter file from that same orbit is 100%
+complete. So it's a known gap in NASA's early "provisional" data, not our doing. All eight files
+available are provisional; **no final versions exist yet**. The code **refused to publish a number**
+from a fifth of an area — exactly as designed.
+
+**Bottom line:** the case for the new satellite is now made on our own ground rather than borrowed
+from literature. The next question is no longer *"is L-band better?"* but *"what do we build with
+it?"* — with the honest footnote that the strongest season remains unmeasured until NASA reprocesses
+its data. Checks still **190**, all passing (§81, §82).

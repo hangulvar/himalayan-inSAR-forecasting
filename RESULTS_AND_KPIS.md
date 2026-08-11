@@ -4069,6 +4069,100 @@ directly against the inventory, with creep as one input rather than a gate. The 
 
 ---
 
+## 81. NISAR L-vs-C run for VAISHNO DEVI for the first time — C-band is blind on 29.4% of the ground, and L-band recovers 86.5% of it  `[MEASURED]`
+*(2026-08-11, session 33 cont. — the §80 "sensor route", started on the user's instruction.
+`nisar_coherence_pilot.py --season winter|monsoon` in the mintpy image. VD was a documented
+not-comparable case until §80 put the 2025 stacks in its product; this is its first result.)*
+
+**★ WINTER — VD is now measurable, and the L-band advantage is large on exactly the geometry that
+failed in §80.** Sampling the NISAR L-band grid (track 156 ASC frame 018, 2025-12-27 × 2026-01-08)
+at every C-band 80 m pixel centre, keeping pixels valid in both:
+
+| site · viewing angle | px | median γ_C | median γ_L | **C fails on** | median γ_L where C fails | **L recovers** |
+|---|---:|---:|---:|---:|---:|---:|
+| **VD · `ASC_path27_frame101`** | 12,408 | 0.589 | 0.691 | **29.4%** | **0.655** | **86.5%** |
+| **VD · `ASC_path100_frame102`** | 12,408 | 0.923 | 0.691 | 2.9% | 0.512 | 61.7% |
+| Ramban · `ASC_path27_frame106` | 62,540 | 0.571 | 0.717 | 27.4% | 0.591 | 86.9% |
+| Ramban · `ASC_path27_frame101` | 6,373 | 0.751 | 0.760 | 16.5% | 0.545 | 80.2% |
+| Ramban · `ASC_path100_frame102` | 65,007 | 0.907 | 0.719 | 0.8% | 0.622 | 75.4% |
+
+L-band coverage of the AOI is **100%** for both sites (no void in the winter granule). Ramban's
+three rows reproduce §59 exactly — an unchanged control confirming only VD was added.
+
+**★★ Why this matters for §80.** VD's `path27` is the geometry whose CLEANEST C-band history
+flagged **zero** zones. This says why: **C-band cannot measure 29.4% of that ground at all**, and
+where it fails L-band still reads a median coherence of **0.655** — comfortably above the 0.35
+usability bar, not marginal. So §80's "there is little or no detectable C-band creep here" is at
+least partly **an instrument blindness, not an absence of movement** — the strongest available
+evidence that the sensor route is the right one.
+
+**⚠ MONSOON — still blocked, and the guard refused to fake it.** The available track-156 monsoon
+granule (2026-06-25 × 2026-07-07) has an L-band **data void**: only **0.0%** of the window carries
+finite coherence over Ramban and **19.3%** over VD, against a 40% floor. The pilot **ABORTED with
+no verdict** rather than score a fifth of a window (§73 fail-closed behaviour, working). This is
+the same systematic void as §65/§68, now measured on a third granule.
+
+**Honest limits, carried:** one pair per band (not a season statistic); windows offset 5–6 d;
+L at 40 m vs C at 80 m posting; and **winter is the season of MINIMUM vegetation contrast, so
+every number above is a LOWER BOUND** on the advantage during monsoon — which is precisely the
+season still unmeasured.
+
+**Open lead (EXECUTED — see §82 below):** a NEWER granule on the SAME track and frame,
+`..._156_A_018_025_... 2026-07-07 × 2026-07-19`, exists at ASF. Same geometry means the method's
+"hold the track constant" control is preserved; if its void pattern differs it unblocks the
+monsoon test. DESC track-135 monsoon pairs (`135_D_072`, 06-23 × 07-05 and 07-05 × 07-17) also
+exist but change the geometry, so they belong to the deferred ASC/DESC decomposition question,
+not to this comparison.
+
+---
+
+## 82. The monsoon L-vs-C test is blocked by a SYSTEMATIC void in the provisional stream — confirmed on a second granule, ruled out as bad luck  `[MEASURED]`
+*(2026-08-11, session 33 cont. — the §81 open lead, executed on the user's go. NEW season preset
+`monsoon_jul`; 1.8 GB granule downloaded from ASF. No credits — NISAR data is free.)*
+
+**★ What was tried.** Downloaded `NISAR_L2_PR_GUNW_024_156_A_018_025_... 2026-07-07 × 2026-07-19`
+(1.8 GB; opens clean, `coherenceMagnitude` 4311×4374 float32) — the **next acquisition on the same
+track AND frame** as the voided one, so the method's "hold geometry constant, vary only season"
+control is preserved. Its C-band match is **the best in the project**: path-27's `07-07 × 07-19`
+pair carries the **exact same two dates** as the L window (the winter run accepted a 5–6 d offset).
+
+**⚠ RESULT — the same void, so the cause is the processing batch, not the acquisition.**
+
+| granule (track 156 ASC frame 018) | window | Ramban finite | VD finite | scored? |
+|---|---|---:|---:|---|
+| `..._008_..._X05010` (winter) | 2025-12-27 × 2026-01-08 | **100%** | **100%** | ✅ §81 |
+| `..._023_..._P05023` (monsoon) | 2026-06-25 × 2026-07-07 | 0.0% | 19.3% | ❌ abort |
+| `..._024_..._P05023` (monsoon) | 2026-07-07 × 2026-07-19 | **0.0%** | **18.1%** | ❌ abort |
+
+Two consecutive monsoon granules give the same pattern to within ~1 pp, while the winter granule
+on the **identical track and frame** is 100% complete. **The void is systematic to the `P05023`
+provisional batch, not a one-off bad acquisition** — n=2 now, and the pilot aborted honestly both
+times rather than score a fifth of a window.
+
+**★ Ruled out: waiting for a better provisional granule.** All **6** GUNW products over the AOI
+carry the `_PR_` (provisional) marker; **0 final products exist**. So there is nothing better to
+download today — the monsoon answer waits on NASA's reprocessing/back-catalogue release
+(promised through end-2026, §68), not on us.
+
+**Kept, not replaced:** the voided `monsoon` preset stays in `SEASONS` because that void IS the
+recorded evidence of §65/§68; the new attempt is a separate `monsoon_jul` preset writing to its
+own `_monsoon_jul` artifact, so neither overwrites the other. Battery **190 green** (the season
+presets test still passes — the new entry is data, not logic).
+
+**Where this leaves the sensor route.** The **winter** answer (§81) stands as the decision-grade
+number and is a **lower bound**: C-band is blind on **29.4%** of VD's path-27 ground and L-band
+recovers **86.5%** of it, with median γ_L = 0.655 where C fails. Monsoon — the season the advantage
+should be *largest* — remains unmeasured for reasons outside the project. **This does not weaken
+the §81 conclusion; it caps how strongly it can be stated.**
+
+**Next probe if the monsoon answer is wanted sooner (not done, needs a decision):** the DESC
+track-135 monsoon granules (`135_D_072`, 06-23 × 07-05, 07-05 × 07-17, ~2 GB each). They would
+show whether the void is track-156-specific, but they change the viewing geometry, so any number
+from them is NOT comparable to §81's winter result — it would be a separate, caveated data point,
+and it doubles as the first look at the deferred ASC/DESC decomposition (roadmap Area 2).
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

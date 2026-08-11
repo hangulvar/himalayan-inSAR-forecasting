@@ -100,6 +100,28 @@ SEASONS = {
         "offset_note": "windows offset 2-14 d",
         "season_note": "peak monsoon = maximum canopy, the season the advantage is claimed for",
     },
+    # The SECOND monsoon attempt (§82). The granule above is a DATA VOID over both AOIs (0.0%
+    # of the window finite over Ramban, 19.3% over VD, against a 40% floor) so it can never be
+    # scored; it is kept, not replaced, because that void is the recorded evidence of §65/§68.
+    # This entry is the next acquisition on the SAME track and frame (156 ASC 018), so the
+    # method's "hold the geometry constant, vary only the season" control still holds.
+    # Its C-band match is the best in the project: path-27's 07-07 x 07-19 pair has the EXACT
+    # same two dates as the L-band window (the winter run had to accept a 5-6 day offset).
+    # NOTE Ramban cannot take part — its C-band library stops at 2026-05-06, so it has no
+    # contemporaneous 12-day pair; the pilot reports that per site rather than inventing one.
+    "monsoon_jul": {
+        "h5": ("NISAR_L2_PR_GUNW_024_156_A_018_025_4000_SH_20260707T001345_20260707T001420_"
+               "20260719T001345_20260719T001420_P05023_N_F_J_001.h5"),
+        "label": "2026-07-07 x 2026-07-19 (12 d, track 156 ASC)",
+        # pair 1 = path27 f105 07-07 x 07-19 (EXACT date match); pair 2 = path100 f103
+        # 07-12 x 07-24 (offset 5 d). Both 12-day, as the method requires.
+        "c_pairs": {"ramban": ["20260707", "20260719", "20260712", "20260724"],
+                    "vaishnodevi": ["20260707", "20260719", "20260712", "20260724"]},
+        "extra_stacks": ["ASC_path27_frame105", "ASC_path100_frame103"],
+        "tag": "_monsoon_jul",
+        "offset_note": "pair 1 EXACT (same two dates); pair 2 offset 5 d",
+        "season_note": "peak monsoon = maximum canopy, the season the advantage is claimed for",
+    },
 }
 
 
