@@ -130,15 +130,25 @@ def test_dashboard_radar_pill_and_omission():
 
 def test_nisar_pilot_pair_selection_and_report():
     """Tier 2b plumbing (no gdal/h5py needed): the pilot picks ONLY the AOI's own stacks'
-    bracketing winter pairs — 3 for Ramban, 0 for VD (whose stacks start May 2026, a
-    documented not-comparable case) — and the produced report carries the decision fields."""
+    bracketing winter pairs, and the produced report carries the decision fields.
+
+    Selection is driven by each site's OWN `source_stacks`, which is why the two sites differ.
+    §80 CHANGED VD's answer, deliberately: VD's product used to hold only the 2026 frames
+    (103/105), so it had NO winter pairs and was a documented not-comparable case. Adding the
+    long 2025 histories (frame102, frame101) gives it 2 — i.e. VD can now take part in the
+    NISAR L-vs-C winter comparison it was previously excluded from. If this drops back to 0,
+    VD's product has lost those stacks (check `period_split:` in its registry file)."""
     import nisar_coherence_pilot as ncp
     winter = ncp.SEASONS["winter"]
     r_pairs = ncp.c_band_pairs("ramban", winter)
     assert len(r_pairs) == 3 and all(p.exists() for _, p in r_pairs)
     assert {s for s, _ in r_pairs} == {"ASC_path27_frame101", "ASC_path27_frame106",
                                        "ASC_path100_frame102"}
-    assert ncp.c_band_pairs("vaishnodevi", winter) == []
+    v_pairs = ncp.c_band_pairs("vaishnodevi", winter)
+    assert len(v_pairs) == 2 and all(p.exists() for _, p in v_pairs)
+    assert {s for s, _ in v_pairs} == {"ASC_path100_frame102", "ASC_path27_frame101"}
+    # Each site still draws only from its own stacks — VD's set is a strict subset of Ramban's.
+    assert {s for s, _ in v_pairs} < {s for s, _ in r_pairs}
     lo_lon, lo_lat, hi_lon, hi_lat = ncp.aoi_bbox("ramban")
     assert 75.0 < lo_lon < hi_lon < 75.5 and 33.0 < lo_lat < hi_lat < 33.5
     rep = PROJECT_ROOT / "data" / "nisar" / "nisar_coherence_pilot.json"

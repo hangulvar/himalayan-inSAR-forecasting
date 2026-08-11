@@ -3998,6 +3998,77 @@ radar** (§78 item 3: the 49-product `frame101/102/106` stacks).
 
 ---
 
+## 80. Item 3 EXECUTED — more radar fixed the noise (σ 75→25 mm/yr) but did NOT fix the map: every configuration still scores below chance  `[MEASURED]`
+*(2026-08-11, session 33 — the §79 plan's item 3, the one thing left that could rescue the VD
+WHERE product. `period_split:` extended to the long 2025 histories; 5 scored configurations.
+Battery 190 green, freeze 116 → 140.)*
+
+**★ The noise fix WORKED — decisively.** The long histories are the same ground under the pre-2026
+frame numbering, holding ~15 images each instead of 7–9. Isolating each one's 2025 monsoon block
+with `period_split:` gives full-rank solutions and a **~3× steadier velocity**:
+
+| history | images | pairs | σ (high-passed) | pixels beyond \|100\| mm/yr |
+|---|---:|---:|---:|---:|
+| `frame103` (2026, in the map) | 9 | 8 | 74.7 | **46%** |
+| `frame105` (2026, in the map) | 7 | 6 | 45.4 | **60%** |
+| **`frame102` (2025)** | 15 | 26 | **24.9** | **2.1%** |
+| **`frame101` (2025)** | 15 | 23 | **25.5** | **3.6%** |
+
+`ASC_path27_frame106` is deliberately EXCLUDED: its network is fine (31 pairs, rank 14/14) but it
+has too few usable pixels over this AOI to anchor a solution ("No solvable reference candidate").
+frame101 is the same path-27 ground and season, and does solve — so nothing is lost. **Not** fixed
+by lowering `--min-pairs`, which would buy a solution by lowering the quality bar.
+
+**★★ THE PASS/FAIL: the map still does not find the documented landslides. Every configuration
+scores BELOW CHANCE and detects 0/47.**
+
+| configuration | zones | AUC | detected @2 km | median nearest: real vs random |
+|---|---:|---:|---:|---|
+| union, 4 angles (WATCH) | 33 | **0.326** | **0/47** | 3.58 km vs **2.55 km** |
+| ≥2-look core (confirmation required) | 5 | **0.289** | 0/47 | 5.64 vs **4.61** |
+| `frame102` alone — CLEAN 2025 | 4 | **0.413** | 0/47 | 8.14 vs **7.81** |
+| `frame103` alone — noisy 2026 | 16 | **0.391** | 0/47 | 3.58 vs **3.04** |
+| `frame101` alone — CLEAN 2025 | **0 zones** | — | — | flags nothing at all |
+| ALERT (all angles, m=0.40) | **0 zones** | — | — | — |
+
+**★★ The finding is deeper than noise: clean the noise and the creep signal largely disappears.**
+`frame101` — the cleanest path-27 look — flags **zero** zones, and `frame102` flags only 4, sitting
+~8 km from the nearest documented failure. The zones the 2026 data produced were substantially
+noise; removing the noise removes most of the zones rather than relocating them onto real
+landslides. **There is little or no detectable C-band slope creep over this AOI** — which is the
+measured form of the long-standing "creep core 0 vs corridor inventory" caveat (CV3).
+
+**★ A union across looks PROPAGATES the worst look's noise.** Adding two clean histories left the
+union's score bit-identical (0.326, 0/47, medians unchanged to 2 dp) because the union flags a
+slope if ANY look flags it — an OR over looks is an OR over their false positives. Requiring
+≥2-look confirmation does not rescue it either (0.289). This is a structural property of the
+product worth carrying: **more evidence only helps if the combination rule can reject, not just
+accept.**
+
+**★ Side benefit, verified:** VD's product now contains the 2025 stacks, so VD has **2 winter
+C-band pairs** where it previously had 0 — it can join the NISAR L-vs-C comparison it was a
+documented not-comparable case for. Pinned in `test_nisar_pilot_pair_selection_and_report`
+(Ramban 3, VD 2, VD's set a strict subset of Ramban's).
+
+**Kept anyway, on evidence:** the 2025 histories stay in the product. They do not improve the
+score, but they are a strictly better measurement (3× less scatter, 2.1–3.6% absurd pixels vs
+46–60%), they raise cross-confirmed hazard pixels **150 → 246**, and they are what makes the
+"clean data flags almost nothing" finding visible at all. Battery **190 green**; freeze re-set
+**116 → 140** (24 new protected artifacts = the two added histories' velocity/hazard/alert
+products; 8 changed, of which 2 were Ramban daily-arm files written at 15:42 by the scheduled
+`monsoon_cycle`, proven by mtime before the manifest was touched; 0 missing).
+
+**⚠ VERDICT ON THE VD "WHERE" PRODUCT.** C-band creep does not identify this AOI's documented
+failures, at any history length or confirmation level we can build. The map must not be published
+as a hazard product, and the dashboard says so ("BELOW chance — random points score better than
+this map"). **The remaining routes are a change of sensor or a change of method**, not more
+C-band: (a) **NISAR L-band**, which sees through vegetation — the decorrelation that is our worst
+enemy (§59) — and for which VD is now comparable; (b) a **terrain-susceptibility model** validated
+directly against the inventory, with creep as one input rather than a gate. The **WHEN** arm
+(rainfall / burst / flood) is untouched by all of this and remains validated.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

@@ -11,84 +11,86 @@
 
 ---
 
-# LIVE — Session 32 · branch `aoi-vaishnodevi` · updated 2026-08-08
+# LIVE — Session 33 · branch `aoi-vaishnodevi` · updated 2026-08-11
 
 ## Current state
 
-- **★★ NEWEST (§79) — the §78 plan's items 1 & 2 are DONE, and item 2 changed the verdict on the
-  product.** Re-scoring the rebuilt VD map against the inventory returned **AUC 0.326 with 0/47
-  documented locations detected** — and **random null points sit CLOSER to the flagged zones
-  (2.55 km) than real landslides do (3.58 km)**. Both tiers now score **below chance** (≥2-look
-  core 0.303). This is independent confirmation of §78's noise-limited diagnosis.
-- **⚠⚠ THE HEADLINE FOR THE PRODUCT:** VD's **WHERE** map is currently **unusable on its own
-  merits** — ALERT is empty, WATCH scores below chance. The dashboard now says both plainly. The
-  **WHEN** arm (rainfall / burst / flood) is unaffected and still validated. **The fix is not a
-  threshold, it is more radar** (§78 item 3).
-- **★ (§79) The period split is STICKY — the silent-regression footgun is CLOSED.** New registry
-  key `period_split: {stack: YYYY-MM-DD}` (validated at load), honoured by
-  `run_multistack.connected_stacks()` and passed through as `--max-date` so it survives `--force`.
-  Verified both ways; a plain `run_multistack` now keeps path27 and reproduces the union
-  bit-for-bit. 3 tests incl. a negative control.
-- **★ (§79) Four honesty defects fixed, all on a page read as a warning:** hard-coded "beats
-  chance"/"≈chance" replaced by a verdict **derived** from the AUC (renders "BELOW chance" now); a
-  stale `validation_stats` overlay that was masking the fresher, worse score now checks the
-  footprint it measured; an empty footprint no longer **takes down the whole daily arm**
-  (`per_zone_gate` publishes the empty state and exits 0); and "no zone data at this site *yet*"
-  (reads as *never mapped*) is now "today's mapped footprint is empty".
-- **★ (§78 carried) ROOT CAUSE of the empty ALERT tier — noise-limited, not broken.** 844 `FS<1`
-  px vs ~4–5k creep px → **5–7 overlapping px, 0 clusters**; σ(hp velocity) 45–75 mm/yr puts the
-  −15 mm/yr creep threshold at **0.20–0.33σ**, selecting ~37% of pixels. The old 14-zone map
-  deserves the same scepticism.
-- **★ (§77/§78 carried) The cadence refresh itself was a success:** 10 new pairs, **both S1A→S1D
-  seams CLEAN**, hazard map advanced 06-25 → **08-05**, freshness pill cleared, live 2026 page
-  correct (`data-acq=2026-08-05`, `data-asof=2026-08-02`).
-- **Battery 184 → 190 green, 14/14 suites.** Freeze re-verified and re-frozen at **116** (10
-  changed: 8 mine + **2 Ramban files written by the scheduled `monsoon_cycle` at 14:21**, proven by
-  mtime; 0 missing/added).
-- **⚠ Ramban carries the standing staleness warning:** 16 new ASC scenes through 08-05, rebuild
-  UNBLOCKED — the loop now proven on VD, and it folds in the deferred §61 S1A-only rescore.
-- **Flood arm (§69–§76) complete**; **F2** (creep×flood undercut coupling) is its next phase.
-- **Carried honest limits:** VD WHERE below chance / ALERT empty (§79); ~30 mm/yr noise floor
-  (§78); creep core 0 vs corridor inventory; 598 m miss (§31/§51); soils literature-corroborated
-  not lab; §40 GACOS open; Drive copy of raw zips is the only archival source (§48).
-  **⚠ Standing:** §52 — 2 inventory rows pending verdict; §66 LOW web findings.
+- **★★ NEWEST (§80) — item 3 is DONE, and it settles the question.** More radar history fixed the
+  MEASUREMENT (scatter σ **75 → 25 mm/yr**; absurd-speed pixels **46–60% → 2–4%**) but did **NOT**
+  fix the MAP. Five scored configurations — the 4-angle union, the ≥2-look core, and each history
+  alone — **all score below chance and all detect 0/47** documented landslides.
+- **★★ The deeper finding: clean the noise and the creep signal largely disappears.** The cleanest
+  history (`frame101`) flags **zero** zones; the next cleanest (`frame102`) flags 4, ~8 km from the
+  nearest documented failure. The 2026 zones were substantially noise — removing it removes the
+  zones rather than relocating them onto real landslides. **There is little or no detectable C-band
+  creep over this AOI** — the measured form of the standing "creep core 0 vs corridor inventory"
+  caveat.
+- **★ Structural lesson worth carrying (§80):** a union across looks **propagates the worst look's
+  noise** — adding two clean histories left the union's score bit-identical, because "flag if ANY
+  look flags" is an OR over false positives too. Requiring ≥2-look confirmation did not rescue it
+  either. *More evidence only helps if the combining rule can REJECT, not just accept.*
+- **⚠⚠ VERDICT ON THE VD "WHERE" PRODUCT — do not publish it as a hazard product.** C-band creep
+  does not identify this AOI's failures at any history length or confirmation level we can build.
+  The dashboard says so in plain words ("BELOW chance — random points score better than this map").
+  **The WHEN arm (rainfall / burst / flood) is untouched and remains validated.**
+- **★ (§80) Two long 2025 histories are now IN the product** (`frame102`, `frame101` via
+  `period_split:`), kept on evidence: 3× less scatter and cross-confirmed hazard pixels
+  **150 → 246**, even though the score is unchanged. `frame106` is deliberately excluded — its
+  network is fine but it has too few usable pixels over this AOI to anchor a solution; a comment in
+  the registry says so, and says NOT to "fix" it by lowering `--min-pairs`.
+- **★ Side benefit, pinned by a test:** VD now has **2 winter C-band pairs** (was 0), so it can join
+  the **NISAR L-vs-C** comparison it was a documented not-comparable case for.
+- **★ (§79 carried) The period-split rescue is STICKY and the page is honest:** config-driven,
+  survives `--force`; chance verdicts are derived not asserted; a stale `validation_stats` overlay
+  can no longer mask a fresher worse score; an empty footprint no longer takes down the daily arm.
+- **★ (§77/§78 carried) The cadence refresh itself was a success:** 10 new pairs, both S1A→S1D seams
+  clean, map current to **2026-08-05**, freshness pill cleared.
+- **Battery 190 green, 14/14 suites. Freeze re-set 116 → 140** (24 new protected artifacts = the two
+  added histories' products; 8 changed, 2 of them Ramban daily-arm files written by the scheduled
+  `monsoon_cycle` at 15:42, proven by mtime; 0 missing).
+- **⚠ Ramban still carries its staleness warning:** 16 new ASC scenes through 08-05, rebuild
+  unblocked; folds in the deferred §61 S1A-only rescore.
+- **Carried honest limits:** VD WHERE below chance at every configuration (§80); ~30 mm/yr noise
+  floor now measured (§78); 598 m miss (§31/§51); soils literature-corroborated not lab; §40 GACOS
+  open; Drive copy of raw zips is the only archival source (§48). **⚠ Standing:** §52 — 2 inventory
+  rows pending verdict; §66 LOW web findings.
 
 ## Recommended next step
 
-**Item 3 of the §78 plan is now the ONLY thing that fixes the product — everything cheaper is
-done.** In order:
+**The cheap fixes are exhausted — the WHERE product now needs a change of SENSOR or of METHOD, not
+more C-band.** Two candidates, either is a proper piece of work:
 
-1. **Cut the velocity noise floor — invert the LONG stacks.** `ASC_path100_frame102`,
-   `ASC_path27_frame101`, `ASC_path27_frame106` hold **49 products each** (vs 8–9 in the
-   frame103/105 pair currently carrying the map). They are marked *disconnected*, so the newly
-   built `period_split:` mechanism is exactly the tool: pick each one's cutoff from
-   `_connectivity_report.md`, add it to the registry, re-run. Longer series → smaller σ → a creep
-   mask that is signal rather than noise. **Re-score after** — that is the pass/fail.
-2. **Do NOT tune m / the creep threshold to make zones reappear** — with σ this large that is
-   manufacturing a result. Recorded here so a future session does not "fix" it that way.
-3. **Then** the Ramban cadence refresh (+ §61 rescore), or flood **F2**.
+1. **NISAR L-band (the sensor route).** Long-wavelength radar sees through vegetation, which is our
+   worst enemy here (§59) and the most likely reason C-band sees nothing. VD is **newly comparable**
+   (2 winter pairs, §80), the forward stream has arrived (§65), and `nisar_coherence_pilot.py`
+   already runs the C-vs-L comparison in one command. **Start here** — it directly tests the
+   suspected cause.
+2. **A terrain-susceptibility model (the method route).** Rank slopes on terrain + rainfall history
+   and validate directly against the inventory, using creep as ONE input rather than a gate. This is
+   the long-standing "susceptibility cross-check" (roadmap Area 4) and it does not depend on
+   detecting creep at all.
 
-User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge `aoi-vaishnodevi` →
-`master`; publish the dashboard — **note the VD WHERE map should not be published as a hazard
-product until item 1 lands.**
+**Do NOT** loosen `m`, the creep threshold, or the cluster size to make zones reappear — five
+honest failing scores beat one fitted number, and this is now written into the ledger.
+
+Then: the **Ramban cadence refresh** (+ §61 rescore), or flood **F2**. User-side (standing): settle
+the 2 §52 rows; GACOS form + soil lab; merge `aoi-vaishnodevi` → `master`. **Publishing the VD
+dashboard should wait** for one of the two routes above.
 
 ## Uncommitted delta
 
-`config/vaishnodevi.yaml` `search_end` → 08-08 is committed (`e50cce3`). Uncommitted:
-- `workflows/config.py` — NEW `period_split` field + `_period_split()` load-time validator.
-- `workflows/run_multistack.py` — `connected_stacks()` includes period-split stacks;
-  `run_phases_per_stack` passes `--max-date` (survives `--force`).
-- `workflows/custom_sbas_inverter.py` — `--max-date` period split (+ date-vs-datetime fix).
-- `workflows/operational_alarm.py` — `scored_zones` + score withdrawal; `_chance_verdict()`;
-  `validation_stats` overlay gated on `n_zones`; `mapped_but_empty` caption.
-- `workflows/per_zone_gate.py` — empty footprint publishes the empty state and exits 0.
-- `config/vaishnodevi.yaml` — `period_split: {ASC_path27_frame105: 2026-07-07}` (load-bearing,
-  commented as such).
-- `tests/` — `test_config_registry.py` 9→12, `test_historical_events.py` 15→19. **184 → 190.**
-- `RESULTS_AND_KPIS.md` §79 (+§78, +3 ↪ corrections on §77); `error_history_log.md` (+5 defects);
-  `milestone.md` M60 + correction; `session_journey.md` (git-ignored); this file.
-- **Git-ignored data:** VD velocity/hazard/alerts/mosaic rebuilt, **backtest_watch reports
-  re-scored**, 2026 daily-arm + dashboard regenerated, `_baseline_freeze.json` re-frozen (116).
+- `CLAUDE.md` (**git-ignored**, local-only) — NEW section 0: explain in plain language (chat +
+  decisions, not just docs).
+- `config/vaishnodevi.yaml` — `period_split:` extended with the two long 2025 histories + a
+  commented exclusion for `frame106`.
+- `tests/test_radar_watch.py` — the NISAR pair-selection test now pins VD's new 2 winter pairs
+  (was 0) and that VD's set is a strict subset of Ramban's.
+- `RESULTS_AND_KPIS.md` §80; `milestone.md` M62; `session_journey.md` (git-ignored) S33;
+  this file.
+- **Git-ignored data:** velocity + hazard + per-stack alerts for `frame102`/`frame101` (NEW),
+  union mosaic + alerts rebuilt from 4 angles, `backtest_watch*` re-scored, 5 `probe_*` scoring
+  reports (scratch evidence, not protected), dashboard + daily-arm regenerated,
+  `_baseline_freeze.json` re-frozen at **140**.
 
 ---
 

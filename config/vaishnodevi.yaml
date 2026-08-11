@@ -115,6 +115,27 @@ rescue_gate:
 period_split:
   ASC_path27_frame105: 2026-07-07   # invert 2026-05-01..07-07 (6 pairs, rank 6/6)
 
+  # --- The LONG 2025 histories (§80) -----------------------------------------
+  # These three are the SAME ground as frame103/105 under the pre-2026 frame numbering, and
+  # they hold ~15 images each instead of 7-9. Longer history = a much steadier measurement:
+  # the scatter in the speed estimate drops from 45-75 mm/yr to ~25 mm/yr, and the share of
+  # pixels with physically absurd speeds falls from 46-60% to 2-4%. That is the fix for the
+  # noise problem that made the 2026-only map score worse than random guessing (§79).
+  #
+  # Each cutoff isolates that stack's 2025 monsoon-season block (its one long connected run);
+  # the 2026 remainder of these stacks is broken into 1-2 image fragments that cannot be used.
+  # TRADE-OFF, stated openly: the map now answers "slopes that moved in 2025 OR 2026", not
+  # "slopes moving right now". That is the right question for a WHERE-to-inspect ranking, and
+  # the freshness pill still reports the newest radar behind the map.
+  ASC_path100_frame102: 2025-10-26  # 2025-05-11..10-26 — 26 pairs, 15 dates, rank 14/14
+  ASC_path27_frame101:  2025-10-21  # 2025-05-06..10-21 — 23 pairs, 15 dates, rank 14/14
+  # ASC_path27_frame106 is deliberately NOT here. Its network is fine (31 pairs, rank 14/14)
+  # but it has too few usable pixels over THIS AOI to anchor a solution — the inverter stops
+  # with "No solvable reference candidate in AOI". frame101 is the same path-27 ground over the
+  # same 2025 season and does solve, so nothing is lost. Re-test it if the AOI or the coherence
+  # masking ever changes; do NOT "fix" it by lowering --min-pairs, which would buy a solution by
+  # lowering the quality bar.
+
 # Manual override ON TOP of the scientific gate: stacks to force-skip entirely
 # (e.g. one you have decided to period-split regardless). Canonical labels.
 # Default empty — the gate above already excludes decorrelated stacks (e.g. the

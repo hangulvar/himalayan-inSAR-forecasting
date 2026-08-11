@@ -2296,3 +2296,44 @@ this site yet" (sounds like we never looked) is now "today's mapped footprint is
 map needs **more radar, not better wording** — the next job is to bring in the long 49-image
 histories. Until then the map should not be published as a hazard product, and the page says so.
 Checks now **190**, all passing (§79).
+
+## 🔬 Milestone 62 — We threw more radar at the problem. It fixed the measurement, not the map.  *(2026-08-11)*
+
+**What we set out to do.** Last time we said the slope map was resting on noise, and that the cure
+was more radar history rather than better wording. This was that attempt — and we treated it as a
+straight pass/fail test, decided in advance: *does the map get closer to real landslides than random
+guessing?*
+
+**What we found first — the good news.** The same ground had been photographed far more often under
+an older filing system: about **15 images per history instead of 7–9**. Using those, the wobble in
+our "how fast is this slope moving?" measurement dropped by roughly **three times**. The share of
+pixels reporting physically ridiculous speeds fell from **46–60% down to 2–4%**. So the diagnosis
+was right and the cure worked: **the measurement is now genuinely much cleaner.**
+
+**And then the bad news, which is more important.** A cleaner measurement did **not** produce a
+better map. We scored five different versions — the combined map, a stricter version requiring two
+viewing angles to agree, and each history on its own. **Every single one still finds 0 out of 47
+documented landslides, and every one still scores worse than random guessing.**
+
+**The most telling result.** The *cleanest* history of all flags **nothing whatsoever** — zero
+slopes. The second cleanest flags four, roughly 8 km from the nearest real landslide. In other
+words: the slopes the noisy data was flagging were mostly the noise itself. Take the noise away and
+the flags don't move onto real landslides — **they simply vanish**.
+
+The honest conclusion: **over this particular site, this type of radar is not detecting meaningful
+slope movement at all.** That isn't a bug we can fix by tuning; it's a limit of the instrument on
+this terrain — thick vegetation is radar's classic blind spot, and it's a limitation we've had on
+record for a while. We've now measured it instead of suspecting it.
+
+**One useful side effect.** Because the map now includes the older histories, this site can finally
+take part in a comparison with **NISAR**, the new satellite that uses a longer wavelength designed
+to see through vegetation. Previously we couldn't include it at all.
+
+**What we did NOT do**, again: quietly loosen the thresholds until zones reappeared near known
+landslides. Five honest failing scores are worth more than one flattering fitted number.
+
+**Where this leaves the project.** The rainfall, cloudburst and flash-flood side — the "when should
+we be worried" half — is untouched and still validated. The "which slopes" half needs either a
+**different satellite** (NISAR) or a **different method** (rank slopes by terrain and rainfall
+history, using movement as one clue rather than a requirement). Checks now **190**, all passing
+(§80).
