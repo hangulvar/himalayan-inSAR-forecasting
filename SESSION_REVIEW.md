@@ -15,78 +15,80 @@
 
 ## Current state
 
-- **★★ NEWEST (§81) — the NISAR sensor route is CONFIRMED, and it explains §80's dead end.** On
-  VD's `path27` — the exact geometry whose cleanest C-band history flagged **zero** zones —
-  **C-band is blind on 29.4% of the ground, and L-band recovers 86.5% of it** (median γ_L = 0.655
-  where C fails, against a 0.35 usability bar). VD was a documented not-comparable case until §80
-  put the 2025 stacks in its product; this is its first result. Ramban's three rows reproduce §59
-  exactly — an unchanged control.
-- **★★ So §80's "no detectable creep here" is at least partly INSTRUMENT BLINDNESS, not absence of
-  movement.** That is the strongest evidence available that the sensor route — not more C-band, not
-  threshold tuning — is the way forward.
-- **⚠ (§82) The MONSOON test is blocked by a SYSTEMATIC void, now proven, not suspected.** Two
-  consecutive track-156 monsoon granules give the same emptiness over our AOIs (Ramban 0.0%, VD
-  19.3% then **18.1%**, against a 40% floor) while the WINTER granule on the identical track and
-  frame is **100%** complete. The 2nd was downloaded (1.8 GB) specifically to rule out bad luck —
-  it didn't. **All 6 GUNW products over the AOI are provisional; 0 final products exist**, so there
-  is nothing better to fetch today. The pilot ABORTED without a verdict both times (fail-closed,
-  working).
-- **⚠ Therefore the winter number is a LOWER BOUND** — winter is minimum vegetation contrast, so
-  the monsoon advantage should be larger. The unmeasured season caps how strongly §81 can be
-  stated; it does not weaken it.
-- **★ (§80 carried) More C-band fixed the measurement but not the map:** scatter σ 75 → 25 mm/yr,
-  yet all 5 scored configurations still score **below chance with 0/47 detected**; the cleanest
-  history flags **zero** zones. A union across looks propagates the worst look's noise.
-- **⚠⚠ VERDICT ON THE VD "WHERE" PRODUCT — unchanged: do not publish it as a hazard product.** The
-  dashboard says so in plain words. **The WHEN arm (rainfall / burst / flood) is untouched and
-  remains validated.**
+- **★★ THE SESSION'S VERDICT (§80–§83): the VD "WHERE" map is withdrawn, and we now know WHY and
+  WHAT FIXES IT.** More C-band fixed the measurement but not the map (§80: scatter σ 75 → 25 mm/yr,
+  yet every configuration still scores **below chance, 0/47 detected**, and the cleanest history
+  flags **zero** zones). NISAR then explained it (§81: C-band is **blind on 29.4%** of VD's path-27
+  ground; L-band recovers **86.5%** of it). So "no detectable creep" was substantially **instrument
+  blindness** — a sensor problem with a sensor fix.
+- **★★ (§83) The L-band ingestion path is BUILT and TESTED** — `nisar_ingest.py` + 7 tests + a
+  design doc. NISAR enters as **its own stack**; the grid match (EPSG:32643 @ 80 m) was **verified,
+  not assumed**, and the adapter **derives the wavelength per granule** to avoid a hardcoded C-band
+  constant that would have under-reported L-band motion **4.36×** silently. **Not wired live** —
+  3 provisional granules is nothing to invert; the 6 remaining steps each carry a **trigger**.
+- **★★ (§83) The "abandon measured movement" pivot was analysed and REJECTED on evidence.**
+  Susceptibility ranking is **already** in the plan (Area 4 corroborator / Area 5 targeting), so
+  building it is zero deviation — *promoting* it is. Against promotion: §60 measured its skill as
+  mostly corridor **reporting bias** (0.731 → 0.560 without elevation), GSI already publishes that
+  map at **0.84**, and it spends the stated agentic-fusion novelty. **Decision record with re-open
+  criteria:** `docs/references/PIVOT_ANALYSIS_2026-08-11.md`.
+- **★ §80 is the ORIGINAL PLAN WORKING, not failing.** Agent 1's spec is to mask low-coherence data
+  and "refuse to pass noise downstream"; the Guiding Principle is to audit noise *before* trusting
+  any deformation map. Twice we declined to tune thresholds to make zones reappear.
+- **⚠ (§82) The NISAR monsoon test is blocked by a SYSTEMATIC void** — two consecutive track-156
+  granules empty over our AOIs (Ramban 0.0%, VD 19.3% → 18.1%) while the winter granule on identical
+  geometry is 100%. All 8 GUNWs are provisional; **0 final products exist**. So §81's winter number
+  is a **lower bound** (winter = least vegetation = smallest advantage).
 - **★ (§79 carried) The plumbing is honest and sticky:** `period_split:` is config-driven and
-  survives `--force`; chance verdicts are derived not asserted; a stale `validation_stats` overlay
-  cannot mask a fresher worse score; an empty footprint no longer takes down the daily arm.
-- **Battery 190 green, 14/14 suites. Freeze 140.** `data/nisar/` is now **5.7 GB** (3 granules).
-- **⚠ Ramban still carries its staleness warning** (16 new ASC scenes through 08-05); it also
-  cannot join the monsoon L-vs-C test at all — its C-band library stops at 2026-05-06.
+  survives `--force`; chance verdicts are **derived** from the AUC (the page currently reads "BELOW
+  chance"); a stale `validation_stats` overlay cannot mask a fresher worse score; an empty footprint
+  no longer takes down the daily arm.
+- **★ The WHEN arm is untouched and remains validated** — rainfall, burst and flash-flood grading are
+  independent of everything above.
+- **★ 19 defects logged this session** (§77 ×1, §78 ×4, §79 ×5, §80 ×4, §83 ×5) and distilled into
+  **`CLAUDE.md` §6 — a repeat-offender pre-flight checklist**, grouped by when each bites. Meta-rule
+  recorded: every one was caught by a guard going red — answer it with forensics, never by loosening
+  the guard.
+- **Battery 197 green, 15 suites. Freeze 140. `data/nisar/` 5.7 GB (3 granules).**
 - **Carried honest limits:** VD WHERE below chance at every configuration (§80); NISAR monsoon
-  unmeasured (§82); ~30 mm/yr noise floor measured (§78); 598 m miss (§31/§51); soils
-  literature-corroborated not lab; §40 GACOS open. **⚠ Standing:** §52 — 2 inventory rows pending;
-  §66 LOW web findings.
+  unmeasured (§82); inventory is a record of REPORTS not landslides (§60/§83); ~30 mm/yr noise floor
+  measured (§78); 598 m miss (§31/§51); soils literature-corroborated not lab; §40 GACOS open.
+  **⚠ Standing:** §52 — 2 inventory rows pending; §66 LOW web findings; Ramban's staleness warning
+  (16 new ASC scenes through 08-05) + its deferred §61 rescore.
 
 ## Recommended next step
 
-**The sensor route is proven in principle (§81); the next question is what to BUILD with it.** In
-order of value:
+**The strategy is settled; what remains is execution on two independent tracks.**
 
-1. **Design the L-band ingestion path** — the one thing that turns §81 from a finding into a
-   product. NISAR GUNWs are geocoded interferograms, so they land at the same architectural seam as
-   HyP3 products: a downloader + adapter feeding `data/qa_masks/` per stack, after which every
-   registry AOI inherits it (roadmap §0/NISAR note). Blocked only by product volume today: **8 GUNW
-   acquisitions over the AOI, all provisional** — enough to prototype the adapter, not enough for a
-   velocity series.
-2. **The method route, in parallel** — a terrain-susceptibility model validated directly against
-   the inventory, using creep as ONE input rather than a gate. It does not depend on detecting
-   creep at all, which is precisely §80's problem, and it is the standing roadmap Area 4 item.
-3. **Optional cheap probe:** the DESC track-135 monsoon granules (~2 GB each) would show whether
-   the void is track-156-specific. Different geometry, so NOT comparable to §81 — a separate
-   caveated data point that doubles as the first look at ASC/DESC decomposition.
+1. **Susceptibility model as a CORROBORATOR** (highest value per hour — the script already exists,
+   `workflows/susceptibility_crosscheck.py`). One rule, non-negotiable: the **elevation-ablated AUC
+   is the headline**, never the raw one (§60). Then use it for Area-5 **targeting** — rank the
+   corridor, point scarce radar/field effort at the top. This does NOT claim to replace measured
+   movement.
+2. **NISAR, when the data allows.** Nothing to build today; the trigger for the next step is
+   **≥8 acquisitions** on one track/frame, or NASA's reprocessing clearing the monsoon void. Re-run
+   `nisar_ingest.py --list` periodically to check for FINAL (non-`_PR_`) products.
+3. **Then** the Ramban cadence refresh (+ §61 rescore), or flood **F2**.
 
-**Do NOT** wait idle on NASA reprocessing for the monsoon number, and do NOT loosen the 40%
-coverage floor to score a fifth of a window.
+**Do NOT:** loosen `m`/creep thresholds to make zones reappear; lower the pilot's 40% coverage floor;
+publish the VD WHERE map; or build NISAR integration steps 2–6 before their triggers.
 
-Then: the **Ramban cadence refresh** (+ §61 rescore), or flood **F2**. User-side (standing): the
-2 §52 rows; GACOS + soil lab; merge to `master`. **Publishing the VD WHERE map still waits.**
+User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge `aoi-vaishnodevi` →
+`master`. **Publishing the VD dashboard should present the WHEN arm only** until route 1 or 2 lands.
 
 ## Uncommitted delta
 
-- `workflows/nisar_coherence_pilot.py` — NEW `monsoon_jul` season preset (the voided `monsoon`
-  preset is KEPT, not replaced — that void is §65/§68's evidence).
-- `RESULTS_AND_KPIS.md` — §81 (winter, VD's first result) + §82 (monsoon void confirmed).
-- `SESSION_REVIEW.md` (this block); `milestone.md` M63; `session_journey.md` (git-ignored) S33.
-- **Git-ignored data:** NEW `data/nisar/NISAR_L2_PR_GUNW_024_156_A_018_025_...h5` (1.8 GB,
-  downloaded from ASF), `nisar_coherence_pilot.{json,md}` refreshed with VD's rows,
-  `nisar_coherence_pilot_monsoon_jul.json` (the abort evidence).
-- **Earlier in this session (§80):** `config/vaishnodevi.yaml` period_split extended,
-  `tests/test_radar_watch.py` re-pinned, plus the VD product rebuilt from 4 angles and the freeze
-  re-set to 140.
+Everything through `cabf222` is **committed** (the tree was clean at wrap). This wrap adds
+documentation only:
+- `session_journey.md` (**git-ignored**) — S33 cont. 2: the adapter, and reversing my own prior
+  pivot recommendation after checking §60.
+- `milestone.md` — **M64** (plain-language: the doorway for the new satellite + the wrong turn
+  avoided).
+- `docs/guides/Foundations - Physics and Maths Primer.md` — NEW "the wavelength is the RULER" box
+  (the 4.36× trap, Part A), 2 new Part-D interview answers (sampling bias; how to decide on a
+  pivot), 2 new Part-E limitations (the inventory records REPORTS; we deliberately did not pivot).
+- `SESSION_REVIEW.md` — this LIVE block.
+- `CLAUDE.md` (**git-ignored**, from the previous batch) — §6 repeat-offender checklist.
 
 ---
 
@@ -104,7 +106,7 @@ Then: the **Ramban cadence refresh** (+ §61 rescore), or flood **F2**. User-sid
 | 6 | `error_history_log.md` | Every bug + root cause + fix — **check before debugging anything** | Scan headings |
 | 7 | `docker/README.md` | How to build/run the pipeline in the Linux container | As needed |
 | 8 | `docs/guides/Foundations - Physics and Maths Primer.md` | The science (Phases 1–4 + forecasting/rainfall/validation) | As needed |
-| 9 | `InSAR_hazard_forecasting_Context.md` | Original vision / full expansion roadmap | Reference |
+| 9 | `docs/guides/InSAR_hazard_forecasting_Context.md` | Original vision / full expansion roadmap — **read it before judging whether a proposed change is a deviation** (§83: the "pivot" turned out to be Area 4/5 work already in the plan) | Reference |
 
 **Also re-read `CLAUDE.md`** — behavioural rules + the documentation ritual (§5: run `/wrap-session` before stopping).
 
@@ -133,7 +135,7 @@ Then: the **Ramban cadence refresh** (+ §61 rescore), or flood **F2**. User-sid
   Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
 - Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: **~7,900 as of 2026-08-08** (§77 — 8000 verified pre-refresh, ~100 on the VD cadence refresh; the §61 7,430 balance replenished since). Radar library **248 products** (238 + 10 §77). Disk: ~49 GB in `data/` (§48/§77 — raw zips Drive-archivable; +~3 GB from the §77 refresh).
+- HyP3 credits: **~7,900 as of 2026-08-08** (§77 — 8000 verified pre-refresh, ~100 on the VD cadence refresh; the §61 7,430 balance replenished since). Radar library **248 products** (238 + 10 §77). Disk: **56 GB** in `data/` measured 2026-08-11 (§48/§77/§83 — raw zips Drive-archivable; +~3 GB from the §77 refresh, and **`data/nisar/` is now 5.7 GB** across 3 granules plus ~160 MB of adapted rasters).
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
 - **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —
@@ -235,7 +237,11 @@ validation); a static-vs-worst-case hazard map; recall-limited validation on two
   Regime-A-only (tributary flash floods / toe erosion); plan of record =
   `docs/references/FLOOD_EXPANSION_PLAN_2026-07-28.md` (F0–F3 phases, scope exclusions, test contract).
 - **Data upgrade — NISAR (NASA-ISRO, L+S band):** the top future SAR upgrade (L-band beats vegetation
-  decorrelation, our worst enemy); operational window from Jul 2026.
+  decorrelation, our worst enemy); operational window from Jul 2026. **PROVEN on our own ground
+  2026-08-11 (§81) and the ingestion path is BUILT (§83,
+  `docs/references/NISAR_INGESTION_DESIGN.md`)** — no longer a "future" item but a data-gated one:
+  the adapter waits on acquisition volume (≥8 on one track/frame) and on final, non-provisional
+  products.
 
 **Suggested priority:** (1) ✅ operational two-factor warning + per-zone (§16–§19); (2) ✅ physics/data
 upgrades (§20–§21); (3) ✅ recall two-tier + uncertainty + triage (§23–§25); (4) ✅ live rainfall

@@ -2382,3 +2382,65 @@ from a fifth of an area — exactly as designed.
 from literature. The next question is no longer *"is L-band better?"* but *"what do we build with
 it?"* — with the honest footnote that the strongest season remains unmeasured until NASA reprocesses
 its data. Checks still **190**, all passing (§81, §82).
+
+## ✅ Milestone 64 — We built the doorway for the new satellite, and talked ourselves out of a wrong turn  *(2026-08-11)*
+
+Two jobs this time: one building, one thinking.
+
+### Job 1 — the doorway for the new satellite
+
+Knowing NISAR can see what our current satellite can't is only useful if its data can actually get
+into our system. So we built that connection.
+
+**It fitted better than expected.** NISAR's files turned out to already use **the same map grid and
+the same 80 m detail level** as everything we have — so nothing needs stretching or re-projecting.
+The new satellite simply joins as **another viewing angle**, meeting the others only at the final
+combine step.
+
+**But there was one trap, and it was a nasty one.** Radar measures movement by counting wave
+cycles, so the *length of the wave* sets the scale. Our existing code has the current satellite's
+wavelength written in as a fixed number. NISAR's waves are **4.36× longer**. Had we simply reused
+that code, every movement reading would have come out **4.36× too small** — with no error message,
+no warning, and numbers that look entirely believable. That's the most dangerous kind of bug: one
+that lies quietly. The new code now **reads the wavelength out of each file**, and a test
+deliberately demonstrates the size of the mistake avoided.
+
+Our own test suite also caught us putting the new files in the wrong folder — one that promises six
+specific data layers NISAR simply doesn't have. Rather than fake them, we gave NISAR its own space.
+
+**We stopped there on purpose.** Building a movement history needs a long run of images; we have
+three. So the doorway is built and tested, and the remaining steps are written down each with the
+**trigger** that should happen before anyone builds it. No building ahead of the data.
+
+### Job 2 — checking whether we were about to drift off-plan
+
+Last time we suggested a second track: rank slopes by terrain and rainfall, treating movement as
+just one clue. You asked the right question — **is that still the product we set out to build?**
+
+So we went back and read the original project document instead of trusting memory. Three things
+came out of it:
+
+- **The original "big idea" was never "radar detects movement."** It was combining movement,
+  weather and physics so they can *check each other* — before a disaster, not after.
+- **The plan literally predicted our recent bad news.** It says the radar step must throw away
+  low-quality data and *"refuse to pass noise downstream"*. That's exactly what happened. So the
+  uncomfortable result was **the design working**, not breaking.
+- **Ranking-by-terrain was already in the plan — twice** — but both times as a *supporting check*,
+  never as the main answer.
+
+And then the decisive part: **we had already built that model, back in §60, and measured why it
+flatters itself.** It scored 0.731 — but with elevation removed it fell to 0.560, no better than
+the physics it was meant to beat. It had mostly learned *where landslides get reported* — near the
+road, low down — rather than where they happen. Vaishno Devi's records are an even narrower strip
+along one pilgrimage track, so that bias would likely be worse there.
+
+On top of that, the Geological Survey of India **already publishes** exactly that kind of map for
+the neighbouring corridor, scoring better than ours did, with field verification.
+
+**So: build it, but keep it in its intended supporting role** — with one rule, that the honest
+elevation-removed score is the one we quote. Put the real weight behind the new satellite, which
+fixes the actual cause instead of working around it. We also wrote down **what would make us change
+our minds**, so this is a decision on the record rather than an opinion.
+
+**Bottom line:** a new capability built without over-building, and a course correction avoided by
+checking our own past work before repeating it. Checks now **197**, all passing (§83).

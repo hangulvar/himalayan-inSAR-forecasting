@@ -123,6 +123,29 @@ only ~5.6 cm, we can detect distance changes of **millimetres**.
 the exact final angle of the painted dot, you can tell how far it rolled — to a
 fraction of one turn. Phase is that angle; wavelength is the circumference.
 
+> ### ⚠ The wavelength is the RULER — get it wrong and every number is wrong (§83)
+>
+> Look at the formula again: λ multiplies everything. **The wavelength is not a detail, it is the
+> unit of measurement.** Push the wheel analogy: if you assume a bicycle wheel but you are actually
+> watching a tractor tyre, you will still get a confident, sensible-looking answer for how far it
+> rolled — and it will be wrong by exactly the ratio of the two circumferences.
+>
+> This became real when we added **NISAR**. Its waves are **24.2 cm** long against Sentinel-1's
+> **5.5 cm** — a ratio of **4.36**. Our conversion code had 5.5 cm written in as a fixed number, so
+> feeding it NISAR data would have reported every slope movement as **4.36× smaller than reality**,
+> silently, with no error and entirely plausible millimetre values. A slope creeping a dangerous
+> 44 mm/yr would have been filed as a harmless 10 mm/yr.
+>
+> **The fix, and the general lesson:** the wavelength is stored *inside* each satellite file, so we
+> now **read it from the data** rather than assuming it. Whenever a quantity varies with the input,
+> derive it from the input — a constant named after your first data source is a trap waiting for
+> your second one.
+>
+> **Why longer waves matter anyway (the reason NISAR exists for us):** short waves bounce off
+> leaves; long waves reach through the canopy to the ground. That is why C-band goes blind on
+> vegetated Himalayan slopes and L-band does not — measured on our own ground in
+> `RESULTS_AND_KPIS.md` §81.
+
 🔗 **In our project:** in **Milestone 1** we converted the radar's phase into
 ground displacement in metres using exactly this formula. The "− sign" sets our
 convention: **negative = ground moving away from the satellite (e.g. sinking or
@@ -1599,6 +1622,28 @@ the as-builts before instrumenting.
 
 Short, honest answers you can give without hand-waving.
 
+**Q: Why not just train a machine-learning model on past landslides and skip the physics?**
+A: We tried it, and the result is a good lesson in **sampling bias**. A terrain-only logistic
+regression scored AUC **0.731** against our inventory — better than the physics score (0.575). But
+its single strongest input was **elevation**, with a weight of −0.98; remove elevation and it
+collapses to **0.560**, statistically indistinguishable from the physics. The inventory is a record
+of landslides *that someone reported*, and reports cluster along the road at low elevation. So the
+model had largely learned **"landslides happen near roads"** — which is true of the *reporting*, not
+of the *hillside*. A physics model cannot learn that bias, because it never sees the inventory —
+which is precisely the argument for keeping it. (§60; the full decision record is
+`docs/references/PIVOT_ANALYSIS_2026-08-11.md`.)
+
+**Q: How do you decide when to change the plan versus stick with it?**
+A: A worked example from this project. Our slope map failed validation, and the tempting fix was to
+drop the requirement for measured movement and rank slopes on terrain instead. Before doing that we
+(a) re-read the original project document — the ranking idea was already there, twice, but always as
+a *supporting check*; (b) checked our own ledger — we had already built it and measured its bias;
+(c) checked the outside world — the Geological Survey of India already publishes that map for the
+neighbouring corridor at AUC 0.84. So the "new idea" was a worse copy of an existing product using a
+biased dataset. **We wrote down what would change our minds instead**, and put the effort into
+fixing the actual cause (a sensor that cannot see through vegetation). Changing plan is fine;
+changing plan without checking whether you already tried it is not.
+
 **Q: Tell me about a time your system was wrong, and how you found out.**
 A: We refreshed the radar for one site and the "act now" map went from 14 flagged slopes to **zero**
 — and the *test suite* caught it, not a person reading the page. I resisted patching the test.
@@ -2058,6 +2103,24 @@ Being able to state weaknesses is what makes you credible.
     time** (longer series → smaller σ), not a cleverer threshold.
   - 🔗 **In our project:** this is the concrete, measured form of the long-standing "~30 mm/yr
     velocity noise floor" caveat — see `RESULTS_AND_KPIS.md` §78.
+
+- **★ Our landslide inventory is a record of REPORTS, not of landslides (§60/§83).** Every
+  validation number in this project is measured against a list of *documented* failures — and
+  documentation clusters where people are: along the NH-44 road, along the pilgrimage track, at low
+  elevation. Measured consequence: a terrain model trained on it scored 0.731, but **0.560 once
+  elevation was removed** — most of its apparent skill was the reporting pattern, not the hillside.
+  Two things follow, and we state both publicly: (1) a physics-based map that never sees the
+  inventory is *harder to fool this way*, which is an argument for keeping it; (2) any statistical
+  map we build must quote the **elevation-ablated** score as its headline, never the flattering raw
+  one. This also caps our recall claims — we can only ever measure against failures somebody wrote
+  down.
+
+- **★ We deliberately did NOT pivot away from measured movement (§83).** When the slope map failed
+  validation, the available shortcut was to rank slopes on terrain alone. We declined: it was
+  already planned only as a *supporting check*, we had already measured its bias here, and GSI
+  publishes a better version of that map for the neighbouring corridor. The honest scope statement
+  is therefore: **the "which slopes" product is currently withdrawn, not quietly replaced with an
+  easier one.** Re-open criteria are written down rather than left to judgement.
 
 - **★ A validation score belongs to the map it scored (§78).** Our page once displayed
   *"AUC 0.757 — beats chance"* next to an **empty** map, because the score was stored from an
