@@ -101,6 +101,7 @@ Geospatial Analysis Himalayas/
 └── config/                         # ★ Per-AOI config REGISTRY (one YAML per site)
     ├── ramban.yaml                     # Ramban NH-44 (the original build)
     ├── vaishnodevi.yaml                # Vaishno Devi — Trikuta corridor
+    ├── tosh.yaml                       # Tosh, upper Parvati Valley (onboarding — no product yet)
     ├── aoi/                            # AOI polygons + route lines (GeoJSON, EPSG:4326)
     └── templates/                      # Committable credential templates (.env/.netrc/.cdsapirc)
 ```
@@ -406,6 +407,17 @@ or `data/alerts/dashboard_3d.html` (interactive 3-D) in any browser.
   (which would shrink its breadth and apply it outside the validated map). Writes a ranked
   `data/alerts/mosaic_asc/per_zone_triage_watch.{csv,md,png}`; a zone tops the list only if it is both
   fragile and confidently moving (multi-look zones get a confidence boost).
+- **Affected-area layer — zone SHAPES + downstream corridors (§84):**
+  `python workflows/exposure_footprint.py [--footprint watch]` — publishes each hazard zone as the
+  **patch of ground it covers** (not just its centroid) plus the **corridor debris would cross below
+  it**, ranked twice over (by vulnerability m\*, and by triage priority). Writes
+  `data/alerts*/mosaic_asc/exposure_<footprint>.{geojson,kml,json,md}`; the KML opens in Google
+  Earth, the dashboard grows an **AFFECTED AREA** card, and `build_3d_dashboard.py` gains an
+  **"Affected area: ON/OFF"** toggle. Refreshed automatically by `live_alarm.py` (non-fatal hook).
+  Two properties worth knowing: the outline is the *published* alert cluster re-derived and
+  **verified pixel-for-pixel** against `alerts_<footprint>.json` (a mismatch aborts rather than
+  drawing a shape for an unscored map), and the corridor is a **LOWER bound** — it uses rockfall
+  reach angles on a routed flow path, and wet debris flows travel further.
 - **ERA5-velocity hazard cross-check (frame106):** `python workflows/hazard_era5_compare.py` — rolls the
   MintPy ERA5-tropo-corrected velocity through the creep→hazard fusion vs the custom velocity (§18).
 

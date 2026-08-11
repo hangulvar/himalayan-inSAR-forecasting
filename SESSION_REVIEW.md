@@ -72,22 +72,18 @@ the user saying so.
 
 ## Uncommitted delta
 
-Code (all new work, tree was clean at `16019ea`):
-- **NEW** `workflows/exposure_footprint.py` — the affected-area layer.
-- **NEW** `tests/test_exposure_footprint.py` (22 tests, incl. an escaping negative control).
-- `workflows/build_3d_dashboard.py` — draped outline/corridor traces + the ON/OFF control (scenario
-  buttons now restyle **explicit** trace indices so they cannot flip the new layer).
-- `workflows/operational_alarm.py` — `load_exposure` + `_exposure_card` (pure insertion; parity
-  tested).
-- `workflows/live_alarm.py` — non-fatal hook so the layer refreshes before the dashboard renders.
-- `workflows/aoi_status.py` + `tests/test_config_registry.py` — the stale-AUC fix and its test.
-- **NEW** `config/tosh.yaml`, `config/aoi/tosh_aoi.geojson` (the source `.kml` is git-ignored by
-  policy — it lives at `config/aoi/tosh_and_others.kml` locally; provenance is recorded inside the
-  GeoJSON).
+**Session 34's whole delta — code and docs — is COMMITTED at `3b4f19d`** (14 files, +2041/−78):
+`exposure_footprint.py` + its 22-test suite, the 3-D/dashboard/live-alarm wiring, the `aoi_status`
+stale-AUC fix + its registry test, `config/tosh.yaml` + `config/aoi/tosh_aoi.geojson`, and the
+ledger/milestone/primer/error-log/LIVE updates.
 
-Docs: `RESULTS_AND_KPIS.md` **§84**; `error_history_log.md` (2 defects); `milestone.md` **M65**;
-primer **CV6** + 2 Part-D answers + 2 Part-E limits; `session_journey.md` (git-ignored);
-this LIVE block.
+Not in that commit, by design:
+- `session_journey.md` and `CLAUDE.md` — git-ignored local working notes (Session-34 entry written).
+- `config/aoi/tosh_and_others.kml` — the source polygon; `*.kml` is git-ignored by repo policy, so
+  a fresh clone gets the GeoJSON only. Its provenance is recorded **inside** the GeoJSON.
+
+Remaining after this wrap: `README.md` only — the new layer's run command and Tosh's registry line
+(the capability index lists every other script; this one was missing).
 
 ---
 
