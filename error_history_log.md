@@ -1749,6 +1749,13 @@ sentences about them were not.
   test that fails for a real reason; work out which of the two things it was testing, and give each
   its own test.** (The failure was genuinely valuable: it is what exposed the empty ALERT map.)
 
+### 4. A new flag compared datetimes where the operator means a DATE (§78, self-caught)
+* **Symptom:** the new `--max-date 2026-07-07` period split dropped **2** pairs, not 1 — silently
+  discarding the 07-07 acquisition the operator had just named as the period's last scene.
+* **Root cause:** acquisitions carry a time (~12:55), and `12:55 > midnight`.
+* **Fix/lesson:** compare `.date()` when the CLI argument is a calendar date. Caught only because
+  the run's output was read line-by-line instead of assumed.
+
 ## 2026-08-08 — §79: working the plan surfaced 5 more defects (one of them mine, in a test)
 
 ### 1. A degraded WHERE map took down the validated WHEN arm (§79)
@@ -1794,10 +1801,96 @@ sentences about them were not.
   **Three distinct states — measured-and-empty, never-measured, and out-of-footprint — need three
   captions** (the §70 rule, applied to absence).
 
-### 4. A new flag compared datetimes where the operator means a DATE (§78, self-caught)
-* **Symptom:** the new `--max-date 2026-07-07` period split dropped **2** pairs, not 1 — silently
-  discarding the 07-07 acquisition the operator had just named as the period's last scene.
-* **Root cause:** acquisitions carry a time (~12:55), and `12:55 > midnight`.
-* **Fix/lesson:** compare `.date()` when the CLI argument is a calendar date. Caught only because
-  the run's output was read line-by-line instead of assumed — the same discipline as the entry
-  above it.
+## 2026-08-11 — §80: the long-stack rebuild (3 defects + 1 documentation defect of my own)
+
+### 1. `--stacks` silently REBUILDS THE UNION FROM ONLY THAT SUBSET (latent, caught by reading)
+* **Symptom:** none yet — caught before running. `run_multistack.py --stacks X` passes the same
+  list to `mosaic_hazard()` and `write_union_alerts()`, so a "just re-do one stack" invocation
+  **rewrites the AOI-wide product with a single look** and silently drops every other stack from
+  `source_stacks`.
+* **Why it nearly bit:** the obvious way to re-invert one stack cheaply is `--stacks <that stack>`.
+  That would have quietly published a one-look map.
+* **Fix/lesson:** always pass the FULL intended stack list to `run_multistack`, even when only one
+  stack needs recomputation (the per-stack stages skip themselves when up to date, so this is
+  cheap). **A flag that scopes work must not also scope the published product** — if a future
+  session touches this script, separate "which stacks to compute" from "which stacks the mosaic
+  is built from."
+
+### 2. A stack can be network-healthy yet unusable over the AOI ("No solvable reference candidate")
+* **Symptom:** `ASC_path27_frame106` built a perfectly good network (31 pairs, rank 14/14) and then
+  aborted: `No solvable reference candidate in AOI — relax --min-pairs`.
+* **Root cause:** network connectivity and *pixel* coverage over the AOI are independent. That
+  frame has too few pixels surviving the coherence mask over this AOI to anchor a reference.
+* **Fix/lesson:** EXCLUDED it, with the reason written into the registry file — and explicitly did
+  **not** lower `--min-pairs`, which would have bought a solution by lowering the quality bar.
+  `frame101` covers the same ground and season and does solve, so nothing was lost. **"The
+  network is fine" does not imply "the stack is usable here."**
+
+### 3. A test encoded a PREMISE that a config change legitimately retired
+* **Symptom:** `test_nisar_pilot_pair_selection_and_report` failed asserting VD has **0** winter
+  C-band pairs.
+* **Root cause:** not a bug. That assertion documented "VD's stacks start May 2026"; adding the
+  2025 histories to VD's product gave it 2 pairs. The premise expired.
+* **Fix/lesson:** re-pinned to the new truth **with the coupling spelled out** ("if this drops back
+  to 0, VD's product has lost those stacks — check `period_split:`"). **When a test fails, decide
+  explicitly which it is — broken code, or a retired premise — and if the latter, re-pin it to the
+  new fact rather than deleting the assertion.**
+
+### 4. I ORPHANED a log entry by inserting a new section in the middle of an old one (docs, mine)
+* **Symptom:** `## §78 … (4 defects)` listed only 3; its 4th had been pushed under the later `## §79`
+  heading by an insertion anchored on that 4th heading's text.
+* **Fix/lesson:** found and moved on re-read. **When appending to a structured log, anchor the edit
+  on the END of the section you are adding to (or the START of the next `##`), never on an inner
+  `###` heading** — and re-read the heading tree afterwards (`grep -nE "^## |^### "`).
+
+## 2026-08-11 — §83: the L-band adapter (1 latent physics bug, 2 environment traps, 1 design error, 1 silent skip)
+
+### 1. ★ A hardcoded per-band constant would have under-reported L-band motion 4.36× (LATENT)
+* **Symptom:** none — found by reading before writing. `feature_engineering.py` holds
+  `SENTINEL1_WAVELENGTH_M = 0.055465763` as a module constant and
+  `phase_to_los_displacement()` multiplies by it unconditionally.
+* **Why it is the worst kind of bug:** NISAR's wavelength is **0.241963 m**. Routing L-band phase
+  through that function returns displacements **4.36× too small** — no error, no warning, and the
+  numbers still look like plausible slope creep. It would have been believed.
+* **Fix:** `nisar_ingest.py` derives λ from each granule's own `centerFrequency` and never
+  hardcodes it; `test_using_the_C_band_constant_on_L_band_would_underreport_4x` pins the correct
+  factor AND the size of the avoided error as a negative control.
+* **Lesson:** **a physical constant that varies with the input must be read from the input.** When
+  a second data source arrives, grep for constants named after the first one.
+
+### 2. Neither container image has h5py AND rasterio (environment)
+* **Symptom:** `ModuleNotFoundError: rasterio` in the mintpy image, then `h5py` missing in the lean
+  image — the adapter needs both.
+* **Root cause:** the lean `insar` image carries rasterio; only `mintpy` carries h5py; **both**
+  carry GDAL.
+* **Fix/lesson:** write rasters with **GDAL**, the only common denominator (the same reason
+  `nisar_coherence_pilot.py` already uses it). Check module availability in BOTH images before
+  choosing a library for anything that spans them.
+
+### 3. Importing one constant dragged in a whole absent dependency
+* **Symptom:** `from feature_engineering import COHERENCE_THRESHOLD` failed under mintpy —
+  `feature_engineering` imports rasterio at module level.
+* **Fix/lesson:** the value is MIRRORED in `nisar_ingest.py` with a test asserting the two never
+  drift. **The "import, never copy" rule (§72) has an exception when the two modules can never
+  share a container — then mirror it and pin the mirror with a test**, and say so in a comment.
+
+### 4. Writing a new product type into `processed_tiffs/` broke that directory's CONTRACT
+* **Symptom:** `test_plumbing` went red on two assertions after the adapter's first run.
+* **Root cause:** `data/processed_tiffs/` is the **HyP3 extraction library** and carries a contract
+  — 6 specific layers + the HyP3 metadata `.txt` per product dir. A NISAR GUNW has no look-vector
+  or DEM layers, so it could satisfy that only by **fabricating layers we do not have**.
+* **Fix:** NISAR artifacts live entirely under `qa_masks/`; the manifest stays shared (the inverter
+  resolves stacks from it) but now carries a `source` field, and the HyP3-contract tests scope
+  themselves by provenance.
+* **Lesson:** **extending a shared directory/format to a second producer is a DECISION, not a
+  detail.** The test that guards the contract is the right place to find out — do not "fix" it by
+  loosening the assertion.
+
+### 5. A QA step SILENTLY SKIPS products it cannot handle
+* **Symptom:** `phase_elevation_audit.find_inputs()` globs `*_dem.tif`; a GUNW has none, so NISAR
+  products would be passed over with **no error and no record**.
+* **Fix/lesson:** recorded as integration step #3 in `docs/references/NISAR_INGESTION_DESIGN.md` —
+  the audit must record `not_applicable`, not skip quietly. **A step that cannot process an input
+  must SAY SO; silence is indistinguishable from success** (same family as §79's "not measured" —
+  absence needs a name).
+
