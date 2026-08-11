@@ -48,6 +48,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from pyproj import Transformer
 from rasterio.warp import Resampling, reproject
 
 from config import load_config
@@ -97,9 +98,95 @@ def reproject_dem(dem_path: Path, transform, crs, w, h) -> np.ndarray:
     return dst
 
 
+def exposure_traces(stack: str, footprint: str, transform, crs, dem, h: int, w: int,
+                    elev_fill: float) -> tuple[list[dict], dict | None]:
+    """The affected-area layer (exposure_footprint.py), draped on this stack's terrain.
+
+    Two extra traces: the OUTLINE of each hazard zone (the ground the alert actually covers,
+    instead of a single dot) and the POTENTIAL DOWNSTREAM PATH below it. Both are read from
+    exposure_<footprint>.geojson and filtered to THIS radar look, so a zone another look saw
+    is never drawn on a grid it was not measured on.
+
+    Returns ([], None) when the layer has not been generated — the dashboard is unchanged in
+    that case, which is what keeps this addition optional.
+    """
+    path = ALERTS_DIR / "mosaic_asc" / f"exposure_{footprint}.geojson"
+    if not path.exists():
+        logger.info(f"no {path.name} — affected-area layer omitted "
+                    f"(run exposure_footprint.py to add it)")
+        return [], None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    meta = data.get("properties", {})
+    to_grid = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+
+    def ring_points(feat):
+        """Ring vertices as (col, row, z, hover) on this grid; rings outside it are dropped."""
+        pts = []
+        for poly in feat["geometry"]["coordinates"]:
+            for ring in poly:
+                seg = []
+                for lon, lat in ring:
+                    x, y = to_grid.transform(lon, lat)
+                    r, c = rasterio.transform.rowcol(transform, x, y)
+                    if not (0 <= r < h and 0 <= c < w):
+                        continue
+                    z = float(dem[r, c]) if np.isfinite(dem[r, c]) else elev_fill
+                    seg.append((int(c), int(r), z))
+                if len(seg) >= 3:
+                    pts.append(seg)
+        return pts
+
+    zone_x, zone_y, zone_z, zone_t = [], [], [], []
+    path_x, path_y, path_z, path_t = [], [], [], []
+    n_zones = n_paths = 0
+    for f in data.get("features", []):
+        p = f["properties"]
+        if p.get("kind") == "hazard_zone" and p.get("stack") == stack:
+            reach = p.get("downstream_reach_m") or {}
+            hover = (f"<b>#{p.get('triage_rank')} · {p.get('severity')}</b><br>"
+                     f"{p['lat']:.4f}°N, {p['lon']:.4f}°E<br>"
+                     f"triage priority {p.get('triage_priority')} · fails at wetness "
+                     f"m*={p.get('m_star')}<br>"
+                     f"detection confidence {p.get('detection_confidence')} · "
+                     f"{p.get('n_looks')} look(s)<br>"
+                     + (f"debris could reach ~{max(reach.values())} m below" if reach else ""))
+            for seg in ring_points(f):
+                n_zones += 1
+                for c, r, z in seg:
+                    zone_x.append(c); zone_y.append(r); zone_z.append(z + 40); zone_t.append(hover)
+                zone_x.append(None); zone_y.append(None); zone_z.append(None); zone_t.append("")
+        elif p.get("kind") == "downstream_path" and p.get("of_zone_stack") == stack:
+            hover = (f"<b>downstream of zone #{p.get('of_zone_rank')}</b><br>"
+                     f"{p.get('reach_band')} (energy line ≥ {p.get('reach_angle_min_deg')}°)"
+                     f"<br>{p.get('note', '')}")
+            for seg in ring_points(f):
+                n_paths += 1
+                for c, r, z in seg:
+                    path_x.append(c); path_y.append(r); path_z.append(z + 20); path_t.append(hover)
+                path_x.append(None); path_y.append(None); path_z.append(None); path_t.append("")
+
+    traces = []
+    if zone_x:
+        traces.append({"type": "scatter3d", "name": "Hazard zone footprint", "mode": "lines",
+                       "x": zone_x, "y": zone_y, "z": zone_z, "visible": True,
+                       "line": {"color": "#ff2d55", "width": 6},
+                       "text": zone_t, "hoverinfo": "text"})
+    if path_x:
+        traces.append({"type": "scatter3d", "name": "Potential downstream path", "mode": "lines",
+                       "x": path_x, "y": path_y, "z": path_z, "visible": True,
+                       "line": {"color": "#ffa000", "width": 3},
+                       "text": path_t, "hoverinfo": "text"})
+    logger.info(f"affected-area layer: {n_zones} zone outline(s), {n_paths} downstream "
+                f"outline(s) on {stack}")
+    return traces, meta
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--stack", default="ASC_path27_frame106")
+    ap.add_argument("--exposure-footprint", default="operational",
+                    help="Which affected-area layer to drape (default: operational). "
+                         "Omitted silently when that layer has not been generated.")
     ap.add_argument("--stride", type=int, default=2,
                     help="Downsample factor for the terrain surface (2 = every 2nd pixel).")
     ap.add_argument("--z-exaggeration", type=float, default=0.5,
@@ -188,18 +275,42 @@ def main() -> int:
         })
     logger.info(f"Alert counts: {counts}")
 
-    traces = [surface, creep] + alert_traces
+    exp_traces, exp_meta = exposure_traces(stack, args.exposure_footprint, transform, crs,
+                                           dem, h, w, elev_fill)
+    traces = [surface, creep] + alert_traces + exp_traces
 
     # Scenario toggle buttons: keep surface(0)+creep(1) state, switch alert traces.
+    # The restyle is given EXPLICIT trace indices so it only ever touches those traces —
+    # without them the visibility array would spill onto the affected-area traces appended
+    # after the alerts and silently flip them every time a scenario button is pressed.
     n_fixed = 2
+    scenario_idx = list(range(n_fixed + len(alert_traces)))
     buttons = []
     for i, sc in enumerate(SCENARIOS):
         vis = [True, "legendonly"] + [(j == i) for j in range(len(alert_traces))]
         buttons.append({"label": f"{sc.capitalize()}  ({counts.get(sc,0)})",
-                        "method": "restyle", "args": [{"visible": vis}]})
+                        "method": "restyle", "args": [{"visible": vis}, scenario_idx]})
+
+    # Affected-area ON/OFF — a dedicated control rather than a legend click, because this is
+    # the layer an operator turns on to answer "what ground is this about?".
+    exp_menu = []
+    if exp_traces:
+        exp_idx = list(range(n_fixed + len(alert_traces), len(traces)))
+        exp_menu = [{
+            "type": "buttons", "direction": "right", "showactive": True,
+            "x": 0.5, "xanchor": "center", "y": 1.13, "active": 0,
+            "bgcolor": "#5c2b1b", "font": {"color": "#fff"},
+            "buttons": [
+                {"label": "Affected area: ON", "method": "restyle",
+                 "args": [{"visible": [True] * len(exp_idx)}, exp_idx]},
+                {"label": "Affected area: OFF", "method": "restyle",
+                 "args": [{"visible": [False] * len(exp_idx)}, exp_idx]},
+            ]}]
 
     layout = {
-        "title": {"text": f"{SITE} — 3-D Hazard Explorer ({stack})", "x": 0.5},
+        # Title on its own row above the control row (the affected-area toggle added a second
+        # menu, and at a narrow window all three were landing on top of each other).
+        "title": {"text": f"{SITE} — 3-D Hazard Explorer ({stack})", "x": 0.5, "y": 0.985},
         "scene": {
             "xaxis": {"title": "pixel (E→)", "showspikes": False},
             "yaxis": {"title": "pixel (N→)", "showspikes": False},
@@ -210,15 +321,29 @@ def main() -> int:
             "bgcolor": "#0d1b2a",
         },
         "paper_bgcolor": "#0d1b2a", "font": {"color": "#eaeaea"},
-        "margin": {"l": 0, "r": 0, "t": 44, "b": 0},
+        "margin": {"l": 0, "r": 0, "t": 120, "b": 0},
         "legend": {"x": 0, "y": 0.95, "bgcolor": "rgba(13,27,42,.6)"},
         "updatemenus": [{
             "type": "buttons", "direction": "right", "showactive": True,
-            "x": 0.5, "xanchor": "center", "y": 1.08, "active": 1,
+            "x": 0.5, "xanchor": "center", "y": 1.03, "active": 1,
             "bgcolor": "#1b3a5b", "font": {"color": "#fff"},
             "buttons": buttons,
-        }],
+        }] + exp_menu,
     }
+
+    # The affected-area note carries the layer's OWN standing (computed in exposure_footprint
+    # from the back-test, not asserted here), so the shapes can never be read as endorsed by a
+    # score they do not have.
+    exp_note = ""
+    if exp_meta:
+        from html import escape as _esc
+        exp_note = (
+            f'<br><span class="k">Affected area</span> — outlines show the ground each zone '
+            f'covers and the path debris could take below it. Switch it off with the '
+            f'“Affected area” button above the scenario row.'
+            f'<br><span style="color:#ffb4b4">{_esc(str(exp_meta.get("headline", "")))}'
+            f'</span><br><span style="color:#9fb3c8">'
+            f'{_esc(str(exp_meta.get("scope_caveat", "")))}</span>')
 
     config = {"responsive": True, "displaylogo": False}
     html = f"""<!doctype html><html><head><meta charset="utf-8">
@@ -239,7 +364,7 @@ def main() -> int:
  <span class="k">dry</span> to <span class="k">monsoon</span>. Toggle
  “Measured creep” in the legend to show observed motion.<br>
  <span style="color:#9fb3c8">Pathfinder stack · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}.
- Coverage ~14% of AOI (unmeasured ≠ safe); soil params assumed; {LLOF_NOTE}.</span>
+ Coverage ~14% of AOI (unmeasured ≠ safe); soil params assumed; {LLOF_NOTE}.</span>{exp_note}
 </div>
 <script>
  var traces = {json.dumps(traces)};

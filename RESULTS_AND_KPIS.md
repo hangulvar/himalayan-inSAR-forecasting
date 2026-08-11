@@ -4245,6 +4245,104 @@ the honest case FOR the pivot: `docs/references/PIVOT_ANALYSIS_2026-08-11.md`.
 
 ---
 
+## 84. The affected-area layer (zone SHAPES + downstream corridors) ships, and AOI #3 (Tosh, upper Parvati Valley) is onboarded to step 2  `[MEASURED]`
+
+*2026-08-11 · `workflows/exposure_footprint.py` (new), `build_3d_dashboard.py`,
+`operational_alarm.py`, `live_alarm.py`, `aoi_status.py`; `tests/test_exposure_footprint.py` (new,
+22) + `tests/test_config_registry.py` (+1). Battery **197 → 220 across 16 suites**, freeze intact
+(R1 reports only identical re-writes).*
+
+### A — What the layer adds, and what it refuses to claim
+
+Until now a hazard zone was published as a **point** plus a row of numbers. The new layer publishes
+(a) the **shape** of the flagged ground and (b) the **corridor below it** that debris would cross,
+as GeoJSON + KML + a card on the live dashboard + a toggle in the 3-D explorer.
+
+**No new science.** The shape is the published alert cluster re-derived from the same rasters and
+**verified pixel-for-pixel** against `alerts_<footprint>.json` (id, centroid pixel, pixel count) —
+a mismatch aborts the whole run rather than drawing a polygon for a map that was never scored. The
+corridor is the **shared** D8 routing (`flood_domain.d8_targets`, itself pinned to
+`flow_routing_probe`) truncated by the **shared** empirical energy line (`rockfall_runout.BANDS`,
+Evans & Hungr 1993). Both are imports, so neither can drift from the validated version.
+
+| site · footprint | union zones | shapes drawn | map standing (from the back-test, not asserted here) | corridor reach m: min / median / max |
+|---|---|---|---|---|
+| Ramban · operational | 8 | 8 | scored, **beats chance** (§16d/§67 AUC) | 179 / 416 / 804 |
+| Ramban · watch | 106 | 115 | scored, **≈chance** (§23 AUC) | 80 / 582 / 3781 |
+| Vaishno Devi · operational | 0 | 0 | **NOT MEASURED** — last scored a 14-zone map (§78/§79) | — |
+| Vaishno Devi · watch | 33 | 38 | scored, **BELOW chance** (§79 AUC) | 179 / 404 / 2118 |
+
+*(shapes > zones because one place seen by two radar looks is one zone and two outlines; reach is
+the straight-line distance to the furthest cell of the widest band, from `exposure_*.json`.)*
+
+**★ Three separate "confidence" numbers, deliberately never merged:** detection confidence P (§24 —
+is this slope really moving); the reach band LIKELY/POSSIBLE/MAX_SHADOW (how far material could
+get); and the map verdict (is this whole map better than guessing). The verdict is read through
+`operational_alarm.load_tier` + `_chance_verdict`, so it inherits the §79 staleness guard and the
+derived wording — **the three below-chance / ≈chance / not-measured maps above render their shapes
+wearing that label, in every format** (GeoJSON property, KML document description, .md, dashboard
+card, 3-D footer). ≈chance gets its **own** sentence rather than either neighbour's: no measured
+skill at *placing* zones, while still catching 62% of documented failures within 2 km — breadth,
+not precision.
+
+**★ Two rankings published side by side, and named apart:** vulnerability (m\* ascending — which
+slope tips at the least rain, the §19 gate order) and triage priority ((1−m\*)×P, §25). They
+disagree: Ramban's operational zones rank 1,6,3,8,5,7,2,4 by priority when read in vulnerability
+order. The 3 zones live on 2026-08-05 are exactly the 3 lowest-m\* zones — the gate's own rule,
+reproduced without re-deriving it.
+
+**Honest scope, stamped on every file:** 80 m cells, single-direction routing, no volume,
+entrainment, bulking, barriers or forest; the corridor is drawn 3 cells (~240 m) wide **for
+legibility, not as a modelled inundation width**; and the reach angles are the *rockfall* family,
+which are steeper (shorter) than reported debris-flow reach angles — so **the corridor is a LOWER
+bound on the ground at risk, never an upper one**.
+
+**★ The identity gate earned its keep on its first real test.** Ramban's 106-zone WATCH footprint
+aborted with "zone #21 does not match the published alert". Forensics, not a loosened assertion:
+the orchestrator rounds each zone's speed to 1 dp *before* sorting, and **11 of the 65 zones in
+`ASC_path100_frame102` share a rounded speed with another zone** — sorting the full-precision means
+silently re-ordered them. Invisible on the 8-zone operational map; caught the moment the map was
+big enough to tie. Fixed and pinned by a behavioural test (error log 2026-08-11).
+
+**★ One pre-existing honesty defect fixed in passing** (§78's class, in the multi-AOI dashboard):
+`aoi_status.py` printed "AUC 0.76" one line under "operational zones: none". The card now carries
+the scored zone count and reads **NOT MEASURED** when the map has moved; Ramban (8 scored, 8 live)
+is unaffected. Pinned by a registry test that also fails if "not measured" becomes the safe default.
+
+### B — AOI #3: Tosh, upper Parvati Valley — onboarded through playbook step 2
+
+`config/aoi/tosh_aoi.geojson` + `config/tosh.yaml`, from the user's Google Earth polygon
+(vertices unchanged). **Placement verified, not assumed:** Pulga (31.99528 N, 77.43972 E,
+Wikipedia) falls **4.5 km inside** the polygon. Footprint **435.7 km²**, bbox **19.1 km E–W ×
+29.4 km N–S** — roughly 4× the Vaishno Devi corridor.
+
+**Radar availability (ASF catalog dry-run, 2026-08-11, `submit_hyp3_jobs.py --config
+config/tosh.yaml`, window 2026-03-01 → 2026-09-30):** 38 pairs across **7 stacks**, of which
+**34 are new** and **4 already exist in the shared library** (`ASC_path27_frame101` — the frame
+also covers an existing site, so those pairs cost nothing).
+
+| stack | new pairs | already held | scenes | span |
+|---|---|---|---|---|
+| DESCENDING_path136_frame486 | 9 | 0 | 10 | 2026-03-22 → 2026-07-03 |
+| ASCENDING_path129_frame99 | 8 | 0 | 9 | 2026-05-08 → 2026-08-07 |
+| ASCENDING_path27_frame100 | 8 | 0 | 9 | 2026-05-01 → 2026-07-31 |
+| ASCENDING_path129_frame102 | 4 | 0 | 5 | 2026-03-09 → 2026-04-26 |
+| ASCENDING_path27_frame96 | 4 | 0 | 5 | 2026-03-02 → 2026-04-19 |
+| DESCENDING_path136_frame487 | 1 | 0 | 2 | 2026-07-15 → 2026-07-27 |
+| ASCENDING_path27_frame101 | 0 | **4** | 5 | 2026-03-02 → 2026-04-19 |
+| **total** | **34** | **4** | | |
+
+Three stacks clear the ~2–3-month minimum for a velocity baseline on their own. HyP3 balance at the
+check: **7,900 credits**. **Nothing was submitted** — that spends credits and is the user's call.
+
+**★ The `soil:` block is deliberately ABSENT and the site is BLOCKED on it.** Leaving it out makes
+the engine inherit Ramban's Murree-sandstone calibration, and §42 measured what that gamble costs
+(footprint swings 0–118 zones across the plausible bracket; failure depth alone can erase the
+product). Parvati granite/gneiss with a thin colluvial mantle is a different rock. `aoi_status.py`
+names the site's next step as exactly that manual pass.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

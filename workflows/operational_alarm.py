@@ -162,6 +162,77 @@ def load_watch_triage(scenario: str, n: int = 5):
     return top or None
 
 
+def load_exposure(scenario: str):
+    """The affected-area layer's report (exposure_footprint.py), or None — the card is skipped
+    entirely when the layer has not been generated for this footprint, so a dashboard built
+    without it is unchanged."""
+    f = ALERTS_DIR / "mosaic_asc" / f"exposure_{scenario}.json"
+    if not f.exists():
+        return None
+    try:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a corrupt layer must not break the dashboard
+        return None
+
+
+def _exposure_card(exp: dict, other: str | None = None) -> str:
+    """The 'affected area' card: what GROUND each hazard zone covers, where debris would go,
+    and the ranked coordinates — with the layer's own standing quoted from the product.
+
+    Nothing here is re-derived. The headline, the caveat and the top-5 are read from the file
+    exposure_footprint.py wrote, so the page and the KML an operator opens in Google Earth can
+    never disagree about either the ranking or how much it should be trusted.
+    """
+    fp = exp.get("footprint", "operational")
+    n_zones, n_shapes = exp.get("n_union_zones", 0), exp.get("n_shapes", 0)
+    a = exp.get("active") or {}
+    if not a:
+        live = "Live state not measured — the per-zone gate has not run."
+    elif "state" in a:
+        live = f"Live state not applicable — {_esc(a.get('reason', a['state']))}."
+    else:
+        live = (f"As of <b>{_esc(a.get('as_of'))}</b>: <b>{a.get('n_active')} of "
+                f"{a.get('n_total')}</b> zones live (regional gate {_esc(a.get('regional_level'))}).")
+    if n_zones:
+        top = exp.get("top5_by_triage_priority", [])
+        items = "\n".join(
+            f"<li>{_gmaps(z['lat'], z['lon'], 4)} — priority <b>{z['priority']}</b> "
+            f"<span style='color:#888'>(fails at wetness m*{z['m_star']} · confidence "
+            f"P{z['detection_confidence']}{' · 2-look' if z.get('n_looks', 1) >= 2 else ''})"
+            f"</span></li>" for z in top)
+        body = (f"<div class='big'>{n_zones} zone(s) mapped as shapes</div>"
+                f"<div style='font-size:13px;color:#444'>{n_shapes} outline(s) — one per radar "
+                f"look that sees the zone · {live}</div>"
+                f"<div style='margin-top:8px;font-size:12px'><b>Top {len(top)} by triage "
+                f"priority — click a coordinate for the exact spot:</b>"
+                f"<ol style='margin:4px 0 0 18px;padding:0'>{items}</ol></div>")
+    else:
+        alt = (f" The <b>{_esc(other)}</b> layer does exist — open "
+               f"<code>exposure_{_esc(other)}.kml</code> for that wider footprint."
+               if other else "")
+        body = (f"<div class='big'>No shapes</div><div style='font-size:13px;color:#444'>"
+                f"The <b>{_esc(fp)}</b> map currently flags no ground at this site, so there is "
+                f"nothing to outline. That is an empty map, not a safe slope.{alt}</div>")
+    # The headline's COLOUR is derived from the verdict too — a red warning above a map that
+    # actually beats chance reads as a caution it has not earned, and a calm grey above a
+    # withdrawn map reads as an endorsement it must never get (§79: adjectives get computed).
+    v = (exp.get("verdict") or {})
+    head_color = ("#1a8a4a" if v.get("state") == "scored" and v.get("verdict") == "beats chance"
+                  else "#a33")
+    return f"""  <div class="card">
+    <h2>AFFECTED AREA — the ground this is about <span style="font-weight:400;font-size:12px">
+      (map layer · {_esc(fp)} footprint)</span></h2>
+    <div class="sub2">Each hazard zone drawn as the patch of ground it actually covers, plus the
+      path debris could take below it. Open it on a real map: download
+      <a href="exposure_{_esc(fp)}.kml">the Google Earth layer (.kml)</a> or
+      <a href="exposure_{_esc(fp)}.geojson">the GeoJSON</a>, or switch it on in the 3-D
+      explorer with the “Affected area” button.</div>
+    {body}
+    <p style="font-size:12px;color:{head_color};margin:8px 0 2px">{_esc(exp.get('headline', ''))}</p>
+    <p style="font-size:12px;color:#888;margin:4px 0 0">{_esc(exp.get('scope_caveat', ''))}</p>
+  </div>"""
+
+
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371.0
     p1, p2 = np.radians(lat1), np.radians(lat2)
@@ -505,9 +576,15 @@ def main() -> int:
     # Catchment flash-flood arm (flood_gate.py, FLOOD_EXPANSION_PLAN F1) — card skipped when
     # the arm is off for this site or has not run for this season.
     flood = load_flood_summary(sfx)
+    # Affected-area layer (exposure_footprint.py) — the ALERT footprint's shapes; card skipped
+    # when the layer has not been generated. `exposure_other` is only a POINTER to the wider
+    # WATCH layer for the case where the ALERT map is empty; it is never scored or ranked here.
+    exposure = load_exposure(alert_tier["scenario"])
+    exposure_other = (watch_tier["scenario"] if watch_tier
+                      and load_exposure(watch_tier["scenario"]) else None)
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
-                    hist, imerg, radar, flood)
+                    hist, imerg, radar, flood, exposure, exposure_other)
     if radar:
         newer = (f"; NEWER at ASF through {radar['newer_at_asf']} ({radar['new_scenes']} scenes)"
                  if radar.get("new_scenes") else "")
@@ -940,7 +1017,8 @@ def _hist_panel(hist, lvl, as_of) -> str:
 
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
                     alert_tier: dict, watch_tier=None, per_zone=None, hist=None,
-                    imerg=None, radar=None, flood=None) -> None:
+                    imerg=None, radar=None, flood=None, exposure=None,
+                    exposure_other=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -1155,6 +1233,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     <table><tr><th>event</th><th>date</th><th>E</th><th>gate state</th></tr>
 {ev_rows}</table>
   </div>
+{_exposure_card(exposure, exposure_other) if exposure else ""}
 {_imerg_card(imerg, as_of) if imerg else ""}
 {_flood_card(flood) if flood else ""}
 </div>

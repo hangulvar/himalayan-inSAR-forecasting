@@ -1,0 +1,44 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Tosh_Parvati_Valley",
+    "description": "Upper Parvati Valley AOI: Tosh and the surrounding settlements (Barshaini, Kutla, Pulga/Kalga/Tulga) on both banks of the Parvati river, Kullu district, Himachal Pradesh. Traced from the user-supplied Tosh_and_others.kml (Google Earth, 2026-08-11) with the polygon vertices unchanged. Placement cross-checked 2026-08-11: Pulga (31.99528N 77.43972E, Wikipedia) falls 4.5 km inside the polygon. ~436 km2, ~19 km E-W x 29 km N-S -- larger than the Ramban/Vaishno Devi corridors; a tighter polygon would sharpen targeting (NEW_AOI_PLAYBOOK step M1) but does not change the noise floor.",
+    "source_kml": "config/aoi/tosh_and_others.kml"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       77.411242,
+       32.099103
+      ],
+      [
+       77.393211,
+       31.943772
+      ],
+      [
+       77.585307,
+       31.935584
+      ],
+      [
+       77.595745,
+       32.139246
+      ],
+      [
+       77.479393,
+       32.200798
+      ],
+      [
+       77.411242,
+       32.099103
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

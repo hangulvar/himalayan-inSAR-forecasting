@@ -1894,3 +1894,46 @@ sentences about them were not.
   must SAY SO; silence is indistinguishable from success** (same family as §79's "not measured" —
   absence needs a name).
 
+
+---
+
+## 2026-08-11 — §84: the affected-area layer + AOI #3 (2 defects — one mine, caught by its own gate; one pre-existing)
+
+### 1. Two zones that ROUND to the same speed sort differently from two zones that don't
+
+* **Symptom:** the new `exposure_footprint.py` reproduced Ramban's 8-zone **operational** footprint
+  perfectly, then aborted on the 106-zone **watch** footprint:
+  `[ASC_path100_frame102] zone #21 does not match the published alert (centroid [195, 232] vs
+  [112, 57], 8 px vs 4 px) — refusing to write polygons for a map this is not.`
+* **Root cause:** `CascadingReasoner.build_alerts` builds its zone dicts **first** — and
+  `_describe_zone` stores `round(mean_vel, 1)` — and only **then** sorts on that field. So the
+  published zone ids follow the order of the **rounded** speeds. My re-derivation sorted the
+  full-precision means. Identical while every zone is distinct; divergent the moment two zones
+  round together, because the stable sort then falls back to label order. **11 of the 65 zones in
+  that stack's watch tier share a rounded speed with another zone.** The 8-zone map has no ties,
+  which is exactly why it looked fine.
+* **Fix:** round to 1 dp before sorting, with the reason in a comment at the line. Pinned by a
+  **behavioural** test (`test_zone_order_uses_the_products_ROUNDED_velocity`): two synthetic zones
+  whose means round together but differ at the 2nd decimal, arranged so the rounded order and the
+  unrounded order are opposite — sorting the raw means fails it.
+* **Lesson:** **when you re-derive a published artifact, copy the ROUNDING as well as the formula.**
+  A display-precision decision upstream can be a *sort key* downstream. And: a verification gate is
+  only worth what its worst case exercises — this one was silent on 8 zones and correct on 106.
+  When a new guard passes first time, find the input that makes it work harder before trusting it.
+
+### 2. A score printed one line under the map it does not describe (pre-existing, §78's class)
+
+* **Symptom:** `aoi_status.py` rendered, for Vaishno Devi, `operational zones: none` immediately
+  above `Scored back-test vs inventory   AUC 0.76`.
+* **Root cause:** the card read `scored.auc` straight out of `backtest_operational_<slug>_report
+  .json` without checking `n_flagged_zones`. That back-test scored a **14-zone** map; the §77
+  cadence rebuild took the live map to **0 zones**. The dashboard's own `load_tier` had carried the
+  identity guard since §79 — the multi-AOI status page never got it.
+* **Fix:** the card now compares the scored zone count against today's zone count and reads
+  **NOT MEASURED for today's map — last scored a 14-zone map (AUC 0.76), this map has 0**. Ramban
+  (8 scored / 8 live) is unchanged. Pinned in `tests/test_config_registry.py` by a test that
+  asserts BOTH directions — it fails if a stale score is shown, and equally if "not measured"
+  starts appearing over a map the score does describe.
+* **Lesson:** **when a guard is added because a surface got a number wrong, grep for every OTHER
+  surface that reads the same number.** §79 fixed the dashboard and stopped there; the same defect
+  sat in the status page for three sessions. A rule fixed in one renderer is not a fixed rule.

@@ -11,84 +11,83 @@
 
 ---
 
-# LIVE — Session 33 · branch `aoi-vaishnodevi` · updated 2026-08-11
+# LIVE — Session 34 · branch `aoi-vaishnodevi` · updated 2026-08-11
 
 ## Current state
 
-- **★★ THE SESSION'S VERDICT (§80–§83): the VD "WHERE" map is withdrawn, and we now know WHY and
-  WHAT FIXES IT.** More C-band fixed the measurement but not the map (§80: scatter σ 75 → 25 mm/yr,
-  yet every configuration still scores **below chance, 0/47 detected**, and the cleanest history
-  flags **zero** zones). NISAR then explained it (§81: C-band is **blind on 29.4%** of VD's path-27
-  ground; L-band recovers **86.5%** of it). So "no detectable creep" was substantially **instrument
-  blindness** — a sensor problem with a sensor fix.
-- **★★ (§83) The L-band ingestion path is BUILT and TESTED** — `nisar_ingest.py` + 7 tests + a
-  design doc. NISAR enters as **its own stack**; the grid match (EPSG:32643 @ 80 m) was **verified,
-  not assumed**, and the adapter **derives the wavelength per granule** to avoid a hardcoded C-band
-  constant that would have under-reported L-band motion **4.36×** silently. **Not wired live** —
-  3 provisional granules is nothing to invert; the 6 remaining steps each carry a **trigger**.
-- **★★ (§83) The "abandon measured movement" pivot was analysed and REJECTED on evidence.**
-  Susceptibility ranking is **already** in the plan (Area 4 corroborator / Area 5 targeting), so
-  building it is zero deviation — *promoting* it is. Against promotion: §60 measured its skill as
-  mostly corridor **reporting bias** (0.731 → 0.560 without elevation), GSI already publishes that
-  map at **0.84**, and it spends the stated agentic-fusion novelty. **Decision record with re-open
-  criteria:** `docs/references/PIVOT_ANALYSIS_2026-08-11.md`.
-- **★ §80 is the ORIGINAL PLAN WORKING, not failing.** Agent 1's spec is to mask low-coherence data
-  and "refuse to pass noise downstream"; the Guiding Principle is to audit noise *before* trusting
-  any deformation map. Twice we declined to tune thresholds to make zones reappear.
-- **⚠ (§82) The NISAR monsoon test is blocked by a SYSTEMATIC void** — two consecutive track-156
-  granules empty over our AOIs (Ramban 0.0%, VD 19.3% → 18.1%) while the winter granule on identical
-  geometry is 100%. All 8 GUNWs are provisional; **0 final products exist**. So §81's winter number
-  is a **lower bound** (winter = least vegetation = smallest advantage).
-- **★ (§79 carried) The plumbing is honest and sticky:** `period_split:` is config-driven and
-  survives `--force`; chance verdicts are **derived** from the AUC (the page currently reads "BELOW
-  chance"); a stale `validation_stats` overlay cannot mask a fresher worse score; an empty footprint
-  no longer takes down the daily arm.
-- **★ The WHEN arm is untouched and remains validated** — rainfall, burst and flash-flood grading are
-  independent of everything above.
-- **★ 19 defects logged this session** (§77 ×1, §78 ×4, §79 ×5, §80 ×4, §83 ×5) and distilled into
-  **`CLAUDE.md` §6 — a repeat-offender pre-flight checklist**, grouped by when each bites. Meta-rule
-  recorded: every one was caught by a guard going red — answer it with forensics, never by loosening
-  the guard.
-- **Battery 197 green, 15 suites. Freeze 140. `data/nisar/` 5.7 GB (3 granules).**
-- **Carried honest limits:** VD WHERE below chance at every configuration (§80); NISAR monsoon
-  unmeasured (§82); inventory is a record of REPORTS not landslides (§60/§83); ~30 mm/yr noise floor
-  measured (§78); 598 m miss (§31/§51); soils literature-corroborated not lab; §40 GACOS open.
+- **★★ The hazard map now publishes GROUND, not dots (§84).** New `exposure_footprint.py` draws each
+  zone's actual outline plus the corridor debris would travel below it, and exports it four ways:
+  GeoJSON, **KML for Google Earth**, a card on the live dashboard (top-5 with clickable
+  coordinates), and an **"Affected area: ON/OFF"** toggle in the 3-D explorer. Both rankings the
+  operator asked for ship side by side and are **named apart**: vulnerability (m\*, §19) and triage
+  priority ((1−m\*)×P, §25).
+- **★★ It invents no science and cannot drift.** The outline is the *published* alert cluster
+  re-derived and **verified pixel-for-pixel** against `alerts_<footprint>.json` — a mismatch aborts
+  the run. The corridor is `flood_domain.d8_targets` (routing) truncated by `rockfall_runout.BANDS`
+  (energy line) — both **imported**, never copied.
+- **★★ The layer never flatters the map under it.** The verdict is read through
+  `operational_alarm.load_tier` + `_chance_verdict`, so it inherits the §79 staleness guard and the
+  derived wording. Three of four footprints therefore render **wearing** their status (VD ALERT =
+  *not measured*; VD WATCH = *below chance*; Ramban WATCH = *≈chance*, which gets its own wording,
+  not the withdrawn one). Ramban ALERT is the one that beats chance.
+- **★ The identity gate caught MY bug on its first hard input** — the 106-zone WATCH map aborted
+  because the orchestrator sorts on the *rounded* speed and I sorted the raw means (11 of 65 zones
+  tie once rounded). Fixed + pinned behaviourally; logged 2026-08-11.
+- **★ A pre-existing §78-class defect fixed in passing:** `aoi_status.py` printed a back-test AUC one
+  line under "operational zones: none". It now reads **NOT MEASURED** when the map has moved, pinned
+  by a two-directional test. §79 fixed this in the dashboard and nobody grepped the other renderer.
+- **★★ AOI #3 — Tosh (upper Parvati Valley) — onboarded through playbook step 2.**
+  `config/aoi/tosh_aoi.geojson` + `config/tosh.yaml`; placement **verified** against an independent
+  published coordinate, not assumed. Radar dry-run: **38 pairs / 7 stacks, 34 new + 4 already
+  held**; three stacks alone clear the velocity-baseline minimum. **Nothing submitted.**
+- **⚠ Tosh is blocked on the three things that SHOULD block it** — the `soil:` block is deliberately
+  absent (§42: inheriting the wrong soils swings the footprint 0–118 zones), there is no local
+  inventory, and spending credits is the user's call.
+- **★ Deliberately NOT built: a VD 3-D explorer.** It would have showcased a withdrawn map; the
+  standing instruction to publish VD's WHEN arm only still holds.
+- **Battery 197 → 220 green across 16 suites** (new `test_exposure_footprint.py` ×22, registry ×+1);
+  flood freeze R1 reports identical re-writes only.
+- **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
+  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; 598 m miss §31/§51; soils
+  literature-corroborated not lab; §40 GACOS open). **§84 adds two:** the corridor is a **lower
+  bound** (rockfall angles on a debris path), and a shape does not upgrade an unvalidated map.
   **⚠ Standing:** §52 — 2 inventory rows pending; §66 LOW web findings; Ramban's staleness warning
   (16 new ASC scenes through 08-05) + its deferred §61 rescore.
 
 ## Recommended next step
 
-**The strategy is settled; what remains is execution on two independent tracks.**
+**Task order is unchanged by this session — except that Tosh now has a cheap, high-value fork.**
 
-1. **Susceptibility model as a CORROBORATOR** (highest value per hour — the script already exists,
-   `workflows/susceptibility_crosscheck.py`). One rule, non-negotiable: the **elevation-ablated AUC
-   is the headline**, never the raw one (§60). Then use it for Area-5 **targeting** — rank the
-   corridor, point scarce radar/field effort at the top. This does NOT claim to replace measured
-   movement.
-2. **NISAR, when the data allows.** Nothing to build today; the trigger for the next step is
-   **≥8 acquisitions** on one track/frame, or NASA's reprocessing clearing the monsoon void. Re-run
-   `nisar_ingest.py --list` periodically to check for FINAL (non-`_PR_`) products.
-3. **Then** the Ramban cadence refresh (+ §61 rescore), or flood **F2**.
+1. **Tosh M2 (site soil pass)** — the one blocking step, and it is a literature pass (GSI Kullu
+   reports, Parvati/Malana hydel geotechnical studies), not fieldwork. Until it lands, nothing
+   downstream at that site should be believed. *Then* the user's go/no-go on ~34 HyP3 jobs.
+2. **Susceptibility model as a CORROBORATOR** (§83's verdict) — elevation-ablated AUC is the
+   headline, never the raw one (§60).
+3. **NISAR when the data allows** — trigger unchanged: ≥8 acquisitions on one track/frame, or NASA
+   clearing the monsoon void.
 
-**Do NOT:** loosen `m`/creep thresholds to make zones reappear; lower the pilot's 40% coverage floor;
-publish the VD WHERE map; or build NISAR integration steps 2–6 before their triggers.
-
-User-side (standing): settle the 2 §52 rows; GACOS form + soil lab; merge `aoi-vaishnodevi` →
-`master`. **Publishing the VD dashboard should present the WHEN arm only** until route 1 or 2 lands.
+**Do NOT:** present the affected-area shapes as a warning product at Vaishno Devi; lower the reach
+angles to make corridors look longer; give Tosh another site's soils; or submit Tosh's jobs without
+the user saying so.
 
 ## Uncommitted delta
 
-Everything through `cabf222` is **committed** (the tree was clean at wrap). This wrap adds
-documentation only:
-- `session_journey.md` (**git-ignored**) — S33 cont. 2: the adapter, and reversing my own prior
-  pivot recommendation after checking §60.
-- `milestone.md` — **M64** (plain-language: the doorway for the new satellite + the wrong turn
-  avoided).
-- `docs/guides/Foundations - Physics and Maths Primer.md` — NEW "the wavelength is the RULER" box
-  (the 4.36× trap, Part A), 2 new Part-D interview answers (sampling bias; how to decide on a
-  pivot), 2 new Part-E limitations (the inventory records REPORTS; we deliberately did not pivot).
-- `SESSION_REVIEW.md` — this LIVE block.
-- `CLAUDE.md` (**git-ignored**, from the previous batch) — §6 repeat-offender checklist.
+Code (all new work, tree was clean at `16019ea`):
+- **NEW** `workflows/exposure_footprint.py` — the affected-area layer.
+- **NEW** `tests/test_exposure_footprint.py` (22 tests, incl. an escaping negative control).
+- `workflows/build_3d_dashboard.py` — draped outline/corridor traces + the ON/OFF control (scenario
+  buttons now restyle **explicit** trace indices so they cannot flip the new layer).
+- `workflows/operational_alarm.py` — `load_exposure` + `_exposure_card` (pure insertion; parity
+  tested).
+- `workflows/live_alarm.py` — non-fatal hook so the layer refreshes before the dashboard renders.
+- `workflows/aoi_status.py` + `tests/test_config_registry.py` — the stale-AUC fix and its test.
+- **NEW** `config/tosh.yaml`, `config/aoi/tosh_aoi.geojson` (the source `.kml` is git-ignored by
+  policy — it lives at `config/aoi/tosh_and_others.kml` locally; provenance is recorded inside the
+  GeoJSON).
+
+Docs: `RESULTS_AND_KPIS.md` **§84**; `error_history_log.md` (2 defects); `milestone.md` **M65**;
+primer **CV6** + 2 Part-D answers + 2 Part-E limits; `session_journey.md` (git-ignored);
+this LIVE block.
 
 ---
 
@@ -156,7 +155,10 @@ The core vision is fully built and scored above chance. Remaining work:
    `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
    config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
    (multi-AOI stage/alarm dashboard + deterministic next step), `docs/runbooks/NEW_AOI_PLAYBOOK.md` (onboarding
-   runbook), `tests/test_config_registry.py`. ~~Fold the <150 m perpendicular-baseline gate into
+   runbook), `tests/test_config_registry.py`. **Registry holds THREE sites since 2026-08-11 —
+   `ramban`, `vaishnodevi` and `tosh` (upper Parvati Valley, §84); Tosh sits at playbook step 2,
+   blocked on its soil pass (M2), its inventory (M4) and the user's go/no-go on ~34 HyP3 jobs.**
+   ~~Fold the <150 m perpendicular-baseline gate into
    rescues~~ ✅ DONE 2026-07-13 (§43 — one standing f106 bridge measured 151 m; a better
    replacement is queued and applies at the next radar-cadence rebuild). Still: AOI guidance
    (a better polygon improves *targeting*, not the noise floor).
@@ -228,8 +230,10 @@ validation); a static-vs-worst-case hazard map; recall-limited validation on two
   next = a susceptibility model (LR/RF) cross-check + a verified-date temporal test.
 - **Area 5 — Multi-sensor corroboration (GEE):** CHIRPS/IMERG/ERA5-Land rainfall, SMAP/ASCAT soil moisture,
   SoilGrids strength, DEM upgrades, WorldCover/NDVI veg masks, Sentinel-2/Landsat optical change, NASA GLC.
-- **Area 6 — Operationalize:** ✅ live rainfall ingestion (done — `live_alarm.py` + runbook); hybrid LLM,
-  hosted + union 3-D dashboard.
+- **Area 6 — Operationalize:** ✅ live rainfall ingestion (done — `live_alarm.py` + runbook);
+  ✅ affected-area layer (done 2026-08-11, §84 — zone outlines + downstream corridors as
+  GeoJSON/KML/dashboard card/3-D toggle, `exposure_footprint.py`); hybrid LLM, hosted + union
+  3-D dashboard.
 - **Area 7 (physics borrows):** #1 snowmelt/freeze-thaw (done), #2 V_slope (done), #3 regional ID + K_sn,
   #4 matric-suction FS split (done §20; nonlinear van-Genuchten curve BUILT + evaluated §46 —
   rejected on identifiability, config-gated for when lab/temporal data exists).

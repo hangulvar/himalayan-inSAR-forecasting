@@ -271,6 +271,50 @@ def test_vaishnodevi_carries_the_load_bearing_period_split() -> None:
     assert cfg.period_split.get("ASC_path27_frame105") == "2026-07-07", cfg.period_split
 
 
+def test_status_card_never_shows_a_score_for_a_map_it_did_not_measure() -> None:
+    """§78/§79 applied to the multi-AOI dashboard: this card printed "AUC 0.76" one line under
+    "operational zones: none", because it read the back-test's AUC without checking WHICH map
+    that back-test scored. A score must travel with the footprint it measured, and read
+    NOT MEASURED once the map has moved.
+
+    Asserted on the real cards (the artifact a user opens): for every registry site, whenever
+    the scored zone count and today's zone count disagree, the validation row must not carry a
+    bare AUC. Sites without products are skipped — they have no card to get wrong.
+    """
+    import json as _json
+    import sys as _sys
+
+    _sys.path.insert(0, str(PROJECT_ROOT / "workflows"))
+    import aoi_status
+
+    checked = 0
+    for p in _registry_paths():
+        st = aoi_status.assess(p)
+        # assess() serialises its Stage dataclasses to dicts for the JSON/HTML surfaces.
+        row = next((s for s in st.stages if s.get("key") == "validation"), None)
+        if row is None or not row.get("done"):
+            continue
+        cfg = load_config(p)
+        bt = (PROJECT_ROOT / "data" / "inventory"
+              / f"backtest_operational{cfg.data_suffix}_report.json")
+        if not bt.exists():
+            continue
+        scored = _json.loads(bt.read_text(encoding="utf-8")).get("n_flagged_zones")
+        live = st.footprint_zones
+        if not (isinstance(scored, int) and live.isdigit()):
+            continue
+        checked += 1
+        if scored != int(live):
+            assert "NOT MEASURED" in row["detail"], (
+                f"{p.name}: the card shows {row['detail']!r} for a map with {live} zone(s) that "
+                f"was scored at {scored} zone(s) — the score describes a different map")
+        else:
+            assert "NOT MEASURED" not in row["detail"], (
+                f"{p.name}: the card withheld a score that DOES describe this map "
+                f"({live} zones) — 'not measured' must not become the safe default")
+    assert checked, "no site had both a scored back-test and a zone count — test was vacuous"
+
+
 # ------------------------------------------------------------------------------
 # CLI runner (mirrors tests/test_plumbing.py so both run the same way).
 # ------------------------------------------------------------------------------

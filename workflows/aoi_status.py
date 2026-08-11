@@ -195,13 +195,25 @@ def assess(cfg_path: Path) -> AoiStatus:
                  "verification, docs/runbooks/NEW_AOI_PLAYBOOK.md M4) -> data/inventory/"))
 
     # 7. Scored validation back-test
+    # A score describes the footprint it was computed on. This card sat one line under
+    # "operational zones: none" and still read "AUC 0.76" — the §78 defect, in the multi-AOI
+    # dashboard: the back-test scored a 14-zone map, a radar rebuild took that map to 0 zones,
+    # and the old number kept describing a map it had never seen. Carry the scored zone count
+    # with the score and say NOT MEASURED when the map has moved (§6 #3).
     bt = INV_DIR / f"backtest_operational{sfx}_report.json"
     bt_detail = ""
     if bt.exists():
         try:
             r = json.loads(bt.read_text(encoding="utf-8"))
             auc = (r.get("scored") or {}).get("auc")
-            bt_detail = f"AUC {auc:.2f}" if isinstance(auc, (int, float)) else "scored"
+            scored_zones = r.get("n_flagged_zones")
+            if isinstance(scored_zones, int) and isinstance(n_zones, int) \
+                    and scored_zones != n_zones:
+                bt_detail = (f"NOT MEASURED for today's map — last scored a {scored_zones}-zone "
+                             f"map (AUC {auc:.2f}), this map has {n_zones}"
+                             if isinstance(auc, (int, float)) else "NOT MEASURED for today's map")
+            else:
+                bt_detail = f"AUC {auc:.2f}" if isinstance(auc, (int, float)) else "scored"
         except Exception:  # noqa: BLE001
             bt_detail = "scored"
     stages.append(Stage(

@@ -175,6 +175,17 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> N
     except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
         print(f"flood gate SKIPPED ({type(e).__name__}: {e}) — dashboard renders without/with "
               f"a stale flood card")
+    # Affected-area layer (exposure_footprint.py) — the zone shapes + downstream corridors the
+    # dashboard card, the KML download and the 3-D explorer all read. Wired HERE, right after
+    # the per-zone gate, because the layer carries each zone's LIVE flag: left manual it would
+    # keep showing yesterday's active set beside today's alarm, which is the staleness trap the
+    # freshness pill exists to prevent. NON-FATAL, like the two hooks either side: it writes
+    # only its own exposure_* files, and the card is simply skipped if it never ran.
+    try:
+        run("exposure_footprint.py", "--as-of", as_of.isoformat())
+    except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
+        print(f"affected-area layer SKIPPED ({type(e).__name__}: {e}) — dashboard renders "
+              f"without/with the previous layer")
     # Radar watcher (radar_watch.py, plan Tier 0c §56) — same non-fatal contract: ASF being
     # unreachable must never break the alarm chain (the freshness pill shows last known state).
     try:

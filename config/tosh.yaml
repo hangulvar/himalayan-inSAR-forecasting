@@ -1,0 +1,78 @@
+# ============================================================================
+# AOI: Tosh — upper Parvati Valley (registry file)     [ONBOARDING, 2026-08-11]
+# ----------------------------------------------------------------------------
+# Created by NEW_AOI_PLAYBOOK.md steps 1-2. Everything below step 2 is still
+# OPEN — this site has no radar, no soil pass and no inventory yet, so nothing
+# downstream will produce a product until those land. Track progress with
+#   python workflows/aoi_status.py --aoi tosh
+# ============================================================================
+
+# --- Area of Interest -------------------------------------------------------
+# Traced from the user's Google Earth polygon (config/aoi/tosh_and_others.kml),
+# vertices unchanged. Covers Tosh, Barshaini, Kutla and the Pulga/Kalga/Tulga
+# trio on both banks of the Parvati. Placement cross-checked 2026-08-11:
+# Pulga (31.99528N, 77.43972E — Wikipedia) sits 4.5 km INSIDE the polygon.
+# NOTE (playbook M1): at ~436 km2 (~19 x 29 km) this is roughly 4x the Vaishno
+# Devi corridor. That is legitimate, and it costs processing time and dilutes
+# targeting rather than accuracy — a tighter polygon around the inhabited
+# slopes and the trekking corridor would sharpen WHERE without changing the
+# noise floor. Re-draw and re-run any time; every step here is idempotent.
+aoi_path: config/aoi/tosh_aoi.geojson
+
+site_name: Tosh — upper Parvati Valley
+
+# Operating points (operational_m / watch_m) and kappa are DELIBERATELY ABSENT:
+# they are swept per site against a local inventory (playbook step 9). Until
+# then the ramban-calibrated defaults (0.50 / 0.70, kappa 0) apply — which is
+# exactly why any early product from this site is provisional, not validated.
+
+# LLOF downstream flag: real D8 flow routing from the start (§60 4c). Both
+# existing sites have swapped to it, and a new site has no legacy products to
+# reproduce, so there is nothing to grandfather here.
+llof_routing: d8
+
+# HyP3 job-name prefix — unique per AOI; downstream steps filter on it.
+job_name_prefix: Tosh_Parvati
+
+# --- Catalog search window (inclusive), ISO dates ---------------------------
+# A new AOI needs ~2-3 months of acquisitions minimum for a velocity baseline;
+# longer histories measurably lower the noise floor (§80: ~15-image series cut
+# the speed scatter from 45-75 mm/yr to ~25). This window is a full pre-monsoon
+# baseline through the 2026 monsoon. Widen search_start for a longer history
+# before submitting — the submitter is idempotent and deduplicating, so
+# extending later only appends the new pairs.
+search_start: 2026-03-01
+search_end: 2026-09-30
+
+# --- Soil shear-strength ----------------------------------------------------
+# INTENTIONALLY OMITTED (playbook step M2). Leaving this block out makes the
+# engine fall back to the Ramban §20 values, and §42 MEASURED what that gamble
+# costs: across the literature-plausible bracket the alert footprint swings
+# 0-118 zones, and failure depth z alone can erase the product. Parvati Valley
+# granite/gneiss with a thin colluvial mantle is NOT the Ramban Murree
+# sandstone-siltstone, so these defaults are a placeholder, not an estimate.
+# Do the literature pass (GSI Kullu-district reports, Parvati/Malana hydel
+# project geotechnical studies) before trusting any FS map from this site, and
+# record the provenance here as comments the way vaishnodevi.yaml does.
+
+# --- Pair-network / baseline rules ------------------------------------------
+baseline:
+  max_temporal_baseline_days: 24
+  sbas_neighbors: 1
+  max_perp_baseline_m: 150
+
+# --- Connectivity-rescue policy (defaults; tune from this site's audit) ------
+rescue_gate:
+  max_atmos_r2: 0.45
+  min_coherence: 0.6
+  min_surviving_pct: 15
+
+exclude_from_rescue: []
+
+# No `period_split:` yet — that entry only exists for stacks whose network is
+# disconnected, which cannot be known until this site's radar is downloaded and
+# sbas_network_graph.py has run.
+
+# No `flood:` block — the flash-flood arm is OPTIONAL and stays fully OFF until
+# this site has a validated WHERE map to hang it on (tests/test_flood_
+# invariants.py R2 pins that an absent block writes nothing).

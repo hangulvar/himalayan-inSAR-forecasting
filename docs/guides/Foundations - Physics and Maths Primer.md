@@ -1618,6 +1618,51 @@ the as-builts before instrumenting.
 
 ---
 
+## CV6. From a pin to a patch — drawing the affected area (and why it is a *lower* bound)
+
+Everything up to here answers **"which slope?"** with a point. An operator planning an inspection
+needs two more things: the **extent** of the flagged ground, and the ground **below** it.
+
+**The extent is free — it was always there.** A hazard "zone" is a cluster of neighbouring pixels
+that are both creeping and physically marginal (Part C-bis); we published its centre and its area
+but never its outline. Drawing the outline invents nothing. The discipline is in *proving* the
+outline is the same object: we re-run the same clustering on the same rasters and check every zone's
+id, centre pixel and pixel count against the published alert file. One mismatch and nothing is
+written — an outline for a map nobody scored is worse than no outline.
+
+**The ground below is two known tools, composed.** Take the **D8 flow arrows** (CF18: every cell
+drains to its steepest downhill neighbour) and walk downhill from the zone. Stop where the **energy
+line** (CV5) drops below its reach angle — the empirical statement that material has run out of
+height to travel on:
+
+> keep going while  (drop from the source ÷ straight-line distance) ≥ tan(reach angle)
+
+**Everyday analogy:** water tells you *which way* the debris goes; the energy line tells you *how
+far* before it runs out of puff.
+
+**The caveat that must travel with it, in both directions.** The reach angles we use are the
+**rockfall** family (32° / 27.5° / 22°, CV5). Wet, channelised debris flows are reported to travel
+at *shallower* angles than dry falling rock — a shallower angle means a *longer* runout. So applying
+the rockfall envelope to a debris path gives a corridor that is a **lower bound on the ground at
+risk, never an upper one**. Add to that: 80 m cells, a single flow direction per cell, no volume, no
+entrainment or bulking, no barriers or forest, and a corridor drawn a few cells wide *so it is
+visible on a map* — a legibility choice, not a modelled inundation width. It answers "could material
+physically get here", not "will it".
+
+**Two rankings, and why they must not be merged.** The same zone list is published twice, in two
+orders that genuinely disagree: by **fragility** (m\* ascending, CF8 — which slope tips at the least
+rain) and by **triage priority** ((1−m\*)×P, CF10 — which slope is *both* fragile and confidently
+moving). A fragile slope whose motion is probably noise belongs high on the first and low on the
+second. Printing one under the other's name would silently change the claim.
+
+🔗 **In our project (Milestone 65 / §84):** `exposure_footprint.py` writes the layer as GeoJSON +
+KML + a dashboard card + a toggle in the 3-D explorer, for both footprints at both sites. Corridors
+run ~200–800 m below Ramban's operational zones. The routing and the reach angles are **imported**
+from `flood_domain` and `rockfall_runout`, never re-typed, so they cannot drift from the validated
+versions — and every file carries the underlying map's own verdict, computed from its AUC.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -2077,6 +2122,30 @@ earning its keep yet. Second, only 3 of 22 zones sit near a significant channel,
 speaks to a minority of sites. Both went into the ledger and the limitations section rather than
 being quietly omitted — a feature that addresses 3 zones is still useful, but only if you say so.
 
+**Q: You show a shaded strip where debris would go. How much should anyone trust that?**
+A: Trust the *direction* more than the *distance*, and treat the distance as a floor. The direction
+comes from real flow routing over the terrain — the same routing that decides whether a failing
+slope reaches a stream, and it is shared code, not a re-implementation. The distance comes from an
+empirical **energy line**: material stops when the drop from its starting point, divided by how far
+it has travelled, falls below a reach angle. The angles we use are the well-established **rockfall**
+values, and wet debris flows are reported to run *further* than dry rock, so our corridor is a
+**lower bound on the ground at risk, not an upper one** — that sentence is printed on every version
+of the file. It also has no volume, no entrainment, no barriers and no forest in it, and it is drawn
+a few cells wide purely so it is visible. It answers "could material physically reach here", not
+"will it". (§84.)
+
+**Q: You re-derived a published product to draw its outlines. How do you know you drew the right
+thing?**
+A: We check, and refuse to publish if the check fails — and it *did* fail, usefully. Every outline
+is matched against the published alert file on id, centre pixel and pixel count; one mismatch aborts
+the whole run. On the 8-zone map it passed immediately. On the 106-zone map it stopped dead: the
+original program rounds each zone's speed to one decimal place *before* sorting the zones, and we
+had sorted the exact values. Identical results until two zones round to the same number — which
+happens 11 times on the bigger map. The lesson generalises: **when you re-derive a published
+artifact, copy the rounding as well as the formula**, because a display-precision decision upstream
+can be a sort key downstream. And a guard that has only ever seen easy input has not been tested
+yet — find the case that makes it work before you trust it. (§84.)
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
@@ -2272,6 +2341,24 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   barrier or ridge-blocking physics, and OSM has almost no buildings mapped at the shrine complex, so
   its buildings count undercounts (the POI/route read is the trustworthy part). Neither tool predicts
   timing. Treat both as watch + consequence coverage for the CV3 class, not as forecasts.
+- **★ The affected-area corridor is a LOWER bound, and the shapes never upgrade the map underneath
+  them (§84 / CV6 / M65):** the downstream strip uses **rockfall** reach angles applied to a routed
+  flow path, and wet debris flows run *further* than dry rock — so real exposure can extend beyond
+  the drawn corridor. It carries no volume, entrainment, bulking, barriers or forest, is drawn a few
+  cells wide for legibility (not as an inundation width), and at 80 m cells with one flow direction
+  per cell it resolves nothing finer than a hillside. Separately: **drawing a zone as a shape does
+  not make it a better zone.** Three of our four footprints currently have no skill claim to stand
+  on — Vaishno Devi's ALERT map is unscored since the radar rebuild, its WATCH map scores *below*
+  chance, and Ramban's WATCH map is ≈chance as a spatial ranker — and each file says exactly that,
+  in wording computed from its own AUC. A crisp outline over an unvalidated map is a presentation
+  upgrade, not an evidence one.
+- **A third site (Tosh, upper Parvati Valley) exists in the registry but has NO product and must not
+  be presented as one (§84 / M65):** it has an AOI polygon and a settings file, and nothing else —
+  no radar downloaded, **no site soil pass** (so the engine would silently inherit Ramban's
+  sandstone calibration into Parvati granite, and §42 measured that the plausible soil bracket
+  swings the footprint 0–118 zones), and no local inventory to validate against. CV1's rule applies
+  in full: the infrastructure transfers, the *scientific claims do not* — each site earns its own
+  soils, its own inventory and its own operating points.
 
 ---
 

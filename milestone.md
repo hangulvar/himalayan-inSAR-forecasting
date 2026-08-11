@@ -2444,3 +2444,89 @@ our minds**, so this is a decision on the record rather than an opinion.
 
 **Bottom line:** a new capability built without over-building, and a course correction avoided by
 checking our own past work before repeating it. Checks now **197**, all passing (§83).
+
+---
+
+## ✅ Milestone 65 — The map stopped being dots. It now shows the ground, and where the debris would go.  *(2026-08-11)*
+
+**What we set out to do.** Two things you asked for. First: show the *area* that could be hit, not
+just a pin on a map — a shape for the flagged slope, and a highlighted strip below it for where the
+material would travel — with the zones ranked and the coordinates exportable. Second: start
+onboarding a new site, Tosh in the Parvati Valley.
+
+### Job 1 — giving the hazard zones a shape
+
+Until now, every hazard zone was published as a **single point** plus a table of numbers. That is
+enough to say "go look near here", but not enough to plan anything. Two things were missing:
+
+- **How big is it?** The zone is really a patch of ground — sometimes a few hundred metres across.
+- **What's underneath it?** If that slope let go, the material doesn't stay put. It runs downhill.
+
+Both now exist, and neither needed new science:
+
+- **The shape** is the same patch of ground the alert was always about — we simply drew the outline
+  instead of its centre. Crucially, we then **checked every outline against the published alert,
+  pixel by pixel**. If a single one disagreed, the program refuses to write anything at all. A
+  pretty outline for a map that was never checked is worse than no outline.
+- **The downstream strip** follows the water. We already had a tested way of working out which way
+  water flows off any point of the terrain (we use it to decide whether a failing slope would dump
+  debris into a stream). We follow that path downhill and stop where the slope flattens out enough
+  that material would run out of energy — a rule of thumb geologists have used for decades. On our
+  slopes the strips run about **200–800 m** below each zone.
+
+**Two honest limits, printed on every version of the file.** The strip is drawn a few hundred
+metres wide so you can see it — that is for legibility, *not* a claim about how wide a real debris
+flow would be. And the stopping rule we borrowed is the one used for **falling rock**, which stops
+sooner than a wet debris flow does. So the strip is a **minimum**, not a maximum. It answers "could
+material physically reach here", never "will it".
+
+**You can now open it wherever you work:** a Google Earth file (.kml), a GeoJSON, a new card on the
+live dashboard listing the top five with clickable coordinates, and an **on/off button** in the 3-D
+explorer.
+
+**Two different "worst first" lists, deliberately kept apart.** One ranks by *fragility* — which
+slope tips over at the least rain. The other ranks by *priority* — which slope is both fragile
+**and** confidently moving. They genuinely disagree, and a fragile slope whose movement is probably
+just radar noise deserves to rank high on one and low on the other. Collapsing them into one list
+would have quietly changed what we're claiming.
+
+**And the layer never flatters the map underneath it.** Three of our four maps currently have no
+skill claim to stand on — one has not been re-scored since the radar rebuild, one scores *below*
+random guessing, one scores about the same as guessing. The shapes still get drawn, because you
+asked to see them — but **every single file says so, in the file itself**, in words worked out from
+the score rather than typed in by hand.
+
+**The safety check we built caught our own mistake.** On the small 8-zone map everything matched
+perfectly. On the 106-zone map it stopped dead: zone 21 wasn't where it should be. The cause was
+subtle — the original program rounds each zone's speed to one decimal place *before* sorting them,
+and we had sorted the exact values. Identical results until two zones round to the same number,
+which happens 11 times on the bigger map. Fixed, and pinned by a test that fails if anyone re-breaks
+it. A guard that only ever sees easy input isn't a guard yet.
+
+**One old mistake fixed on the way past.** The multi-site status page was printing a score of "0.76"
+one line under "zones: none" — a grade for a map that no longer exists. We'd fixed exactly this on
+the main dashboard three sessions ago and never checked the other page. It now says **not measured**.
+
+### Job 2 — Tosh is on the books
+
+Your Google Earth outline is now a proper site in the system, with its own settings file, and it
+shows up on the multi-site status board alongside Ramban and Vaishno Devi.
+
+**We checked the outline was actually in the right valley** rather than assuming — an independently
+published coordinate for the neighbouring village of Pulga sits comfortably inside it. Worth doing:
+a polygon in the wrong place would have quietly produced confident results about the wrong mountain.
+
+**The satellite coverage is good.** We asked the archive what radar exists over Tosh: **38 image
+pairs across 7 viewing geometries**, three of which already hold enough images on their own to start
+measuring movement. Four pairs we already own, because one of them also covers an existing site.
+
+**What we have NOT done — on purpose.** We haven't ordered any of it. That spends processing credits
+and queues work on someone else's servers; it's your call, not a side effect of setting the site up.
+And we have deliberately **left the soil strength blank**. Filling it in with another site's numbers
+would work silently — and we've already measured what that costs: with plausible-but-wrong soil
+values the number of alerts can swing from zero to over a hundred. Parvati granite is not Ramban
+sandstone. The status board now names that as the site's next step.
+
+**Bottom line:** the maps now show ground instead of dots, and say plainly how much they should be
+trusted; a third site is set up as far as it honestly can be without a human decision. Checks now
+**220**, all passing (§84).
