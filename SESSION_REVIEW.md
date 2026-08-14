@@ -11,71 +11,72 @@
 
 ---
 
-# LIVE — Session 35 · branch `aoi-vaishnodevi` · updated 2026-08-14
+# LIVE — Session 36 · branch `aoi-vaishnodevi` · updated 2026-08-14
 
 ## Current state
 
-- **★★ Both control-panel failures the user hit are root-caused and FIXED (§85).** The refresh
-  cycle died at Tosh because a brand-new AOI has no WHERE map, and the runner returned on the
-  first failure — so **Vaishno Devi's fetch, alarm and the status board never ran**, and VD's
-  rainfall silently went 8 days stale. The 3-D rebuild died because `--stack` defaulted to a
-  **Ramban** stack for every AOI.
-- **★★ Fixed at both layers, not just the symptom:** `live_alarm` now distinguishes an ABSENT
-  footprint (site not ready — say why, exit 0, keep the rainfall) from an EMPTY one (a real
-  publishable state, §78); `control_panel` isolates per site and reports *which* sites failed.
-  A cross-site step failing still stops the job. Verified through the panel's own runner across
-  all three sites.
-- **★ Sweeping outward found two more of the same family:** the 3-D page printed a hardcoded
-  **Ramban** coverage figure on every site (VD's real number is materially different), and the
-  status board blanked the diagnostic on exactly the rows that were red. Both fixed and pinned.
-- **★ The newest product was only half-kept-current, and that is now fixed (§85 addendum).** The
-  cycle refreshed only the ALERT footprint, so the WATCH layer sat 3 days stale — and at Vaishno
-  Devi, whose ALERT map is empty, that stale file is the only affected-area layer the dashboard
-  can link. The cycle now refreshes **every published footprint** (each in its own `try`), and the
-  card **stamps the age of the file it links**, derived from the dates.
-- **★★ The unattended Windows task is DISABLED (reversible, not deleted).** `StartWhenAvailable`
-  turned "every 2 days at 08:00" into a **logon** job that then polled for Docker for 10 minutes.
-  `monsoon_cycle.ps1` still runs on demand; its header carries the re-enable/delete commands. The
-  control panel is now the only trigger.
-- **★ All three sites are current again** — Ramban and VD both refreshed; Tosh has rainfall but
-  no map, and its board row now says exactly that instead of going blank.
-- **Battery 220 → 229 green across 16 suites.** The flood freeze went red mid-session, was
-  root-caused to the sanctioned current-season advance (verified: contiguous rows, unchanged
-  columns and zone counts), and re-frozen at the same 140 artifacts.
-- **⚠ Tosh is still blocked on the three things that SHOULD block it** — soil pass (M2),
-  inventory (M4), and the user's go/no-go on ~34 HyP3 jobs. Its board row names the next step.
+- **★★ Adversarial audit run against our own product (§86).** Probed, not reviewed: real HTTP
+  requests at the control panel, hostile values through every renderer, and the exported files
+  opened the way a user opens them. **6 defects found and fixed; 2 of the 6 were ours, both from
+  §84.**
+- **★★ The most important finding was NOT security — our honesty stopped at the page boundary.**
+  A map that scores below chance exported to Google Earth showed a confident ranked hazard popup
+  with no verdict and no caveat, under a folder captioned "read these first". §84 had stamped the
+  verdict on the *file*; users click *features*. Every placemark now carries the map standing +
+  "decision support, not a warning system" — **609 audited, 100%** — and directive wording is
+  derived from the score.
+- **★★ Three real security defects closed:** CSRF on `POST /run` (proven: an `evil.example.com`
+  origin started a job), no `Host` validation (DNS rebinding could read all of `data/`), and a
+  stored XSS in the affected-area card. The XSS matters because the panel serves these pages from
+  the **same origin as its job-launching API**.
+- **★ A fabricated provenance claim was one AOI away from shipping.** `site_notes` was
+  `if ramban: … else: <Vaishno Devi's text>`, so Tosh would have published VD's soil-literature
+  claim while silently running Ramban's soils. Now a per-site table + a derived fallback that says
+  the opposite. Found by asking "what does a THIRD site render?".
+- **★ What HELD UP is recorded too (§86 A):** 13 path-traversal vectors refused, the NTFS junction
+  refused, action/AOI whitelisting with argv-as-list (no shell), and zero host paths / usernames /
+  secrets across 18 publishable artifacts.
+- **★ Standing rules added — `CLAUDE.md` §6 items 17–19:** an artifact that leaves the page carries
+  caveats per feature; a rule with a test on feature A does not protect feature B; "it only listens
+  on localhost" answers the network threat, not the browser one (+ hunt per-site hardcodes in
+  two-branch conditionals).
+- **Battery 229 → 238 green across 16 suites** (+9 guards, incl. two negative controls); flood
+  freeze intact.
+- **⚠ Deliberately NOT done: a Content-Security-Policy on served files.** The 3-D dashboard loads
+  Plotly from a CDN and every page uses inline scripts, so a strict CSP would break the artifacts
+  it is meant to protect. Took the three free headers instead; CSP belongs to a future hosted
+  deployment, where the CDN question must be answered anyway.
 - **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
-  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two: the corridor is a
-  lower bound, and a shape does not upgrade an unvalidated map). **⚠ Standing:** §52 — 2
-  inventory rows pending; §66 LOW web findings; Ramban's staleness warning + deferred §61 rescore.
-- **Housekeeping seen, not acted on:** `data/` 56 GB (unchanged); a stale git worktree at
-  `.claude/worktrees/hungry-einstein-b80c0f` (122 MB, clean, on a master merge commit) — safe to
-  remove whenever you like.
+  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two). **§86 adds one:** our
+  honesty is only as portable as the file it is written on. **⚠ Standing:** §52 2 inventory rows;
+  §66 LOW web findings; Ramban's staleness warning + deferred §61 rescore; Tosh blocked on soil
+  pass (M2), inventory (M4) and your credit decision.
 
 ## Recommended next step
 
-**Unchanged by this session — it was an operations/repair session, not a science one.**
+**Unchanged — this was a hardening round, not a science one.**
 
-1. **Tosh M2 (site soil pass)** — the one blocking step, a literature pass, then your go/no-go on
-   the ~34 HyP3 jobs.
+1. **Tosh M2 (site soil pass)**, then your go/no-go on ~34 HyP3 jobs. *(Note: the literature
+   search this session found no Parvati-specific geotechnical source — neighbouring districts
+   scatter from φ≈0 to 36° — so expect a bracketed, explicitly provisional pass.)*
 2. **Susceptibility model as a CORROBORATOR** (§83) — elevation-ablated AUC is the headline.
 3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void
    clearing.
 
-**Do NOT:** re-enable the scheduled task without deciding what it should do on a missed slot and
-with Docker down; present VD's shapes as a warning product; give Tosh another site's soils.
+**Do NOT:** re-enable the scheduled task without answering the missed-slot/Docker-down questions;
+add a CSP without deciding the CDN question; present VD's shapes as a warning product.
 
 ## Uncommitted delta
 
-**Most of session 35 is COMMITTED at `68b413d`** — the per-site isolation, the 3-D stack/coverage
-fixes, the status-board diagnostics, the disabled task, CLAUDE.md §6 items 14–16, and the §85
-ledger/error-log entries.
+Code: `workflows/control_panel.py` (Host allowlist, Origin check on `/run`, hardening headers),
+`workflows/operational_alarm.py` (`_esc` on every card value; per-site note table + derived
+fallback), `workflows/exposure_footprint.py` (`feature_footer` on every placemark, derived folder
+label, `_live_text`), `workflows/build_3d_dashboard.py` (escaped site label + hover text),
+`tests/test_control_panel.py` (+3), `tests/test_exposure_footprint.py` (+6).
 
-Uncommitted (the staleness fix that followed): `workflows/live_alarm.py`
-(`published_footprints()` + a per-footprint refresh loop), `workflows/operational_alarm.py`
-(`_layer_age()` + the card stamping the layer it links), `tests/test_exposure_footprint.py` (+3,
-including a negative control), and the docs for it — `RESULTS_AND_KPIS.md` §85 addendum,
-`error_history_log.md` entry 6, `session_journey.md` (git-ignored), this LIVE block.
+Docs: `RESULTS_AND_KPIS.md` **§86**; `error_history_log.md` (2026-08-14 adversarial, 6 entries);
+`CLAUDE.md` **§6 items 17–19** (git-ignored); `milestone.md` **M66**; primer (1 Part-D answer +
+1 Part-E limitation); `session_journey.md` (git-ignored); this LIVE block.
 
 Machine state (outside git, unchanged): the Windows task **"InSAR Monsoon Watch Cycle" is
 Disabled**.

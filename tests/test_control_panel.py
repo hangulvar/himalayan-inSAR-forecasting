@@ -270,6 +270,65 @@ def test_incremental_log_offsets():
 
 
 # ------------------------------------------------------------------------------
+# 3b. Browser-facing hardening (adversarial round, 2026-08-14)
+# ------------------------------------------------------------------------------
+def _raw(method: str, path: str, body: str | None = None, headers: dict | None = None):
+    """A request with FULL control of the headers — urllib will not let us forge Host."""
+    import http.client
+    c = http.client.HTTPConnection("127.0.0.1", _PORT, timeout=10)
+    c.request(method, path, body=body, headers=headers or {})
+    r = c.getresponse()
+    data = r.read()
+    c.close()
+    return r.status, dict(r.getheaders()), data
+
+
+def test_host_header_allowlist_blocks_dns_rebinding() -> None:
+    """Binding to 127.0.0.1 stops remote packets, NOT a page the user is browsing: an attacker
+    domain with a short TTL can re-resolve to 127.0.0.1, and the request then arrives locally
+    carrying the attacker's Host. A browser cannot forge Host, so checking it closes that."""
+    for good in (f"127.0.0.1:{_PORT}", f"localhost:{_PORT}", "127.0.0.1"):
+        st, _, _ = _raw("GET", "/", headers={"Host": good})
+        assert st == 200, f"loopback Host {good} was refused ({st})"
+    for bad in ("evil.example.com", "attacker.tld", f"evil.tld:{_PORT}", ""):
+        st, _, _ = _raw("GET", "/", headers={"Host": bad})
+        assert st == 403, f"Host {bad!r} was ACCEPTED ({st}) — DNS rebinding reaches this origin"
+
+
+def test_cross_origin_post_cannot_start_a_job() -> None:
+    """CSRF: /run launches Docker jobs, and an HTML form POST is a "simple request" — no
+    preflight, CORS never consulted. Any page the user visits could have fired one."""
+    import urllib.parse
+    body = urllib.parse.urlencode({"action": "status_board", "aoi": "all"})
+    hdrs = {"Content-Type": "application/x-www-form-urlencoded", "Host": f"127.0.0.1:{_PORT}"}
+    st, _, data = _raw("POST", "/run", body, {**hdrs, "Origin": "https://evil.example.com"})
+    assert st == 403 and b"cross-origin" in data, (
+        f"a cross-origin POST started a job ({st}) — visiting a web page could run Docker here")
+    # same-origin and origin-less (curl / the panel's own fetch) must still work
+    st2, _, _ = _raw("POST", "/run", body, {**hdrs, "Origin": f"http://127.0.0.1:{_PORT}"})
+    assert st2 in (200, 409), f"same-origin POST broken ({st2})"
+    st3, _, _ = _raw("POST", "/run", body, hdrs)
+    assert st3 in (200, 409), f"origin-less POST broken ({st3})"
+    # HERMETICITY: those two accepted POSTs actually START a dry-run job, and `_current_job` is
+    # module state shared with every other test in this file. Leave the panel idle or the next
+    # test to post gets a 409 from OUR job (it did — that is how this was found).
+    _wait_job_end()
+
+
+def test_responses_carry_the_basic_browser_hardening_headers() -> None:
+    """This server returns locally-generated HTML from the SAME origin as its control API, so
+    a stray script in a dashboard would inherit that API."""
+    st, hdrs, _ = _raw("GET", "/file/aoi_status.html", headers={"Host": f"127.0.0.1:{_PORT}"})
+    if st == 404:
+        print("      [hardening] aoi_status.html absent — headers checked on / instead")
+        st, hdrs, _ = _raw("GET", "/", headers={"Host": f"127.0.0.1:{_PORT}"})
+    low = {k.lower(): v for k, v in hdrs.items()}
+    assert low.get("x-content-type-options") == "nosniff", low
+    assert low.get("x-frame-options") == "DENY", low
+    assert low.get("referrer-policy") == "no-referrer", low
+
+
+# ------------------------------------------------------------------------------
 # 4. Results hub
 # ------------------------------------------------------------------------------
 

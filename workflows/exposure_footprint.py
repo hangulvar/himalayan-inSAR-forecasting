@@ -393,6 +393,46 @@ def write_geojson(path: Path, features: list[dict], meta: dict) -> None:
                                 "features": features}, indent=1), encoding="utf-8")
 
 
+def feature_footer(meta: dict) -> str:
+    """The map's standing, short enough to ride on EVERY exported feature.
+
+    §84 promised the shapes "render wearing that label, in every format" — and the KML did carry
+    it, but only in the Document description, which in Google Earth is a sidebar node almost
+    nobody clicks. What a user clicks is a POLYGON, and that popup read as an authoritative
+    ranked hazard card: "triage rank 1 of 33 · priority 0.576 · HIGH". On Vaishno Devi's watch
+    map — which scores BELOW chance, i.e. random points land closer to real landslides — that is
+    the §79 defect rebuilt in the export format, where no dashboard surrounds it to add context.
+    So the verdict travels on each feature, not just the file.
+    """
+    v = meta.get("verdict") or {}
+    state = v.get("state")
+    if state == "scored" and v.get("verdict") == "beats chance":
+        standing = f"scores better than chance here (AUC {v.get('auc')})"
+    elif state == "scored":
+        standing = f"MAP STANDING: {v.get('verdict')} (AUC {v.get('auc')})"
+    elif state == "not_measured":
+        standing = "MAP STANDING: NOT MEASURED — the map moved since it was last scored"
+    elif state == "never_scored":
+        standing = "MAP STANDING: UNVALIDATED — never scored at this site"
+    else:
+        standing = "MAP STANDING: no footprint for this scenario"
+    return ("\n\n— " + standing
+            + "\n— Decision support, NOT a warning system; it does not predict individual "
+              "landslides. Downstream corridor is a LOWER bound (first-order screen).")
+
+
+def _live_text(value) -> str:
+    """Humanise the per-zone live flag for a popup: `not_applicable` is an internal token that
+    was leaking verbatim into user-facing KML descriptions."""
+    if value is True:
+        return "yes — this zone is live today"
+    if value is False:
+        return "no — not live today"
+    if value == "not_applicable":
+        return "not applicable — this footprint has no live gate (§19 gates the ALERT tier only)"
+    return str(value)
+
+
 def _by_vulnerability(zones: list[dict]) -> list[dict]:
     """Most fragile first — the per-zone gate's own order (lowest critical saturation m*
     fires first). Distinct from triage priority; see the note in build()."""
@@ -414,6 +454,7 @@ def write_kml(path: Path, zones: list[dict], meta: dict) -> None:
     file cannot be opened without the reader seeing what the layer is and is not.
     """
     e = xml_escape
+    footer = feature_footer(meta)   # rides on EVERY placemark, not just the document header
     doc = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>',
            f"<name>{e(SITE)} — affected-area layer ({e(meta['footprint'])})</name>",
@@ -434,8 +475,10 @@ def write_kml(path: Path, zones: list[dict], meta: dict) -> None:
             rank=z["triage_rank"], tot=meta["n_union_zones"], pri=z["triage_priority"],
             sev=z["severity"], lat=z["lat"], lon=z["lon"], area=z["area_km2"],
             ms=z["m_star"], tier=z["vulnerability_tier"], creep=z["creep_mmyr"],
-            conf=z["detection_confidence"], looks=z["n_looks"], live=z["active_today"],
+            conf=z["detection_confidence"], looks=z["n_looks"],
+            live=_live_text(z["active_today"]),
             reach=max(z["downstream_reach_m"].values()) if z["downstream_reach_m"] else "—")
+        desc += footer
         name = "V{vrank} · T{rank} {sev} ({stack})".format(
             vrank=z.get("vulnerability_rank"), rank=z["triage_rank"], sev=z["severity"],
             stack=z["stack"])
@@ -455,18 +498,22 @@ def write_kml(path: Path, zones: list[dict], meta: dict) -> None:
             name = "zone #{rank} — {band}".format(rank=z["triage_rank"], band=band)
             for ring in rings:
                 doc.append(f"<Placemark><name>{e(name)}</name>"
-                           f"<description>{e(meta['band_note'][band])}</description>"
+                           f"<description>{e(meta['band_note'][band] + footer)}</description>"
                            + _kml_poly(ring, KML_BAND_FILL[band],
                                        "ff" + KML_BAND_FILL[band][2:]) + "</Placemark>")
     doc.append("</Folder>")
 
-    doc.append("<Folder><name>Top 5 by triage priority (read these first)</name>")
+    _v = (meta.get("verdict") or {})
+    _skilled = _v.get("state") == "scored" and _v.get("verdict") == "beats chance"
+    doc.append("<Folder><name>Top 5 by triage priority"
+               + (" (read these first)" if _skilled else
+                  " (ordering only — this map has no measured skill here)") + "</name>")
     for z in meta["top5"]:
         name = "{rank}. priority {pri}".format(rank=z["rank"], pri=z["priority"])
         desc = ("{lat:.5f}N, {lon:.5f}E — fragility m*={ms}, detection confidence {conf}, "
                 "{looks} radar look(s)").format(lat=z["lat"], lon=z["lon"], ms=z["m_star"],
                                                 conf=z["detection_confidence"],
-                                                looks=z["n_looks"])
+                                                looks=z["n_looks"]) + footer
         doc.append(f"<Placemark><name>{e(name)}</name>"
                    f"<description>{e(desc)}</description>"
                    f"<Point><coordinates>{z['lon']:.6f},{z['lat']:.6f},0</coordinates></Point>"

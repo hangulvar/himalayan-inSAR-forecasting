@@ -367,6 +367,138 @@ def test_geojson_features_are_closed_rings_in_lonlat() -> None:
 
 
 # ------------------------------------------------------------------------------
+# E7 — adversarial round (2026-08-14): injection, and honesty that survives export
+# ------------------------------------------------------------------------------
+_XSS = ['"><script>alert(1)</script>', "<img src=x onerror=alert(2)>",
+        "'\"><svg onload=alert(4)>"]
+
+
+def _dom_findings(markup: str) -> list:
+    """Every executable construct an HTML parser actually sees."""
+    from html.parser import HTMLParser
+
+    class A(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.f = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag in ("script", "svg", "img", "iframe", "object"):
+                self.f.append((tag, dict(attrs)))
+            for k, v in attrs:
+                if k.lower().startswith("on") or (v or "").lower().startswith("javascript:"):
+                    self.f.append((tag, f"{k}={v}"))
+
+    a = A()
+    a.feed(markup)
+    return a.f
+
+
+def _hostile_report(payload: str, n_zones: int = 1) -> dict:
+    return {"footprint": payload, "n_union_zones": payload if n_zones else 0,
+            "n_shapes": payload if n_zones else 0, "headline": payload,
+            "scope_caveat": payload, "generated_utc": payload,
+            "verdict": {"state": payload, "auc": 0.5, "verdict": payload},
+            "active": {"as_of": payload, "n_active": payload, "n_total": payload,
+                       "regional_level": payload},
+            "top5_by_triage_priority": [{"rank": 1, "lat": 33.2, "lon": 75.1,
+                                         "priority": payload, "m_star": payload,
+                                         "detection_confidence": payload, "n_looks": 1}]}
+
+
+def test_exposure_card_is_not_injectable() -> None:
+    """The flood card has had this guard since §72; the exposure card (added §84) never got one
+    and DRIFTED — `priority`, `m_star` and `detection_confidence` were interpolated raw. It
+    matters because control_panel serves these pages from the SAME ORIGIN as its /run API, so a
+    stray script in a dashboard inherits the ability to launch jobs."""
+    import operational_alarm as oa
+    for pl in _XSS:
+        for n in (1, 0):                      # populated branch AND the empty-map branch
+            rep = _hostile_report(pl, n_zones=n)
+            found = _dom_findings(
+                oa._exposure_card(rep, other=pl, as_of="2026-08-14", other_exp=rep))
+            assert not found, f"payload {pl[:24]!r} (n_zones={n}) reached the DOM: {found[:2]}"
+
+
+def test_exposure_card_injection_audit_can_actually_fail() -> None:
+    """NEGATIVE CONTROL — disable the escaper and the audit above MUST light up."""
+    import operational_alarm as oa
+    orig = oa._esc
+    try:
+        oa._esc = lambda v: "" if v is None else str(v)
+        found = _dom_findings(oa._exposure_card(_hostile_report(_XSS[0]), other=_XSS[0],
+                                                as_of="2026-08-14"))
+    finally:
+        oa._esc = orig
+    assert found, "the DOM audit cannot detect an unescaped payload — the test above is vacuous"
+
+
+def test_every_exported_feature_carries_the_maps_standing() -> None:
+    """§84 promised the shapes render "wearing that label, in every format". The KML carried the
+    verdict only in the DOCUMENT description — a sidebar node nobody clicks. What a user clicks
+    is a polygon, and on Vaishno Devi's BELOW-CHANCE watch map that popup read as an
+    authoritative ranked hazard card with no caveat at all. A .kml leaves the page; the label
+    has to leave with it."""
+    import xml.etree.ElementTree as ET
+    ns = "{http://www.opengis.net/kml/2.2}"
+    checked = 0
+    for kml in sorted(PROJECT_ROOT.glob("data/alerts*/mosaic_asc/exposure_*.kml")):
+        pms = list(ET.parse(kml).getroot().iter(ns + "Placemark"))
+        if not pms:
+            continue
+        for pm in pms:
+            desc = pm.findtext(ns + "description") or ""
+            assert ("MAP STANDING" in desc or "better than chance" in desc), (
+                f"{kml.parent.parent.name}/{kml.name}: a placemark carries no map standing")
+            assert "NOT a warning system" in desc, (
+                f"{kml.parent.parent.name}/{kml.name}: a placemark carries no scope caveat")
+        checked += 1
+    if not checked:
+        print("      [export] no KML layers on disk — skipped")
+
+
+def test_a_skilless_map_does_not_tell_you_to_read_it_first() -> None:
+    """The top-5 folder said "(read these first)" — a directive — on a map that scores below
+    chance. The label is now derived from the verdict."""
+    import exposure_footprint as ef
+    below = {"state": "scored", "auc": 0.326, "verdict": "BELOW chance"}
+    good = {"state": "scored", "auc": 0.676, "verdict": "beats chance"}
+    assert "BELOW chance" in ef.feature_footer({"verdict": below})
+    assert "NOT a warning system" in ef.feature_footer({"verdict": below})
+    assert "better than chance" in ef.feature_footer({"verdict": good})
+    for state, want in (("not_measured", "NOT MEASURED"), ("never_scored", "UNVALIDATED")):
+        assert want in ef.feature_footer({"verdict": {"state": state}})
+
+
+def test_internal_tokens_do_not_leak_into_popups() -> None:
+    """`live today: not_applicable` was shipping a raw internal token to a user-facing popup."""
+    import exposure_footprint as ef
+    assert ef._live_text(True).startswith("yes")
+    assert ef._live_text(False).startswith("no")
+    out = ef._live_text("not_applicable")
+    assert "not_applicable" not in out and "not applicable" in out, out
+
+
+def test_site_notes_never_claim_another_sites_soil_provenance() -> None:
+    """The dashboard's per-site caveat was `if ramban: … else: <Vaishno Devi's text>`, so a THIRD
+    site would have published VD's provenance claim — "sits within this site's published
+    literature ranges (§37)" — while silently running Ramban's soil calibration. A fabricated
+    validation claim is the worst thing a safety-adjacent page can carry."""
+    import operational_alarm as oa
+    src = (PROJECT_ROOT / "workflows" / "operational_alarm.py").read_text(encoding="utf-8")
+    assert "_SITE_NOTES = {" in src, "the per-site note table is gone — check the fallback"
+    i = src.index("_SITE_NOTES = {")
+    block = src[i:i + 2600]
+    assert '"ramban"' in block and '"vaishnodevi"' in block, block[:200]
+    # A site not in the table must get a DERIVED note, and it must not assert a local soil pass.
+    tail = block[block.index("else:"):]
+    assert "NO SITE SOIL PASS" in tail, (
+        "a site without its own soil block must be told it is running another site's soils")
+    assert "§37" not in tail and "literature ranges" not in tail.split("if _has_soil")[0][:1], (
+        "the fallback still carries another site's provenance citation")
+
+
+# ------------------------------------------------------------------------------
 # E6 — both surfaces are additive
 # ------------------------------------------------------------------------------
 _TINY_PNG = bytes.fromhex(

@@ -4407,6 +4407,75 @@ clean, parked on a master merge commit) is safe to remove at the user's discreti
 
 ---
 
+## 86. Adversarial audit — 3 security defects, 3 honesty defects, and the one that mattered most was in the EXPORT  `[MEASURED]`
+
+*2026-08-14 · adversarial probes against `control_panel.py`, `operational_alarm.py`,
+`build_3d_dashboard.py`, `exposure_footprint.py`; fixes + 9 new guards in
+`tests/test_control_panel.py` (+3) and `tests/test_exposure_footprint.py` (+6).
+Battery **229 → 238 across 16 suites**; freeze intact. Forensics:
+`error_history_log.md` 2026-08-14 (adversarial round).*
+
+### A — What held up (probed, not assumed)
+
+| probe | result |
+|---|---|
+| Path traversal on `/file/` — 13 vectors (`../`, URL-encoded, backslash, absolute, nested) | **all 403** |
+| NTFS-junction escape via `data/raw_zips` → `C:\InSAR_data` | **403** (resolves outside `data/`) |
+| Command injection via `action` / `aoi` | **rejected** — both whitelisted, argv is a list, no shell |
+| Secrets / host paths / usernames in publishable artifacts | **clean across 18 artifacts** |
+
+### B — Security defects found and fixed
+
+1. **CSRF on `POST /run` (confirmed exploitable).** A form POST is a "simple request", so CORS
+   never applies: a page the user merely *visits* could start Docker jobs on their machine. The
+   probe got `{"ok": true, "msg": "started"}` with `Origin: https://evil.example.com`. **Fixed:**
+   cross-origin POSTs refused; same-origin and origin-less (curl) still work.
+2. **No `Host` validation → DNS rebinding.** Binding to 127.0.0.1 stops remote packets, not a
+   browser that resolves an attacker domain to loopback; any `Host` returned 200, which would let
+   an attacker page *read* `/file/` (all of `data/`). **Fixed:** loopback-only `Host` allowlist.
+3. **Stored XSS in the affected-area card — ours, introduced in §84.** `priority`, `m_star`,
+   `detection_confidence` and the zone counts were interpolated **without `_esc`**. The flood card
+   has had an injection guard since §72; the exposure card never got one and drifted. It matters
+   because the panel serves these pages from the **same origin as its `/run` API**. **Fixed** +
+   an R8-style guard with a negative control. Also escaped the 3-D page's config-authored site
+   label and its Plotly hover text (Plotly renders hover labels as HTML).
+4. Added `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`.
+
+### C — ★★ The finding that mattered most: the honesty did not survive export
+
+§84 promised the shapes "render wearing that label, **in every format**". They did — in the KML
+**Document** description, a sidebar node almost nobody clicks. What a user clicks is a **polygon**.
+On Vaishno Devi's watch map — which scores **below chance** — that popup read:
+
+> `vulnerability rank 1 · triage rank 1 of 33 · priority 0.576 · HIGH`
+> `fails at wetness m*=0.261 · measured creep -44.1 mm/yr · detection confidence 0.78`
+
+…with **no verdict and no caveat anywhere in it**. A `.kml` leaves the page; nothing surrounds it
+in Google Earth. That is the §79 defect (a confident claim beside a below-chance number) rebuilt
+in the export format — and the export is precisely where the dashboard's guard rails are absent.
+
+**Fixed:** every placemark now carries the map standing + "Decision support, NOT a warning
+system". **609 placemarks audited across 5 layers — 100% carry it.** The top-5 folder label is
+derived too: `(read these first)` only on a map that beats chance, otherwise `(ordering only —
+this map has no measured skill here)`. The raw internal token `live today: not_applicable` was
+also leaking into popups; it now reads as a sentence.
+
+### D — The latent one: a fabricated provenance claim, one AOI away from shipping
+
+The dashboard's per-site caveat was `if ramban: … else: <Vaishno Devi's text>`, and VD's text
+asserts *"soil strength sits within this site's published literature ranges (§37)"*. **Tosh would
+have published that claim while silently running Ramban's soil calibration** — a fabricated
+validation statement on a safety-adjacent page. Latent only because Tosh cannot render a dashboard
+yet. **Fixed:** a per-site note table plus a *derived* fallback that says the opposite —
+`⚠ NO SITE SOIL PASS … treat every FS-derived number here as provisional (§42)`.
+
+**Meta-observation for the checklist:** two of the six defects were introduced by *this project's
+own recent work* (§84's card, §84's KML), and both were in the exact places the codebase already
+had a written rule and an enforcing test **for the older feature next to it**. A rule with a test
+on feature A does not protect feature B.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

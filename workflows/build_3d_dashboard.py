@@ -48,6 +48,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from html import escape as _html_escape
 from pyproj import Transformer
 from rasterio.warp import Resampling, reproject
 
@@ -68,6 +69,10 @@ LOG_DIR = PROJECT_ROOT / "logs"
 # Footer wording follows the config-gated LLOF source (§60 4c).
 LLOF_NOTE = ("LLOF heuristic" if _CFG.llof_routing == "twi"
              else "LLOF via real D8 routing")
+
+# The site label is config-authored text that lands in HTML (<title>, the info box) and in
+# Plotly hover labels, which Plotly renders as HTML. Escape once, use the escaped form.
+SITE_HTML = _html_escape(SITE)
 
 SCENARIOS = ["dry", "monsoon", "extreme"]
 VEL_CREEP_THR = -15.0
@@ -199,12 +204,14 @@ def exposure_traces(stack: str, footprint: str, transform, crs, dem, h: int, w: 
         p = f["properties"]
         if p.get("kind") == "hazard_zone" and p.get("stack") == stack:
             reach = p.get("downstream_reach_m") or {}
-            hover = (f"<b>#{p.get('triage_rank')} · {p.get('severity')}</b><br>"
-                     f"{p['lat']:.4f}°N, {p['lon']:.4f}°E<br>"
-                     f"triage priority {p.get('triage_priority')} · fails at wetness "
-                     f"m*={p.get('m_star')}<br>"
-                     f"detection confidence {p.get('detection_confidence')} · "
-                     f"{p.get('n_looks')} look(s)<br>"
+            _e = _html_escape
+            hover = (f"<b>#{_e(str(p.get('triage_rank')))} · "
+                     f"{_e(str(p.get('severity')))}</b><br>"
+                     f"{float(p['lat']):.4f}°N, {float(p['lon']):.4f}°E<br>"
+                     f"triage priority {_e(str(p.get('triage_priority')))} · fails at wetness "
+                     f"m*={_e(str(p.get('m_star')))}<br>"
+                     f"detection confidence {_e(str(p.get('detection_confidence')))} · "
+                     f"{_e(str(p.get('n_looks')))} look(s)<br>"
                      + (f"debris could reach ~{max(reach.values())} m below" if reach else ""))
             for seg in ring_points(f):
                 n_zones += 1
@@ -212,9 +219,11 @@ def exposure_traces(stack: str, footprint: str, transform, crs, dem, h: int, w: 
                     zone_x.append(c); zone_y.append(r); zone_z.append(z + 40); zone_t.append(hover)
                 zone_x.append(None); zone_y.append(None); zone_z.append(None); zone_t.append("")
         elif p.get("kind") == "downstream_path" and p.get("of_zone_stack") == stack:
-            hover = (f"<b>downstream of zone #{p.get('of_zone_rank')}</b><br>"
-                     f"{p.get('reach_band')} (energy line ≥ {p.get('reach_angle_min_deg')}°)"
-                     f"<br>{p.get('note', '')}")
+            _e = _html_escape
+            hover = (f"<b>downstream of zone #{_e(str(p.get('of_zone_rank')))}</b><br>"
+                     f"{_e(str(p.get('reach_band')))} (energy line ≥ "
+                     f"{_e(str(p.get('reach_angle_min_deg')))}°)"
+                     f"<br>{_e(str(p.get('note', '')))}")
             for seg in ring_points(f):
                 n_paths += 1
                 for c, r, z in seg:
@@ -368,7 +377,8 @@ def main() -> int:
     layout = {
         # Title on its own row above the control row (the affected-area toggle added a second
         # menu, and at a narrow window all three were landing on top of each other).
-        "title": {"text": f"{SITE} — 3-D Hazard Explorer ({stack})", "x": 0.5, "y": 0.985},
+        "title": {"text": f"{SITE_HTML} — 3-D Hazard Explorer ({_html_escape(stack)})",
+                  "x": 0.5, "y": 0.985},
         "scene": {
             "xaxis": {"title": "pixel (E→)", "showspikes": False},
             "yaxis": {"title": "pixel (N→)", "showspikes": False},
@@ -436,7 +446,7 @@ def main() -> int:
 
     config = {"responsive": True, "displaylogo": False}
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>{SITE} — 3-D Hazard Explorer</title>
+<title>{SITE_HTML} — 3-D Hazard Explorer</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <style>
  html,body{{margin:0;height:100%;background:#0d1b2a;font-family:Segoe UI,Arial,sans-serif}}
@@ -447,7 +457,7 @@ def main() -> int:
 </style></head><body>
 <div id="plot"></div>
 <div id="info">
- <b>🏔️ {SITE} — 3-D Hazard Explorer</b><br>
+ <b>🏔️ {SITE_HTML} — 3-D Hazard Explorer</b><br>
  Drag to orbit · scroll to zoom · {' · '.join(hints)}.{scenario_hint}{empty_note}<br>
  <span style="color:#9fb3c8">Stack {stack} · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}.
  Measured velocity covers {cov_pct:.0f}% of this look's grid (unmeasured ≠ safe); soil params

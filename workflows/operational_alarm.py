@@ -42,6 +42,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+import yaml  # noqa: E402 — to tell "this site did its own soil pass" from "it inherited one"
 
 from config import load_config  # noqa: E402
 from rainfall_id_threshold import THRESHOLDS, SLUG, antecedent_index, load_daily  # noqa: E402
@@ -215,17 +216,19 @@ def _exposure_card(exp: dict, other: str | None = None, as_of: str = "",
     elif "state" in a:
         live = f"Live state not applicable — {_esc(a.get('reason', a['state']))}."
     else:
-        live = (f"As of <b>{_esc(a.get('as_of'))}</b>: <b>{a.get('n_active')} of "
-                f"{a.get('n_total')}</b> zones live (regional gate {_esc(a.get('regional_level'))}).")
+        live = (f"As of <b>{_esc(a.get('as_of'))}</b>: <b>{_esc(a.get('n_active'))} of "
+                f"{_esc(a.get('n_total'))}</b> zones live (regional gate "
+                f"{_esc(a.get('regional_level'))}).")
     if n_zones:
         top = exp.get("top5_by_triage_priority", [])
         items = "\n".join(
-            f"<li>{_gmaps(z['lat'], z['lon'], 4)} — priority <b>{z['priority']}</b> "
-            f"<span style='color:#888'>(fails at wetness m*{z['m_star']} · confidence "
-            f"P{z['detection_confidence']}{' · 2-look' if z.get('n_looks', 1) >= 2 else ''})"
+            f"<li>{_gmaps(z['lat'], z['lon'], 4)} — priority <b>{_esc(z['priority'])}</b> "
+            f"<span style='color:#888'>(fails at wetness m*{_esc(z['m_star'])} · confidence "
+            f"P{_esc(z['detection_confidence'])}"
+            f"{' · 2-look' if z.get('n_looks', 1) >= 2 else ''})"
             f"</span></li>" for z in top)
-        body = (f"<div class='big'>{n_zones} zone(s) mapped as shapes</div>"
-                f"<div style='font-size:13px;color:#444'>{n_shapes} outline(s) — one per radar "
+        body = (f"<div class='big'>{_esc(n_zones)} zone(s) mapped as shapes</div>"
+                f"<div style='font-size:13px;color:#444'>{_esc(n_shapes)} outline(s) — one per radar "
                 f"look that sees the zone · {live}</div>"
                 f"<div style='margin-top:8px;font-size:12px'><b>Top {len(top)} by triage "
                 f"priority — click a coordinate for the exact spot:</b>"
@@ -1070,18 +1073,35 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
              "DORMANT": "Recent rainfall is below the regional landslide-triggering level — the "
                         "slopes still creep, but there is no active rainfall trigger today."}[lvl]
     # Site-specific honest caveats for the footer/guide (never wear another site's notes).
-    if SLUG == "ramban":
-        site_notes = ("20 Apr 2025 is the verified deadly cloudburst; 27 Apr / 8 May reach only WATCH "
-                      "on reanalysis rain (their cells are sub-grid). Velocity coverage ~14% of AOI "
-                      "(unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a matric-suction "
-                      "dry/wet split (§20, lab-unconfirmed).")
+    # Per-site caveats. Sites that have DONE their soil pass get their own recorded note; any
+    # other site gets one DERIVED from its config. The old code was `if ramban: … else: <Vaishno
+    # Devi's text>`, so a third site would have published VD's provenance claim — "sits within
+    # this site's published literature ranges (§37)" — while silently running Ramban's soil
+    # calibration. A fabricated validation claim is the worst thing this page could carry, and
+    # it was one AOI away from shipping (§6 #6: a constant that varies with the input).
+    _SITE_NOTES = {
+        "ramban": ("20 Apr 2025 is the verified deadly cloudburst; 27 Apr / 8 May reach only "
+                   "WATCH on reanalysis rain (their cells are sub-grid). Velocity coverage is "
+                   "partial (unmeasured ≠ safe); soil φ=36° site-calibrated, cohesion a "
+                   "matric-suction dry/wet split (§20, lab-unconfirmed)."),
+        "vaishnodevi": ("Soil strength (φ, cohesion) sits within this site's published "
+                        "literature ranges (project ledger §37) but is not yet confirmed by "
+                        "on-site lab testing; radar velocity covers only part of the AOI (an "
+                        "unmeasured slope is NOT a safe slope)."),
+    }
+    if SLUG in _SITE_NOTES:
+        site_notes = _SITE_NOTES[SLUG]
     else:
-        # Vaishno Devi (the only non-ramban site today): φ/c corroborated by site literature
-        # (Kumar & Anbalagan 2013 + GSI overburden ranges, ledger §37) but not lab-confirmed.
-        site_notes = ("Soil strength (φ, cohesion) sits within this site's published literature "
-                      "ranges (project ledger §37) but is not yet confirmed by on-site lab testing; "
-                      "radar velocity covers only part of the AOI (an unmeasured slope is NOT a "
-                      "safe slope).")
+        _has_soil = bool((yaml.safe_load(_CFG.source_path.read_text(encoding="utf-8")) or {})
+                         .get("soil"))
+        site_notes = (
+            ("This site records its own soil pass in its registry file (not lab-confirmed). "
+             if _has_soil else
+             "⚠ NO SITE SOIL PASS: this site has no `soil:` block, so the slope engine is "
+             "running ANOTHER site's calibration — treat every FS-derived number here as "
+             "provisional (project ledger §42 measured how far the footprint can swing). ")
+            + "Radar velocity covers only part of the AOI (an unmeasured slope is NOT a safe "
+              "slope); operating points are the defaults unless this site has been swept.")
     png_b64 = base64.b64encode(fig_path.read_bytes()).decode("ascii")
 
     ev_rows = "\n".join(

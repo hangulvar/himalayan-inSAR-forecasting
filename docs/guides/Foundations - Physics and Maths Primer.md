@@ -2146,6 +2146,18 @@ artifact, copy the rounding as well as the formula**, because a display-precisio
 can be a sort key downstream. And a guard that has only ever seen easy input has not been tested
 yet — find the case that makes it work before you trust it. (§84.)
 
+**Q: How do you know your product isn't quietly overclaiming?**
+A: We audit it adversarially, and the last audit found exactly that. Our dashboards are careful to
+say when a map has no measured skill — but the affected-area layer can be **downloaded** as a
+Google Earth file, and once it leaves the page the dashboard's warnings do not follow it. Opening
+the export of a map that scores *below chance* and clicking its top-ranked polygon gave a
+confident ranked readout — rank, priority, severity HIGH — with no verdict anywhere in it, under a
+folder captioned "read these first". The caveat existed, in a document header nobody clicks. The
+fix is the general principle: **an artifact that travels must carry its caveats per feature, not
+per file**, and any directive wording ("read these first") must be *derived* from the score rather
+than typed. It is the same discipline as computing "beats chance" from the AUC instead of
+asserting it (§79), applied to the export format. (§86.)
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
@@ -2359,6 +2371,16 @@ core still beats chance (Milestone 28 / CF9); (c) it's
   swings the footprint 0–118 zones), and no local inventory to validate against. CV1's rule applies
   in full: the infrastructure transfers, the *scientific claims do not* — each site earns its own
   soils, its own inventory and its own operating points.
+
+- **★ Our honesty is only as portable as the file it is written on (§86 / M66):** the dashboards
+  state a map's standing prominently, but the GeoJSON/KML exports are read *outside* that page —
+  in Google Earth, days later, with no freshness pill and no disclaimer banner beside them. Every
+  exported feature now carries the map verdict and the "decision support, not a warning system"
+  line, and 609 placemarks are checked automatically for it. Treat this as a standing hazard of
+  the product rather than a solved problem: **anything we add that can be downloaded has to be
+  re-asked "what does this say when it is alone?"** The same applies to a site with no local soil
+  pass — its page now says so explicitly rather than inheriting a neighbouring site's provenance
+  claim.
 
 ---
 

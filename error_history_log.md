@@ -2062,3 +2062,91 @@ files they left behind, or by sweeping outward from them.*
   product ships in tiers/variants, ask which of them the refresh cycle actually rebuilds — "we
   wired it into the cycle" was true of one variant and false of the other, which is the same
   half-wired failure as §85 #1 one level down.
+
+---
+
+## 2026-08-14 — §86: adversarial audit (3 security defects, 3 honesty defects; 2 of the 6 were ours, from §84)
+
+*Probed rather than reviewed: real HTTP requests against the panel, real hostile values through
+the renderers, real inspection of the exported files. What held up is in `RESULTS_AND_KPIS.md`
+§86 A; what broke is below.*
+
+### 1. ★★ The verdict did not survive export — a below-chance map exported as an authoritative card
+
+* **Symptom:** open `exposure_watch.kml` (Vaishno Devi — a map that scores BELOW chance) in Google
+  Earth, click the top-ranked polygon, and the popup reads
+  `vulnerability rank 1 · triage rank 1 of 33 · priority 0.576 · HIGH … detection confidence 0.78`.
+  No verdict. No caveat. The folder above it says *"Top 5 by triage priority (read these first)"*.
+* **Root cause:** §84 put the map standing in the KML **Document** description and stopped there.
+  In Google Earth that is a sidebar node; the thing users click is a Placemark, and a Placemark
+  description is a closed world — there is no dashboard around it to supply context.
+* **Fix:** `feature_footer()` builds the standing + "Decision support, NOT a warning system" line
+  and it is appended to **every** placemark (zones, corridors, top-5 pins); the top-5 folder label
+  is derived from the verdict; `_live_text()` humanises the internal `not_applicable` token that
+  was leaking verbatim into popups. Guard: a test walks every KML on disk and fails if a single
+  placemark lacks it (609 audited).
+* **Lesson:** **an artifact that LEAVES the page must carry its own caveats, per feature.** "We
+  stamped the file" is not the same as "the reader will see it" — stamp the unit the user
+  actually clicks. Same family as the §85 addendum (a downloaded `.kml` has no freshness pill
+  beside it), one level deeper.
+
+### 2. ★★ Stored XSS in the affected-area card (ours, §84)
+
+* **Symptom:** hostile values in `priority` / `m_star` / `detection_confidence` / the zone counts
+  reached the DOM as live `<script>`, `<img onerror=…>` and `<svg onload=…>`.
+* **Root cause:** those fields were interpolated **without `_esc`**. The file carries an explicit
+  SECURITY note — *"every interpolation of a value that did not originate in this codebase goes
+  through `_esc()`"* — and the flood card has had an injection guard (R8) since §72. The exposure
+  card, added later, was never given one and drifted immediately.
+* **Why it is not cosmetic:** `control_panel` serves these pages from the **same origin** as its
+  `/run` API, so a script in a dashboard inherits the ability to launch Docker jobs and read
+  `data/`.
+* **Fix:** `_esc` on every interpolated value; an R8-style test over both card branches **with a
+  negative control** that fails when the escaper is disabled. Also escaped the 3-D page's
+  config-authored site label (it lands in `<title>` and the info box) and its Plotly hover text —
+  Plotly renders hover labels as HTML.
+* **Lesson:** **a rule with an enforcing test on feature A does not protect feature B.** When you
+  add a sibling to something that has a security guard, copy the GUARD, not just the pattern.
+
+### 3. CSRF: any visited web page could start a Docker job
+
+* **Symptom:** `POST /run` with `Origin: https://evil.example.com` returned
+  `{"ok": true, "msg": "started"}`.
+* **Root cause:** an HTML form POST is a "simple request" — no preflight, CORS never consulted —
+  and nothing checked `Origin`/`Referer`. Binding to 127.0.0.1 does not help: the browser is
+  already local.
+* **Fix:** cross-origin POSTs refused; absent Origin (curl, the panel's own fetch) still allowed.
+* **Lesson:** "it only listens on localhost" answers the *network* threat, not the *browser* one.
+
+### 4. No Host validation → DNS rebinding could read all of `data/`
+
+* **Symptom:** every forged `Host` (`evil.example.com`, `attacker.tld`) returned 200.
+* **Root cause/fix:** a loopback-only `Host` allowlist; a browser cannot forge `Host`, which is
+  what makes the check work. Also added `nosniff` / `X-Frame-Options` / `Referrer-Policy`.
+* **Lesson:** a local server that serves files is a read primitive for any page the user visits
+  unless it checks who it is being addressed as.
+
+### 5. A fabricated provenance claim, one AOI away from shipping (latent)
+
+* **Symptom:** found by asking "what does a THIRD site render?" — `site_notes` was
+  `if ramban: … else: <Vaishno Devi's text>`, and VD's text asserts *"soil strength sits within
+  this site's published literature ranges (§37)"*.
+* **Impact if shipped:** Tosh has **no** soil pass — it silently inherits Ramban's calibration —
+  and would have published a claim that its soils were locally corroborated. On a safety-adjacent
+  page that is the worst possible class of wrong: not a missing caveat, an invented one.
+* **Fix:** a per-site note table + a DERIVED fallback that states the opposite
+  (`⚠ NO SITE SOIL PASS … provisional (§42)`), pinned by a test.
+* **Lesson:** the §6 #6 sweep must include **two-branch conditionals**, not just literals. `else:`
+  is where a second site's text becomes every future site's text.
+
+### 6. My own test left shared state behind (found by the suite, in the same session)
+
+* **Symptom:** the new CSRF test made `test_dry_run_job_completes_and_streams_log` fail with
+  *"a job is already running"*.
+* **Root cause:** proving the same-origin POST still works actually **starts** a dry-run job, and
+  `_current_job` is module state shared across the file; tests run alphabetically, so mine ran
+  first and left the panel busy.
+* **Fix:** the test waits for its own job to finish. **Lesson:** a test that exercises a
+  state-changing endpoint owns the cleanup — asserting "it was accepted" and walking away leaves
+  the fixture dirty for everyone after it (§6 #10's rule, applied to in-process state rather than
+  to `data/`).

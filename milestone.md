@@ -2530,3 +2530,74 @@ sandstone. The status board now names that as the site's next step.
 **Bottom line:** the maps now show ground instead of dots, and say plainly how much they should be
 trusted; a third site is set up as far as it honestly can be without a human decision. Checks now
 **220**, all passing (§84).
+
+---
+
+## 🛡️ Milestone 66 — We attacked our own product, and the worst thing we found wasn't a hacker problem  *(2026-08-14)*
+
+**What we set out to do.** Stop being the author for an afternoon and be the adversary instead:
+try to break the tool, read things we shouldn't, and — just as important — catch the product
+*overclaiming*. Not by re-reading the code, but by actually poking it: real web requests at the
+control panel, deliberately nasty text pushed through every page it draws, and opening the files
+it exports the way a real user would.
+
+### The good news first — what held
+
+- **Nobody can read files outside the project's `data/` folder.** We tried thirteen different
+  tricks for escaping it (`../`, encoded slashes, backslashes, absolute paths, and a sneaky one
+  through a Windows folder shortcut that points at another drive). Every single one was refused.
+- **You can't smuggle commands through the buttons.** The panel only accepts the exact action
+  names and site names it knows, and it never hands text to a shell.
+- **Nothing personal leaks into the outputs.** We scanned all 18 shareable files for your Windows
+  username, folder paths, and anything credential-shaped. Clean.
+
+### The security holes we did find, and closed
+
+- **A web page you merely visited could have pressed our buttons.** Browsers let any site send a
+  plain form to `localhost` without asking permission first. We proved it: a request pretending to
+  come from `evil.example.com` successfully started a job. Now the panel checks where a request
+  came from and refuses strangers.
+- **A hostile site could have read the project folder** by tricking the browser into pointing its
+  own domain name at your machine. The panel now only answers to "localhost" and refuses any other
+  name — something a browser is not allowed to fake.
+- **A cross-site scripting hole in the card we added last week.** If odd text ever reached the
+  affected-area card, it would have run as code. This one stings: the file *literally has a note
+  at the top* saying every value must be sanitised, and the flood card next to it has had a test
+  enforcing that for weeks. The new card copied the pattern but not the test — and drifted
+  immediately.
+
+### The finding that actually mattered
+
+**Our honesty stopped at the edge of the web page.**
+
+We're careful to say when a map isn't trustworthy. Vaishno Devi's wider map scores *worse than
+random guessing*, and the dashboard says so loudly. But that map can be **downloaded** as a Google
+Earth file — and once it leaves the page, the dashboard's warnings don't come with it.
+
+We opened it the way a real user would and clicked the top-ranked patch of ground. It said:
+
+> *"vulnerability rank 1 · triage rank 1 of 33 · priority 0.576 · HIGH"*
+
+Confident. Ranked. Authoritative. **Nothing anywhere in it mentions that this map is worse than
+guessing** — and the folder above it was captioned *"read these first"*.
+
+The caveat *was* in the file, in a header panel that almost nobody clicks. That's not good enough.
+So now every single shape carries its own verdict and the reminder that this is decision support,
+not a warning system — **609 of them, checked automatically**. And that "read these first" caption
+is now earned rather than assumed: a map with no proven skill gets *"ordering only — this map has
+no measured skill here"*.
+
+### And one that was one step away from being much worse
+
+The dashboard prints a short honesty note for each site. It was written as "if this is Ramban, say
+this; **otherwise**, say that" — where "that" was Vaishno Devi's note, which states its soil
+strengths were checked against published studies for *that* site.
+
+Tosh has had no soil study at all; it silently borrows Ramban's numbers. So the moment Tosh got a
+map, its page would have claimed a check that never happened. Not a missing caveat — an **invented
+one**, on a page about landslide risk. Found only by asking "what would a *third* site print?",
+which is now our standard way of hunting this.
+
+**Bottom line:** the break-in attempts mostly bounced, three real security holes are closed, and
+the deeper lesson is about honesty rather than hacking — *a file that travels has to carry its own
+warnings, because nothing travels with it*. Checks now **238**, all passing (§86).

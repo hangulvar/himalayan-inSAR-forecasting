@@ -516,17 +516,56 @@ MIME = {".html": "text/html; charset=utf-8", ".png": "image/png",
         ".md": "text/plain; charset=utf-8", ".txt": "text/plain; charset=utf-8"}
 
 
+# Hostnames this panel will answer to. Binding to 127.0.0.1 stops REMOTE packets, but it does
+# NOT stop a web page the user is browsing from reaching this origin: the browser resolves an
+# attacker domain to 127.0.0.1 (DNS rebinding) and the request arrives locally, with the
+# attacker's Host. Checking Host is the standard defence — a browser cannot forge it.
+ALLOWED_HOSTS = {"127.0.0.1", "localhost", "::1", "[::1]"}
+
+
+def _host_ok(host_header: str | None) -> bool:
+    """True when the Host names this machine's loopback (port ignored)."""
+    if not host_header:
+        return False          # HTTP/1.1 requires Host; absence is not a browser we trust
+    host = host_header.rsplit(":", 1)[0] if not host_header.startswith("[") else \
+        host_header.split("]")[0] + "]"
+    return host.strip().lower() in ALLOWED_HOSTS
+
+
+def _origin_ok(origin: str | None, port: int) -> bool:
+    """True when a state-changing request is same-origin (or origin-less, e.g. curl).
+
+    Browsers ALWAYS attach Origin to cross-site POSTs, so an absent Origin means the request
+    did not come from a page. A present Origin must be our own loopback.
+    """
+    if not origin or origin == "null":
+        return True
+    return origin.rstrip("/") in {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
+
+
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MonsoonControlPanel/1.0"
+    server_version = "MonsoonControlPanel"
 
     def log_message(self, fmt, *args):  # quiet console; job logs go to logs/
         pass
+
+    def _guard(self) -> bool:
+        """Refuse anything that is not a loopback-addressed request. Returns True if handled."""
+        if not _host_ok(self.headers.get("Host")):
+            self._html("<h1>403 — this panel only answers to localhost</h1>", 403)
+            return True
+        return False
 
     def _send(self, code: int, body: bytes, ctype: str) -> None:
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        # This server hands out locally-generated HTML from the SAME origin as its control
+        # API, so a stray script in a dashboard would inherit the API. Cheap hardening:
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(body)
 
@@ -537,6 +576,8 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, json.dumps(obj).encode("utf-8"), "application/json")
 
     def do_GET(self):  # noqa: N802 — http.server API
+        if self._guard():
+            return
         url = urlparse(self.path)
         if url.path == "/":
             return self._html(control_page())
@@ -559,6 +600,14 @@ class Handler(BaseHTTPRequestHandler):
         return self._html("<h1>404</h1>", 404)
 
     def do_POST(self):  # noqa: N802
+        if self._guard():
+            return
+        # CSRF: /run starts Docker jobs. A form POST is a "simple request", so any page the
+        # user happens to be visiting could fire one at this port without CORS ever applying.
+        # Browsers always set Origin on cross-site POSTs, so this check costs nothing and
+        # closes it.
+        if not _origin_ok(self.headers.get("Origin"), self.server.server_address[1]):
+            return self._json({"ok": False, "msg": "cross-origin request refused"}, 403)
         url = urlparse(self.path)
         if url.path != "/run":
             return self._json({"ok": False, "msg": "not found"}, 404)
