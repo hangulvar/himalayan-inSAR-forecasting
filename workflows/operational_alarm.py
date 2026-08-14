@@ -175,7 +175,31 @@ def load_exposure(scenario: str):
         return None
 
 
-def _exposure_card(exp: dict, other: str | None = None) -> str:
+def _layer_age(exp: dict, as_of: str) -> str:
+    """How old the layer a reader is about to DOWNLOAD actually is.
+
+    The affected-area files are the one part of this page that leaves it — a .kml opened in
+    Google Earth days later carries no dashboard around it. Until 2026-08-14 only the
+    operational layer was refreshed by the cycle, so the watch layer silently aged while the
+    card linked it. Stamping the age makes a stale file self-evident even offline; the label
+    is DERIVED from the dates, never asserted.
+    """
+    gen = str(exp.get("generated_utc") or "")[:10]
+    if not gen:
+        return "<span style='color:#a33'>generation date unknown</span>"
+    try:
+        days = (date.fromisoformat(as_of) - date.fromisoformat(gen)).days
+    except ValueError:
+        return f"generated {_esc(gen)}"
+    if days <= 0:
+        return f"generated {_esc(gen)} — current with this page"
+    return (f"generated {_esc(gen)} — <b style='color:#a33'>{days} day(s) older than this "
+            f"page</b>; re-run the refresh cycle" if days > 1 else
+            f"generated {_esc(gen)} — 1 day behind this page")
+
+
+def _exposure_card(exp: dict, other: str | None = None, as_of: str = "",
+                   other_exp: dict | None = None) -> str:
     """The 'affected area' card: what GROUND each hazard zone covers, where debris would go,
     and the ranked coordinates — with the layer's own standing quoted from the product.
 
@@ -207,8 +231,12 @@ def _exposure_card(exp: dict, other: str | None = None) -> str:
                 f"priority — click a coordinate for the exact spot:</b>"
                 f"<ol style='margin:4px 0 0 18px;padding:0'>{items}</ol></div>")
     else:
+        # When the ALERT map is empty, THIS link is the only affected-area file the reader can
+        # download — so it carries its own age, not the age of the layer this card is about.
+        other_age = (f" <span style='color:#666'>({_layer_age(other_exp, as_of)})</span>"
+                     if other_exp else "")
         alt = (f" The <b>{_esc(other)}</b> layer does exist — open "
-               f"<code>exposure_{_esc(other)}.kml</code> for that wider footprint."
+               f"<code>exposure_{_esc(other)}.kml</code> for that wider footprint.{other_age}"
                if other else "")
         body = (f"<div class='big'>No shapes</div><div style='font-size:13px;color:#444'>"
                 f"The <b>{_esc(fp)}</b> map currently flags no ground at this site, so there is "
@@ -226,7 +254,8 @@ def _exposure_card(exp: dict, other: str | None = None) -> str:
       path debris could take below it. Open it on a real map: download
       <a href="exposure_{_esc(fp)}.kml">the Google Earth layer (.kml)</a> or
       <a href="exposure_{_esc(fp)}.geojson">the GeoJSON</a>, or switch it on in the 3-D
-      explorer with the “Affected area” button.</div>
+      explorer with the “Affected area” button.
+      <br><span style="color:#666">Layer {_layer_age(exp, as_of)}.</span></div>
     {body}
     <p style="font-size:12px;color:{head_color};margin:8px 0 2px">{_esc(exp.get('headline', ''))}</p>
     <p style="font-size:12px;color:#888;margin:4px 0 0">{_esc(exp.get('scope_caveat', ''))}</p>
@@ -580,11 +609,14 @@ def main() -> int:
     # when the layer has not been generated. `exposure_other` is only a POINTER to the wider
     # WATCH layer for the case where the ALERT map is empty; it is never scored or ranked here.
     exposure = load_exposure(alert_tier["scenario"])
-    exposure_other = (watch_tier["scenario"] if watch_tier
-                      and load_exposure(watch_tier["scenario"]) else None)
+    # The wider layer's REPORT (not just its name): when the ALERT map is empty its .kml is the
+    # only affected-area file the reader can download, so the card must stamp ITS age.
+    exposure_other_report = load_exposure(watch_tier["scenario"]) if watch_tier else None
+    exposure_other = watch_tier["scenario"] if exposure_other_report else None
     write_dashboard(ALERTS_DIR / "mosaic_asc" / f"operational_alarm_dashboard{sfx}.html",
                     report, dates, E, levels, as_of_i, fig_path, alert_tier, watch_tier, per_zone,
-                    hist, imerg, radar, flood, exposure, exposure_other)
+                    hist, imerg, radar, flood, exposure, exposure_other,
+                    exposure_other_report)
     if radar:
         newer = (f"; NEWER at ASF through {radar['newer_at_asf']} ({radar['new_scenes']} scenes)"
                  if radar.get("new_scenes") else "")
@@ -1018,7 +1050,7 @@ def _hist_panel(hist, lvl, as_of) -> str:
 def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_path: Path,
                     alert_tier: dict, watch_tier=None, per_zone=None, hist=None,
                     imerg=None, radar=None, flood=None, exposure=None,
-                    exposure_other=None) -> None:
+                    exposure_other=None, exposure_other_report=None) -> None:
     """Self-contained operational warning dashboard: the WHERE (two-tier hazard footprint —
     ALERT + WATCH, §23) x WHEN (temporal alarm) x WHICH ZONES (per-zone ranking, §19) in one
     view, with a 'current state' banner as-of a chosen day."""
@@ -1233,7 +1265,7 @@ def write_dashboard(path: Path, r: dict, dates, E, levels, as_of_i: int, fig_pat
     <table><tr><th>event</th><th>date</th><th>E</th><th>gate state</th></tr>
 {ev_rows}</table>
   </div>
-{_exposure_card(exposure, exposure_other) if exposure else ""}
+{_exposure_card(exposure, exposure_other, as_of, exposure_other_report) if exposure else ""}
 {_imerg_card(imerg, as_of) if imerg else ""}
 {_flood_card(flood) if flood else ""}
 </div>

@@ -28,13 +28,18 @@
 - **★ Sweeping outward found two more of the same family:** the 3-D page printed a hardcoded
   **Ramban** coverage figure on every site (VD's real number is materially different), and the
   status board blanked the diagnostic on exactly the rows that were red. Both fixed and pinned.
+- **★ The newest product was only half-kept-current, and that is now fixed (§85 addendum).** The
+  cycle refreshed only the ALERT footprint, so the WATCH layer sat 3 days stale — and at Vaishno
+  Devi, whose ALERT map is empty, that stale file is the only affected-area layer the dashboard
+  can link. The cycle now refreshes **every published footprint** (each in its own `try`), and the
+  card **stamps the age of the file it links**, derived from the dates.
 - **★★ The unattended Windows task is DISABLED (reversible, not deleted).** `StartWhenAvailable`
   turned "every 2 days at 08:00" into a **logon** job that then polled for Docker for 10 minutes.
   `monsoon_cycle.ps1` still runs on demand; its header carries the re-enable/delete commands. The
   control panel is now the only trigger.
 - **★ All three sites are current again** — Ramban and VD both refreshed; Tosh has rainfall but
   no map, and its board row now says exactly that instead of going blank.
-- **Battery 220 → 226 green across 16 suites.** The flood freeze went red mid-session, was
+- **Battery 220 → 229 green across 16 suites.** The flood freeze went red mid-session, was
   root-caused to the sanctioned current-season advance (verified: contiguous rows, unchanged
   columns and zone counts), and re-frozen at the same 140 artifacts.
 - **⚠ Tosh is still blocked on the three things that SHOULD block it** — soil pass (M2),
@@ -62,17 +67,18 @@ with Docker down; present VD's shapes as a warning product; give Tosh another si
 
 ## Uncommitted delta
 
-Code: `control_panel.py` (per-site isolation + `Step.group` + honest UI text), `live_alarm.py`
-(`has_where_map` skip), `build_3d_dashboard.py` (`resolve_stack`, derived coverage, empty-state
-note, conditional hints), `aoi_status.py` (undone-row details + three-way live row),
-`monsoon_cycle.ps1` (header: no longer scheduled), `tests/test_control_panel.py` (+4),
-`tests/test_exposure_footprint.py` (+2).
+**Most of session 35 is COMMITTED at `68b413d`** — the per-site isolation, the 3-D stack/coverage
+fixes, the status-board diagnostics, the disabled task, CLAUDE.md §6 items 14–16, and the §85
+ledger/error-log entries.
 
-Docs: `RESULTS_AND_KPIS.md` **§85**; `error_history_log.md` (2026-08-14, 5 entries);
-`CLAUDE.md` **§6 items 14–16 + sharpened 6 and 8** (git-ignored); `docs/INDEX.md`;
-`session_journey.md` (git-ignored); this LIVE block.
+Uncommitted (the staleness fix that followed): `workflows/live_alarm.py`
+(`published_footprints()` + a per-footprint refresh loop), `workflows/operational_alarm.py`
+(`_layer_age()` + the card stamping the layer it links), `tests/test_exposure_footprint.py` (+3,
+including a negative control), and the docs for it — `RESULTS_AND_KPIS.md` §85 addendum,
+`error_history_log.md` entry 6, `session_journey.md` (git-ignored), this LIVE block.
 
-Machine state (outside git): the Windows task **"InSAR Monsoon Watch Cycle" is Disabled**.
+Machine state (outside git, unchanged): the Windows task **"InSAR Monsoon Watch Cycle" is
+Disabled**.
 
 ---
 

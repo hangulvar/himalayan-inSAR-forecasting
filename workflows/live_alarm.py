@@ -157,6 +157,17 @@ def has_where_map() -> bool:
             / "mosaic_asc" / "alerts_operational.json").exists()
 
 
+def published_footprints() -> list[str]:
+    """The hazard footprints this site actually publishes, in tier order.
+
+    Read from disk rather than hardcoded: a site publishes a footprint when its union file
+    exists (`alerts_<footprint>.json`). Ramban and VD publish the two-tier ALERT + WATCH
+    product (§23); a site with neither publishes nothing and this returns [].
+    """
+    mosaic = (PROJECT_ROOT / "data" / f"alerts{load_config().data_suffix}" / "mosaic_asc")
+    return [fp for fp in ("operational", "watch") if (mosaic / f"alerts_{fp}.json").exists()]
+
+
 def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> None:
     as_of = last_complete_day(season_csv)
     if as_of is None:
@@ -195,11 +206,21 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> N
     # keep showing yesterday's active set beside today's alarm, which is the staleness trap the
     # freshness pill exists to prevent. NON-FATAL, like the two hooks either side: it writes
     # only its own exposure_* files, and the card is simply skipped if it never ran.
-    try:
-        run("exposure_footprint.py", "--as-of", as_of.isoformat())
-    except Exception as e:  # noqa: BLE001 — any failure here is a skipped extra, not an error
-        print(f"affected-area layer SKIPPED ({type(e).__name__}: {e}) — dashboard renders "
-              f"without/with the previous layer")
+    #
+    # EVERY PUBLISHED FOOTPRINT, not just the operational one. Refreshing only 'operational'
+    # left `exposure_watch.*` frozen at whenever it was last built by hand — and on Vaishno
+    # Devi, whose ALERT map is currently empty, the dashboard card sends the reader to exactly
+    # that file (`exposure_watch.kml`). So the one affected-area artifact a VD user can
+    # download was the one nothing kept current. Each footprint is refreshed INDEPENDENTLY:
+    # one failing must not skip the others (the fan-out rule — a degraded unit never stops a
+    # healthy one).
+    for _fp in published_footprints():
+        try:
+            run("exposure_footprint.py", "--footprint", _fp, "--as-of", as_of.isoformat())
+        except Exception as e:  # noqa: BLE001 — a skipped extra, not an error
+            print(f"affected-area layer ({_fp}) SKIPPED ({type(e).__name__}: {e}) — the other "
+                  f"footprints are still refreshed; the dashboard renders with the previous "
+                  f"layer for this one")
     # Radar watcher (radar_watch.py, plan Tier 0c §56) — same non-fatal contract: ASF being
     # unreachable must never break the alarm chain (the freshness pill shows last known state).
     try:

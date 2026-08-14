@@ -1940,7 +1940,7 @@ sentences about them were not.
 
 ---
 
-## 2026-08-14 — §85: the first real multi-site operations session (4 defects + 1 design regret)
+## 2026-08-14 — §85: the first real multi-site operations session (5 defects + 1 design regret)
 
 *Trigger: the user ran the control panel's "Refresh cycle (all sites)" and "Rebuild 3-D dashboard"
 for Vaishno Devi. Both failed. Everything below was found from the two `logs/control_panel_*.log`
@@ -2037,3 +2037,28 @@ files they left behind, or by sweeping outward from them.*
   ask what it does when the deadline is missed and when its dependencies are not up. This also
   re-confirms the standing preference recorded in 2026-07-16: automate the computation, never the
   app lifecycle — a helper the user triggers beats a daemon that guesses.
+
+### 6. Half the newest product was never kept current — on the site where it is the only product
+
+* **Symptom:** `exposure_operational.json` for both live sites carried today's timestamp;
+  `exposure_watch.json` for both carried **2026-08-11**. Nothing errored. Nothing looked wrong.
+* **Root cause:** `live_alarm` called `exposure_footprint.py` with no `--footprint`, so it always
+  rebuilt the default (**operational**) and only that. The watch layer had only ever been built by
+  hand, in the session that introduced it.
+* **Why it mattered more than it looked:** Vaishno Devi's ALERT map is currently empty, so the
+  dashboard card's "no shapes" branch points the reader at `exposure_watch.kml`. **The one
+  affected-area file a VD user could actually download was the one the cycle never touched** — and
+  a `.kml` opened in Google Earth two days later has no dashboard around it to hint at its age.
+* **Fix:** `published_footprints()` reads which footprints the site publishes (union file exists)
+  and the cycle refreshes each **inside its own `try`** — one footprint failing must not skip the
+  rest. The card gained `_layer_age()`, which derives "current with this page" / "N day(s) older
+  … re-run the refresh cycle" from the two dates, and stamps **the layer it links**, not just the
+  layer it is about.
+* **Negative control:** with the stamp disabled the new card test fails with *"the linked file's
+  staleness is invisible — this is the defect, back"*; a 3-day-old layer can never be labelled
+  "current".
+* **Lesson:** **an artifact that LEAVES the page needs its age written on it.** Everything else on
+  the dashboard is read next to a freshness pill; a downloaded file is read alone. And when a
+  product ships in tiers/variants, ask which of them the refresh cycle actually rebuilds — "we
+  wired it into the cycle" was true of one variant and false of the other, which is the same
+  half-wired failure as §85 #1 one level down.

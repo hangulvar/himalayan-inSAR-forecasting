@@ -447,6 +447,76 @@ def test_card_colours_the_headline_from_the_verdict() -> None:
     assert "#a33" in bad, bad[:400]
 
 
+def test_every_published_footprint_is_refreshed_not_just_the_operational_one() -> None:
+    """THE 2026-08-14 STALENESS HOLE. The cycle refreshed only `operational`, so
+    `exposure_watch.*` froze at whenever it was last built by hand — and on Vaishno Devi, whose
+    ALERT map is empty, the dashboard card sends the reader to exactly that file. The one
+    downloadable affected-area artifact at that site was the one nothing kept current.
+    """
+    import live_alarm as la
+
+    src = (PROJECT_ROOT / "workflows" / "live_alarm.py").read_text(encoding="utf-8")
+    i = src.index('run("exposure_footprint.py"')
+    call = src[i:i + 160]
+    assert '"--footprint"' in call, (
+        "the refresh must name a footprint — without it only the default (operational) is "
+        "ever rebuilt, which is exactly how the watch layer went stale")
+    loop = src.rfind("for _fp in published_footprints()", 0, i)
+    assert loop != -1 and src.count("try:", loop, i) == 1, (
+        "each footprint must be refreshed inside its OWN try — one failing footprint must not "
+        "skip the others (the fan-out rule)")
+
+    # published_footprints() reads from disk, in tier order, and never invents a footprint.
+    fps = la.published_footprints()
+    assert fps == [f for f in ("operational", "watch") if f in fps], f"tier order broken: {fps}"
+    mosaic = (PROJECT_ROOT / "data" / f"alerts{la.load_config().data_suffix}" / "mosaic_asc")
+    for fp in fps:
+        assert (mosaic / f"alerts_{fp}.json").exists(), fp
+    for fp in ("operational", "watch"):
+        if not (mosaic / f"alerts_{fp}.json").exists():
+            assert fp not in fps, f"{fp} reported as published with no union file"
+
+
+def test_layer_age_is_derived_and_flags_a_stale_download() -> None:
+    """A .kml opened in Google Earth days later carries no dashboard around it, so the card
+    stamps the file's age. The wording is DERIVED from the two dates — never asserted."""
+    import operational_alarm as oa
+
+    fresh = oa._layer_age({"generated_utc": "2026-08-14 19:14 UTC"}, "2026-08-14")
+    assert "current with this page" in fresh and "#a33" not in fresh, fresh
+
+    one = oa._layer_age({"generated_utc": "2026-08-13 10:00 UTC"}, "2026-08-14")
+    assert "1 day behind" in one, one
+
+    stale = oa._layer_age({"generated_utc": "2026-08-11 22:40 UTC"}, "2026-08-14")
+    assert "3 day(s) older than this page" in stale and "#a33" in stale, (
+        "a 3-day-old download must be visibly flagged, not quietly dated")
+    assert "refresh cycle" in stale, "say what to DO about it"
+
+    # A layer newer than the page is not a problem; unknown/garbage dates must not crash.
+    assert "current with this page" in oa._layer_age(
+        {"generated_utc": "2026-08-15 01:00 UTC"}, "2026-08-14")
+    assert "unknown" in oa._layer_age({}, "2026-08-14")
+    assert "not-a-date" in oa._layer_age({"generated_utc": "not-a-date"}, "2026-08-14")
+
+
+def test_card_stamps_the_age_of_the_layer_it_actually_links() -> None:
+    """When the ALERT map is empty the card points at the WIDER layer's .kml — so it must carry
+    THAT file's age, not the age of the layer the card is nominally about."""
+    import operational_alarm as oa
+
+    empty = _exposure_report(n_zones=0)
+    empty["generated_utc"] = "2026-08-14 19:16 UTC"
+    other = dict(_exposure_report(), footprint="watch",
+                 generated_utc="2026-08-11 22:40 UTC")     # the stale one
+    card = oa._exposure_card(empty, other="watch", as_of="2026-08-14", other_exp=other)
+    assert "exposure_watch.kml" in card
+    assert "3 day(s) older than this page" in card, (
+        "the linked file's staleness is invisible — this is the defect, back")
+    # and the card's own layer is stamped separately and correctly
+    assert card.count("current with this page") == 1, card[:200]
+
+
 def test_live_alarm_hook_is_non_fatal_and_runs_before_the_dashboard() -> None:
     """Same contract the flood/imerg hooks are held to (R9): a failure here must not take the
     validated daily arm down, and the layer must refresh BEFORE the page that shows it."""

@@ -4376,6 +4376,31 @@ polled for Docker for 10 minutes; its last run (2026-08-14 13:02) was killed mid
 is now the only trigger — which is also the standing user preference (automate the computation,
 never the app lifecycle).
 
+### Addendum (same day, found after the section above was written)
+
+**★ Defect 5 — the affected-area layer was only half-kept-current, on the site where it matters
+most.** `live_alarm` refreshed only the **operational** footprint, so `exposure_watch.*` sat
+frozen at whenever it was last built by hand — **2026-08-11, three days behind** the operational
+layer beside it. That is not cosmetic at Vaishno Devi: VD's ALERT map is empty, so its dashboard
+card sends the reader to `exposure_watch.kml`, which means **the only affected-area file a VD user
+could download was the one nothing kept current**, with no age shown on it. A `.kml` opened in
+Google Earth days later carries no dashboard around it.
+
+**Fix, two halves:** the cycle now refreshes **every footprint the site publishes** (read from
+disk — a footprint is published when its union file exists — with each refreshed inside its own
+`try`, so one failing footprint cannot skip the others: the fan-out rule from CLAUDE.md §6 #8
+applied to itself). And the card now **stamps the age of the file it links**, derived from the
+dates rather than asserted — including, in the empty-ALERT case, the age of the *other* layer it
+points at, which is the file actually being downloaded.
+
+**Verified:** all four layers (2 sites × 2 footprints) now regenerate in the cycle and carry
+today's date; each is self-consistent (GeoJSON hazard-zone features == `n_shapes`: 8/115/0/38)
+and its KML parses (37/437/0/135 placemarks); re-running a layer reproduces byte-identical
+content modulo the timestamp. The **full 7-step, 3-site refresh cycle now completes clean**
+(`all steps done`, no failed sites) — the exact job the user reported as failing.
+**Battery 226 → 229 across 16 suites**; freeze re-verified (4 protected files re-written with
+IDENTICAL content).
+
 **Housekeeping observed, not acted on:** `data/` measured **56 GB** (unchanged; `processed_tiffs`
 44 GB dominates), and a stale git worktree at `.claude/worktrees/hungry-einstein-b80c0f` (122 MB,
 clean, parked on a master merge commit) is safe to remove at the user's discretion.
