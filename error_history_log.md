@@ -1937,3 +1937,103 @@ sentences about them were not.
 * **Lesson:** **when a guard is added because a surface got a number wrong, grep for every OTHER
   surface that reads the same number.** §79 fixed the dashboard and stopped there; the same defect
   sat in the status page for three sessions. A rule fixed in one renderer is not a fixed rule.
+
+---
+
+## 2026-08-14 — §85: the first real multi-site operations session (4 defects + 1 design regret)
+
+*Trigger: the user ran the control panel's "Refresh cycle (all sites)" and "Rebuild 3-D dashboard"
+for Vaishno Devi. Both failed. Everything below was found from the two `logs/control_panel_*.log`
+files they left behind, or by sweeping outward from them.*
+
+### 1. ★★ One unready site cancelled every site queued behind it
+
+* **Symptom:** the refresh cycle stopped at `step 4/7 — tosh: alarm regen (insar)` with
+  `CalledProcessError ... operational_alarm.py ... exit status 1`. The user reported "the refresh
+  cycle failed". Steps 5-7 — **Vaishno Devi's rainfall fetch, its alarm regen, and the status
+  board** — never ran at all.
+* **Root cause, two layers:**
+  1. Tosh was onboarded three days earlier and has no WHERE map yet. `operational_alarm.py` is
+     *right* to refuse to render a dashboard without a footprint (`load_tier(required=True)`), so
+     it exits 1; `live_alarm.run()` uses `check=True`, so the site's chain dies.
+  2. `control_panel._run_job` then `return`ed on the first non-zero exit. Sites are iterated in
+     **alphabetical** order — ramban, tosh, vaishnodevi — so the one site that could not succeed
+     sat exactly between the two that could.
+* **Measured damage:** VD's season CSV last advanced 2026-08-12 while Ramban's advanced daily. By
+  the time the user looked, VD's rainfall was **8 days behind** and `aoi_status` had flipped its
+  live row to unchecked. The freshness rule (FRESH_DAYS=7) is what caught it — nothing else did.
+* **Fix (both layers):** `live_alarm.has_where_map()` distinguishes an **absent** footprint (site
+  not ready — print why, exit 0, keep the rainfall work) from an **empty** one (zero zones, a real
+  publishable state that still gets its dashboard, §78). `control_panel.Step` gained a `group` tag
+  and `_run_job` now skips only the failed site's remaining steps, continues with every other
+  site, and ends `failed` naming which sites did not complete. A cross-site step (the status board)
+  failing still stops the job — there is nothing independent left to protect.
+* **Lesson:** **§6 #8's blast-radius rule applies at the JOB level, not just inside one script.**
+  A loop over independent units must isolate per unit; "stop on first error" is correct for a
+  pipeline and wrong for a fan-out. And the honest report of a partial run is *"these sites
+  failed, the rest ran"* — never a bare "failed", which is what made the user read a 2-site
+  success as a total failure.
+
+### 2. ★ The 3-D dashboard rendered one site's stack for every site
+
+* **Symptom:** "Rebuild 3-D dashboard" for Vaishno Devi died with
+  `RasterioIOError: /app/data/velocity_vaishnodevi/ASC_path27_frame106_mean_velocity_los_highpass.tif: No such file or directory`.
+* **Root cause:** `build_3d_dashboard.py --stack` defaulted to the literal `ASC_path27_frame106`
+  — **Ramban's** pathfinder stack — for every AOI. VD not only lacks that raster, its registry
+  file explicitly records *why* it always will (too few usable pixels over that AOI to solve).
+* **Aggravating factor worth naming:** the control panel's own UI said *"Ramban has the full
+  scenario inputs; other AOIs may fail if theirs don't exist yet."* The failure was **predicted in
+  prose and never fixed**. Writing the caveat felt like handling it.
+* **Fix:** `resolve_stack()` derives the default from the ACTIVE AOI's own product stacks,
+  preferring the historical pathfinder stack only when that site's product actually contains it
+  (so Ramban's long-standing view does not silently move). An impossible request now aborts with
+  the site's real options listed instead of a rasterio traceback.
+* **Lesson:** **a default that names a site, stack or dataset is a hardcoded constant wearing a
+  friendly hat.** It will be wrong for AOI #2 and it will fail loudly at the worst moment — or, as
+  in defect 3, quietly.
+
+### 3. ★★ A Ramban measurement printed on every site's page
+
+* **Symptom:** found by sweeping outward once VD's page could build at all. The 3-D info box read
+  **"Coverage ~14% of AOI (unmeasured != safe)"** — hardcoded — on whichever site rendered it.
+* **Root cause:** the number was measured for Ramban when the dashboard was single-site, and
+  nothing re-derived it when a second AOI arrived. Derived now: Ramban 13%, **VD 21%**. So the page
+  had been under-reporting VD's radar coverage by a third.
+* **Fix:** computed from the raster being rendered (`np.isfinite(velocity).mean()`), labelled as
+  what it is ("of this look's grid"). Pinned by a test that reads the RENDERED pages and fails if
+  two sites ever report the same figure.
+* **Lesson:** the §78 identity rule again — **a number must travel with the identity of what it
+  measured** — and the trigger to re-check every such number is *"a second AOI/sensor/season now
+  exists"*. Grep for hardcoded measurements the moment the thing they described stops being the
+  only one.
+
+### 4. The status board hid the diagnosis on exactly the rows that needed it
+
+* **Symptom:** Tosh's board read `[ ] Live season rainfall + alarm (2-3 day cadence)` and nothing
+  else — no reason, no next fact.
+* **Root cause:** the console printer rendered `detail if done else ''`. Every stage computes a
+  useful detail; the printer threw it away precisely when the stage was NOT done. Two details were
+  also written for a done-only world and read as false once shown (a bare filename for a file that
+  is *missing*; "proxied by Phase-2 products" for a site with no products).
+* **Fix:** details render for undone stages too; the live row now separates its three failure modes
+  (no rainfall / stale rainfall / rainfall current but no alarm calendar because there is no map);
+  the missing-file rows say "missing".
+* **Lesson:** **the failure path is the one a human actually reads.** A status line that knows why
+  it is red and prints only the red is withholding the answer at the moment it is worth most.
+
+### 5. Design regret — scheduled automation with catch-up IS startup automation
+
+* **Symptom (user-reported):** "an automated fetch happens at each startup, affecting system
+  performance without delivering real automation gain".
+* **Root cause:** the Windows task "InSAR Monsoon Watch Cycle" ran every 2 days at 08:00 with
+  **`StartWhenAvailable = True`**. Any day the machine was off at 08:00 — most days — Windows fired
+  the missed run at **logon**. If Docker was not up yet the script then polled `docker info` every
+  30 s for 10 minutes, competing with whatever the user had actually sat down to do. Its last run
+  (2026-08-14 13:02) was terminated mid-wait (task result `0xC000013A`).
+* **Fix:** the task is **Disabled** (not unregistered — reversible, and the definition stays
+  auditable). `monsoon_cycle.ps1` still runs on demand and its header now carries the re-enable /
+  delete commands. The control panel is the intended entry point.
+* **Lesson:** **a missed-run catch-up turns a schedule into a startup hook.** Before adding one,
+  ask what it does when the deadline is missed and when its dependencies are not up. This also
+  re-confirms the standing preference recorded in 2026-07-16: automate the computation, never the
+  app lifecycle — a helper the user triggers beats a daemon that guesses.

@@ -98,6 +98,62 @@ def reproject_dem(dem_path: Path, transform, crs, w, h) -> np.ndarray:
     return dst
 
 
+# Ramban's pathfinder stack — the historical default this dashboard was built on. It is a
+# RAMBAN stack, and until 2026-08-14 it was the hardcoded default for EVERY AOI, so rebuilding
+# the 3-D view for Vaishno Devi died on a rasterio "No such file" for a raster that site has
+# never had (and deliberately will not: VD's registry file records that frame106 has too few
+# usable pixels over that AOI to solve). Kept only as a PREFERENCE, and only when this AOI's
+# own product actually contains it.
+HISTORICAL_DEFAULT_STACK = "ASC_path27_frame106"
+
+
+def has_velocity(stack: str) -> bool:
+    return (VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif").exists()
+
+
+def available_stacks() -> list[str]:
+    """Stacks this AOI actually has a velocity grid for (what the dashboard can be built on)."""
+    return sorted(p.name[: -len("_mean_velocity_los_highpass.tif")]
+                  for p in VEL_DIR.glob("*_mean_velocity_los_highpass.tif"))
+
+
+def resolve_stack(requested: str | None) -> str:
+    """Which stack to render, derived from the ACTIVE AOI rather than hardcoded.
+
+    Order: an explicit --stack (validated); else this site's own product stacks, preferring
+    the historical pathfinder stack when the site's product contains it so Ramban's view is
+    unchanged; else any stack with a velocity grid. Raises with the real options listed —
+    never a raw rasterio traceback about a path the reader has to decode.
+    """
+    have = available_stacks()
+    if requested:
+        if has_velocity(requested):
+            return requested
+        raise SystemExit(
+            f"{_CFG.site_name}: no velocity grid for stack '{requested}' in {VEL_DIR}.\n"
+            + (f"  This AOI has: {', '.join(have)}" if have else
+               "  This AOI has NO velocity grids at all — run run_multistack.py first "
+               "(a site at playbook step 2 has nothing to render yet)."))
+    try:
+        from stacks import product_stacks
+        product = [s for s in product_stacks() if has_velocity(s)]
+    except Exception:  # noqa: BLE001 — no standing product yet is a legitimate state
+        product = []
+    if HISTORICAL_DEFAULT_STACK in product:
+        return HISTORICAL_DEFAULT_STACK
+    if product:
+        return product[0]
+    if have:
+        logger.warning(f"no standing product stacks for {_CFG.aoi_slug}; falling back to "
+                       f"{have[0]} (the first stack with a velocity grid)")
+        return have[0]
+    raise SystemExit(
+        f"{_CFG.site_name}: no velocity grids in {VEL_DIR} — there is nothing to render in 3-D "
+        f"yet.\n  Run the Phase 2-4 driver first:\n"
+        f"    docker compose run --rm -e INSAR_CONFIG=config/{_CFG.aoi_slug}.yaml "
+        f"insar python workflows/run_multistack.py")
+
+
 def exposure_traces(stack: str, footprint: str, transform, crs, dem, h: int, w: int,
                     elev_fill: float) -> tuple[list[dict], dict | None]:
     """The affected-area layer (exposure_footprint.py), draped on this stack's terrain.
@@ -183,7 +239,9 @@ def exposure_traces(stack: str, footprint: str, transform, crs, dem, h: int, w: 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--stack", default="ASC_path27_frame106")
+    ap.add_argument("--stack", default=None,
+                    help="Radar look to render. Default: derived from the ACTIVE AOI's own "
+                         "products (never another site's stack — see resolve_stack).")
     ap.add_argument("--exposure-footprint", default="operational",
                     help="Which affected-area layer to drape (default: operational). "
                          "Omitted silently when that layer has not been generated.")
@@ -192,8 +250,8 @@ def main() -> int:
     ap.add_argument("--z-exaggeration", type=float, default=0.5,
                     help="Vertical relief in the 3-D box (Plotly z aspectratio).")
     args = ap.parse_args()
-    stack = args.stack
-    logger.info(f"Building 3-D dashboard for {stack}")
+    stack = resolve_stack(args.stack)
+    logger.info(f"Building 3-D dashboard for {stack} ({_CFG.aoi_slug})")
 
     # Master grid + layers
     with rasterio.open(VEL_DIR / f"{stack}_mean_velocity_los_highpass.tif") as s:
@@ -337,13 +395,44 @@ def main() -> int:
     exp_note = ""
     if exp_meta:
         from html import escape as _esc
+        # Only advertise the toggle when the toggle actually exists — a site whose layer is
+        # empty gets no menu, and telling the reader to press a button that is not on the page
+        # makes them doubt the page rather than the data.
+        toggle = ("Switch it off with the “Affected area” button above the scenario row."
+                  if exp_traces else "")
         exp_note = (
             f'<br><span class="k">Affected area</span> — outlines show the ground each zone '
-            f'covers and the path debris could take below it. Switch it off with the '
-            f'“Affected area” button above the scenario row.'
+            f'covers and the path debris could take below it. {toggle}'
             f'<br><span style="color:#ffb4b4">{_esc(str(exp_meta.get("headline", "")))}'
             f'</span><br><span style="color:#9fb3c8">'
             f'{_esc(str(exp_meta.get("scope_caveat", "")))}</span>')
+
+    # Measured coverage of THIS look's grid, derived from the raster being rendered. It used to
+    # read "Coverage ~14% of AOI" — a hardcoded RAMBAN measurement, printed unchanged on every
+    # site's page the moment a second AOI could build one (§78's rule: a number must travel with
+    # the identity of what it measured).
+    cov_pct = 100.0 * float(np.isfinite(velocity).mean())
+
+    # An empty explorer must SAY it is empty. Without this the page renders a serene, unmarked
+    # mountain with "Dry (0) Monsoon (0) Extreme (0)" — which reads as "nothing wrong here"
+    # rather than "this site has no hazard layers to show" (§79: empty map != safe slope).
+    n_alert_markers = sum(counts.values())
+    empty_note = ""
+    if not n_alert_markers and not exp_traces:
+        empty_note = (
+            '<br><span style="color:#ffb4b4"><b>No hazard layers on this view.</b> The scenario '
+            'products were never generated for this site, and its affected-area layer is empty. '
+            'That is an <b>empty map, not a safe slope</b> — the terrain and the measured creep '
+            'below are all this page is showing.</span>')
+
+    # Interaction hints, only for layers this page actually has.
+    hints = []
+    if n_alert_markers:
+        hints.append('hover an <span class="k">alert diamond</span> for its reasoning')
+    hints.append('toggle “Measured creep” in the legend to show observed motion')
+    scenario_hint = ("<br>Use the top buttons to switch rainfall scenario — watch alerts grow "
+                     "from <span class=\"k\">dry</span> to <span class=\"k\">monsoon</span>."
+                     if n_alert_markers else "")
 
     config = {"responsive": True, "displaylogo": False}
     html = f"""<!doctype html><html><head><meta charset="utf-8">
@@ -359,12 +448,10 @@ def main() -> int:
 <div id="plot"></div>
 <div id="info">
  <b>🏔️ {SITE} — 3-D Hazard Explorer</b><br>
- Drag to orbit · scroll to zoom · hover an <span class="k">alert diamond</span> for its reasoning.<br>
- Use the top buttons to switch rainfall scenario — watch alerts grow from
- <span class="k">dry</span> to <span class="k">monsoon</span>. Toggle
- “Measured creep” in the legend to show observed motion.<br>
- <span style="color:#9fb3c8">Pathfinder stack · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}.
- Coverage ~14% of AOI (unmeasured ≠ safe); soil params assumed; {LLOF_NOTE}.</span>{exp_note}
+ Drag to orbit · scroll to zoom · {' · '.join(hints)}.{scenario_hint}{empty_note}<br>
+ <span style="color:#9fb3c8">Stack {stack} · generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}.
+ Measured velocity covers {cov_pct:.0f}% of this look's grid (unmeasured ≠ safe); soil params
+ assumed; {LLOF_NOTE}.</span>{exp_note}
 </div>
 <script>
  var traces = {json.dumps(traces)};

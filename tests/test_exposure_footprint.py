@@ -471,6 +471,85 @@ def test_three_d_layer_is_omitted_when_it_has_not_been_generated() -> None:
     assert traces == [] and meta is None
 
 
+def test_three_d_never_renders_another_sites_stack() -> None:
+    """THE 2026-08-14 REGRESSION. `--stack` defaulted to ASC_path27_frame106 — a RAMBAN stack —
+    for every AOI, so "Rebuild 3-D dashboard" for Vaishno Devi died on a rasterio "No such
+    file" for a raster that site has never had and deliberately never will.
+
+    The default must come from the ACTIVE AOI's own products, and an impossible request must
+    fail with the real options listed rather than a stack trace.
+    """
+    import build_3d_dashboard as b3
+
+    with tempfile.TemporaryDirectory() as td:
+        vel = Path(td)
+        was_dir, was_ps = b3.VEL_DIR, None
+        try:
+            b3.VEL_DIR = vel
+            import stacks
+            was_ps = stacks.product_stacks
+
+            def _fake_product(*a, **k):
+                return ["ASC_pathA_frame1", "ASC_path27_frame106"]
+            stacks.product_stacks = _fake_product
+
+            # (a) nothing on disk at all -> a HELPFUL abort, not a traceback
+            try:
+                b3.resolve_stack(None)
+            except SystemExit as e:
+                assert "no velocity grids" in str(e) and "run_multistack" in str(e), str(e)
+            else:
+                raise AssertionError("a site with no velocity grids must abort, not render")
+
+            # (b) only a non-historical stack exists -> that one is chosen
+            (vel / "ASC_pathA_frame1_mean_velocity_los_highpass.tif").write_bytes(b"x")
+            assert b3.resolve_stack(None) == "ASC_pathA_frame1"
+
+            # (c) the historical pathfinder stack is preferred ONLY when this site has it,
+            #     so Ramban's long-standing view does not silently move to another look
+            (vel / "ASC_path27_frame106_mean_velocity_los_highpass.tif").write_bytes(b"x")
+            assert b3.resolve_stack(None) == "ASC_path27_frame106"
+
+            # (d) an explicit stack this AOI does not have -> abort naming what it DOES have
+            try:
+                b3.resolve_stack("ASC_pathZ_frame9")
+            except SystemExit as e:
+                assert "ASC_pathA_frame1" in str(e) and "ASC_path27_frame106" in str(e), str(e)
+            else:
+                raise AssertionError("an absent stack must abort with the available list")
+
+            # (e) a stack outside the product but present on disk is still usable explicitly
+            (vel / "ASC_pathB_frame2_mean_velocity_los_highpass.tif").write_bytes(b"x")
+            assert b3.resolve_stack("ASC_pathB_frame2") == "ASC_pathB_frame2"
+        finally:
+            b3.VEL_DIR = was_dir
+            if was_ps is not None:
+                import stacks
+                stacks.product_stacks = was_ps
+
+
+def test_three_d_coverage_is_measured_per_site_not_hardcoded() -> None:
+    """"Coverage ~14% of AOI" was a RAMBAN measurement printed unchanged on every site's page —
+    the §78 identity defect, in the 3-D view. Checked on the RENDERED pages: each states a
+    coverage derived from the grid it drew, so two sites cannot report the same constant.
+    Skips when fewer than two pages have been built (they are git-ignored)."""
+    import re
+    pages = sorted(PROJECT_ROOT.glob("data/alerts*/dashboard_3d.html"))
+    seen = {}
+    for page in pages:
+        text = page.read_text(encoding="utf-8")
+        assert "% of AOI" not in text, (
+            f"{page.parent.name}: the hardcoded per-AOI coverage figure is back")
+        m = re.search(r"Measured velocity covers (\d+)% of this look's grid", text)
+        assert m, f"{page.parent.name}: no derived coverage figure on the page"
+        seen[page.parent.name] = int(m.group(1))
+    if len(seen) < 2:
+        print(f"      [3-D] only {len(seen)} dashboard(s) on disk — coverage check skipped")
+        return
+    assert len(set(seen.values())) > 1, (
+        f"every site reports the SAME coverage {seen} — that is a constant, not a measurement")
+
+
 def test_three_d_controls_target_disjoint_traces() -> None:
     """ARTIFACT check on the page a user actually opens (§6 #1): the scenario buttons and the
     affected-area buttons must restyle DISJOINT trace indices. Without explicit indices the

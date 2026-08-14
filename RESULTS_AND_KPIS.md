@@ -4343,6 +4343,45 @@ names the site's next step as exactly that manual pass.
 
 ---
 
+## 85. First real multi-site operations session — both control-panel failures root-caused, 4 defects fixed, the startup task retired  `[MEASURED]`
+
+*2026-08-14 · `control_panel.py`, `live_alarm.py`, `build_3d_dashboard.py`, `aoi_status.py`;
+`tests/test_control_panel.py` (+4) + `tests/test_exposure_footprint.py` (+2). Battery
+**220 → 226 across 16 suites**; freeze re-established at 140 artifacts after a verified
+season advance. Full forensics: `error_history_log.md` 2026-08-14.*
+
+**What the user reported:** the refresh cycle failed, and "Rebuild 3-D dashboard" failed for
+Vaishno Devi. Both reproduced from `logs/control_panel_*.log` and fixed; sweeping outward from
+them found two more defects of the same family.
+
+| # | defect | blast radius | fix |
+|---|---|---|---|
+| 1 | One unready site (**Tosh**, no WHERE map) exited 1 mid-cycle and the runner returned | **VD's fetch + alarm + the status board never ran**; VD's rainfall silently went **8 days stale** (caught only by the FRESH_DAYS=7 rule) | `live_alarm` skips the dashboard for a site with no footprint (exit 0, keeps the rainfall); `control_panel` isolates per site and names which failed |
+| 2 | `build_3d_dashboard --stack` defaulted to `ASC_path27_frame106` — a **Ramban** stack — for every AOI | VD's rebuild crashed with a rasterio traceback; Tosh's too | `resolve_stack()` derives from the active AOI's own products; impossible requests abort listing the real options |
+| 3 | `"Coverage ~14% of AOI"` hardcoded in the 3-D info box | a **Ramban** measurement printed on every site's page — VD's true figure is **21%**, under-reported by a third | derived per render from `isfinite(velocity).mean()`; pinned by a test that fails if two sites ever report the same figure |
+| 4 | `aoi_status` printed `detail if done else ''` | every red row hid the reason it was red | details render for undone stages; the live row separates its three failure modes |
+
+**★ Measured coverage, derived not asserted (2026-08-14):** Ramban **13%**, Vaishno Devi **21%**
+of each rendered look's grid. The long-standing "~14%" was right for Ramban only.
+
+**★ The cycle now completes across all three sites.** Verified end-to-end through the panel's own
+runner: Ramban builds, Tosh aborts with a one-line reason and is named in the summary, **Vaishno
+Devi still builds**, job state `failed` with `failed_groups=['tosh']`. Rainfall re-synced: both
+live sites now at **as-of 2026-08-08** (VD recovered its 2 missed days).
+
+**★ The unattended Windows task is DISABLED (not deleted).** "InSAR Monsoon Watch Cycle" ran every
+2 days at 08:00 with `StartWhenAvailable=True`, so every missed slot fired at **logon** and then
+polled for Docker for 10 minutes; its last run (2026-08-14 13:02) was killed mid-wait
+(`0xC000013A`). Re-enable/delete commands are in `monsoon_cycle.ps1`'s header. The control panel
+is now the only trigger — which is also the standing user preference (automate the computation,
+never the app lifecycle).
+
+**Housekeeping observed, not acted on:** `data/` measured **56 GB** (unchanged; `processed_tiffs`
+44 GB dominates), and a stale git worktree at `.claude/worktrees/hungry-einstein-b80c0f` (122 MB,
+clean, parked on a master merge commit) is safe to remove at the user's discretion.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

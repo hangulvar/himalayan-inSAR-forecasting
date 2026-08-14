@@ -11,79 +11,68 @@
 
 ---
 
-# LIVE — Session 34 · branch `aoi-vaishnodevi` · updated 2026-08-11
+# LIVE — Session 35 · branch `aoi-vaishnodevi` · updated 2026-08-14
 
 ## Current state
 
-- **★★ The hazard map now publishes GROUND, not dots (§84).** New `exposure_footprint.py` draws each
-  zone's actual outline plus the corridor debris would travel below it, and exports it four ways:
-  GeoJSON, **KML for Google Earth**, a card on the live dashboard (top-5 with clickable
-  coordinates), and an **"Affected area: ON/OFF"** toggle in the 3-D explorer. Both rankings the
-  operator asked for ship side by side and are **named apart**: vulnerability (m\*, §19) and triage
-  priority ((1−m\*)×P, §25).
-- **★★ It invents no science and cannot drift.** The outline is the *published* alert cluster
-  re-derived and **verified pixel-for-pixel** against `alerts_<footprint>.json` — a mismatch aborts
-  the run. The corridor is `flood_domain.d8_targets` (routing) truncated by `rockfall_runout.BANDS`
-  (energy line) — both **imported**, never copied.
-- **★★ The layer never flatters the map under it.** The verdict is read through
-  `operational_alarm.load_tier` + `_chance_verdict`, so it inherits the §79 staleness guard and the
-  derived wording. Three of four footprints therefore render **wearing** their status (VD ALERT =
-  *not measured*; VD WATCH = *below chance*; Ramban WATCH = *≈chance*, which gets its own wording,
-  not the withdrawn one). Ramban ALERT is the one that beats chance.
-- **★ The identity gate caught MY bug on its first hard input** — the 106-zone WATCH map aborted
-  because the orchestrator sorts on the *rounded* speed and I sorted the raw means (11 of 65 zones
-  tie once rounded). Fixed + pinned behaviourally; logged 2026-08-11.
-- **★ A pre-existing §78-class defect fixed in passing:** `aoi_status.py` printed a back-test AUC one
-  line under "operational zones: none". It now reads **NOT MEASURED** when the map has moved, pinned
-  by a two-directional test. §79 fixed this in the dashboard and nobody grepped the other renderer.
-- **★★ AOI #3 — Tosh (upper Parvati Valley) — onboarded through playbook step 2.**
-  `config/aoi/tosh_aoi.geojson` + `config/tosh.yaml`; placement **verified** against an independent
-  published coordinate, not assumed. Radar dry-run: **38 pairs / 7 stacks, 34 new + 4 already
-  held**; three stacks alone clear the velocity-baseline minimum. **Nothing submitted.**
-- **⚠ Tosh is blocked on the three things that SHOULD block it** — the `soil:` block is deliberately
-  absent (§42: inheriting the wrong soils swings the footprint 0–118 zones), there is no local
-  inventory, and spending credits is the user's call.
-- **★ Deliberately NOT built: a VD 3-D explorer.** It would have showcased a withdrawn map; the
-  standing instruction to publish VD's WHEN arm only still holds.
-- **Battery 197 → 220 green across 16 suites** (new `test_exposure_footprint.py` ×22, registry ×+1);
-  flood freeze R1 reports identical re-writes only.
+- **★★ Both control-panel failures the user hit are root-caused and FIXED (§85).** The refresh
+  cycle died at Tosh because a brand-new AOI has no WHERE map, and the runner returned on the
+  first failure — so **Vaishno Devi's fetch, alarm and the status board never ran**, and VD's
+  rainfall silently went 8 days stale. The 3-D rebuild died because `--stack` defaulted to a
+  **Ramban** stack for every AOI.
+- **★★ Fixed at both layers, not just the symptom:** `live_alarm` now distinguishes an ABSENT
+  footprint (site not ready — say why, exit 0, keep the rainfall) from an EMPTY one (a real
+  publishable state, §78); `control_panel` isolates per site and reports *which* sites failed.
+  A cross-site step failing still stops the job. Verified through the panel's own runner across
+  all three sites.
+- **★ Sweeping outward found two more of the same family:** the 3-D page printed a hardcoded
+  **Ramban** coverage figure on every site (VD's real number is materially different), and the
+  status board blanked the diagnostic on exactly the rows that were red. Both fixed and pinned.
+- **★★ The unattended Windows task is DISABLED (reversible, not deleted).** `StartWhenAvailable`
+  turned "every 2 days at 08:00" into a **logon** job that then polled for Docker for 10 minutes.
+  `monsoon_cycle.ps1` still runs on demand; its header carries the re-enable/delete commands. The
+  control panel is now the only trigger.
+- **★ All three sites are current again** — Ramban and VD both refreshed; Tosh has rainfall but
+  no map, and its board row now says exactly that instead of going blank.
+- **Battery 220 → 226 green across 16 suites.** The flood freeze went red mid-session, was
+  root-caused to the sanctioned current-season advance (verified: contiguous rows, unchanged
+  columns and zone counts), and re-frozen at the same 140 artifacts.
+- **⚠ Tosh is still blocked on the three things that SHOULD block it** — soil pass (M2),
+  inventory (M4), and the user's go/no-go on ~34 HyP3 jobs. Its board row names the next step.
 - **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
-  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; 598 m miss §31/§51; soils
-  literature-corroborated not lab; §40 GACOS open). **§84 adds two:** the corridor is a **lower
-  bound** (rockfall angles on a debris path), and a shape does not upgrade an unvalidated map.
-  **⚠ Standing:** §52 — 2 inventory rows pending; §66 LOW web findings; Ramban's staleness warning
-  (16 new ASC scenes through 08-05) + its deferred §61 rescore.
+  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two: the corridor is a
+  lower bound, and a shape does not upgrade an unvalidated map). **⚠ Standing:** §52 — 2
+  inventory rows pending; §66 LOW web findings; Ramban's staleness warning + deferred §61 rescore.
+- **Housekeeping seen, not acted on:** `data/` 56 GB (unchanged); a stale git worktree at
+  `.claude/worktrees/hungry-einstein-b80c0f` (122 MB, clean, on a master merge commit) — safe to
+  remove whenever you like.
 
 ## Recommended next step
 
-**Task order is unchanged by this session — except that Tosh now has a cheap, high-value fork.**
+**Unchanged by this session — it was an operations/repair session, not a science one.**
 
-1. **Tosh M2 (site soil pass)** — the one blocking step, and it is a literature pass (GSI Kullu
-   reports, Parvati/Malana hydel geotechnical studies), not fieldwork. Until it lands, nothing
-   downstream at that site should be believed. *Then* the user's go/no-go on ~34 HyP3 jobs.
-2. **Susceptibility model as a CORROBORATOR** (§83's verdict) — elevation-ablated AUC is the
-   headline, never the raw one (§60).
-3. **NISAR when the data allows** — trigger unchanged: ≥8 acquisitions on one track/frame, or NASA
-   clearing the monsoon void.
+1. **Tosh M2 (site soil pass)** — the one blocking step, a literature pass, then your go/no-go on
+   the ~34 HyP3 jobs.
+2. **Susceptibility model as a CORROBORATOR** (§83) — elevation-ablated AUC is the headline.
+3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void
+   clearing.
 
-**Do NOT:** present the affected-area shapes as a warning product at Vaishno Devi; lower the reach
-angles to make corridors look longer; give Tosh another site's soils; or submit Tosh's jobs without
-the user saying so.
+**Do NOT:** re-enable the scheduled task without deciding what it should do on a missed slot and
+with Docker down; present VD's shapes as a warning product; give Tosh another site's soils.
 
 ## Uncommitted delta
 
-**Session 34's whole delta — code and docs — is COMMITTED at `3b4f19d`** (14 files, +2041/−78):
-`exposure_footprint.py` + its 22-test suite, the 3-D/dashboard/live-alarm wiring, the `aoi_status`
-stale-AUC fix + its registry test, `config/tosh.yaml` + `config/aoi/tosh_aoi.geojson`, and the
-ledger/milestone/primer/error-log/LIVE updates.
+Code: `control_panel.py` (per-site isolation + `Step.group` + honest UI text), `live_alarm.py`
+(`has_where_map` skip), `build_3d_dashboard.py` (`resolve_stack`, derived coverage, empty-state
+note, conditional hints), `aoi_status.py` (undone-row details + three-way live row),
+`monsoon_cycle.ps1` (header: no longer scheduled), `tests/test_control_panel.py` (+4),
+`tests/test_exposure_footprint.py` (+2).
 
-Not in that commit, by design:
-- `session_journey.md` and `CLAUDE.md` — git-ignored local working notes (Session-34 entry written).
-- `config/aoi/tosh_and_others.kml` — the source polygon; `*.kml` is git-ignored by repo policy, so
-  a fresh clone gets the GeoJSON only. Its provenance is recorded **inside** the GeoJSON.
+Docs: `RESULTS_AND_KPIS.md` **§85**; `error_history_log.md` (2026-08-14, 5 entries);
+`CLAUDE.md` **§6 items 14–16 + sharpened 6 and 8** (git-ignored); `docs/INDEX.md`;
+`session_journey.md` (git-ignored); this LIVE block.
 
-Remaining after this wrap: `README.md` only — the new layer's run command and Tosh's registry line
-(the capability index lists every other script; this one was missing).
+Machine state (outside git): the Windows task **"InSAR Monsoon Watch Cycle" is Disabled**.
 
 ---
 

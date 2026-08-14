@@ -7,9 +7,25 @@
 # needed (state change, any ALERT day, or a failed chain). Idempotent: safe to run any
 # time; ERA5-Land's ~5-day lag just means quiet runs add nothing.
 #
-# Scheduled via Windows Task Scheduler as "InSAR Monsoon Watch Cycle" (every 2 days,
-# 08:00, runs only when the user is logged on so toasts are visible). Disable with:
-#   Unregister-ScheduledTask -TaskName 'InSAR Monsoon Watch Cycle' -Confirm:$false
+# RUN IT YOURSELF - this script is NO LONGER SCHEDULED (disabled 2026-08-14, user request).
+#
+# It used to fire from Windows Task Scheduler as "InSAR Monsoon Watch Cycle" (every 2 days
+# at 08:00) with StartWhenAvailable=True. That flag is what made it feel like startup
+# automation: any missed 08:00 slot - i.e. any day the machine was off at 08:00 - was
+# caught up at LOGON, and if Docker was not up yet the script then sat in a 10-minute
+# 30s-polling loop competing with whatever the user actually sat down to do. The last such
+# run (2026-08-14 13:02) was terminated mid-wait (task result 0xC000013A). It bought
+# nothing the control panel cannot do on demand, so the task was DISABLED, not deleted:
+#
+#   Re-enable :  Enable-ScheduledTask  -TaskName 'InSAR Monsoon Watch Cycle'
+#   Delete    :  Unregister-ScheduledTask -TaskName 'InSAR Monsoon Watch Cycle' -Confirm:$false
+#   Check     :  Get-ScheduledTask -TaskName 'InSAR Monsoon Watch Cycle' | Select State
+#
+# Preferred way to run the cycle now: the control panel (control_panel.bat -> "Refresh
+# cycle"), which runs the same chain with live log streaming and per-site isolation.
+# This script remains valid and idempotent for a manual/one-off run:
+#   powershell -ExecutionPolicy Bypass -File workflows\monsoon_cycle.ps1
+#
 # Season gate below self-silences Nov-Mar; re-check cadence each April.
 
 $ErrorActionPreference = 'Continue'

@@ -152,7 +152,9 @@ def assess(cfg_path: Path) -> AoiStatus:
     stages.append(Stage(
         "radar", "Phase 1 - radar pull + QA (shared library)", "auto",
         bool(vel),
-        detail="proxied by Phase-2 products (library is shared across AOIs)",
+        detail=("proxied by Phase-2 products (library is shared across AOIs)" if vel
+                else "no velocity products for this AOI yet (the radar library is shared, "
+                     "but nothing has been inverted over THIS polygon)"),
         next_cmd=f"python workflows/submit_hyp3_jobs.py{ccfg}   (dry-run preview; add "
                  f"--submit) -> download_hyp3_products.py -> the QA chain (README Phase 1)"))
 
@@ -218,7 +220,7 @@ def assess(cfg_path: Path) -> AoiStatus:
             bt_detail = "scored"
     stages.append(Stage(
         "validation", "Scored back-test vs inventory", "auto",
-        bt.exists(), detail=bt_detail,
+        bt.exists(), detail=bt_detail or "no back-test report for this site yet",
         next_cmd=f"docker compose run --rm {denv}insar python workflows/backtest_inventory.py "
                  f"--alerts data/alerts{sfx}/mosaic_asc/alerts_operational.json "
                  f"--inventory data/inventory/<inventory>.geojson"))
@@ -240,7 +242,10 @@ def assess(cfg_path: Path) -> AoiStatus:
     base_csv = RAIN_DIR / f"{slug}_era5land_daily.csv"
     stages.append(Stage(
         "rainfall", "Rainfall baseline season (ERA5-Land)", "auto",
-        base_csv.exists(), detail=base_csv.name,
+        # Details are rendered for undone stages too, so a bare filename here read as
+        # "present". Say which it is.
+        base_csv.exists(),
+        detail=base_csv.name if base_csv.exists() else f"{base_csv.name} missing",
         next_cmd=f"docker compose run --rm {denv}mintpy python workflows/fetch_rainfall.py"))
 
     # 10. Live season + alarm state
@@ -264,8 +269,17 @@ def assess(cfg_path: Path) -> AoiStatus:
     stages.append(Stage(
         "live", "Live season rainfall + alarm (2-3 day cadence)", "auto",
         bool(season_csv) and bool(cal_csv) and fresh,
-        detail=(f"as-of {last_day}, {behind}d behind today"
-                if last_day else "no live-season CSV yet"),
+        # This row has THREE independent ways to be not-done and they need different actions:
+        # no rainfall at all, rainfall that has gone stale, or rainfall that is current with no
+        # alarm calendar behind it (a site with no WHERE map — Tosh). Saying only "not done"
+        # sends the reader to re-run a fetch that already worked.
+        detail=(("no live-season rainfall CSV yet" if not last_day else
+                 f"as-of {last_day}, {behind}d behind today"
+                 + ("" if fresh else f" — STALE (>{FRESH_DAYS}d; the cycle has not reached "
+                                     f"this site)")
+                 + ("" if cal_csv else " — rainfall is current but there is NO alarm calendar: "
+                                       "this site has no WHERE map yet, so no dashboard is "
+                                       "rendered (run_multistack.py first)"))),
         next_cmd=f"docker compose run --rm {denv}mintpy python workflows/live_alarm.py  && "
                  f"docker compose run --rm {denv}insar python workflows/live_alarm.py"))
 
@@ -352,7 +366,12 @@ def main() -> int:
         print(f"    state: {state}")
         for g in s.stages:
             mark = "x" if g["done"] else " "
-            print(f"    [{mark}] {g['label']:<48} {g['detail'] if g['done'] else ''}")
+            # Show the detail for UNDONE stages too. It used to be blanked unless done, which
+            # threw away the diagnostic exactly when the reader needs it: Tosh's live row read
+            # "[ ] Live season rainfall + alarm" and nothing else, while the code already knew
+            # the rainfall was current and only the alarm calendar was missing. A stage that
+            # knows why it is not done should say so.
+            print(f"    [{mark}] {g['label']:<48} {g['detail']}")
         print(f"    NEXT: {s.next_step}")
 
     DATA.mkdir(exist_ok=True)

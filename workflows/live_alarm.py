@@ -143,6 +143,20 @@ def run(script: str, *args: str) -> None:
     subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
 
 
+def has_where_map() -> bool:
+    """Does this site have a WHERE footprint for the dashboard to be built on?
+
+    A site at playbook step 2 (polygon + registry file, no radar yet) legitimately has none.
+    That is a STAGE, not a failure — `aoi_status.py` already names its next step — but
+    `operational_alarm.py` is right to refuse to render a dashboard without one, so it exits 1
+    and, before 2026-08-14, that took the whole multi-site refresh cycle down with it.
+    Distinguish the two: an ABSENT footprint means "not ready yet"; an EMPTY one (zero zones)
+    is a real, publishable state and still gets its dashboard (§78).
+    """
+    return (PROJECT_ROOT / "data" / f"alerts{load_config().data_suffix}"
+            / "mosaic_asc" / "alerts_operational.json").exists()
+
+
 def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> None:
     as_of = last_complete_day(season_csv)
     if as_of is None:
@@ -193,6 +207,21 @@ def alarm_stage(season_csv: Path, suffix: str, threshold: str, start: date) -> N
     except Exception as e:  # noqa: BLE001
         print(f"radar watch SKIPPED ({type(e).__name__}: {e}) — freshness pill shows the "
               f"last known radar state")
+    if not has_where_map():
+        # Everything above this line succeeded and is worth keeping: the season wetness, the
+        # per-zone artifacts, the burst gate. Only the DASHBOARD needs a WHERE map, so stop
+        # here loudly and exit 0 rather than failing the site (and, before the control panel
+        # was isolated per-site, every site queued behind it).
+        print(f"\nalarm: {SLUG} has NO WHERE map yet "
+              f"(data/alerts{load_config().data_suffix}/mosaic_asc/alerts_operational.json is "
+              f"absent), so there is no dashboard to render.\n"
+              f"       Rainfall IS up to date through {as_of} — that part of the cycle "
+              f"succeeded and is not lost.\n"
+              f"       Build the map first:  docker compose run --rm "
+              f"-e INSAR_CONFIG=config/{SLUG}.yaml insar python workflows/run_multistack.py\n"
+              f"       (`python workflows/aoi_status.py --aoi {SLUG}` always names this site's "
+              f"next step.)")
+        return
     run("operational_alarm.py", "--csv", str(season_csv),
         "--threshold", threshold, "--as-of", as_of.isoformat(), "--out-suffix", suffix)
     print(f"\nLIVE alarm regenerated as-of {as_of} -> "

@@ -48,6 +48,7 @@ import webbrowser
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import NamedTuple
 from urllib.parse import parse_qs, unquote, urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -82,21 +83,36 @@ def _compose(image: str, script: str, slug: str | None = None) -> list[str]:
     return cmd + [image, "python", f"workflows/{script}"]
 
 
-def steps_for(action: str, aoi: str) -> list[tuple[str, list[str]]]:
-    """(label, argv) steps for an action. `aoi` is a slug or 'all' where applicable."""
+class Step(NamedTuple):
+    """One command in a job.
+
+    `group` is the AOI this step belongs to (None = a cross-site step such as the status
+    board). It is what lets one site's failure be contained instead of cancelling the sites
+    queued behind it — see `_run_job`. Kept a NamedTuple so `step[0]` / `step[1]` still read
+    as (label, argv) everywhere they already did.
+    """
+    label: str
+    argv: list[str]
+    group: str | None = None
+
+
+def steps_for(action: str, aoi: str) -> list[Step]:
+    """Steps for an action. `aoi` is a slug or 'all' where applicable."""
     slugs = list_aois() if aoi == "all" else [aoi]
     if action == "refresh_cycle":
         steps = []
         for s in slugs:
-            steps.append((f"{s}: rainfall fetch (mintpy)", _compose("mintpy", "live_alarm.py", s)))
-            steps.append((f"{s}: alarm regen (insar)", _compose("insar", "live_alarm.py", s)))
-        steps.append(("status board (aoi_status.py)", _compose("insar", "aoi_status.py")))
+            steps.append(Step(f"{s}: rainfall fetch (mintpy)",
+                              _compose("mintpy", "live_alarm.py", s), s))
+            steps.append(Step(f"{s}: alarm regen (insar)",
+                              _compose("insar", "live_alarm.py", s), s))
+        steps.append(Step("status board (aoi_status.py)", _compose("insar", "aoi_status.py")))
         return steps
     if action == "status_board":
-        return [("status board (aoi_status.py)", _compose("insar", "aoi_status.py"))]
+        return [Step("status board (aoi_status.py)", _compose("insar", "aoi_status.py"))]
     if action == "rebuild_3d":
-        return [(f"{s}: 3-D dashboard (build_3d_dashboard.py)",
-                 _compose("insar", "build_3d_dashboard.py", s)) for s in slugs]
+        return [Step(f"{s}: 3-D dashboard (build_3d_dashboard.py)",
+                     _compose("insar", "build_3d_dashboard.py", s), s) for s in slugs]
     raise ValueError(f"unknown action: {action}")
 
 
@@ -140,6 +156,7 @@ class Job:
         self.steps = steps
         self.state = "running"          # running | done | failed
         self.step_idx = 0
+        self.failed_groups: list[str] = []   # sites that failed; the rest still ran
         self.lines: list[str] = []
         self.started = datetime.now()
         self.finished: datetime | None = None
@@ -158,6 +175,7 @@ class Job:
         return {"action": self.action, "label": ACTION_LABELS.get(self.action, self.action),
                 "aoi": self.aoi, "state": self.state,
                 "step": self.step_idx, "n_steps": len(self.steps),
+                "failed_groups": self.failed_groups,
                 "step_labels": [s[0] for s in self.steps],
                 "started": self.started.isoformat(timespec="seconds"),
                 "log_file": self.log_path.name}
@@ -175,8 +193,25 @@ def _run_job(job: Job) -> None:
         job.state = "failed"
         job.finished = datetime.now()
         return
-    for i, (label, argv) in enumerate(job.steps):
+    # PER-SITE ISOLATION (2026-08-14). This loop used to `return` on the first non-zero exit,
+    # so one unready site cancelled every site queued behind it: Tosh — a brand-new AOI with no
+    # WHERE map — exited 1 at step 4/7 and Vaishno Devi's fetch, alarm and the status board
+    # (steps 5-7) never ran at all. The user saw "step FAILED" and reasonably read it as "the
+    # cycle failed", while VD's rainfall quietly stopped being refreshed. Same rule as §79 one
+    # layer down: a degraded component must never stop a healthy, independent one.
+    #
+    # So: a failure inside a SITE's steps skips the rest of THAT site and moves to the next.
+    # A failure of a cross-site step (group=None, e.g. the status board) still stops the job —
+    # there is nothing independent left to protect. The job still ends 'failed' either way, and
+    # names which sites failed, so a partial success is never mistaken for a clean run.
+    failed_groups: list[str] = []
+    for i, step in enumerate(job.steps):
         job.step_idx = i
+        label, argv, group = step.label, step.argv, step.group
+        if group and group in failed_groups:
+            job.log(f"=== step {i + 1}/{len(job.steps)} — SKIPPED ({label}) — an earlier step "
+                    f"for '{group}' failed; its remaining steps cannot succeed")
+            continue
         shown = " ".join(argv)
         job.log(f"=== step {i + 1}/{len(job.steps)} — {label}")
         job.log(f"$ {shown}")
@@ -194,13 +229,25 @@ def _run_job(job: Job) -> None:
             job.log(f"launch failed: {e}")
             rc = -1
         if rc != 0:
-            job.log(f"=== step FAILED (exit {rc}) — job stopped")
-            job.state = "failed"
-            job.finished = datetime.now()
-            return
+            if group:
+                failed_groups.append(group)
+                job.log(f"=== step FAILED (exit {rc}) for '{group}' — CONTINUING with the "
+                        f"other sites (this site's remaining steps are skipped)")
+            else:
+                job.log(f"=== step FAILED (exit {rc}) — job stopped (no independent work left)")
+                job.failed_groups = failed_groups
+                job.state = "failed"
+                job.finished = datetime.now()
+                return
     job.step_idx = len(job.steps)
-    job.log("=== all steps done")
-    job.state = "done"
+    job.failed_groups = failed_groups
+    if failed_groups:
+        job.log(f"=== finished WITH FAILURES — these site(s) did not complete: "
+                f"{', '.join(failed_groups)}. Every other site ran.")
+        job.state = "failed"
+    else:
+        job.log("=== all steps done")
+        job.state = "done"
     job.finished = datetime.now()
 
 
@@ -348,7 +395,10 @@ def control_page() -> str:
 
 <div class="card"><h2>Refresh cycle</h2>
   <p class="desc">Rain fetch (ERA5-Land, mintpy image) → alarm regen (insar image) per
-  site, then the multi-AOI status board — the same chain the scheduled cycle runs.</p>
+  site, then the multi-AOI status board — the same chain <code>monsoon_cycle.ps1</code> runs.
+  <b>This panel is now the only way that cycle runs</b>: the unattended Windows task was
+  disabled on 2026-08-14 (it caught up its missed 08:00 slot at logon and polled for
+  Docker for 10 minutes). One site failing no longer cancels the others.</p>
   <select id="aoi_cycle">{opts_all}</select>
   <button class="run" data-action="refresh_cycle" data-sel="aoi_cycle">Run refresh cycle</button></div>
 
@@ -357,8 +407,10 @@ def control_page() -> str:
   <button class="run" data-action="status_board">Refresh status board</button></div>
 
 <div class="card"><h2>3-D dashboard</h2>
-  <p class="desc">Rebuild the interactive 3-D hazard explorer (build_3d_dashboard.py).
-  Ramban has the full scenario inputs; other AOIs may fail if theirs don't exist yet.</p>
+  <p class="desc">Rebuild the interactive 3-D hazard explorer (build_3d_dashboard.py). Each
+  site renders its OWN radar look — until 2026-08-14 this defaulted to a Ramban stack for
+  every AOI, which is why Vaishno Devi failed here. A site with no inverted radar yet (e.g.
+  a freshly onboarded AOI) stops with a one-line reason and does not cancel the other sites.</p>
   <select id="aoi_3d">{opts_one}</select>
   <button class="run" data-action="rebuild_3d" data-sel="aoi_3d">Rebuild 3-D dashboard</button></div>
 
@@ -383,9 +435,11 @@ async function poll(docker) {{
     badge.textContent = j.state;
     badge.style.background = j.state === 'running' ? '#1d6fa5'
       : (j.state === 'done' ? '#2e8b57' : '#dc2828');
+    const failed = (j.failed_groups && j.failed_groups.length)
+      ? ' — FAILED for: ' + j.failed_groups.join(', ') + ' (every other site still ran)' : '';
     document.getElementById('jobinfo').textContent =
       j.label + ' [' + j.aoi + '] — step ' + Math.min(j.step + 1, j.n_steps) + '/' + j.n_steps
-      + ' — started ' + j.started + ' — log: logs/' + j.log_file;
+      + ' — started ' + j.started + ' — log: logs/' + j.log_file + failed;
     const lg = document.getElementById('log');
     if (st.log.length) {{
       lg.style.display = 'block';

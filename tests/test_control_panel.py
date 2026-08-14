@@ -103,9 +103,12 @@ def test_single_aoi_and_other_actions():
     steps = cp.steps_for("refresh_cycle", "vaishnodevi")
     assert len(steps) == 3  # fetch + alarm + status board
     assert "INSAR_CONFIG=config/vaishnodevi.yaml" in steps[0][1]
-    assert cp.steps_for("status_board", "all") == [
-        ("status board (aoi_status.py)",
-         ["docker", "compose", "run", "--rm", "insar", "python", "workflows/aoi_status.py"])]
+    board = cp.steps_for("status_board", "all")
+    assert len(board) == 1
+    assert board[0].label == "status board (aoi_status.py)"
+    assert board[0].argv == ["docker", "compose", "run", "--rm", "insar", "python",
+                             "workflows/aoi_status.py"]
+    assert board[0].group is None, "the status board is cross-site, not owned by one AOI"
     steps3d = cp.steps_for("rebuild_3d", "ramban")
     assert steps3d[0][1] == ["docker", "compose", "run", "--rm",
                              "-e", "INSAR_CONFIG=config/ramban.yaml",
@@ -115,6 +118,89 @@ def test_single_aoi_and_other_actions():
 def test_suffix_rule_matches_config_py():
     assert cp.data_suffix("ramban") == ""            # grandfathered
     assert cp.data_suffix("vaishnodevi") == "_vaishnodevi"
+
+
+def test_every_site_step_is_tagged_with_its_site() -> None:
+    """The `group` tag is what makes per-site isolation possible; an untagged site step would
+    silently go back to cancelling the whole job."""
+    for step in cp.steps_for("refresh_cycle", "all"):
+        if step.label.startswith("status board"):
+            assert step.group is None, step
+        else:
+            assert step.group and step.label.startswith(step.group + ":"), step
+    for step in cp.steps_for("rebuild_3d", "all"):
+        assert step.group and f"INSAR_CONFIG=config/{step.group}.yaml" in step.argv, step
+
+
+# ------------------------------------------------------------------------------
+# 1b. Per-site isolation (2026-08-14 regression)
+# ------------------------------------------------------------------------------
+_OK = [sys.executable, "-c", "print('ok')"]
+_FAIL = [sys.executable, "-c", "import sys; print('boom'); sys.exit(1)"]
+
+
+def _run_steps(steps) -> cp.Job:
+    """Drive the real runner over synthetic local steps (no Docker, no dry-run stubbing).
+
+    `_run_job` probes Docker with force=True before doing anything, and this suite is meant to
+    run anywhere (including inside a container with no docker CLI), so the probe is stubbed —
+    the subject here is the step-sequencing logic, not the daemon check.
+    """
+    was_dry, was_probe = cp.DRY_RUN, cp.docker_status
+    cp.DRY_RUN = False
+    cp.docker_status = lambda *a, **k: "up"
+    try:
+        job = cp.Job("refresh_cycle", "all", steps)
+        cp._run_job(job)
+        return job
+    finally:
+        cp.DRY_RUN, cp.docker_status = was_dry, was_probe
+
+
+def test_one_sites_failure_does_not_cancel_the_sites_behind_it() -> None:
+    """THE 2026-08-14 REGRESSION. Tosh (a site with no WHERE map) exited 1 at step 4/7 and the
+    runner returned, so Vaishno Devi's fetch, alarm and the status board never ran — the user
+    read "step FAILED" as "the cycle failed" while VD's rainfall quietly went stale.
+
+    A failure inside one site must skip only THAT site's remaining steps.
+    """
+    job = _run_steps([
+        cp.Step("alpha: fetch", _OK, "alpha"),
+        cp.Step("beta: fetch", _FAIL, "beta"),
+        cp.Step("beta: alarm", _OK, "beta"),        # must be SKIPPED (its site failed)
+        cp.Step("gamma: fetch", _OK, "gamma"),      # must still RUN
+        cp.Step("status board", _OK, None),         # must still RUN
+    ])
+    log = "\n".join(job.lines)
+    assert job.state == "failed", "a partial run must not be reported as a clean success"
+    assert job.failed_groups == ["beta"], job.failed_groups
+    assert "CONTINUING with the other sites" in log
+    assert "SKIPPED (beta: alarm)" in log, "the failed site's later steps should be skipped"
+    assert log.count("=== step 4/5 — gamma: fetch") == 1, (
+        "gamma never ran — one site's failure is still cancelling the sites behind it")
+    assert "=== step 5/5 — status board" in log, "the status board must still run"
+    assert "these site(s) did not complete: beta" in log
+
+
+def test_a_cross_site_step_failing_still_stops_the_job() -> None:
+    """The mirror image: when the failing step is NOT owned by a site, there is no independent
+    work left to protect, so stopping is correct. Without this the isolation rule would quietly
+    become 'never stop', which is its own kind of dishonesty."""
+    job = _run_steps([
+        cp.Step("status board", _FAIL, None),
+        cp.Step("alpha: fetch", _OK, "alpha"),
+    ])
+    log = "\n".join(job.lines)
+    assert job.state == "failed"
+    assert "job stopped" in log
+    assert "alpha: fetch" not in log, "steps after a cross-site failure must not run"
+
+
+def test_all_sites_healthy_still_reports_done() -> None:
+    job = _run_steps([cp.Step("alpha: fetch", _OK, "alpha"),
+                      cp.Step("status board", _OK, None)])
+    assert job.state == "done" and job.failed_groups == []
+    assert "all steps done" in "\n".join(job.lines)
 
 
 # ------------------------------------------------------------------------------

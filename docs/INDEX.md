@@ -37,8 +37,11 @@ restructure that gathered all *reading* material under `docs/`. The **functional
   `latest` vs `season_peak`, the known limitations to state out loud, and what to do when the
   baseline-freeze test flags a protected artifact.
 
-*Day-to-day ops need no runbook anymore:* the scheduled cycle (`workflows/monsoon_cycle.ps1`)
-runs unattended, and `control_panel.bat` (root) gives one-click refresh + a results hub.
+*Day-to-day ops need no runbook anymore:* `control_panel.bat` (root) gives one-click refresh
++ a results hub. **The unattended cycle is OFF since 2026-08-14** — the Windows task fired its
+missed 08:00 slot at logon and then polled for Docker for 10 minutes, so it was disabled at the
+user's request (`workflows/monsoon_cycle.ps1` still runs fine on demand; its header carries the
+re-enable command).
 
 *Disk cleanup:* `workflows/file_disposition.py` (§76) writes `data/file_disposition_report.md`
 — a READ-ONLY map sorting every file under `data/`+`logs/` into PROTECTED / ARCHIVE_FIRST
@@ -74,7 +77,8 @@ deletes; acting on it is manual.
   already publishes that product at 0.84. Includes the re-open criteria.
 
 ### archive/ — superseded, kept for the record
-- **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the scheduled cycle + control panel.
+- **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the control panel (and,
+  until 2026-08-14, the scheduled cycle).
 - **Science Upgrade Plan - Top 3 (2026-07-13).md** — all three items complete (§44–§46).
 - **local/** — git-ignored scratch research notes (old meteorology/LLM-synthesis material, pre-streamline SESSION_REVIEW snapshot). Never cite these as sources.
 
