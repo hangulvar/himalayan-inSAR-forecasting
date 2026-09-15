@@ -4616,6 +4616,82 @@ per *feature*). Committed: `config/triund.yaml`, `config/aoi/triund_aoi.geojson`
 radar go/no-go. **Radar cannot inform the 26 Sep trek** — a velocity baseline needs 2–3 months and
 the AOI is 19 days old; the registry file records this so nobody re-asks.
 
+### Addendum (2026-09-15, session 38) — the battery closed in Docker, and the WHEN half refreshed 11 days out
+
+**1. The two suites §87 could not run are GREEN in Docker, and the battery is whole.**
+`test_flood_gate` **27/27** and `test_tier34` **8/8**. Full battery in the `insar` image:
+**16/16 suites, 238 assertions, 0 failed** — identical to the §86 total, confirming AOI #4 added
+no regressions. The native exit-127/zero-output failures were environment, exactly as diagnosed;
+nothing in the logic was wrong. *(Docker was started by the user after a `wsl --update`
+2.6.3.0 → 2.7.13.0, kernel 6.6.87 → 6.18.33.)*
+
+**2. The rainfall half was 8 days stale on a LIVE artifact about a dated decision — refreshed.**
+This is the §85 staleness class on a safety-adjacent page, so it is recorded as a KPI change, not a
+tidy-up. Terrain is unchanged (the published data blob is byte-identical); only weather moved.
+
+| quantity | §87 published (7 Sep) | refreshed (15 Sep) |
+|---|---|---|
+| CHIRPS season, 1 Jun → | **1,059 mm** to 31 Jul | **2,058 mm** to 31 Aug |
+| …anomaly vs the same window 1991–2025 | +25% (rank 22/36) | **+32%** (rank 25/36) |
+| August 2026 alone | not yet available | **999 mm vs 710 normal, +41%** |
+| IMERG season | 625 mm to 4 Sep | **713 mm to 14 Sep** (1 d lag) |
+| most recent ID-threshold breach | 4 Sep | **14 Sep — the day before this run** |
+| breaches in the trailing 21 d | not reported | **7** (4–6 and 11–14 Sep) |
+
+**3. ★ The corrective that matters, and it cut against the first read.** Within 2026 the latest
+10-day block (5–14 Sep, **88.8 mm**) is the wettest since mid-July, which reads as an escalation.
+Against **its own climatology it is not**: rank **12 of 26** since 2001, wetter than only **44%** of
+the same window, and *below* the 99.4 mm median. So the honest statement is two-sided — **the
+season is genuinely wet (+32%, slopes well charged) while the last ten days are an ordinary
+mid-September.** Reporting the within-year trend alone would have manufactured an alarm out of
+normal weather; reporting the season alone would have hidden the charge on the slopes.
+**Rule reinforced (§6 #3/#4): a trend inside one season is not a finding until it is ranked against
+the same window in other seasons.**
+
+**4. Freshness is now derived on the page, not asserted.** The dashboard stamps the data's own last
+date and lag, counts breaches and days-since from the series, and states the climatological rank
+beside the raw total — the §85 "stamp the age of the file the card links, derived not asserted"
+rule applied to this site. The stale sentence *"the most recent trigger-level day … is 4 September
+… three days ago"* is gone, and a patch guard fails the build if it or the old masthead date
+survives.
+
+**5. ★★ The rainfall products disagree by 3.5× on identical dates — bigger than §87D recorded.**
+§87D stated the limitation as "CHIRPS and IMERG disagree on P(wet), 31% vs 60%". Measured over the
+**same 92 days and the same polygon** (1 Jun – 31 Aug 2026):
+
+| product | season total | what it is |
+|---|---|---|
+| IMERG V07 | **582 mm** | 0.1° passive-microwave satellite |
+| ERA5-Land | **832 mm** | 0.1° reanalysis |
+| CHIRPS | **2,056 mm** | 0.05° satellite **blended with gauges** |
+
+**The wettest reads 3.5× the driest.** This is the known orographic-underestimation problem, not a
+bug: satellite retrieval misses rain forced up a steep wall, while CHIRPS blends in gauges sitting
+in it. The dashboard previously showed a CHIRPS row and an IMERG row adjacent with no indication
+they were not comparable — a reader could take the lower IMERG figure as evidence the season was
+drier. **The page now carries the spread explicitly** (derived, in the same table).
+**This supersedes §87D's framing of the limitation** — the honest statement is not "they differ on
+how often it rains" but "they differ on how much rain there is, by a factor of three and a half".
+
+**6. A new defect, caught the same way the §87 ones were.** `workflows/triund_nowcast.py` (new this
+session) computed its historical comparison windows with an **exclusive** end date while the current
+year used an inclusive one — so every historical window was **one day short**, biasing the normal low
+and the anomaly high (+33% vs the correct +32%; "wetter than 52%" vs the correct 44%). Found because
+the new script disagreed with the figures the session had already derived another way. Fixed with an
+`excl()` helper whose docstring carries the reason. *(A residual 0.1% CHIRPS difference between the
+two code paths was traced to `bestEffort=True` picking slightly different sampling scales for
+differently-shaped reduce calls — an artifact, not an error, and immaterial beside a 3.5× product
+spread.)*
+
+**New tooling:** `workflows/triund_nowcast.py` — idempotent, `--dry-run`-able, rewrites only the
+`const NC = {...}` line of the dashboard and **asserts the terrain payload is byte-identical**
+before writing. Exists because §87's refresh lived in a per-session scratchpad that was wiped, and
+the LIVE block now recommends re-running it ~2 days before the trek.
+
+**Unchanged by all of this:** no soil pass, no inventory, no FS map, **no AUC** — §87's central
+caveat stands. The terrain findings (climb 100% inside a cone, 51.7% LIKELY, worst run 1,525 m at
+2469–2743 m) are untouched; only the weather moved.
+
 ---
 
 ## How to maintain this ledger

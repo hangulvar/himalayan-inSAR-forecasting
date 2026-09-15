@@ -11,7 +11,7 @@
 
 ---
 
-# LIVE — Session 37 · branch `aoi-vaishnodevi` · updated 2026-09-07
+# LIVE — Session 38 · branch `aoi-vaishnodevi` · updated 2026-09-15
 
 ## Current state
 
@@ -44,17 +44,30 @@
   route **8%** — ~400 m of error heading into a file a person carries up a mountain. Caught only
   because two code paths disagreed on one percentage. Also: a 61%-flagging source threshold that
   discriminated nothing, and a waypoint narrated from memory that put the summit 0.9 km off.
-- **Battery: 14/16 suites green natively.** `test_flood_gate` + `test_tier34` cannot run natively
-  (documented matplotlib **exit 127, zero output**) — Docker was down and deliberately not started
-  (§85 / CLAUDE.md 16). **`test_config_registry` 13/13** with the fourth AOI, which is the guard that
-  actually protects the registry. **These two suites still owe a Docker run.**
+- **✅ Battery CLOSED in Docker (session 38): 16/16 suites, 238 assertions, 0 failed** — identical to
+  the §86 total, so AOI #4 added no regressions. `test_flood_gate` 27/27 and `test_tier34` 8/8 both
+  green, confirming the native exit-127 failures were environment, not logic. *(User ran
+  `wsl --update` 2.6.3.0 → 2.7.13.0 and started Docker; §87 addendum.)*
+- **✅ The Triund rainfall half was refreshed 11 days out (session 38, §87 addendum).** It had gone
+  **8 days stale on a LIVE artifact about a dated decision** — the §85 class. Season now **+32%**
+  (was +25%), August alone **+41%**, and the most recent trigger-line crossing is **the day before
+  the run**, not 4 Sep. **★ The corrective: within 2026 the last 10 days look like an escalation;
+  ranked against the same window since 2001 they are wetter than only 44% of years — an ordinary
+  mid-September on a wet season.** Freshness is now *derived* on the page, with a guard that fails
+  if the stale sentence survives. Terrain untouched (data blob byte-identical).
+- **★★ The rainfall-product limitation is worse than §87D wrote it, and is now measured.** On the
+  **same 92 days over the same polygon**, IMERG reads 582 mm, ERA5-Land 832 mm and CHIRPS
+  2,056 mm — **the wettest is 3.5× the driest.** §87D had recorded this qualitatively ("they
+  disagree on P(wet), 31% vs 60%"); the measured version is *they disagree on how much rain there
+  is, by a factor of three and a half*. The page showed a CHIRPS row above an IMERG row with no
+  note, which invited reading the season as easing off; the spread is now rendered beside them.
+  **Supersedes §87D's framing.** *(Lesson: a limitation recorded qualitatively is not the same as
+  one measured — the mild version is what survives into the next artifact.)*
 - **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
   inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two; §86's portability limit).
-  **§87 adds one:** a site whose rainfall context comes from 5–11 km products over a 3.5 km-wide
-  scarp — CHIRPS and IMERG disagree on P(wet) 31% vs 60%, and that spread *is* the answer.
 - **⚠ Standing:** §52 2 inventory rows; §66 LOW web findings; Ramban's staleness warning + deferred
   §61 rescore; **Tosh still blocked on soil pass (M2), inventory (M4) and your credit decision —
-  now the recommended next step for a third consecutive session.**
+  now the recommended next step for a FOURTH consecutive session.**
 
 ## Recommended next step
 
@@ -66,8 +79,12 @@
 2. **Susceptibility model as a CORROBORATOR** (§83) — elevation-ablated AUC is the headline.
 3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void clearing.
 
-**Triund needs nothing before 26 Sep** — the screening is what the data honestly supports. Its
-backlog (M2 soil, M3 ALOS DEM, M4 inventory, radar go/no-go) is next-season work.
+**Triund: one recurring action only.** Re-run the rainfall nowcast ~2 days before the trek
+(2026-09-24) and republish — it is the only half of that page that decays, IMERG runs at a ~1-day
+lag, and the page is live. Everything else in its backlog (M2 soil, M3 ALOS DEM, M4 inventory,
+radar go/no-go) is next-season work. **The trek-blocking item is not ours:** confirm with SP Kangra
+/ the Galu Devi check-post whether the 6 Jan 2026 DDMA order still requires prior permission
+(§87E).
 
 **Do NOT:** present Triund's screening as a validated product or quote an AUC for it; re-enable the
 scheduled task without answering the missed-slot/Docker-down questions; add a CSP without deciding
@@ -75,20 +92,25 @@ the CDN question; present VD's shapes as a warning product.
 
 ## Uncommitted delta
 
-Code: **none** — no production script changed this session.
+*(Session 37's delta landed in `39e2825 "Triund AOI onboarding"`.)*
 
-New (untracked, to commit): `config/triund.yaml`, `config/aoi/triund_aoi.geojson`,
-`config/aoi/triund_route.geojson`.
+Code (session 38, untracked): **`workflows/triund_nowcast.py`** — refreshes the Triund rainfall
+figures and rewrites *only* the `const NC = {...}` line of the dashboard, asserting the terrain
+payload is byte-identical first. Idempotent, `--dry-run`-able. It exists because §87's refresh lived
+in a per-session scratchpad that was wiped between sessions. No existing production script changed.
 
-Docs: `RESULTS_AND_KPIS.md` **§87** (A–F); `error_history_log.md` (2026-09-07, 6 entries + a
-"what held" block); `milestone.md` **M67**; primer **CV7** + 2 Part-D answers + 1 Part-E limitation;
-`session_journey.md` (git-ignored); this LIVE block.
+Docs (session 38): `RESULTS_AND_KPIS.md` **§87 Addendum** (6 items); `error_history_log.md`
+(2026-09-15, 2 defects + 1 explained artifact + a "what held" block); `session_journey.md`
+(git-ignored); this LIVE block.
 
-Artifacts (git-ignored, `data/triund_screening/`): `triund_dashboard.html` (published Artifact),
-`triund_screening.kml` (**475/475 placemarks carry the caveat**), `triund_screening.geojson`.
+Artifacts (git-ignored, `data/triund_screening/`): `triund_dashboard.html` — **republished
+2026-09-15** with the refreshed rainfall panel and a derived freshness stamp (terrain half
+byte-identical); `triund_screening.kml` (**475/475 placemarks carry the caveat**),
+`triund_screening.geojson` — both unchanged, terrain only.
 
-Machine state (outside git, unchanged): the Windows task **"InSAR Monsoon Watch Cycle" is
-Disabled**.
+Machine state (outside git): the Windows task **"InSAR Monsoon Watch Cycle" is Disabled**
+(unchanged). **WSL updated 2.6.3.0 → 2.7.13.0 (kernel 6.6.87 → 6.18.33) on 2026-09-15**; Docker
+Desktop starts and the container battery runs.
 
 ---
 

@@ -2259,3 +2259,70 @@ no battery to catch them — only arithmetic that had to be made to disagree wit
   in the exporter itself, so a future edit that drops it fails the build rather than shipping.
 * **`test_config_registry` 13/13** with the fourth AOI added — the guard that actually protects the
   registry did its job.
+
+---
+
+## 2026-09-15 — §87 addendum: refreshing the Triund nowcast (1 analysis defect, 1 disclosure defect, 1 artifact explained)
+
+*Session 38. No production behaviour changed; one new script (`workflows/triund_nowcast.py`) and
+one republished artifact. All three items below were found by the same move that found session 37's:
+making two derivations of one quantity disagree.*
+
+### 1. Historical comparison windows were a day short, biasing every anomaly high
+
+* **Symptom:** the new `triund_nowcast.py` reported the season at **+33%** and the trailing 10 days
+  as "wetter than **52%** of years". The session had already derived **+32%** and **44%** a
+  different way, an hour earlier.
+* **Root cause:** `daily()` treats its `end` as **exclusive** (it builds
+  `0 .. difference(end, start) - 1`). The current year was requested as `today + 1 day`, correctly
+  covering today. The historical loops were requested as the bare anniversary date
+  (`f"{y}-08-31"`, `f"{y}-09-14"`) — so history stopped a day earlier than the current window.
+  Every historical total was computed over **one fewer day** than the value being compared to it,
+  which biases the normal **low** and therefore the anomaly **high**.
+* **Fix:** an `excl()` helper that adds a day to any historical end date, with the reason in its
+  docstring so the next person does not "simplify" it away. Both loops now reproduce the
+  independently-derived figures exactly.
+* **Lesson:** this is the §79 rule — *a metric must travel with the identity of what it measured* —
+  in its most boring and most dangerous form. The two windows differed by **one day out of
+  92**, and it moved a headline anomaly by a full percentage point and a percentile by 8. **When
+  comparing a current window to a historical one, assert their lengths are equal**; do not infer it
+  from the date arithmetic looking symmetrical.
+
+### 2. ★ The page showed three rainfall products side by side without saying they disagree 3.5×
+
+* **Symptom:** the refreshed table put "1 Jun → 31 Aug (CHIRPS) **2,056 mm**" directly above
+  "1 Jun → 14 Sep (IMERG) **713 mm**". Different products, different spans, adjacent rows, no note.
+* **Why that is a defect and not a cosmetic issue:** a reader comparing those two rows would
+  reasonably conclude the season eased off in September — the IMERG figure covers **two more weeks**
+  and is **a third of the size**. The real explanation is instrumental. Measured over the *same* 92
+  days and the same polygon: IMERG **582 mm**, ERA5-Land **832 mm**, CHIRPS **2,056 mm** — the
+  wettest reads **3.5×** the driest, because passive-microwave retrieval misses orographic rain
+  forced up a steep wall while CHIRPS blends in gauges sitting in it.
+* **Fix:** the spread is computed by the nowcast script and rendered in the same table, so the rows
+  cannot be read as comparable measurements.
+* **Lesson:** §87D had already recorded this limitation — as *"they disagree on how often it
+  rains"*. The measured statement is far stronger: *they disagree on how much rain there is, by a
+  factor of three and a half.* **A limitation recorded qualitatively is not the same as one
+  measured**; write the number down, or the mild version of the caveat is what survives into the
+  next artifact. Same family as §86: the caveat existed, in a form too weak to do its job.
+
+### 3. Explained, not fixed: a 0.1% difference between two CHIRPS code paths
+
+* **Symptom:** the same 92 CHIRPS days summed to **2,058 mm** one way and **2,056 mm** the other.
+* **Root cause:** not missing days (both returned 92) — 46 days differed by ≤0.5 mm each.
+  `reduceRegion(..., bestEffort=True)` silently raises the scale when a reduction would exceed the
+  pixel budget, and the two paths hand it differently-shaped images (a raw collection image vs a
+  one-image `sum()`), so it picks slightly different sampling.
+* **Disposition:** **left alone, deliberately.** 0.1% is immaterial against a 3.5× disagreement
+  between the products themselves, and forcing a fixed scale would trade a harmless artifact for a
+  real risk of an exceeded-budget abort. Recorded so the next person does not re-investigate it.
+* **Lesson:** *decide and record the disposition.* An unexplained 2 mm is a loose thread; an
+  explained 2 mm with a written reason for ignoring it is closed work.
+
+### What held
+
+* The nowcast script **asserts the terrain payload is byte-identical** before writing the dashboard,
+  and that guard passed on every run — the refresh genuinely touched only the weather.
+* The dashboard patcher's guards refused to let the stale sentence or the old masthead date survive.
+* `node --check` on the extracted page script after every patch — caught nothing, which is the point.
+* **Battery 16/16, 238 assertions in Docker**, identical to §86: the fourth AOI added no regressions.
