@@ -2329,7 +2329,7 @@ making two derivations of one quantity disagree.*
 
 ---
 
-## 2026-09-15 (later) — §87: a shipped regression that blanked most of the dashboard, and the check that would have caught it
+## 2026-09-15 (later) — §87: field exports + satellite layer (1 shipped regression, 2 build defects, 1 new guard)
 
 ### 1. ★★ An injected `const L` collided with a function-local `const L`, and 15 blocks rendered blank
 
@@ -2379,3 +2379,32 @@ Earlier in the session the in-app browser refused `file://` paths and the publis
 sign-in, so I fell back to static checks and published without ever seeing the page render. That
 fallback was the actual failure — *not being able to look is a reason to build a way to look, not a
 reason to proceed blind.* The harness is that way to look, and it runs headless in ~2 s.
+
+### 4. The KMZ exported ZERO cone polygons, and said so cheerfully
+
+* **Symptom:** `triund_trek.kmz : 0 cone polygons ... 8 kB zipped` — the script reported success.
+  Only the count gave it away.
+* **Root cause:** the rings in the published GeoJSON had **already** been simplified at 0.00025° when
+  it was built (median ring = **5 points**; 838 of 1,384 rings had ≤5). Running a second, *coarser*
+  Douglas-Peucker pass at 0.00035° collapsed them to two points, and the `len(r) < 4` sanity guard
+  then silently dropped every one. Compounding it: DP on a **closed ring** has a degenerate baseline,
+  because the first and last points coincide.
+* **Fix:** `simplify_ring()` — only touch rings above a point count, simplify the **open** chain then
+  re-close, and filter slivers by area (0.5 ha) instead of by point count. Result: 619 polygons.
+* **Lesson:** *ask what the upstream artifact already did to the data before doing it again.* A
+  second cleaning pass is not idempotent when the first one already took the geometry to its floor.
+  And a guard that drops bad input must say how much it dropped — `0 polygons` next to the word
+  "wrote" is a success message describing a total failure.
+
+### 5. `np.polyfit` tripped the native exit-127 BLAS crash
+
+* **Symptom:** the layer-building script exited **127 with zero output** — the signature
+  `SESSION_REVIEW` §2 documents for the Windows BLAS DLL failure.
+* **Root cause:** `np.polyfit` calls LAPACK. Everything else in that script (rasterio, PIL, pyproj,
+  plain numpy arithmetic) is fine natively; the least-squares solve is not.
+* **Fix:** the mapping being solved was **exactly affine**, so least squares bought nothing — two
+  well-separated points give the coefficients in closed form, with the residual across all 12
+  waypoints checked afterwards (0.0000 px). No LAPACK, and a stronger check than the fit itself.
+* **Lesson:** reach for the general tool last. When the relationship is exact, a closed form is both
+  faster and portable — and it leaves the residual free to serve as an independent assertion instead
+  of being consumed by the fit.

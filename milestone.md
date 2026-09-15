@@ -2706,3 +2706,86 @@ actually stop your trek, so it's now the first item on your list.
 a route profile and a Google Earth file where **every one of the 475 shapes carries its own "this
 is a screen, not a warning" note**; and the lesson from the report is one to keep — *when you audit
 a summary, read its sources, not just its sentences.*
+
+---
+
+## 🎒 Milestone 68 — The map came off the desk and into a pocket — and we shipped a broken page on the way  *(2026-09-15)*
+
+**What we set out to do.** Two things, eleven days before the trek. First, close the last loose end
+from last time: two test files that refused to run on Windows. Second, answer a plain question —
+*can I actually take this up the mountain?*
+
+**The loose end closed in about a minute.** You updated WSL and started Docker; both files passed
+immediately, and the full set came to **16 of 16, 238 checks**. That is the same total as before the
+Triund area was added, which is the reassuring part: a fourth mountain broke nothing. The earlier
+failures were never real — the machine simply could not run those two files, exactly as diagnosed.
+
+### Then the part that actually mattered: the rain had moved
+
+The Triund page is *live*, and its weather half was **eight days old with the walk eleven days
+away**. The landscape half never goes stale — hills do not move — but the weather does, so we
+refreshed it.
+
+The season turns out to be **wetter than the page said**: about a third above normal, with August
+alone roughly **40% above**. The satellites also recorded rain heavy enough to cross the
+landslide-trigger line on **seven of the last twenty-one days**, most recently the day before we
+looked.
+
+**And here is where we nearly fooled ourselves.** Within this year, the last ten days were the wettest
+stretch since mid-July — which reads like something building. So we checked that ten-day window
+against *the same ten days in every year since 2001*. It comes out **wetter than only 44% of them** —
+below the middle. In other words: **a wet season, yes; an ordinary mid-September, also yes.**
+Reporting only the within-year trend would have manufactured an alarm out of perfectly normal
+weather. A trend inside one season is not a finding until you rank it against other seasons.
+
+### A caveat we already had, which turned out to be far too polite
+
+We had written down that our rain products "disagree about how *often* it rains here". True — and
+much too mild. Measured over the **same 92 days and the same ground**, they disagree about **how
+much**:
+
+> IMERG **582 mm** · ERA5-Land **832 mm** · CHIRPS **2,056 mm**
+
+**The wettest reads three and a half times the driest.** It is not a bug: satellites miss rain forced
+up a steep wall, while the third product blends in rain gauges standing in it. But the page had been
+showing two of those numbers in adjacent rows with nothing to say they were not comparable — a reader
+could easily conclude the season had eased off. It now states the spread outright. The lesson is
+uncomfortable and general: **a caveat written vaguely is the version that survives.** Write the
+number down.
+
+### Taking it up the hill
+
+You asked for three things, and all three exist now:
+
+- **A satellite view** of the area, switchable with the shaded relief, so you can recognise the
+  meadow, the treeline and the bare rock wall. Honest limit, stated on the page: at this resolution a
+  footpath is a fraction of one dot, and most of the climb is under trees. It shows you the
+  landscape, not the path.
+- **GPS files.** One for the route and markers — including a marker at the **start and end of every
+  exposed stretch** — which loads into Gaia, OsmAnd, AllTrails and the rest. A second carrying the
+  hazard shading itself, which the first format simply cannot hold. And a **georeferenced** version of
+  the hazard map: drop it into an app like Avenza and your own dot moves across the real coloured
+  map, offline, with no signal needed.
+- **A printed card.** One A5 side — measured, not guessed, at 169.6 mm of the 192 mm available. Every
+  exposed stretch and gully in the order you meet them, with the three rules stated once at the top
+  instead of repeated twenty-two times. It works with a dead battery, which is the entire point.
+
+### And then we broke the page
+
+Adding the satellite layer introduced a name that clashed with one already inside the map code. The
+result was not a visible error — it was **silence**: the map, the elevation profile, and thirteen
+other blocks simply rendered blank. **Twenty-seven items drew where six hundred and thirty-four
+should have.** You found it. No check of ours did.
+
+That is the honest failure of the session, and the reason why is worth keeping. We *had* been running
+checks after every change — and they all passed, because they were the wrong kind. They confirmed the
+file was well-formed: brackets balanced, sections closed, images intact. None of them ever **ran** the
+page. We had been inspecting the recipe and never tasting the food.
+
+So there is now a check that actually runs it and confirms every part of the page filled in — and
+before trusting it, we deliberately re-broke the page to make sure it *fails*. A test that has only
+ever seen working input has not been tested.
+
+**Bottom line:** the screening is now something you can carry, in four formats, each one still
+stating plainly that it is a screen and not a warning. The weather half is current to the day before
+we looked. And the page works — which we can now prove by running it, rather than by hoping.

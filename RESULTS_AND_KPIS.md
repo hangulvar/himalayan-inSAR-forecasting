@@ -4688,6 +4688,42 @@ spread.)*
 before writing. Exists because §87's refresh lived in a per-session scratchpad that was wiped, and
 the LIVE block now recommends re-running it ~2 days before the trek.
 
+**7. The screening left the desk — a field-artifact set, on the user's ask.** All derived from the
+published GeoJSON, so nothing was re-measured:
+
+| artifact | contents | size |
+|---|---|---|
+| `triund_trek.gpx` | route as one track (1,086 pts) + **45 waypoints** — every named landmark, the **START and END of all 11 flagged segments**, all 11 gully crossings | 74 kB |
+| `triund_trek.kmz` | **619 cone polygons** (sliver-filtered at 0.5 ha) + trail + segments + points | 68 kB |
+| `triund_hazard_{satellite,relief}.tif` | **georeferenced** hazard maps; live GPS position on the real cone map, offline (Avenza-class apps) | 1.6 / 1.2 MB |
+| `triund_field_card.html` | one **A5** side, **measured at 169.6 mm of 192 mm usable**, 22 distance-ordered rows | 10 kB |
+
+Caveat audit holds on every one: **45/45 GPX waypoints and 658/658 KML placemarks** carry the
+screening caveat (rule 17). GPX has no polygon type, so the cone *areas* cannot travel in it — the
+segment entry/exit waypoints are the recorded substitute, not an oversight.
+
+**8. A satellite base was added to the map, and the page got SMALLER.** Sentinel-2 true colour
+(mid-Sep–Oct composite 2023–25, 10 m) on the **same grid**, with SAT/CONE toggles. The pixel
+transform was *solved from the dashboard's own 12 waypoints* and verified at **0.0000 px residual**
+before any overlay was drawn. Splitting the baked-in raster into three switchable layers
+(relief / satellite / cones) **cut the page 1.34 → 1.07 MB** despite the extra imagery.
+**Stated limit, on the page:** at 10 m a foot trail is a fraction of a pixel and most of the climb is
+under canopy — the imagery is for recognising landscape, never for following the path.
+
+**9. ★★ A regression shipped that blanked most of the dashboard, and every check I had was of the
+wrong kind.** The satellite patch injected a top-level `const L`; the map function already declared
+its own `const L` (the legend array) later in the same scope, so the earlier reference hit the
+temporal dead zone and threw. One `<script>` means one throw kills everything after it:
+**27 elements rendered instead of 634, and 15 render targets left empty** — the map and profile the
+user reported, plus the segment table, gully table, band key, verification ledger, both needs lists,
+the rainfall panel and the footer. **`node --check` passed after every patch, because it parses
+rather than executes**; the tag-balance, id-presence and base64-decode checks passed too, because
+the *markup* was fine and only the *behaviour* was broken.
+**New guard — `workflows/check_dashboard_render.py`:** runs the page against a DOM stub and fails on
+a thrown error, an empty target, or fewer than 300 elements drawn. **Validated in both directions
+before being trusted** — passes the fixed page (634 elements, 0 empty), fails a deliberately
+re-broken copy naming the exact line and all 15 blank targets.
+
 **Unchanged by all of this:** no soil pass, no inventory, no FS map, **no AUC** — §87's central
 caveat stands. The terrain findings (climb 100% inside a cone, 51.7% LIKELY, worst run 1,525 m at
 2469–2743 m) are untouched; only the weather moved.

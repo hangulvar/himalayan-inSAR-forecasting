@@ -2209,6 +2209,21 @@ records *why* radar cannot help so nobody re-asks, and every one of the 475 expo
 it is a screen rather than a warning. The useful framing: **the deadline constrains which
 instruments are admissible, not how confident you are allowed to sound.** (§87.)
 
+**Q: Your tool generates an interactive artifact. How do you know it works before you ship it?**
+A: By running it, which is not what I did — and it cost me. A page of ours that builds itself in
+JavaScript shipped with **15 of its blocks blank**, because an injected `const L` collided with a
+function-local `const L` and the temporal-dead-zone error killed every block after it in the same
+`<script>`. **27 elements rendered instead of 634.** The instructive part is what had passed:
+`node --check` after every patch (it *parses*, it does not execute — a TDZ error is valid syntax),
+tag-balance checks, element-id presence, and base64 payload decoding. All green, because the
+*markup* was fine and only the *behaviour* was broken. **I had verified the artifact's source and
+never its result.** The fix is a harness that executes the page against a minimal DOM stub and
+asserts every render target filled, plus a floor on elements created — so a page that throws on the
+first line cannot pass an "error is null" check with nothing drawn. And the harness was validated in
+**both** directions before being trusted: it passes the fixed page and fails a deliberately
+re-broken copy, naming the line. The general rule: **for generated artifacts, "well-formed" and
+"works" are different claims, and only one of them is what the user sees.** (§87 addendum 9.)
+
 **Q: How do you handle an AI-generated research document as an input?**
 A: As an untrusted lead generator, never as a source — we have been burned twice. The procedure is
 to extract each claim, re-derive it or trace it to a primary source, transcribe only the verified
@@ -2233,9 +2248,14 @@ Being able to state weaknesses is what makes you credible.
   runout cone answers *"could a block physically reach here"* and never *"will one"*, and it models
   no block size, no bouncing, no forest braking and no barriers; (b) the rainfall context comes from
   products at 0.05°–0.1° (≈5–11 km) over a scarp **3.5 km wide**, so all three see this mountain
-  wall as one or two pixels — CHIRPS and IMERG disagree on how often the trek date is wet (31% vs
-  60% of years), and **that spread is the honest answer**, not a number to average away. The site
-  is decision support for one walk; it must never be cited alongside the scored sites.
+  wall as one or two pixels. **Measured 2026-09-15 (§87 addendum), and it is worse than first
+  written:** over the *same 92 days and the same polygon*, IMERG reads **582 mm**, ERA5-Land
+  **832 mm** and CHIRPS **2,056 mm** — **the wettest is 3.5× the driest**, because passive-microwave
+  retrieval misses rain forced up a steep wall while CHIRPS blends in gauges sitting in it. The
+  original framing of this caveat ("they disagree on how *often* it rains — 31% vs 60% of years") was
+  true but far too mild, and **the mild version is what survives into the next artifact unless you
+  write the number down.** That spread *is* the honest answer, not something to average away. The
+  site is decision support for one walk; it must never be cited alongside the scored sites.
 
 - **★ The sharpest map (the ALERT footprint) is NOISE-LIMITED on short radar series — and we found
   this the honest way (§78 / Milestone 60 correction).** A routine radar refresh took Vaishno Devi's
