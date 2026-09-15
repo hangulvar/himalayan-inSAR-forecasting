@@ -1,0 +1,44 @@
+{
+ "type": "FeatureCollection",
+ "properties": {
+  "name": "Triund - Dhauladhar trekking corridor",
+  "source": "config/aoi/Triund AOI.kml (user-drawn, Google Earth); vertices unchanged",
+  "area_km2": 32.8
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Triund AOI",
+    "kind": "aoi"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       76.30653621066534,
+       32.25477210302319
+      ],
+      [
+       76.32913928403097,
+       32.22948212434721
+      ],
+      [
+       76.40661247505794,
+       32.28030115206057
+      ],
+      [
+       76.38430111239131,
+       32.30629885054368
+      ],
+      [
+       76.30653621066534,
+       32.25477210302319
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

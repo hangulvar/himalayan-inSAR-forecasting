@@ -1663,6 +1663,46 @@ versions — and every file carries the underlying map's own verdict, computed f
 
 ---
 
+## CV7. Screening a whole landscape — the cone as a raster, and calibrating a threshold against its own terrain
+
+CV5 sweeps the energy line out from **one source polygon** you already suspect. A trekker's question
+is the other way round: *"I am walking this line — what is above me, anywhere along it?"* There is no
+polygon to start from, so the source has to be found first and the cone computed **everywhere at
+once** (Milestone 67).
+
+**Turning the reach rule into a field.** Target *t* is inside the θ-cone of source *s* when
+
+> z\_s − tan(θ) · dist(s,t) ≥ z\_t
+
+Taking the best source for every target, define **G\_θ(t) = max\_s [ z\_s − tan(θ)·dist(s,t) ]**. Then
+the cone is simply **G\_θ ≥ z**. G is a *max-plus distance transform* — the same shape as an ordinary
+distance transform, with "add the cost" replaced by "subtract the height a block can still spend" —
+and it computes in a few raster sweeps instead of one pass per cliff. **Everyday analogy:** flood-fill
+a map with a budget that drains as you walk; wherever you still have budget left when you arrive,
+a rock does too.
+
+**One physical correction CV5 explicitly lacked.** CV5 notes its cone "ignores … intervening ridges".
+Here the sweep only propagates **downhill** (a receiving cell must sit below the donor), so a cone
+cannot climb over a ridge and reappear in the next valley. That makes the result *more conservative*
+than the raw geometry — and because an approximation that quietly became *less* conservative would be
+a safety bug, it is checked: against exact brute force over every source cell on 400 random cells,
+the sweep agreed on 285, was **more** cautious on 77 (the ridges), and over-reached on **zero**.
+
+**The threshold lesson — calibrate against the distribution, not the textbook.** The obvious source
+rule is "steeper than 40°". In the Dhauladhar that flagged **61% of the trail** as top-band, because
+the AOI's *median* slope is already 34° and 31% of it exceeds 40°. A screen that flags most of its
+domain has found **terrain, not risk**. Sources became *slope ≥ 45° **and** not tree-covered* — an
+exposed rock face, which is what actually detaches — cutting sources to 8.5% of the area and finally
+separating the legs of the walk from one another. **The general rule: before trusting any threshold,
+plot the distribution of the quantity you are thresholding.**
+
+🔗 **In our project: Milestone 67 / §87 (Triund).** The climb from Galu Devi to Triund is **100%
+inside some cone** with zero clear metres; the approach below the checkpost and the stretch above
+Snowline are entirely clear. The longest continuous exposed run independently reproduced the
+elevation band local guides call the "22 Curves" — found from the landscape, not from the guidebook.
+
+---
+
 # Part D — Interview Prep: Likely Questions & Confident Answers
 
 Short, honest answers you can give without hand-waving.
@@ -2158,9 +2198,44 @@ per file**, and any directive wording ("read these first") must be *derived* fro
 than typed. It is the same discipline as computing "beats chance" from the AUC instead of
 asserting it (§79), applied to the export format. (§86.)
 
+**Q: A user asks for an answer by a date your instrument cannot meet. What do you do?**
+A: Say so first, then deliver what the remaining data honestly supports. A trekker asked for a
+landslide screening for a specific date; our radar needs **2–3 months of repeat passes** for a
+movement baseline and the area was **19 days old**, so radar could contribute nothing. The failure
+mode to avoid is delivering a terrain-and-weather product that *looks* like our validated ones and
+silently inherits their credibility. So that site's output carries no Factor-of-Safety map and **no
+AUC at all** — "not measured" is published as a first-class answer (§79's rule), the registry file
+records *why* radar cannot help so nobody re-asks, and every one of the 475 exported shapes states
+it is a screen rather than a warning. The useful framing: **the deadline constrains which
+instruments are admissible, not how confident you are allowed to sound.** (§87.)
+
+**Q: How do you handle an AI-generated research document as an input?**
+A: As an untrusted lead generator, never as a source — we have been burned twice. The procedure is
+to extract each claim, re-derive it or trace it to a primary source, transcribe only the verified
+subset, and **record the exclusions explicitly** as immunization records. On the most recent one the
+pattern was consistent: sound where it paraphrased geology, wrong or unsupported where it reached for
+specifics. Its September rainfall figure was **2.3× too low** for the site (a district average that
+includes the plains) — and that single number was what its "safe window" conclusion rested on; a
+dramatic casualty figure traced back to a source stating a fifth of it; and two footnotes did not
+support their sentences at all. The sharpest lesson was the opposite of scepticism, though: **read
+the sources, not just the sentences.** The single most decision-relevant fact — a standing order
+requiring police permission for the route — was sitting in its bibliography, cited but unread. (§87.)
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.
+
+- **★ One registry site publishes a product with NO validation score at all, deliberately (§87).**
+  Triund was onboarded to answer a trekking question with a fixed date, and radar could not
+  contribute in time (a movement baseline needs 2–3 months; the site was 19 days old). It therefore
+  has **no soil pass, no local landslide inventory, no Factor-of-Safety map and no AUC** — the
+  terrain and rainfall screen is all there is. Two consequences worth stating plainly: (a) its
+  runout cone answers *"could a block physically reach here"* and never *"will one"*, and it models
+  no block size, no bouncing, no forest braking and no barriers; (b) the rainfall context comes from
+  products at 0.05°–0.1° (≈5–11 km) over a scarp **3.5 km wide**, so all three see this mountain
+  wall as one or two pixels — CHIRPS and IMERG disagree on how often the trek date is wet (31% vs
+  60% of years), and **that spread is the honest answer**, not a number to average away. The site
+  is decision support for one walk; it must never be cited alongside the scored sites.
 
 - **★ The sharpest map (the ALERT footprint) is NOISE-LIMITED on short radar series — and we found
   this the honest way (§78 / Milestone 60 correction).** A routine radar refresh took Vaishno Devi's

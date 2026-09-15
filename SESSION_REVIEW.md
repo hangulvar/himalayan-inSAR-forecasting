@@ -11,72 +11,81 @@
 
 ---
 
-# LIVE — Session 36 · branch `aoi-vaishnodevi` · updated 2026-08-14
+# LIVE — Session 37 · branch `aoi-vaishnodevi` · updated 2026-09-07
 
 ## Current state
 
-- **★★ Adversarial audit run against our own product (§86).** Probed, not reviewed: real HTTP
-  requests at the control panel, hostile values through every renderer, and the exported files
-  opened the way a user opens them. **6 defects found and fixed; 2 of the 6 were ours, both from
-  §84.**
-- **★★ The most important finding was NOT security — our honesty stopped at the page boundary.**
-  A map that scores below chance exported to Google Earth showed a confident ranked hazard popup
-  with no verdict and no caveat, under a folder captioned "read these first". §84 had stamped the
-  verdict on the *file*; users click *features*. Every placemark now carries the map standing +
-  "decision support, not a warning system" — **609 audited, 100%** — and directive wording is
-  derived from the score.
-- **★★ Three real security defects closed:** CSRF on `POST /run` (proven: an `evil.example.com`
-  origin started a job), no `Host` validation (DNS rebinding could read all of `data/`), and a
-  stored XSS in the affected-area card. The XSS matters because the panel serves these pages from
-  the **same origin as its job-launching API**.
-- **★ A fabricated provenance claim was one AOI away from shipping.** `site_notes` was
-  `if ramban: … else: <Vaishno Devi's text>`, so Tosh would have published VD's soil-literature
-  claim while silently running Ramban's soils. Now a per-site table + a derived fallback that says
-  the opposite. Found by asking "what does a THIRD site render?".
-- **★ What HELD UP is recorded too (§86 A):** 13 path-traversal vectors refused, the NTFS junction
-  refused, action/AOI whitelisting with argv-as-list (no shell), and zero host paths / usernames /
-  secrets across 18 publishable artifacts.
-- **★ Standing rules added — `CLAUDE.md` §6 items 17–19:** an artifact that leaves the page carries
-  caveats per feature; a rule with a test on feature A does not protect feature B; "it only listens
-  on localhost" answers the network threat, not the browser one (+ hunt per-site hardcodes in
-  two-branch conditionals).
-- **Battery 229 → 238 green across 16 suites** (+9 guards, incl. two negative controls); flood
-  freeze intact.
-- **⚠ Deliberately NOT done: a Content-Security-Policy on served files.** The 3-D dashboard loads
-  Plotly from a CDN and every page uses inline scripts, so a strict CSP would break the artifacts
-  it is meant to protect. Took the three free headers instead; CSP belongs to a future hosted
-  deployment, where the CDN question must be answered anyway.
+- **★★ AOI #4 — Triund (Dhauladhar) — onboarded to playbook step 2, and used immediately to answer
+  a user question with a DATE on it** (trek on 26 Sep 2026). Full numbers: `RESULTS_AND_KPIS.md`
+  **§87**. Polygon verified against 12 OSM-authoritative waypoints (12/12 inside) and the **tightest
+  in the registry**; DEM validated against surveyed spot heights before anything was built on it.
+- **★★ This is the first registry site that publishes a product with NO validation score, on
+  purpose.** Radar could not contribute — a velocity baseline needs 2–3 months and the AOI was 19
+  days old — so the deliverable is terrain + rainfall only: **no soil pass, no inventory, no FS map,
+  no AUC.** The registry file records *why* radar cannot help so nobody re-asks. It must never be
+  cited alongside the scored sites.
+- **★ New method: the runout cone as a whole-landscape raster** (§87C, primer **CV7**). CV5's energy
+  line swept from one polygon; this computes every cone at once as a max-plus chamfer transform,
+  **restricted to downhill propagation so a cone cannot climb a ridge** — the gap CV5 explicitly
+  named. Validated against exact brute force: **0 cells where it over-reaches**, 77 where it is more
+  cautious. The approximation is provably conservative.
+- **★ The headline for the user:** the Galu Devi → Triund climb is **100% inside some cone, zero
+  clear metres**; the longest continuous exposed run independently reproduces the elevation band
+  local guides call the "22 Curves". The approach below the checkpost and the stretch above Snowline
+  are entirely clear (§87C).
+- **★ An AI-generated risk report supplied by the user was verified line by line — §36–§38 repeated
+  exactly** (§87E). Sound on geology; its September rainfall figure is **2.3× low** for this AOI and
+  is what its "safe window" verdict rests on; two events excluded as unsupported; two citations do
+  not support their sentences. **The most decision-relevant fact was cited but unread** — a standing
+  6 Jan 2026 Kangra DDMA order requiring SP permission for the Triund route and banning trekking
+  above 3,000 m. Lesson recorded: *when auditing a synthesis, read its sources, not its sentences.*
+- **6 defects logged, all mine, none in production code** (`error_history_log.md` 2026-09-07). The
+  serious one: distance along the trail summed **chords** between 25 m samples, under-measuring the
+  route **8%** — ~400 m of error heading into a file a person carries up a mountain. Caught only
+  because two code paths disagreed on one percentage. Also: a 61%-flagging source threshold that
+  discriminated nothing, and a waypoint narrated from memory that put the summit 0.9 km off.
+- **Battery: 14/16 suites green natively.** `test_flood_gate` + `test_tier34` cannot run natively
+  (documented matplotlib **exit 127, zero output**) — Docker was down and deliberately not started
+  (§85 / CLAUDE.md 16). **`test_config_registry` 13/13** with the fourth AOI, which is the guard that
+  actually protects the registry. **These two suites still owe a Docker run.**
 - **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
-  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two). **§86 adds one:** our
-  honesty is only as portable as the file it is written on. **⚠ Standing:** §52 2 inventory rows;
-  §66 LOW web findings; Ramban's staleness warning + deferred §61 rescore; Tosh blocked on soil
-  pass (M2), inventory (M4) and your credit decision.
+  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two; §86's portability limit).
+  **§87 adds one:** a site whose rainfall context comes from 5–11 km products over a 3.5 km-wide
+  scarp — CHIRPS and IMERG disagree on P(wet) 31% vs 60%, and that spread *is* the answer.
+- **⚠ Standing:** §52 2 inventory rows; §66 LOW web findings; Ramban's staleness warning + deferred
+  §61 rescore; **Tosh still blocked on soil pass (M2), inventory (M4) and your credit decision —
+  now the recommended next step for a third consecutive session.**
 
 ## Recommended next step
 
-**Unchanged — this was a hardening round, not a science one.**
+**Unchanged, and now overdue — Tosh is the bottleneck, not Triund.**
 
-1. **Tosh M2 (site soil pass)**, then your go/no-go on ~34 HyP3 jobs. *(Note: the literature
-   search this session found no Parvati-specific geotechnical source — neighbouring districts
-   scatter from φ≈0 to 36° — so expect a bracketed, explicitly provisional pass.)*
+1. **Tosh M2 (site soil pass)**, then your go/no-go on ~34 HyP3 jobs. *(§86's literature search
+   found no Parvati-specific geotechnical source — neighbouring districts scatter φ≈0–36° — so
+   expect a bracketed, explicitly provisional pass.)*
 2. **Susceptibility model as a CORROBORATOR** (§83) — elevation-ablated AUC is the headline.
-3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void
-   clearing.
+3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void clearing.
 
-**Do NOT:** re-enable the scheduled task without answering the missed-slot/Docker-down questions;
-add a CSP without deciding the CDN question; present VD's shapes as a warning product.
+**Triund needs nothing before 26 Sep** — the screening is what the data honestly supports. Its
+backlog (M2 soil, M3 ALOS DEM, M4 inventory, radar go/no-go) is next-season work.
+
+**Do NOT:** present Triund's screening as a validated product or quote an AUC for it; re-enable the
+scheduled task without answering the missed-slot/Docker-down questions; add a CSP without deciding
+the CDN question; present VD's shapes as a warning product.
 
 ## Uncommitted delta
 
-Code: `workflows/control_panel.py` (Host allowlist, Origin check on `/run`, hardening headers),
-`workflows/operational_alarm.py` (`_esc` on every card value; per-site note table + derived
-fallback), `workflows/exposure_footprint.py` (`feature_footer` on every placemark, derived folder
-label, `_live_text`), `workflows/build_3d_dashboard.py` (escaped site label + hover text),
-`tests/test_control_panel.py` (+3), `tests/test_exposure_footprint.py` (+6).
+Code: **none** — no production script changed this session.
 
-Docs: `RESULTS_AND_KPIS.md` **§86**; `error_history_log.md` (2026-08-14 adversarial, 6 entries);
-`CLAUDE.md` **§6 items 17–19** (git-ignored); `milestone.md` **M66**; primer (1 Part-D answer +
-1 Part-E limitation); `session_journey.md` (git-ignored); this LIVE block.
+New (untracked, to commit): `config/triund.yaml`, `config/aoi/triund_aoi.geojson`,
+`config/aoi/triund_route.geojson`.
+
+Docs: `RESULTS_AND_KPIS.md` **§87** (A–F); `error_history_log.md` (2026-09-07, 6 entries + a
+"what held" block); `milestone.md` **M67**; primer **CV7** + 2 Part-D answers + 1 Part-E limitation;
+`session_journey.md` (git-ignored); this LIVE block.
+
+Artifacts (git-ignored, `data/triund_screening/`): `triund_dashboard.html` (published Artifact),
+`triund_screening.kml` (**475/475 placemarks carry the caveat**), `triund_screening.geojson`.
 
 Machine state (outside git, unchanged): the Windows task **"InSAR Monsoon Watch Cycle" is
 Disabled**.
@@ -147,9 +156,11 @@ The core vision is fully built and scored above chance. Remaining work:
    `INSAR_CONFIG` env override (per-command AOI targeting for every script), soil parameters moved into
    config (`soil:` block — no more silent Ramban-default inheritance), `workflows/aoi_status.py`
    (multi-AOI stage/alarm dashboard + deterministic next step), `docs/runbooks/NEW_AOI_PLAYBOOK.md` (onboarding
-   runbook), `tests/test_config_registry.py`. **Registry holds THREE sites since 2026-08-11 —
-   `ramban`, `vaishnodevi` and `tosh` (upper Parvati Valley, §84); Tosh sits at playbook step 2,
-   blocked on its soil pass (M2), its inventory (M4) and the user's go/no-go on ~34 HyP3 jobs.**
+   runbook), `tests/test_config_registry.py`. **Registry holds FOUR sites since 2026-09-07 —
+   `ramban`, `vaishnodevi`, `tosh` (upper Parvati Valley, §84) and `triund` (Dhauladhar, §87).
+   Both new sites sit at playbook step 2: Tosh blocked on its soil pass (M2), its inventory (M4)
+   and the user's go/no-go on ~34 HyP3 jobs; Triund blocked on the same three plus M3, and
+   additionally the only site whose published product carries NO validation score by design.**
    ~~Fold the <150 m perpendicular-baseline gate into
    rescues~~ ✅ DONE 2026-07-13 (§43 — one standing f106 bridge measured 151 m; a better
    replacement is queued and applies at the next radar-cadence rebuild). Still: AOI guidance

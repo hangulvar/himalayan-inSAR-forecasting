@@ -1,0 +1,89 @@
+# ============================================================================
+# AOI: Triund - Dhauladhar trekking corridor (registry file)  [ONBOARDING, 2026-09-07]
+# ----------------------------------------------------------------------------
+# Created by NEW_AOI_PLAYBOOK.md steps 1-2. Everything below step 2 is still
+# OPEN - this site has no radar, no soil pass and no inventory, so nothing
+# downstream will produce a validated product until those land. Track with
+#   python workflows/aoi_status.py --aoi triund
+#
+# WHAT EXISTS TODAY (2026-09-07, session 37): a TERRAIN + RAINFALL screening
+# only, built from Copernicus GLO-30 and CHIRPS/IMERG/ERA5-Land via GEE - NOT
+# from this pipeline's radar/FS chain. It is decision support for one trek, not
+# a warning product, and it carries no AUC because there is no local inventory
+# to score it against. See RESULTS_AND_KPIS.md §87.
+# ============================================================================
+
+# --- Area of Interest -------------------------------------------------------
+# Traced from the user's Google Earth polygon (config/aoi/Triund AOI.kml),
+# vertices UNCHANGED. A 3.5 x 9.2 km strip (32.80 km2) running SW-NE along the
+# trekking corridor, from McLeod Ganj up the Dhauladhar scarp over Triund and
+# Laka to Indrahar Jot.
+#
+# PLACEMENT VERIFIED 2026-09-07 against 12 OSM-authoritative waypoints - all 12
+# fall INSIDE the polygon, including both ends of the corridor (Indrahar Jot
+# 0.59 km inside, Mun Peak 0.75 km inside). This is the best-drawn polygon in
+# the registry: 32.80 km2 vs Vaishno Devi 78.76, Ramban 413.42, Tosh 435.48.
+#
+# ONE MARGIN TO KNOW ABOUT: McLeod Ganj sits only 0.17 km inside the SW edge and
+# Bhagsu Nag 0.25 km inside. Those two are within one 80 m mosaic pixel plus
+# geocoding slop of the boundary, so treat any future product AT the town end as
+# edge-affected. The trek itself is unaffected - Galu Devi, the trailhead that
+# matters, is 1.15 km inside.
+aoi_path: config/aoi/triund_aoi.geojson
+
+site_name: Triund - Dhauladhar (McLeod Ganj / Galu Devi / Triund / Laka)
+
+# Operating points (operational_m / watch_m) and kappa are DELIBERATELY ABSENT:
+# they are swept per site against a local inventory (playbook step 9). Until
+# then the ramban-calibrated defaults (0.50 / 0.70, kappa 0) apply - which is
+# exactly why any early product from this site is provisional, not validated.
+
+# LLOF downstream flag: real D8 flow routing from the start (§60 4c).
+llof_routing: d8
+
+# HyP3 job-name prefix - unique per AOI; downstream steps filter on it.
+job_name_prefix: Triund_Dhauladhar
+
+# --- Catalog search window (inclusive), ISO dates ---------------------------
+# NOTE ON TIMING, so nobody mistakes what radar can do here: the user's trek is
+# 26 Sep 2026, and this AOI was created 2026-09-07. A velocity baseline needs
+# ~2-3 months of acquisitions BEFORE it says anything, so radar cannot inform
+# that trek. This window exists to make the site useful from the NEXT season on.
+search_start: 2026-04-01
+search_end: 2026-11-30
+
+# --- Soil shear-strength ----------------------------------------------------
+# INTENTIONALLY OMITTED (playbook step M2). Leaving this block out makes the
+# engine fall back to the Ramban §20 values, and §42 MEASURED what that gamble
+# costs: across the literature-plausible bracket the alert footprint swings
+# 0-118 zones, and failure depth z alone can erase the product.
+#
+# The Dhauladhar southern scarp is NOT the Ramban Murree sandstone-siltstone.
+# The corridor spans two units: the Tertiary Dharamshala Formation (sandstone /
+# siltstone / clay) at the McLeod Ganj-Dharamkot end, and the Precambrian Chail
+# Group (sheared phyllite, mica-schist, slate) over most of the climb. That
+# two-unit split is itself a reason the single-soil-block model needs a careful
+# pass here. Do the literature pass (GSI Kangra district reports; the Dharamshala
+# landslide-susceptibility literature) before trusting any FS map from this site.
+
+# --- Pair-network / baseline rules ------------------------------------------
+baseline:
+  max_temporal_baseline_days: 24
+  sbas_neighbors: 1
+  max_perp_baseline_m: 150
+
+# --- Connectivity-rescue policy (defaults; tune from this site's audit) ------
+rescue_gate:
+  max_atmos_r2: 0.45
+  min_coherence: 0.6
+  min_surviving_pct: 15
+
+exclude_from_rescue: []
+
+# No `period_split:` yet - that entry only exists for stacks whose network is
+# disconnected, which cannot be known until this site's radar is downloaded and
+# sbas_network_graph.py has run.
+
+# No `flood:` block - the flash-flood arm is OPTIONAL and stays fully OFF until
+# this site has a validated WHERE map to hang it on (tests/test_flood_
+# invariants.py R2 pins that an absent block writes nothing).

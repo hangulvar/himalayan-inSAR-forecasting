@@ -2150,3 +2150,112 @@ the renderers, real inspection of the exported files. What held up is in `RESULT
   state-changing endpoint owns the cleanup — asserting "it was accepted" and walking away leaves
   the fixture dirty for everyone after it (§6 #10's rule, applied to in-process state rather than
   to `data/`).
+
+---
+
+## 2026-09-07 — §87: Triund onboarding + trek screening (4 analysis defects, 2 process defects — all mine, all caught by a cross-check refusing to agree)
+
+*No production code changed this session; every defect below was in the analysis chain that
+produced the screening. That is exactly why they are logged: the artifacts were new, so there was
+no battery to catch them — only arithmetic that had to be made to disagree with itself.*
+
+### 1. ★ Distance along the trail summed CHORDS, under-measuring the route 8% — and it was heading into a field document
+
+* **Symptom:** the dashboard derived **47%** of the climb in the LIKELY band; the per-leg summary
+  computed **51.7%** for the same quantity. Two numbers, one question.
+* **Root cause (two faults stacked):**
+  1. `cum_m` accumulated the great-circle distance between consecutive **25 m samples**. On a
+     switchbacked trail those chords cut every corner, so the Galu Devi to Triund leg measured
+     **4.602 km against its true routed 5.011 km (-8.2%)**.
+  2. Because the leg was short, a `0 <= km <= 5.02` filter meant to select "the climb" silently
+     swept in **18 samples from the next leg**, diluting the percentage.
+* **Impact if shipped:** every *"km from Galu Devi"* in the segment table, the KML and the GeoJSON
+  was **~400 m short** — in the one artifact a person carries up the hill to locate a hazard. The
+  headline percentage was wrong by 5 points.
+* **Fix:** distance along the trail is now **arc length** (sample index x `STEP_M`, legs abutting at
+  their routed lengths), and "the climb" is selected **by leg name**, never by a km window. Leg
+  boundaries now reproduce the routed lengths exactly (0.000 to 5.000 km for a 5.011 km leg), and
+  the two independent methods agree (51.7% / 51.5%).
+* **Lesson:** *a derived coordinate is not a measurement.* Chord-summing is the default thing to
+  write and it is wrong on anything sinuous. And the tell was not an error — it was **two numbers
+  for one quantity**; the instinct to reconcile rather than pick is what caught it. Cf. §6 #2:
+  re-derive, don't paste — extended here to *don't re-derive a second way and then choose*.
+
+### 2. Sampling density tracked OSM vertex density, so every percentage was weighted by how well-mapped a path was
+
+* **Symptom:** the first per-leg table reported *"McLeod Ganj to Dharamkot 6.28 km"* for a leg the
+  router had just measured at **3.46 km**, and *"Galu Devi to Triund 12.97 km"* for a 5.01 km leg.
+* **Root cause:** the densifier emitted `max(int(d // step), 1)` points per **input segment**, so
+  every original OSM vertex produced a sample regardless of spacing. Densely-digitised paths got
+  many more samples per metre, and `len(samples) * 25 m` therefore measured *cartographic effort*,
+  not distance. The band percentages inherited the same bias.
+* **Fix:** true uniform arc-length resampling per leg.
+* **Lesson:** when a count is used as a proxy for a length, check it against an independently
+  computed length **before** reading any percentage off it. The routed lengths were sitting right
+  there in the previous log line and disagreed by 2x.
+
+### 3. The rockfall source rule flagged 61% of the trail and discriminated nothing
+
+* **Symptom:** first cone run put **61.2%** of all samples in the top band. Not obviously wrong —
+  just useless.
+* **Root cause:** sources were defined as *slope >= 40 deg* in terrain whose **median slope is
+  34.4 deg** and where 30.8% of cells already exceed 40 deg. Nearly every point has steep ground
+  above it, so the screen answered "yes" almost everywhere.
+* **Fix:** sources are *slope >= 45 deg **AND** not tree-covered* (ESA WorldCover) — an exposed rock
+  face, which is what actually detaches. Cut sources to 8.5% of the AOI and separated the legs:
+  the climb 100% exposed, Dharamkot to Galu Devi 0%, Snowline to Laka Deep 0%.
+* **Lesson:** a hazard screen that flags most of its domain has not found risk, it has found
+  *terrain*. Calibrate the threshold against the distribution of the thing you are thresholding.
+
+### 4. A waypoint narrated from memory put the trail's summit 0.9 km off
+
+* **Symptom:** the first routing returned **3.05 km** for Galu Devi to Triund, against a published
+  5-7 km.
+* **Root cause:** I supplied `32.260, 76.345` for "Triund top" from memory. The OSM-authoritative
+  node is `32.26218, 76.35429` — ~0.9 km east. The router faithfully found the shortest path to
+  the wrong place.
+* **Fix:** every waypoint re-sourced from the Overpass response; distances then matched published
+  figures on all three checkable legs (5.01 / 9.75 / 2.01 km).
+* **Lesson:** §6 #2 again, in its original form. The length check is what exposed it — *always
+  route to a coordinate you can cite, and validate the route against an external distance.*
+
+### 5. Process: complex Python through shell heredocs failed four times (a re-offense of CLAUDE.md §5)
+
+* **Symptom:** (a) a quoted heredoc died with *unexpected EOF while looking for matching quote*
+  after ~150 lines; (b) `sed -i` with the range `/WorldCover/,$d` matched the phrase in the
+  **module docstring** and deleted the entire script body — the rerun then printed only `done`,
+  silently doing nothing; (c) two `python -c` one-liners failed on backslashes/quotes inside
+  f-strings; (d) **this very log entry** could not be appended by heredoc, because its own text
+  contains backticks and quote pairs.
+* **Root cause:** exactly the rule already written in CLAUDE.md §5 — *"for anything multi-line,
+  write a scratch .py file instead of python -c"* — not followed.
+* **Fix:** all substantial scripts (and this appendix) written to the scratchpad with the file
+  writer and then run/concatenated by path.
+* **Lesson worth adding to the existing rule:** **an anchored `sed` range can match its own
+  docstring**, and **prose about shell quoting is itself unsafe heredoc content**. (b) was the
+  dangerous one — it produced a script that ran, exited 0, and printed a success line while having
+  deleted the work. Cf. §5's *"treat 'command produced no output' as a failure until proven
+  otherwise"*: here the output was *almost* right, which is worse.
+
+### 6. Process: an isolation test that put the artifact under test at risk
+
+* **Symptom:** to prove two suite failures pre-dated the new config, I ran
+  `mv config/triund.yaml /tmp/... && <tests> && mv back`. The restore reported
+  *cannot stat the backup* — leaving it unclear whether the file I had just authored still existed.
+* **Root cause:** a throwaway verification that mutates the thing being verified, across a
+  filesystem boundary (Git Bash `/tmp` vs the OneDrive working tree), with no copy.
+* **Outcome:** the file was intact (verified by size, mtime, re-parse and `test_config_registry`
+  13/13), and the two failures were separately confirmed as the documented native matplotlib
+  exit-127 crash — **zero output, both suites**, which is that bug's signature.
+* **Lesson:** never `mv` the artifact under test to prove a negative. Copy, or better, reason from
+  the import chain. A verification step that can destroy the work is not a verification step.
+
+### What held (recorded so the next session does not re-litigate it)
+
+* **The cone raster was validated against exact brute force** on 400 random cells over all 14,032
+  source cells: 285 identical, 77 where the downhill-restricted sweep is *more* cautious,
+  **0 where it over-reaches**. The approximation is provably conservative.
+* **KML caveat audit: 475/475 placemarks** carry the screening caveat (CLAUDE.md rule 17), asserted
+  in the exporter itself, so a future edit that drops it fails the build rather than shipping.
+* **`test_config_registry` 13/13** with the fourth AOI added — the guard that actually protects the
+  registry did its job.

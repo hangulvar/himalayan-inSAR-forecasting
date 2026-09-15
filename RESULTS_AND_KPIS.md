@@ -4476,6 +4476,148 @@ on feature A does not protect feature B.
 
 ---
 
+## 87. AOI #4 (Triund, Dhauladhar) onboarded to step 2, and a terrain/runout screening delivered for a dated trek — plus a line-by-line verification of an AI-generated risk report  `[MEASURED]`
+
+*(2026-09-07, session 37. User request: validate a new AOI, screen landslide risk on the ridges
+and trail for a trek on **26 Sep 2026**, visualise the runout cone, and verify an attached
+AI-generated report. Produced natively — Docker was down and deliberately not started
+(standing preference, §85/CLAUDE.md 16). Sources: Copernicus GLO-30 (`GLO30_2024_1`), ESA
+WorldCover v200, OpenStreetMap/Overpass, CHIRPS + GPM IMERG V07 + ERA5-Land via GEE.)*
+
+**What this section is NOT.** No radar, no site soil pass, no local inventory ⇒ **no velocity, no
+FS map, and no AUC.** Every number below is terrain or weather. This is the first site in the
+registry whose product is *deliberately* unvalidated, and it must never be cited as one that scored.
+
+### A — The polygon (playbook M1/step 1): the best-drawn one in the registry
+
+| AOI | area | vertices | valid / CCW |
+|---|---|---|---|
+| **Triund** | **32.80 km²** (3.5 × 9.2 km) | 4 | ✅ / ✅ |
+| Vaishno Devi | 78.76 km² | 4 | ✅ |
+| Ramban | 413.42 km² | 4 | ✅ |
+| Tosh | 435.48 km² | 5 | ✅ |
+
+**Placement verified against 12 OSM-authoritative waypoints — 12/12 inside**, including both ends
+(Indrahar Jot 0.59 km inside, Mun Peak 0.75 km). **One margin recorded:** McLeod Ganj sits
+**0.17 km** inside the SW edge and Bhagsu Nag 0.25 km — within one 80 m pixel plus geocoding slop,
+so any future product is edge-affected *at the town end only*; Galu Devi is 1.15 km inside.
+
+**DEM validation gate (run before anything was built on it).** Copernicus GLO-30 vs independently
+published spot heights:
+
+| point | DEM | published | Δ | source of the published value |
+|---|---|---|---|---|
+| Indrahar Jot | 4331 m | 4342 m | **−11** | OSM `ele` + Wikidata Q6026874 |
+| Triund Hill (peak) | 3234 m | 3240 m | −6 | OSM `ele` |
+| Triund ridge camp | 2833 m | 2828 m | +5 | widely published *(weak)* |
+| Jogiwara | 1626 m | 1610 m | +16 | OSM `ele` |
+| Jwala hut | 2436 m | 2454 m | −18 | OSM `ele` |
+| Mun Peak | 4570 m | 4650 m | −80 | OSM `ele` — peaks smooth at 30 m, expected |
+
+`GLO30` and `GLO30_2024_1` are **bit-identical over this AOI**; the 2024 asset is used.
+
+### B — The trail, graph-routed (not eyeballed)
+
+Shortest path on the OSM footpath graph (8,441 nodes / 8,421 edges) between OSM-named waypoints:
+
+| leg | routed | published figure |
+|---|---|---|
+| Galu Devi → Triund | **5.01 km** | ~5–7 km ✅ |
+| McLeod Ganj → Triund | **9.75 km** | ~9 km ✅ |
+| Triund → Snowline | **2.01 km** | ~2 km ✅ |
+| Snowline → Laka Deep | 0.93 km | — |
+
+### C — The runout cone (the headline)
+
+Energy-line / shadow-angle bands (Heim 1932; Evans & Hungr 1993), the same bands
+`workflows/rockfall_runout.py` uses, computed as a max-plus chamfer transform **restricted to
+downhill propagation** so a cone cannot climb an intervening ridge. **Sources = slope ≥ 45° AND not
+tree-covered** (14,032 cells, 8.5% of AOI, 12.63 km²) — the cover test is what makes it
+discriminating: an earlier rule of *slope ≥ 40° regardless of cover* put 61% of the trail in the
+top band in terrain whose median slope is already 34.4°.
+
+| band | AOI area | % of AOI |
+|---|---|---|
+| LIKELY (≥32°) | 50.34 km² | 33.8% |
+| POSSIBLE (≥27.5°) | 65.08 km² | 43.7% |
+| MAX-SHADOW (≥22°) | 79.17 km² | 53.2% |
+
+**Trail exposure, distance-weighted over uniform 25 m samples:**
+
+| leg | routed | LIKELY | clear |
+|---|---|---|---|
+| McLeod Ganj → Dharamkot | 3.46 km | 0.82 km (24%) | 1.27 km |
+| Dharamkot → Galu Devi | 1.28 km | 0.00 km (0%) | **1.30 km (all)** |
+| **Galu Devi → Triund** | **5.01 km** | **2.60 km (51.7%)** | **0.00 km** |
+| Triund → Snowline | 2.01 km | 0.53 km (26%) | 0.85 km |
+| Snowline → Laka Deep | 0.93 km | 0.00 km (0%) | 0.88 km |
+
+**★ The climb from Galu Devi to Triund is 100% inside some runout cone — zero metres clear.**
+Longest continuous LIKELY run: **1,525 m at 2469→2743 m**, which independently reproduces the
+elevation band the attached report calls the *"22 Curves"* (our hairpin detector spans 2458–2815 m).
+
+**Validation of the cone raster itself (400 random cells vs exact brute force over all 14,032
+sources):** 285 identical band, 77 where the sweep is **more** cautious (the downhill restriction,
+expected), **0 where it claims more reach than the exact energy line**. The map is never more
+generous than the physics.
+
+**Drainage (D8 from `flow_routing_probe.d8_accumulation`, the test-pinned function):** the three
+largest crossings (0.71 / 0.43 / 0.27 km² upstream) are all on the **Bhagsu–Dharamkot approach**,
+not the climb — the 0.71 km² one is the Bhagsu Nag stream that flash-flooded in July 2021. The
+climb's largest is 0.26 km² at 2469 m, coinciding with the start of the worst LIKELY run.
+
+### D — Rainfall: the trek window, measured over this polygon
+
+CHIRPS 1991–2020 AOI-mean monthly normals: **Jul 604 / Aug 662 / Sep 247 mm; annual 2,140 mm.**
+
+| trek-window statistic (26 Sep ± 5 d) | value |
+|---|---|
+| P(rain ≥ 1 mm on 26 Sep) | **31% CHIRPS / 60% IMERG** (n=35 / 25 yrs) |
+| P(≥ 20 mm) · P(≥ 50 mm) on the 26th | 11% · 6% |
+| wettest in-window day since 1991 | **342.3 mm** |
+| **late-Septembers breaching the NW-Himalaya I–D trigger curve** | **17/35 = 49%** |
+
+2026 season over the AOI: CHIRPS 1 Jun→31 Jul = **1,059 mm vs 847 mm normal = +25%**, rank 22/36
+(*wetter*, not the deficit the report asserts). IMERG 625 mm to 4 Sep; ERA5-Land 796 mm to 25 Aug.
+**IMERG records a 1-day trigger breach on 2026-09-04 (21.0 mm vs the 19 mm 1-day threshold)** —
+three days before this session, i.e. the slopes are coming off a wet August, not a drained one.
+
+*Honest scope: CHIRPS 0.05° and IMERG/ERA5-Land 0.1° over a 3.5 km-wide scarp — all three see this
+wall as one or two pixels. The CHIRPS/IMERG disagreement on P(wet) **is** the answer's uncertainty.*
+
+### E — Verification of the attached AI-generated report (the §36–§38 discipline, applied again)
+
+| verdict | claim | evidence |
+|---|---|---|
+| ✅ Confirmed | "22 Curves" is the worst sector, 2400–2800 m | reproduced independently (§87C) |
+| ✅ Confirmed | 25 Sep 2022 — 11 stranded at Triund | The Tribune, 26 Sep 2022: 6 women/5 men, heavy rain, SDRF, no injuries. **One day off the user's trek date.** |
+| ✅ Confirmed | two-unit geology (Dharamshala Fm / Chail Gp) | consistent with the Dharamshala susceptibility literature; recorded in `config/triund.yaml` as *why* this site needs its own soil pass |
+| ❌ **Wrong** | "Sep 107 / Jul 339 / Aug 283 mm" | measured over the AOI: **247 / 604 / 662 mm** — district averages incl. the plains, ~2.3× low in September. **The report's "dry by late September" verdict rests on this figure.** |
+| ❌ **Contradicted** | "2026 monsoon in deficit (9% state / 4% Kangra)" | over this AOI CHIRPS is **+25%** through 31 Jul; IMERG logs a trigger day 4 Sep 2026 |
+| ⛔ **Unsupported — EXCLUDED** | July 2021: "over 100 trekkers, incl. 80 students" trapped on the Triund ridge | the flood is real (Bhagsu Nag cloudburst; 1 dead, 10 missing in Boh valley) but the report's own ANI citation says **20 stranded**; no source found for "over 100"/"80 students" |
+| ⛔ **Citation fails — EXCLUDED** | "Jan 2026: four trekkers rescued on Triund" | the cited article is about a trekking **ban**, not a rescue |
+| ⛔ **Citation fails** | prosecution under IPC s.188 / DM Act ss.51–60 | cited to an article about **Rohtang snowfall and stranded vehicles** |
+| ★ **Missed — operationally decisive** | — | the report cites but never states the content of a **6 Jan 2026 Kangra DDMA order**: trekking banned **above 3,000 m** (covers Snowline ~3,100 m and Laka, not Triund ridge at 2,833 m) and **prior SP Kangra permission mandatory for the Triund route**, all permissions void on an IMD Shimla warning |
+| ✅ Checked, does not apply | the 15 Sep high-altitude trekking restriction | applies **above 15,000 ft (4,572 m)**; every point on the route, Indrahar Jot included, is below it |
+
+**The pattern repeats §36–§38 exactly:** the synthesis is directionally sound where it paraphrases
+geology, and fabricates or mis-attributes where it reaches for specifics — and its single most
+decision-relevant source was cited but not read. Exclusions above are immunization records.
+
+### F — Artifacts
+
+`data/triund_screening/` (git-ignored): `triund_dashboard.html` (published Artifact),
+`triund_screening.kml`, `triund_screening.geojson`. **KML caveat audit: 475/475 placemarks carry
+the screening caveat** (CLAUDE.md rule 17 — an artifact that leaves the page carries its caveats
+per *feature*). Committed: `config/triund.yaml`, `config/aoi/triund_aoi.geojson`,
+`config/aoi/triund_route.geojson`.
+
+**Site state:** playbook step 2. Blocked on M2 (soil), M3 (ALOS DEM), M4 (inventory) and the user's
+radar go/no-go. **Radar cannot inform the 26 Sep trek** — a velocity baseline needs 2–3 months and
+the AOI is 19 days old; the registry file records this so nobody re-asks.
+
+---
+
 ## How to maintain this ledger
 - **Append, don't overwrite.** New runs add rows; superseded rows stay, marked *(superseded)*.
 - **Tag every number** `[MOCK]` / `[REAL]` / `[MEASURED]` with date + producing script.

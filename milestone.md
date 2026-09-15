@@ -2601,3 +2601,108 @@ which is now our standard way of hunting this.
 **Bottom line:** the break-in attempts mostly bounced, three real security holes are closed, and
 the deeper lesson is about honesty rather than hacking — *a file that travels has to carry its own
 warnings, because nothing travels with it*. Checks now **238**, all passing (§86).
+
+---
+
+## 🥾 Milestone 67 — A fourth mountain joined, and we answered a real question with a date on it  *(2026-09-07)*
+
+**What we set out to do.** You added a new area — Triund, the ridge above McLeod Ganj in the
+Dhauladhar range — and asked a question we'd never had before: *you are walking this trail on
+26 September. What's the risk?* Every previous milestone answered "how good is our system". This
+one had to answer "what should a person do", by a date.
+
+**The awkward part, said up front.** Our main instrument is satellite radar that measures ground
+creeping downhill by millimetres. It needs **two to three months of repeat passes** before it can
+say anything at all, and this area was nineteen days old. So radar could not help you this time.
+That left the shape of the land and the weather — and the whole job became making sure the answer
+said so plainly, instead of quietly borrowing the confidence our validated sites have earned.
+
+### First, we checked your outline actually covers the walk
+
+You drew a box. We tested it against twelve real landmarks pulled from the public map database —
+the temple at the trailhead, the ridge campsites, the high pass at the top. **All twelve fall
+inside it.** It's also the tightest area we've ever been given: 33 square kilometres, against 435
+for Tosh. Tighter is better — it means we look hard at the right slopes instead of thinly at a
+whole valley.
+
+One thing worth knowing: McLeod Ganj itself sits only **170 metres** inside the boundary. That's
+close enough to the edge that anything we ever measure *in the town* will be unreliable. The trail
+itself is comfortably inside.
+
+We also checked the elevation data before trusting it, by comparing it against surveyed heights.
+It puts the high pass at 4,331 m against a surveyed 4,342 — **eleven metres out at four kilometres
+up.** Good enough to build on.
+
+### Then we built the trail rather than guessing it
+
+Instead of typing in coordinates, we asked the public map database for every footpath in the area
+and worked out the actual walking route between named places. It came out at **5.0 km from the
+Galu Devi checkpost to Triund, 9.8 km from McLeod Ganj** — matching the published figures.
+
+That mattered more than it sounds. Our *first* attempt used a coordinate for Triund that we'd
+recalled from memory, and it was nearly a kilometre off. We only noticed because the resulting
+walk was far too short. Checking the answer against a number from the outside world caught it.
+
+### The cone: where a falling rock can actually get to
+
+You remembered this from an earlier session, and you remembered it right.
+
+When a rock breaks loose high on a slope, it doesn't travel forever. Draw a straight line from
+where it let go to where it finally stopped, and measure that line's tilt. Across thousands of
+recorded rockfalls, **that angle sits in a surprisingly narrow range.** A steeper line means it
+stopped early; a shallower one means it ran a long way. So the angle is a rule of thumb for *reach*.
+
+We turned that around. For every step of your walk we asked: **is there a steep, bare rock face
+above this spot, sitting at an angle that says a block could get down here?** If yes, that step is
+inside that cliff's cone.
+
+The answer for your route:
+
+> **On the climb from Galu Devi to Triund, there is not a single stretch outside a cone.**
+> About half of it is in the strongest band. The approach from Dharamkot up to the checkpost, by
+> contrast, is entirely clear — and so is the stretch from Snowline up to the pass.
+
+The single worst run is **1.5 km without a break**, between roughly 2,470 and 2,740 metres. That is
+precisely the section local guides call the "22 Curves" — and we found it from the landscape alone,
+without being told.
+
+**What this does *not* mean.** It does not mean rocks are falling. It means *if* one comes loose up
+there, that part of the path is where it could arrive. It's a map of where to keep your eyes up and
+not linger, not a prediction. We also deliberately made the cones stop at ridges, since a rock
+can't climb over one — and then **checked the whole map against the exact calculation**, to be sure
+we weren't accidentally being generous. We weren't: it's cautious everywhere it differs.
+
+### The weather half
+
+Late September really is the better end of the season. But we measured the rain over *your* area
+rather than the district, and the reassuring version doesn't survive it: **about half of past late
+Septembers had enough rain to cross the threshold that has historically triggered landslides here.**
+And the wettest single day ever recorded in that window was 342 mm — a genuine deluge.
+
+The 2026 season is also not the dry one it's been described as. Over this area it ran **a quarter
+above normal** through July, and the satellites recorded a trigger-level day on **4 September** —
+three days before we did this work.
+
+### The report you attached — and why we read its footnotes
+
+You asked us to check it, because it was AI-written. We've been burned by exactly this before, so
+every checkable claim was either re-measured or traced to its source.
+
+It's **sound on geology**, and its call about the "22 Curves" was right — our terrain work confirms
+it independently. But its **September rainfall figure is about 2.3 times too low** for your slopes
+(it used a district average that includes the flat farmland below), and that single number is what
+its "safe window" conclusion rests on. Two of its dramatic details have no support: a claim that
+over 100 trekkers were trapped in 2021 traces back to a source saying twenty. And two of its
+footnotes don't support their sentences at all — one cites an article about snowfall at a tunnel
+150 km away to back up a point about criminal law.
+
+**The most useful thing in the whole report was something it never actually said.** Buried in its
+bibliography was a January 2026 district order that requires **police permission for the Triund
+route** and bans trekking above 3,000 m — which covers Snowline and Laka, though not the Triund
+ridge itself. The report cited that page and didn't read it. That order is the one thing that can
+actually stop your trek, so it's now the first item on your list.
+
+**Bottom line:** a fourth site is registered and honest about what it doesn't know; you have a map,
+a route profile and a Google Earth file where **every one of the 475 shapes carries its own "this
+is a screen, not a warning" note**; and the lesson from the report is one to keep — *when you audit
+a summary, read its sources, not just its sentences.*
