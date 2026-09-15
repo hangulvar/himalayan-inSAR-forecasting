@@ -94,10 +94,23 @@ the CDN question; present VD's shapes as a warning product.
 
 *(Session 37's delta landed in `39e2825 "Triund AOI onboarding"`.)*
 
-Code (session 38, untracked): **`workflows/triund_nowcast.py`** — refreshes the Triund rainfall
-figures and rewrites *only* the `const NC = {...}` line of the dashboard, asserting the terrain
-payload is byte-identical first. Idempotent, `--dry-run`-able. It exists because §87's refresh lived
-in a per-session scratchpad that was wiped between sessions. No existing production script changed.
+Code (session 38, untracked — both new, no existing production script changed):
+- **`workflows/triund_nowcast.py`** — refreshes the Triund rainfall figures and rewrites *only* the
+  `const NC = {...}` line of the dashboard, asserting the terrain payload is byte-identical first.
+  Idempotent, `--dry-run`-able. Exists because §87's refresh lived in a per-session scratchpad that
+  was wiped between sessions.
+- **`workflows/triund_gps_export.py`** — GPX (route + 45 waypoints, incl. entry/exit of every
+  flagged segment) and KMZ (619 cone polygons, sliver-filtered at 0.5 ha, 68 kB) for field GPS apps.
+  Caveat audit built in: every GPX waypoint and KML placemark carries the screening caveat
+  (rule 17). *Gotcha recorded in the code:* the GeoJSON's rings were already simplified at
+  0.00025°, so a second coarser pass collapsed all 1,384 of them — simplify only rings above a
+  point count, on the open chain, then re-close.
+
+Artifacts also gained a satellite layer: Sentinel-2 (mid-Sep–Oct composite 2023–25, 10 m) on the
+**same grid**, with SAT/CONE toggles. The pixel transform was *solved from the dashboard's own
+waypoints and verified at 0.0000 px residual* before any overlay was drawn. Dropping the old
+baked-in raster made the page **smaller** (1.34 → 1.07 MB) despite the extra layer. Two
+georeferenced `triund_hazard_*.tif` added for Avenza-style position-on-map use.
 
 Docs (session 38): `RESULTS_AND_KPIS.md` **§87 Addendum** (6 items); `error_history_log.md`
 (2026-09-15, 2 defects + 1 explained artifact + a "what held" block); `session_journey.md`
