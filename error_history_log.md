@@ -2326,3 +2326,56 @@ making two derivations of one quantity disagree.*
 * The dashboard patcher's guards refused to let the stale sentence or the old masthead date survive.
 * `node --check` on the extracted page script after every patch — caught nothing, which is the point.
 * **Battery 16/16, 238 assertions in Docker**, identical to §86: the fourth AOI added no regressions.
+
+---
+
+## 2026-09-15 (later) — §87: a shipped regression that blanked most of the dashboard, and the check that would have caught it
+
+### 1. ★★ An injected `const L` collided with a function-local `const L`, and 15 blocks rendered blank
+
+* **Symptom (reported by the user, not by any guard):** *"the dashboard with map, and metre by
+  metre elevation map are completely blank."*
+* **Root cause:** adding the satellite layer injected a top-level
+  `const L = {relief, sat, cones}`. The map function *already* declared its own
+  `const L = [['#C8342B','Likely…']]` — the legend array — **later in the same function scope**.
+  A `let`/`const` declaration hoists to the top of its block in the **temporal dead zone**, so the
+  earlier `L.relief` reference in that same function did not see the outer object: it threw
+  `ReferenceError: Cannot access 'L' before initialization`.
+* **Blast radius, and why it was worse than reported:** the throw killed the map IIFE, and because
+  every block lives in **one `<script>`**, everything after it never ran. Measured with the harness:
+  **27 elements created instead of 634**, and **15 render targets left empty** — not just the map and
+  profile the user noticed, but the segment table, gully table, band key, verification ledger, both
+  "what I need" lists, the rainfall panel and the footer. *The user reported the two blanks that were
+  visually obvious; the honest count is 15.*
+* **Fix:** rename the injected constant to `LAYERS`, which appears nowhere else. Asserted in the
+  patch: the legend array untouched, `LAYERS` declared exactly once, no bare `L.<layer>` survives.
+* **★ Why it got past the checks I did run:** I ran `node --check` after every patch and it passed
+  every time — **`node --check` parses, it does not execute.** A temporal-dead-zone error is
+  perfectly valid syntax. I also ran structural checks (tag balance, id presence, base64 decode) and
+  all passed, because the *markup* was fine; only the *behaviour* was broken. **A syntax check is not
+  a render check, and every check I had was of the wrong kind.**
+* **Lesson (the general one):** when a page builds itself in JavaScript, "the file is well-formed"
+  proves nothing about whether anything appears. The only adequate check is to run the code and
+  assert the targets filled. Related to §6 #1 — *verify it in the artifact the user actually opens* —
+  but sharper: I verified the artifact's **source**, never its **result**.
+* **Also:** injecting a name into a scope you did not write is a collision waiting to happen. Grep
+  for the identifier before adding it (`const L` would have shown two hits in one second), and
+  prefer a name no one would reach for — `LAYERS`, not `L`.
+
+### 2. New guard: `workflows/check_dashboard_render.py`
+
+Executes the page's script against a minimal DOM stub and fails on (a) any thrown error, (b) any
+render target left empty, (c) fewer than 300 elements created — the last because a page that throws
+on line 1 would otherwise "pass" an error-is-null check with nothing drawn.
+
+**Validated in both directions before being trusted** (§6 meta-rule: a guard that has only seen easy
+input has not been tested): it **passes** the fixed page (634 elements, 0 empty) and **fails** a
+deliberately re-broken copy, naming the exact line and all 15 blank targets. Run it before every
+republish of that page.
+
+### 3. Process note: the browser could not open the local file, so I stopped looking
+
+Earlier in the session the in-app browser refused `file://` paths and the published artifact needed a
+sign-in, so I fell back to static checks and published without ever seeing the page render. That
+fallback was the actual failure — *not being able to look is a reason to build a way to look, not a
+reason to proceed blind.* The harness is that way to look, and it runs headless in ~2 s.
