@@ -2236,6 +2236,19 @@ support their sentences at all. The sharpest lesson was the opposite of sceptici
 the sources, not just the sentences.** The single most decision-relevant fact — a standing order
 requiring police permission for the route — was sitting in its bibliography, cited but unread. (§87.)
 
+**Q: It only runs on localhost. Why does a local research tool need security work at all?**
+A: Because "only on localhost" answers the *network* threat, not the *browser* one. Any web page
+you visit can make your browser send requests to `127.0.0.1`. On our return audit, two of those got
+through a panel that had already been hardened once. A sandboxed frame sends `Origin: null`, which
+our check had waved through as if it were curl. And a file request shaped like `//host/share/x`
+made Windows **open a network path before the guard refused it**, which can leak an NTLM password
+hash to a stranger's server. The 403 looked correct; only spying on the `resolve()` call showed the
+side effect, and timing it against an unanswerable address showed a 21-second hang. Two habits make
+this work. First, every new guard is run against the *old* code to prove it fails. Second, I don't
+recommend an upgrade blind: when Python 3.10's end-of-life came up, I built a throwaway 3.12
+environment, ran the whole battery and a dependency scan on it (117 known advisories → 0), and only
+then called the upgrade low-risk. (§88.)
+
 # Part E — Honest Limitations
 
 Being able to state weaknesses is what makes you credible.

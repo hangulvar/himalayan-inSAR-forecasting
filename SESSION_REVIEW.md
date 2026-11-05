@@ -11,104 +11,77 @@
 
 ---
 
-# LIVE — Session 38 · branch `aoi-vaishnodevi` · updated 2026-09-15
+# LIVE — Session 39 · branch `aoi-vaishnodevi` · updated 2026-10-25
 
 ## Current state
 
-- **✅ The battery is CLOSED in Docker: 16/16 suites, 238 assertions, 0 failed** — identical to the
-  §86 total, so AOI #4 added no regressions. `test_flood_gate` 27/27 and `test_tier34` 8/8 both green
-  first time, confirming §87's native exit-127 failures were environment, not logic. *(User ran
-  `wsl --update` 2.6.3.0 → 2.7.13.0, kernel 6.6.87 → 6.18.33, then started Docker.)*
-- **✅ Triund's rainfall half refreshed 11 days out** (§87 addendum 1–4). It had gone **8 days stale
-  on a LIVE artifact about a dated decision** — the §85 class. Season now **+32%** (August alone
-  **+41%**), and the most recent trigger-line crossing is **the day before the run**, not 4 Sep.
-  Freshness is *derived* on the page now, with a guard that fails if the stale sentence survives.
-- **★ The corrective that cut against the first read.** Within 2026 the trailing 10 days look like an
-  escalation; ranked against the same window since 2001 they are wetter than only **44%** of years,
-  below the median. **A trend inside one season is not a finding until it is ranked against the same
-  window in other seasons** — reporting the within-year trend alone would have manufactured an alarm
-  out of ordinary September weather.
-- **★★ §87D's rainfall caveat was too mild, and is now measured** (§87 addendum 5). On the **same 92
-  days over the same polygon**: IMERG 582 mm, ERA5-Land 832 mm, CHIRPS 2,056 mm — **the wettest is
-  3.5× the driest.** The page had shown two of those in adjacent rows with no note. *Lesson: a
-  limitation recorded qualitatively is not the same as one measured; the mild version is what
-  survives into the next artifact.* **Supersedes §87D**, and the primer's Part E entry is updated.
-- **✅ The screening left the desk — a field-artifact set** (§87 addendum 7–8): **GPX** (route +
-  45 waypoints incl. entry/exit of all 11 flagged segments), **KMZ** (619 cone polygons, sliver-
-  filtered), two **georeferenced GeoTIFFs** (live GPS position on the real hazard map, offline), and
-  a **one-A5 field card** measured at 169.6 mm of 192 mm. Caveat audit holds on every one — 45/45
-  GPX waypoints, 658/658 KML placemarks.
-- **✅ Satellite base on the map** (Sentinel-2, mid-Sep–Oct composite, 10 m) with SAT/CONE toggles.
-  Transform *solved from the dashboard's own waypoints* and verified at **0.0000 px residual** before
-  any overlay was drawn. Splitting the baked raster into three layers **cut the page 1.34 → 1.07 MB**
-  despite the extra imagery.
-- **★★ A regression SHIPPED that blanked most of the dashboard, and the user found it** (§87 addendum
-  9). An injected top-level `const L` collided with the map function's own `const L`; the temporal
-  dead zone threw, and one `<script>` means one throw kills everything after it — **27 elements
-  rendered instead of 634, 15 targets empty** (not just the map and profile, but the segment table,
-  gully table, band key, ledger, both needs lists, rainfall panel and footer). **`node --check`
-  passed after every patch because it parses rather than executes**; tag balance, id presence and
-  base64 decode passed too, because the markup was fine and only the behaviour was broken.
-  **Fixed, and the new guard `workflows/check_dashboard_render.py` is validated in BOTH directions** —
-  passes the clean page, fails a deliberately re-broken copy naming the line and all 15 blank targets.
-- **6 defects logged across the session** (`error_history_log.md`, two 2026-09-15 entries): the
-  shipped regression; historical comparison windows a day short (+33% vs the correct +32%); the
-  3.5× spread shown without disclosure; a second Douglas-Peucker pass that collapsed all 1,384
-  already-simplified rings while reporting success; `np.polyfit` tripping the native BLAS crash; plus
-  a 0.1% `bestEffort` artifact explained and deliberately closed.
-- **Carried honest limits unchanged** (VD WHERE below chance §80; NISAR monsoon unmeasured §82;
-  inventory records REPORTS §60/§83; ~30 mm/yr noise floor §78; §84's two; §86's portability limit;
-  §87's no-AUC-by-design).
-- **⚠ Standing:** §52 2 inventory rows; §66 LOW web findings; Ramban's staleness warning + deferred
-  §61 rescore; **Tosh still blocked on soil pass (M2), inventory (M4) and your credit decision —
-  the recommended next step for a FOURTH consecutive session.**
+- **Return after a 40-day gap.** The full catch-up for the user (prioritized blockers, refresh plan,
+  future scope) is **`docs/references/STATUS_AND_SECURITY_REPORT_2026-10-25.md`**; numbers are in §88.
+- **✅ Battery green natively, before and after this session's fixes, and on a trial Python 3.12
+  env** (§88A). Every new guard was proven to fail on the committed code. The data freeze is intact.
+  **The container battery was NOT run** (Docker off; the user starts it).
+- **★ 4 control-panel security holes closed** (§88B): an `Origin: null` CSRF bypass of §86; a UNC
+  path opened (outbound SMB/NTLM) *before* the traversal guard refused it; §66's whole-file read;
+  an unpinned Plotly CDN script. Plus 3 robustness/upgrade defects, one of which was a
+  **pre-existing RST race** that made the §86 CSRF tests flaky.
+- **★ The deadline is the platform, not the code:** Python 3.10 loses security support on
+  **2026-10-31**. A throwaway trial env (`insar_trial_py312`) passes everything and clears every
+  known advisory (§88C). **Switching is the user's decision**; no env or Docker spec has changed.
+- **⚠ Stale (§88D):** Ramban and VD live rainfall/alarm stop at 2026-08-08. Ramban's radar library
+  stops in May and VD's in August, with new passes waiting at ASF for both. The radar-watch file is
+  from 14 Aug; this session's live query went to scratch only.
+- **NISAR:** the volume gate is now MET (11–12 dates per track); the final-product gate is NOT (all
+  `PR`). The monsoon pilot is a user go/no-go.
+- **Logins:** HyP3 (full credits) and Earth Engine verified read-only; **Copernicus/ERA5-Land is
+  unverified** (MintPy image only).
+- **Carried honest limits unchanged:** VD WHERE below chance (§80); NISAR monsoon unmeasured (§82);
+  inventory records REPORTS (§60/§83); ~30 mm/yr noise floor (§78); Triund has no AUC by design (§87).
+- **Triund's dated decision (26 Sep) has passed**: archive the screening or set a new date.
 
 ## Recommended next step
 
-**Unchanged, and now overdue — Tosh is the bottleneck, not Triund.**
+**The user's decisions gate everything now.** In order (report §5):
 
-1. **Tosh M2 (site soil pass)**, then your go/no-go on ~34 HyP3 jobs. *(§86's literature search found
-   no Parvati-specific geotechnical source — neighbouring districts scatter φ≈0–36° — so expect a
-   bracketed, explicitly provisional pass.)*
-2. **Susceptibility model as a CORROBORATOR** (§83) — elevation-ablated AUC is the headline.
-3. **NISAR when the data allows** — ≥8 acquisitions on one track/frame, or the monsoon void clearing.
+1. **Approve the Python 3.12 upgrade** before 31 Oct (recipe: report §8). Use
+   `C:\ProgramData\anaconda3\Scripts\conda.exe` (24.11); the user-level conda is 4.12.
+2. **User starts Docker → control panel → Refresh cycle (All sites)** to close the 2026 season and
+   verify the CDS login. Then run the container battery:
+   ```
+   docker compose run --rm insar bash -c 'for t in tests/test_*.py; do python "$t" || echo "FAILED $t"; done'
+   ```
+3. **Ramban radar cadence rebuild go/no-go**: credits are not the constraint (§88D). Fold in the
+   deferred §61 rescore. Extend `search_end` past 2026-10-23 before the dry-run.
+4. Quick wins: the 2 VD history rows pending review; delete the 4 unused keys from `.env`.
+5. Then: NISAR monsoon pilot (labelled provisional), Tosh M2/M4 + radar before ~Feb, VD rebuild.
 
-**Triund before 26 Sep — two commands, in this order:**
-```
-python workflows/triund_nowcast.py          # refresh the weather half (~2 days out, 24 Sep)
-python workflows/check_dashboard_render.py  # MUST pass before republishing
-```
-Everything else in its backlog (M2 soil, M3 ALOS DEM, M4 inventory, radar go/no-go) is next-season
-work. **The trek-blocking item is not ours:** confirm with SP Kangra / the Galu Devi check-post
-whether the 6 Jan 2026 DDMA order still requires prior permission (§87E).
-
-**Do NOT:** republish that dashboard without running the render check — `node --check` and structural
-checks do not catch a blank page; present Triund's screening as a validated product or quote an AUC
-for it; re-enable the scheduled task without answering the missed-slot/Docker-down questions; add a
-CSP without deciding the CDN question; present VD's shapes as a warning product.
+**Do NOT:**
+- republish the Triund dashboard without `check_dashboard_render.py`;
+- treat the 2–3-day rainfall cadence as needed before 2027-04-01 (season start);
+- wire NISAR live while every product is `PR`;
+- loosen the new control-panel guards — each one encodes a probed exploit;
+- re-enable the scheduled task without answering the missed-slot and Docker-down questions.
 
 ## Uncommitted delta
 
-*(Sessions 37–38 landed in `39e2825`, `d632e3e`, `9608f90`, `909ee6f`.)*
+Code:
+- `workflows/control_panel.py` (Origin, UNC pre-check, streaming, drain-before-refuse, input parsing);
+- `workflows/build_3d_dashboard.py` (SRI pin);
+- `workflows/watch_triage.py` (raw docstring);
+- `tests/test_control_panel.py` (+5 guards).
 
-Code: **none** — no pre-existing production script changed in either session. Four NEW workflow
-scripts were added across session 38, all committed:
-`triund_nowcast.py` (weather refresh; asserts the terrain payload byte-identical),
-`triund_gps_export.py` (GPX + KMZ; caveat audit built in),
-`triund_field_card.py` (one-A5 printable),
-`check_dashboard_render.py` (executes the page; validated in both directions).
+Docs:
+- NEW `docs/references/STATUS_AND_SECURITY_REPORT_2026-10-25.md` + its `docs/INDEX.md` entry;
+- `RESULTS_AND_KPIS.md` §88;
+- `error_history_log.md` (2026-10-25, 9 entries);
+- `milestone.md` M69;
+- primer Part D (+1 answer);
+- this LIVE block plus 3 STABLE facts (credits, conda, NISAR gate);
+- `session_journey.md` (git-ignored).
 
-Docs (this wrap): `RESULTS_AND_KPIS.md` §87 Addendum **extended to 9 items**;
-`error_history_log.md` (two 2026-09-15 entries, 6 defects + a "what held" block);
-`milestone.md` **M68**; primer (**1 Part-D answer**, Part-E §87 limitation updated with the
-3.5× measurement); `session_journey.md` (git-ignored); this LIVE block.
-
-Artifacts (git-ignored, `data/triund_screening/`): `triund_dashboard.html` (published, **v7**),
-`triund_trek.gpx`, `triund_trek.kmz`, `triund_hazard_satellite.tif`, `triund_hazard_relief.tif`,
-`triund_field_card.html`, plus the original `triund_screening.{geojson,kml}`.
-
-Machine state (outside git): the Windows task **"InSAR Monsoon Watch Cycle" is Disabled**
-(unchanged). **WSL 2.7.13.0** since 2026-09-15; Docker Desktop starts and the container battery runs.
+Outside git:
+- trial env `C:\Users\varun\.conda\envs\insar_trial_py312` (1.6 GB, deletable);
+- one dry-run job log in `logs/`;
+- the Windows task "InSAR Monsoon Watch Cycle" is still **Disabled**.
 
 ---
 
@@ -154,8 +127,12 @@ Machine state (outside git): the Windows task **"InSAR Monsoon Watch Cycle" is D
   its BLAS DLLs → **`0xC06D007F`** (DLL-load failure, not a numerical bug). Keep `logging` ASCII.
   Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
-- Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\`.
-- HyP3 credits: **~7,900 as of 2026-08-08** (§77 — 8000 verified pre-refresh, ~100 on the VD cadence refresh; the §61 7,430 balance replenished since). Radar library **248 products** (238 + 10 §77). Disk: **56 GB** in `data/` measured 2026-08-11 (§48/§77/§83 — raw zips Drive-archivable; +~3 GB from the §77 refresh, and **`data/nisar/` is now 5.7 GB** across 3 granules plus ~160 MB of adapted rasters).
+- Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\` — **Python 3.10, which
+  loses security support 2026-10-31**; a tested 3.12 candidate is `insar_trial_py312` (§88).
+- **Two condas on this machine:** the user-level `C:\Users\varun\miniconda3` is **4.12** (the solver
+  that hangs); do env work with `C:\ProgramData\anaconda3\Scripts\conda.exe` (24.11, libmamba). Use
+  `conda create -p … --override-channels -c conda-forge` — `conda env create` rejects channel flags.
+- HyP3 credits: **8,000 verified 2026-10-25** (§88D; monthly allotment — ~7,900 on 2026-08-08 after §77). Radar library **248 products** (238 + 10 §77). Disk: **56 GB** in `data/` measured 2026-08-11 (§48/§77/§83 — raw zips Drive-archivable; +~3 GB from the §77 refresh, and **`data/nisar/` is now 5.7 GB** across 3 granules plus ~160 MB of adapted rasters).
 - The container: `docker compose build` then e.g.
   `docker compose run --rm insar python workflows/agentic_orchestrator.py`. Code + `data/` bind-mounted at `/app`.
 - **WSL2/Docker resource caps live in `C:\Users\varun\.wslconfig`** (6 GB / 6 CPU, added 2026-07-15 §48) —
@@ -222,7 +199,9 @@ The core vision is fully built and scored above chance. Remaining work:
    after NASA reprocesses, or when an acquisition lands with our footprint outside the void; scoring
    is one command (`nisar_coherence_pilot.py --season monsoon`) and aborts honestly if still void.
    (2026-07-28 §68: the publicized "fresh batch" = the 20 Jul public release of this same stream —
-   nothing new over our AOIs yet.)
+   nothing new over our AOIs yet.) **2026-10-25 §88D: 22 GUNWs over both AOIs — the ≥8-acquisition
+   volume gate is MET (ASC track 156/frame 018: 11 dates; DESC track 135/frame 072: 12), the
+   final-product gate is NOT (all `PR`).** The monsoon pilot is runnable now, labelled provisional.
    Also newly available and unexploited: **DESC track-135 L-band GUNWs** — a possible route back to
    the ASC/DESC vertical+EW decomposition that C-band DESC was too noisy for (Area 2).
 

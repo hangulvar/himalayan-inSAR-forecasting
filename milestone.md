@@ -2789,3 +2789,55 @@ ever seen working input has not been tested.
 **Bottom line:** the screening is now something you can carry, in four formats, each one still
 stating plainly that it is a screen and not a warning. The weather half is current to the day before
 we looked. And the page works — which we can now prove by running it, rather than by hoping.
+
+---
+
+## 🔐 Milestone 69 — Back after six weeks: the locks got checked again, and the clock turned out to be the bigger risk  *(2026-10-25)*
+
+**What we set out to do.** Two things after a long break. First, test the whole project hard,
+security especially, after big PHP security news made the rounds. Second, find out what had
+gone stale while nobody was looking, and turn that into a short, ordered to-do list.
+
+### The PHP news doesn't touch us, but its lesson does
+
+There's no PHP anywhere in this project. The lesson from that kind of bug still carries over: the
+dangerous code is whatever reads requests from a web browser. For us that's the little control panel
+on your own machine, so that's where we pushed hardest.
+
+### Four holes closed in the control panel
+
+- **The "only talk to our own page" rule had a loophole.** In August we taught the panel to refuse
+  button-presses from other websites. But a website can hide a sealed-off frame on its page, and
+  that frame's request arrives labelled "from nowhere", which the panel waved through. Now it
+  doesn't.
+- **A web page could make your PC reach out to a stranger's computer.** Asking the panel for a
+  file with a cleverly shaped name made Windows try to log in to another machine, *before* the
+  panel said "no". That handshake can leak a scrambled copy of your Windows password. We watched it
+  hang for 21 seconds trying. Now strange names are refused before the computer touches anything.
+- **One request could have made the panel choke** by asking for a multi-gigabyte map file all in
+  one gulp. It now sends files a piece at a time. This was a known small issue from July, and it's
+  finally done.
+- **The 3-D map loaded a charting library from the internet with no tamper seal.** It now carries
+  a fingerprint of the genuine file. We checked in a real browser that the real file loads and that
+  a fake fingerprint gets blocked.
+
+Every one of these has a new test, and every test was first run against the *old* code to prove it
+actually catches the problem. A test that has never seen the bug hasn't been tested.
+
+### The bigger risk was the calendar
+
+- **The version of Python everything runs on stops getting security fixes on 31 October**, six days
+  after this check. Rather than just say "upgrade", we built a separate trial copy on the newer
+  version and ran everything on it. All 243 checks passed, the known-weakness count went from
+  **117 to 0**, and the live satellite catalogue and logins still worked. Switching over is now your
+  call, and it's a low-risk one.
+- **The live alarms haven't been refreshed since 8 August.** The automatic schedule was switched off
+  on purpose in August, and the last two sessions were about the Triund trek. Radar is staler still:
+  Ramban's newest radar picture is from May, and 28 newer ones are waiting at the archive.
+- **Good news from NISAR, the new satellite:** there's now enough of its data over our valleys (11–12
+  dates per orbit track). It's still labelled "provisional", though, so we use it for experiments
+  only, not warnings.
+
+**Bottom line:** the project is healthy and safer than it was. What it needs now isn't more code.
+It needs you to make a few decisions (upgrade, refresh, radar), listed in order in the status
+report, and then press the buttons.

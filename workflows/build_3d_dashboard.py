@@ -445,9 +445,13 @@ def main() -> int:
                      if n_alert_markers else "")
 
     config = {"responsive": True, "displaylogo": False}
+    # SRI pin (2026-10-25): hash of cdn.plot.ly's file, verified byte-identical to the npm
+    # plotly.js-dist-min@2.35.2 build. Bumping the version means recomputing it.
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>{SITE_HTML} — 3-D Hazard Explorer</title>
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"
+ integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
+ crossorigin="anonymous"></script>
 <style>
  html,body{{margin:0;height:100%;background:#0d1b2a;font-family:Segoe UI,Arial,sans-serif}}
  #plot{{width:100vw;height:100vh}}

@@ -2408,3 +2408,100 @@ reason to proceed blind.* The harness is that way to look, and it runs headless 
 * **Lesson:** reach for the general tool last. When the relationship is exact, a closed form is both
   faster and portable — and it leaves the residual free to serve as an independent assertion instead
   of being consumed by the fit.
+
+## 2026-10-25 — §88: return audit (4 security defects, 3 robustness/upgrade defects, 2 process notes)
+
+### 1. ★ `Origin: null` walked straight through the §86 CSRF guard
+
+* **Symptom:** adversarial probe — `POST /run` with `Origin: null` → `{"ok": true, "msg": "started"}`.
+* **Root cause:** `_origin_ok` treated `"null"` like an absent Origin ("origin-less, e.g. curl").
+  It is not: a sandboxed iframe or a `data:` page — which any website can create — sends exactly
+  `Origin: null`. The §86 test only tried a real foreign origin, so it never saw the gap.
+* **Fix:** only a truly absent Origin is accepted; `null` is refused. Guard
+  `test_null_origin_post_cannot_start_a_job`, which fails on the committed code.
+* **Lesson:** when a guard has a "this value is harmless" carve-out, test the carve-out with the
+  attacker's version of that value, not only the obvious bad value.
+
+### 2. ★ The file route opened a Windows network path before refusing it
+
+* **Symptom:** `/file///evil.example/share/x` returned 403 — looked fine — but a spy on `resolve()`
+  showed it was asked about `\evil.example\share\x`; against 192.0.2.1 the request hung **21.0 s**.
+* **Root cause:** `DATA / "//host/share/x"` is a UNC path on Windows (an absolute right-hand side
+  replaces the left), and `Path.resolve()` calls `_getfinalpathname` → `CreateFileW`, i.e. the SMB
+  redirector connects (and can do an NTLM handshake) **before** the `relative_to` containment check
+  runs. GET is not covered by the Origin check, so an `<img src>` on any page triggers it.
+* **Fix:** `PureWindowsPath(rel)` must have no drive, no root and no `..` — checked before any
+  filesystem call; the resolve-based containment check stays for junctions. Guard
+  `test_file_route_never_opens_a_network_path` spies on `resolve()` and fails if it is ever asked
+  about a path outside `data/`.
+* **Lesson:** a containment check that runs *after* `resolve()` is not a pre-check — on Windows,
+  resolving is I/O. The 403 hid the side effect; only instrumenting the call revealed it.
+
+### 3. §66's open LOW — whole-file `read_bytes()` — closed
+
+* **Symptom/root cause:** `/file/` read the entire target into memory; `data/` holds multi-GB
+  rasters and any page can request one via `<img src>`. Logged in §66 as "LOW, not fixed" and carried
+  for three months.
+* **Fix:** headers from `stat()`, body via `shutil.copyfileobj`. Hermetic guard (temp `DATA`, a
+  `read_bytes` that raises) `test_file_route_streams_instead_of_reading_whole_files`.
+
+### 4. A refused POST was sometimes RESET instead of answered — and that made the §86 tests flaky
+
+* **Symptom:** mid-session, `test_cross_origin_post_cannot_start_a_job` and the new null-Origin test
+  both died with `ConnectionAbortedError [WinError 10053]` — after passing 3 times earlier.
+* **Forensics before change:** 200 refused POSTs each → **6 resets on the committed code, 4 on the
+  fixed code** — same rate, so pre-existing, not caused by today's edits (the background conda build
+  loading the machine explains two hits in one run).
+* **Root cause:** `do_POST` refused (Host/Origin) **before reading the request body**; closing a
+  socket with unread bytes makes Windows send RST, which can beat the 403 to the client.
+* **Fix:** read the (capped, ≤4096 B) body first, then refuse. **0 resets in 600**; panel suite 24/24
+  on 5 consecutive runs.
+* **Lesson:** a guard test that flakes is a real defect, not noise — but prove where it comes from
+  (old code vs new) before deciding whose bug it is.
+
+### 5. The 3-D dashboard pulled Plotly from a CDN with no integrity pin
+
+* **Root cause:** `<script src="https://cdn.plot.ly/plotly-2.35.2.min.js">` with no SRI, in a page the
+  panel serves from the same origin as `/run`.
+* **Fix:** `integrity="sha384-…"` + `crossorigin="anonymous"`; hash cross-verified against a second,
+  independent distribution (npm via jsDelivr — byte-identical; cdnjs returned a 146-byte error page and
+  was NOT counted); browser-tested both ways. Guard
+  `test_every_external_script_a_generator_emits_is_pinned`. Existing `dashboard_3d.html` files keep the
+  unpinned tag until the next rebuild.
+
+### 6. Malformed requests got no reply (robustness)
+
+* `log_from=abc` / `Content-Length: abc` raised inside the handler (connection dropped, no status);
+  `Content-Length: -1` made `rfile.read(-1)` hold the thread until the client hung up. Now parsed with
+  a fallback and clamped. Guard `test_malformed_requests_get_an_answer_not_a_dropped_connection`.
+
+### 7. `watch_triage.py` docstring — invalid escape under Python 3.12
+
+* `\fragility/  \confidence/` (a hand-drawn brace) is `\f` (a real form-feed, silently in the
+  docstring today) + `\c` (invalid: SyntaxWarning on 3.12, slated to become an error). Made the
+  docstring raw. Found only by running the battery on the trial 3.12 env — the upgrade's first catch.
+
+### 8. Process: Git Bash mangled a UNC test string, and the bogus result looked like reassurance
+
+* **Symptom:** `python -c "...Path(r'\\127.0.0.1\...').resolve()..."` printed "resolved without
+  error, 0.00 s" — which reads as "no network access, no problem".
+* **Root cause:** MSYS/Git Bash argument handling collapsed the leading `\` to one backslash, so the
+  test resolved a *local* root-relative path. The tell was in the output: the spied path began with a
+  single backslash.
+* **Fix:** moved the probe into a scratch `.py` file run from PowerShell → the real UNC path, the
+  `CreateFileW` call, and the 21 s hang.
+* **Lesson (third time this class has bitten — see the §6 rule on `python -c`):** a suspiciously
+  fast, clean answer to a security question is a reason to distrust the harness, not to relax.
+
+### 9. Process: two condas, and `conda env create` rejects channel flags
+
+* The user-level `C:\Users\varun\miniconda3` is **conda 4.12 (2022)** — the solver this log records
+  hanging. `C:\ProgramData\anaconda3` is **24.11.3 / libmamba** and built the trial env in minutes.
+* `conda env create -f x.yml --override-channels -c conda-forge` fails ("unrecognized arguments");
+  `conda create -p … --override-channels -c conda-forge <specs>` + a pip step works.
+
+### What held (probed, not assumed)
+
+No secrets in any branch's history; no `shell=True`/`eval`/`pickle`/unsafe YAML; zip extraction by
+basename, GACOS tar read in memory only; §86's Host allowlist and traversal guard; a real browser's
+same-origin button click still starts jobs after the Origin tightening (9/9 dry-run steps).

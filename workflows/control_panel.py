@@ -40,6 +40,7 @@ import csv
 import html
 import json
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -47,7 +48,7 @@ import time
 import webbrowser
 from datetime import date, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import NamedTuple
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -536,9 +537,11 @@ def _origin_ok(origin: str | None, port: int) -> bool:
     """True when a state-changing request is same-origin (or origin-less, e.g. curl).
 
     Browsers ALWAYS attach Origin to cross-site POSTs, so an absent Origin means the request
-    did not come from a page. A present Origin must be our own loopback.
+    did not come from a page. A present Origin must be our own loopback. "null" is NOT
+    origin-less: it is what a sandboxed iframe or a data: page sends, so any site can produce
+    it (2026-10-25 — accepting it re-opened the §86 CSRF hole).
     """
-    if not origin or origin == "null":
+    if not origin:
         return True
     return origin.rstrip("/") in {f"http://127.0.0.1:{port}", f"http://localhost:{port}"}
 
@@ -557,9 +560,13 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def _send(self, code: int, body: bytes, ctype: str) -> None:
+        self._headers(code, len(body), ctype)
+        self.wfile.write(body)
+
+    def _headers(self, code: int, length: int, ctype: str) -> None:
         self.send_response(code)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(length))
         self.send_header("Cache-Control", "no-store")
         # This server hands out locally-generated HTML from the SAME origin as its control
         # API, so a stray script in a dashboard would inherit the API. Cheap hardening:
@@ -567,7 +574,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
-        self.wfile.write(body)
 
     def _html(self, page: str, code: int = 200) -> None:
         self._send(code, page.encode("utf-8"), "text/html; charset=utf-8")
@@ -585,7 +591,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(results_page())
         if url.path == "/status":
             q = parse_qs(url.query)
-            log_from = int(q.get("log_from", ["0"])[0])
+            try:
+                log_from = max(int(q.get("log_from", ["0"])[0]), 0)
+            except ValueError:
+                log_from = 0
             out: dict = {"job": _current_job.as_dict() if _current_job else None,
                          "log": [], "log_next": log_from}
             if q.get("docker") == ["1"]:
@@ -600,6 +609,16 @@ class Handler(BaseHTTPRequestHandler):
         return self._html("<h1>404</h1>", 404)
 
     def do_POST(self):  # noqa: N802
+        # Read the (tiny) body BEFORE any refusal: replying with unread bytes still in the socket
+        # makes Windows send a RST that can beat the 403 (measured 2026-10-25: 4-6 of 200 refused
+        # POSTs reset, which also made the CSRF tests flaky). A negative length made
+        # rfile.read(-1) hold the thread until the client hung up; a non-numeric one dropped the
+        # connection with no reply.
+        try:
+            length = min(max(int(self.headers.get("Content-Length", 0)), 0), 4096)
+        except ValueError:
+            length = 0
+        body = self.rfile.read(length).decode("utf-8", "replace")
         if self._guard():
             return
         # CSRF: /run starts Docker jobs. A form POST is a "simple request", so any page the
@@ -611,14 +630,20 @@ class Handler(BaseHTTPRequestHandler):
         url = urlparse(self.path)
         if url.path != "/run":
             return self._json({"ok": False, "msg": "not found"}, 404)
-        length = int(self.headers.get("Content-Length", 0))
-        q = parse_qs(self.rfile.read(length).decode("utf-8"))
+        q = parse_qs(body)
         action = q.get("action", [""])[0]
         aoi = q.get("aoi", ["all"])[0]
         ok, msg = start_job(action, aoi)
         return self._json({"ok": ok, "msg": msg}, 200 if ok else (409 if "already" in msg else 400))
 
     def _serve_file(self, rel: str) -> None:
+        # Only plain relative paths, checked BEFORE any filesystem call. On Windows
+        # DATA / "//host/share/x" is a UNC path and resolve() OPENS it — an outbound SMB
+        # connection (NTLM handshake) to a host any web page can name via <img src>
+        # (2026-10-25; the containment check below only ran after that connection).
+        pure = PureWindowsPath(rel)
+        if pure.drive or pure.root or ".." in pure.parts:
+            return self._html("<h1>403</h1>", 403)
         try:
             target = (DATA / rel).resolve()
             target.relative_to(DATA.resolve())     # traversal guard
@@ -627,7 +652,11 @@ class Handler(BaseHTTPRequestHandler):
         if not target.is_file():
             return self._html("<h1>404</h1>", 404)
         ctype = MIME.get(target.suffix.lower(), "application/octet-stream")
-        self._send(200, target.read_bytes(), ctype)
+        # Stream, never read_bytes(): data/ holds multi-GB rasters, and any page can request one
+        # via <img src> — a whole-file read exhausts the panel (§66 LOW, open until 2026-10-25).
+        self._headers(200, target.stat().st_size, ctype)
+        with target.open("rb") as f:
+            shutil.copyfileobj(f, self.wfile)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""watch_triage.py — RANK (don't gate) the broad WATCH footprint (RESULTS_AND_KPIS.md §25).
+r"""watch_triage.py — RANK (don't gate) the broad WATCH footprint (RESULTS_AND_KPIS.md §25).
 
 The WATCH tier (§23, m=0.70, 132 zones) is a high-RECALL safety net — its job is to *not miss*
 anything. So gating it down by daily wetness (the per-zone gate we use on the validated operational

@@ -75,6 +75,10 @@ deletes; acting on it is manual.
   it** — it is already Area 4/5 work as a corroborator; promoting it spends the stated novelty
   and inherits the §60 corridor-reporting bias (AUC 0.731 → 0.560 without elevation), and GSI
   already publishes that product at 0.84. Includes the re-open criteria.
+- **STATUS_AND_SECURITY_REPORT_2026-10-25.md** — the catch-up after the Sep–Oct gap: test
+  results (243/243, current env + a tested Python 3.12 upgrade), the security audit (4 holes
+  fixed in the control panel, dependency advisories, Python 3.10 end-of-life), your prioritized
+  blockers, the stale-data refresh plan, and future scope (§88).
 
 ### archive/ — superseded, kept for the record
 - **Monsoon Watch Runbook (2026-07-11).md** — manual loop, superseded by the control panel (and,

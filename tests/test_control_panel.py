@@ -8,7 +8,8 @@ every test is fast, hermetic and safe to run any time.
 What is asserted:
   • the composed docker commands MIRROR monsoon_cycle.ps1 exactly (per-site
     mintpy fetch + insar alarm + status board; INSAR_CONFIG per site);
-  • action/AOI whitelisting, single-job-at-a-time (409), traversal guard on /file;
+  • action/AOI whitelisting, single-job-at-a-time (409), traversal + network-path guard on
+    /file, null-Origin CSRF refusal, malformed-request handling;
   • a dry-run job runs to completion and its log streams incrementally;
   • the results hub renders every registry AOI and reads the newest season
     alarm calendar (the same last-row fields monsoon_cycle.ps1 toasts about).
@@ -313,6 +314,102 @@ def test_cross_origin_post_cannot_start_a_job() -> None:
     # module state shared with every other test in this file. Leave the panel idle or the next
     # test to post gets a 409 from OUR job (it did — that is how this was found).
     _wait_job_end()
+
+
+def test_null_origin_post_cannot_start_a_job() -> None:
+    """2026-10-25: `Origin: null` was waved through as if origin-less. It is not — a sandboxed
+    iframe or a data: page sends exactly that, so ANY site could still fire /run."""
+    import urllib.parse
+    body = urllib.parse.urlencode({"action": "status_board", "aoi": "all"})
+    hdrs = {"Content-Type": "application/x-www-form-urlencoded", "Host": f"127.0.0.1:{_PORT}",
+            "Origin": "null"}
+    st, _, data = _raw("POST", "/run", body, hdrs)
+    if st in (200, 409):
+        _wait_job_end()          # leave the panel idle for the next test (hermeticity)
+    assert st == 403 and b"cross-origin" in data, (
+        f"Origin: null started a job ({st}) — a sandboxed iframe on any page can run Docker here")
+
+
+def test_file_route_never_opens_a_network_path() -> None:
+    """2026-10-25: on Windows DATA / "//host/share/x" is a UNC path, and resolve() OPENS it — an
+    outbound SMB connection (NTLM handshake) to a host any web page names via <img src>. The
+    containment check refused it with a 403, but only AFTER the connection. Probed live: 21 s
+    blocked on an unanswerable host. The guard must reject before any filesystem call, so this
+    spies on resolve() and fails if it is ever asked about a path outside data/."""
+    import pathlib
+    seen: list[str] = []
+    orig = pathlib.Path.resolve
+
+    def spy(self, strict=False):
+        seen.append(str(self))
+        if str(self).startswith(("\\\\", "//")):
+            raise OSError("test: refused to open a network path")
+        return orig(self, strict)
+
+    pathlib.Path.resolve = spy
+    try:
+        for p in ("/file///evil.example/share/x.html", "/file/%2F%2Fevil.example%2Fshare%2Fx",
+                  "/file/%5C%5Cevil.example%5Cshare%5Cx", "/file/C:/Windows/win.ini",
+                  "/file/sub/../../CLAUDE.md"):
+            seen.clear()
+            st, _, _ = _raw("GET", p, headers={"Host": f"127.0.0.1:{_PORT}"})
+            outside = [s for s in seen if not s.startswith(str(cp.DATA))]
+            assert st == 403, f"{p} -> {st}"
+            assert not outside, f"{p}: resolve() was called on {outside} before the guard refused"
+    finally:
+        pathlib.Path.resolve = orig
+
+
+def test_file_route_streams_instead_of_reading_whole_files() -> None:
+    """§66 LOW, open until 2026-10-25: /file did target.read_bytes(), and data/ holds multi-GB
+    rasters that any page can request via <img src> — one request could exhaust the panel.
+    Hermetic: DATA points at a temp dir (never the real data/), and a whole-file read raises."""
+    import pathlib
+    import tempfile
+    was_data, orig_read = cp.DATA, pathlib.Path.read_bytes
+    with tempfile.TemporaryDirectory() as td:
+        cp.DATA = pathlib.Path(td)
+        payload = bytes(range(256)) * 12288                    # 3 MiB, every byte value
+        (cp.DATA / "sub").mkdir()
+        (cp.DATA / "sub" / "big.tif").write_bytes(payload)
+
+        def no_whole_reads(self):
+            raise AssertionError(f"whole-file read of {self.name}")
+
+        pathlib.Path.read_bytes = no_whole_reads
+        try:
+            st, hdrs, data = _raw("GET", "/file/sub/big.tif", headers={"Host": f"127.0.0.1:{_PORT}"})
+        finally:
+            pathlib.Path.read_bytes = orig_read
+            cp.DATA = was_data
+    assert st == 200, st
+    assert int({k.lower(): v for k, v in hdrs.items()}["content-length"]) == len(payload)
+    assert data == payload, "streamed bytes differ from the file"
+
+
+def test_malformed_requests_get_an_answer_not_a_dropped_connection() -> None:
+    """A junk log_from / Content-Length crashed the handler (no reply at all), and a negative
+    Content-Length made rfile.read(-1) hold the thread until the client hung up."""
+    st, _, _ = _raw("GET", "/status?log_from=abc", headers={"Host": f"127.0.0.1:{_PORT}"})
+    assert st == 200, st
+    hdrs = {"Host": f"127.0.0.1:{_PORT}", "Content-Type": "application/x-www-form-urlencoded"}
+    for bad in ("abc", "-1"):
+        st, _, data = _raw("POST", "/run", None, {**hdrs, "Content-Length": bad})
+        assert st == 400 and b'"ok": false' in data, (bad, st, data)
+
+
+def test_every_external_script_a_generator_emits_is_pinned() -> None:
+    """The panel serves generated dashboards from the SAME origin as /run, so a script pulled
+    from a CDN inherits that API. An integrity hash makes a tampered CDN file refuse to run.
+    2026-10-25: build_3d_dashboard.py's Plotly tag had none."""
+    import re
+    unpinned = []
+    for py in sorted((PROJECT_ROOT / "workflows").glob("*.py")):
+        text = py.read_text(encoding="utf-8")
+        for m in re.finditer(r"<script[^>]*\bsrc=[\"']https?://[^>]*>", text):
+            if "integrity=" not in m.group(0) or "crossorigin=" not in m.group(0):
+                unpinned.append(f"{py.name}: {m.group(0)[:80]}")
+    assert not unpinned, f"external <script> without an SRI pin: {unpinned}"
 
 
 def test_responses_carry_the_basic_browser_hardening_headers() -> None:

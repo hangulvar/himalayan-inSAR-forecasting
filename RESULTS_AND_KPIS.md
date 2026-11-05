@@ -4728,6 +4728,78 @@ re-broken copy naming the exact line and all 15 blank targets.
 caveat stands. The terrain findings (climb 100% inside a cone, 51.7% LIKELY, worst run 1,525 m at
 2469–2743 m) are untouched; only the weather moved.
 
+## 88. Return audit after a 40-day gap — 4 control-panel holes closed, a tested Python 3.12 upgrade, and the staleness measured  `[MEASURED]`
+
+*2026-10-25, session 39 · native battery runner (each `tests/test_*.py` as a script, conda env
+library path set), adversarial probes against a dry-run `control_panel.py`, pip-audit 2.10.1 +
+bandit 1.9.4 in an isolated venv, `radar_watch.main()` / `aoi_status.assess()` called read-only
+(outputs redirected to scratch). Full write-up and the user's prioritized blockers:
+`docs/references/STATUS_AND_SECURITY_REPORT_2026-10-25.md`. Forensics: `error_history_log.md`
+2026-10-25.*
+
+### A — Battery
+
+| run | suites | assertions |
+|---|---|---|
+| current env (py 3.10.20), before any change | 16/16 | **238/238** — identical to §87's container total |
+| current env, after the fixes | 16/16 | **243/243** (+5 guards in `test_control_panel.py`) |
+| trial env `insar_trial_py312` (py 3.12.15, GDAL 3.13.3, numpy 2.5.4) | 16/16 | **243/243**, 0 SyntaxWarnings |
+
+Each of the 5 new guards **fails on the committed code** (run against `git show HEAD:` copies) and
+passes on the fix. Freeze (116 protected artifacts) intact — nothing under `data/` changed. The two
+suites §87 could only close in Docker (`test_flood_gate`, `test_tier34`) passed natively here, with
+the env's library path set the way activation sets it. The container battery was NOT run (Docker
+off; the user starts it).
+
+### B — Security defects found and fixed (all `workflows/control_panel.py` unless noted)
+
+1. **`Origin: null` bypassed the §86 CSRF check** — probe got `{"ok": true, "msg": "started"}`. A
+   sandboxed iframe on any site sends exactly that. **Refused now.**
+2. **`/file///host/share/x` reached the Windows network redirector before the traversal guard** —
+   `DATA / "//host/…"` is a UNC path and `resolve()` opens it (outbound SMB → NTLM handshake). Measured
+   **21.0 s** blocked on TEST-NET-1 (192.0.2.1). Reachable by any page via `<img src>`. **Plain relative
+   paths only, checked before any filesystem call.**
+3. **§66's open LOW closed: whole-file `read_bytes()`** on a route any page can hit, over a tree with
+   multi-GB rasters. **Streams now.**
+4. **`build_3d_dashboard.py`: Plotly from cdn.plot.ly with no SRI.** Pinned to
+   `sha384-cCVCZkAj…a5i7`, hash verified byte-identical (4,558,696 B) against the npm
+   `plotly.js-dist-min@2.35.2` build via jsDelivr; CDN sends `Access-Control-Allow-Origin: *`. Real
+   browser: correct pin → Plotly 2.35.2 renders; tampered pin → blocked, and the browser's own
+   computed digest equals the pin. Guard: no generator may emit an external `<script>` without
+   `integrity=` + `crossorigin=`.
+5. Malformed `log_from` / `Content-Length` → no reply; negative length held a thread. **Fixed.**
+6. **Refusal before draining the body → Windows RST instead of the 403: 6/200 (committed code) and
+   4/200 (mid-fix) refused POSTs reset** — the source of a CSRF-test flake. **Body read first: 0/600.**
+   Control-panel suite 24/24 on 5 consecutive runs.
+7. `watch_triage.py` docstring: `\c` invalid escape (SyntaxWarning on 3.12) and a silent `\f`
+   form-feed. **Raw string.**
+
+### C — Dependencies and platform
+
+| scope | result |
+|---|---|
+| native env, 171 packages | **117 unique advisories in 19 packages** — Pillow 50, mistune 11, jupyterlab 10, tornado 10, GDAL 7, cryptography 4, … (Jupyter stack: imported by no pipeline script) |
+| Docker lock, 58 PyPI-mappable packages | 8 vulnerable: GDAL 3.10.3, Pillow 12.2.0, urllib3 2.7.0, certifi, h2, hpack, pip, setuptools; 85 native libs unscannable by this tool |
+| trial env, 92 packages | **0** |
+| bandit over `workflows/` + `src/` | 0 high; 3 medium, all false positives |
+| secrets, all branches' history | none — the 9 `password` hits are `YOUR_…` placeholders |
+| Python 3.10 | end of security support **2026-10-31**; `google.api_core` already warns it has dropped 3.10 |
+
+`.env` holds 4 keys no code reads (Planetary Computer, Sentinel Hub, Mapbox, OpenWeather).
+Live API checks are identical under the trial clients (asf_search 12.2.2 → 14.1.0, hyp3_sdk
+7.7.6 → 7.7.8, earthengine-api 1.7.29 → 1.7.49).
+
+### D — Staleness (read-only)
+
+| item | value on 2026-10-25 |
+|---|---|
+| Ramban / VD live rainfall + alarm | as-of **2026-08-08** — **78 d** behind |
+| Ramban radar library | through 2026-05-06 → **28** new ASC scenes at ASF (S1A/S1D), newest 2026-10-23 |
+| VD radar library | through 2026-08-05 → **12** new ASC scenes (S1D), newest 2026-10-23 |
+| NISAR over both AOIs | **282** products / **22** GUNW (Aug: 124 / 7); ASC track 156 frame 018 = **11** distinct dates, DESC track 135 frame 072 = **12** — volume gate (≥8) **MET**; maturity **all `PR`** — final-product gate **NOT met** |
+| HyP3 credits | **8,000** (login verified, read-only) |
+| Earth Engine | auth OK; CDS (ERA5-Land) **unverified** — `cdsapi` lives only in the MintPy image |
+
 ---
 
 ## How to maintain this ledger
