@@ -2253,6 +2253,14 @@ then called the upgrade low-risk. (§88.)
 
 Being able to state weaknesses is what makes you credible.
 
+- **★ Ramban's soil numbers are weaker than we had been saying (§89B).** Reading the GSI report past
+  its summary settled one doubt and raised three. The "18.5 kg/cm²" is a kPa-sized value with the
+  wrong label, so our 18.5 kPa stands. But the same report calls its lab soil results "erroneous
+  and insufficient for reliable extrapolation", gives two different friction ranges, and its
+  measured density converts to about 15.7 kN/m³ where the model assumes 19. No value changed. The
+  honest label is *site-reported, author-doubted*. To learn how to read such reports, see
+  `docs/guides/Soil and Inventory - A Plain Guide.md`.
+
 - **★ One registry site publishes a product with NO validation score at all, deliberately (§87).**
   Triund was onboarded to answer a trekking question with a fixed date, and radar could not
   contribute in time (a movement baseline needs 2–3 months; the site was 19 days old). It therefore

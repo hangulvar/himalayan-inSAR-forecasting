@@ -17,7 +17,7 @@
 
 # micromamba: small, fast, conda-forge-native base. Pinned tag for
 # reproducibility — adjust if this exact tag is unavailable on your registry.
-FROM mambaorg/micromamba:1.5.10
+FROM mambaorg/micromamba:2.10.0
 
 # Conda-forge-only, version-pinned spec (mirrors environment.yml for linux-64).
 COPY --chown=$MAMBA_USER:$MAMBA_USER environment.docker.yml /tmp/environment.docker.yml
@@ -34,9 +34,9 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
 # Cloud-API Python clients (Phase 1 ASF submit/download + GEE for fetch_chirps.py).
 # Pinned here rather than in the conda spec to keep pip deps explicit and avoid
-# env-file pip-section ambiguity under micromamba. earthengine-api matches the
-# spec in requirements.txt; it is a thin REST client (no heavy native deps).
-RUN pip install --no-cache-dir hyp3_sdk==7.7.6 asf_search==12.2.2 "earthengine-api>=0.1.300"
+# env-file pip-section ambiguity under micromamba. earthengine-api is a thin REST
+# client (no heavy native deps).
+RUN pip install --no-cache-dir hyp3_sdk==7.7.8 asf_search==14.1.0 earthengine-api==1.7.49
 
 WORKDIR /app
 

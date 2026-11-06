@@ -4,12 +4,17 @@
 Every number below was produced by a command run on 25 Oct; the ledger home for the headline ones
 is `RESULTS_AND_KPIS.md` §88.*
 
+> **Update, 2026-11-06:** blockers 1 and 2 are DONE. Python 3.12 is live in your native env and
+> both Docker images, and the refresh cycle ran. Everything else in §5 stands, with new radar
+> counts in §89C. Item 6 (Tosh) now has a guide: `docs/guides/Soil and Inventory - A Plain Guide.md`.
+> Correction: the protected-file count below should read 140, not 116 (§89D).
+
 ---
 
 ## 0. The short version
 
 - **Everything still works.** All 16 test suites pass: **243 of 243 checks**, on your current
-  setup *and* on a tested upgrade. Nothing in `data/` changed (the 116-file freeze check is intact).
+  setup *and* on a tested upgrade. Nothing in `data/` changed (the 116-file ↪ 140-file freeze check is intact).
 - **I found and fixed 4 security holes**, all in the local control panel, plus 3 smaller defects.
   The two that mattered: any website you visited while the panel was running could (a) start its
   Docker jobs, by slipping past the §86 fix, or (b) make your PC try to log in to a stranger's
@@ -98,7 +103,7 @@ cleanest signal.
 | Real end-to-end: launched the actual panel, drove it in a real browser | button click → **9/9 steps** ran; all **17** results-hub links streamed back byte-complete; Ramban's live dashboard rendered (**538 elements, 0 console errors**) |
 | Triund dashboard render check | **634 elements**, OK |
 | Live ASF / NISAR / logins under the upgraded clients | **identical results** to the current env |
-| Data freeze (116 protected artifacts byte-identical) | **intact**: nothing in `data/` changed |
+| Data freeze (116 ↪ 140 protected artifacts byte-identical) | **intact**: nothing in `data/` changed |
 
 **Not done, and why:** the container battery. Docker was off, and by your standing rule I don't
 start it. The native runs cover the same 16 suites, but the container run should be repeated once

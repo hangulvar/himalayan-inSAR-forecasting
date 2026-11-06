@@ -13,14 +13,14 @@
 channels:
   - conda-forge
 dependencies:
-  - python=3.10.*
-  - gdal=3.10.*
-  - rasterio=1.4.*
-  - geopandas=1.1.*
-  - shapely=2.1.*
-  - numpy=2.2.*
-  - scipy=1.15.*
-  - matplotlib-base=3.10.*   # -base: headless Agg, no GUI/Qt deps (scripts emit SVG/HTML)
+  - python=3.12.*
+  - gdal=3.13.*
+  - rasterio=1.5.*
+  - geopandas=1.2.*
+  - shapely=2.2.*
+  - numpy=2.5.*
+  - scipy=1.18.*
+  - matplotlib-base=3.11.*   # -base: headless Agg, no GUI/Qt deps (scripts emit SVG/HTML)
   - python-dotenv
   - pyyaml                   # config.yaml loader (workflows/config.py)
   - pip

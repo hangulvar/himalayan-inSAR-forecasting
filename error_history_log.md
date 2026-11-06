@@ -2505,3 +2505,31 @@ reason to proceed blind.* The harness is that way to look, and it runs headless 
 No secrets in any branch's history; no `shell=True`/`eval`/`pickle`/unsafe YAML; zip extraction by
 basename, GACOS tar read in memory only; §86's Host allowlist and traversal guard; a real browser's
 same-origin button click still starts jobs after the Origin tightening (9/9 dry-run steps).
+
+## 2026-11-06 — §89: upgrade + soil-source audit (2 process defects, 1 long-open flag resolved)
+
+### 1. A PDF-extraction script died silently and left a plausible-looking partial output
+
+* **Symptom:** the Tiralines paper "had" no shear-strength values: 71 lines of text from a 21-page PDF,
+  no error shown.
+* **Root cause:** `python -I` ignores `PYTHONIOENCODING`, so printing a non-cp1252 character to stdout
+  raised on page 3 — and the run had `2>/dev/null`. This is the §6 "never suppress output" rule, broken
+  again, in the same shape.
+* **Caught by:** a character-count probe showing pages 6/11/15 held text the output lacked.
+* **Fix:** write to a UTF-8 file, keep stderr, print an explicit "ok".
+* **Lesson:** a short output from a long input is a failure until proven otherwise. Had this been
+  accepted, the guide would have said the paper held no values.
+
+### 2. A browser-pane link to an open-access PDF popped a save dialog on the user's screen
+
+* **Symptom:** `preview_start` on a journal URL returned "responded with a file download".
+* **Fix:** did not retry (as instructed); told the user to dismiss it; no bot-block was circumvented.
+* **Lesson:** if an article URL may serve a PDF directly, expect a dialog on a shared screen.
+
+### 3. Resolved: the "18.5 kg/cm²" flag open since §20
+
+See `RESULTS_AND_KPIS.md` §89B. It was never checked against the PDF that had been in the repo all
+along, across 5 months and multiple passes through that report. **Lesson:** a flag saying "confirm vs the
+source" is a task, not a caveat — when the source is on disk, close it. And "read the summary" had been
+the failure mode: the summary carries the wrong unit; the body, table and caveat that settle it sit
+95–98 pages in.

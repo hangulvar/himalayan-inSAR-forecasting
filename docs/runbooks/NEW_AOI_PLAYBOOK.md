@@ -84,6 +84,8 @@ Step 1 green and the next command.
 
 ## Step 3 (M2, manual) — Site soil pass
 
+*New to this? Read `docs/guides/Soil and Inventory - A Plain Guide.md` first.*
+
 The infinite-slope engine needs shear-strength parameters (`c_dry`, `c_wet`, φ,
 γ, depth). **Do not silently inherit another site's values** — and this is now
 **measured, not just principled** (§42, re-confirmed on the kappa=0.06 physics
@@ -168,6 +170,8 @@ zones; `data/mosaic_<slug>/` has the union rasters. Optional UIs:
 `build_3d_dashboard.py`, `agentic_orchestrator.py`.
 
 ## Step 7 (M4, manual) — Verified landslide inventory
+
+*New to this? See part 7 of `docs/guides/Soil and Inventory - A Plain Guide.md`.*
 
 Validation is meaningless against unverified ground truth (§12g — a single wrong
 news date once inverted a conclusion; the 2026-07-11 decontamination showed

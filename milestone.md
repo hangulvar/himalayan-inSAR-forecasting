@@ -2841,3 +2841,49 @@ actually catches the problem. A test that has never seen the bug hasn't been tes
 **Bottom line:** the project is healthy and safer than it was. What it needs now isn't more code.
 It needs you to make a few decisions (upgrade, refresh, radar), listed in order in the status
 report, and then press the buttons.
+
+---
+
+## 🧰 Milestone 70 — The upgrade landed, the season caught up, and a five-month-old question got answered  *(2026-11-06)*
+
+**What we set out to do.** Three things: move the whole project onto a version of Python that still
+gets security fixes, bring the stale data up to date, and explain the soil and landslide-record
+work properly, so that finding this information stops feeling like robot work.
+
+### The upgrade is done
+
+Your computer's Python setup and both Docker containers are upgraded. All 243 checks pass, both on
+your machine and inside the container, which is where the real work runs. The known-weakness count
+went from **117 to 0** in your main environment and the main container. One small leftover remains
+in the radar-processing container: a helper library with 3 known issues, which serves nothing here
+and has no compatible fix available yet. The old setup is parked, not deleted, in case anything
+surprises us.
+
+### The 2026 season caught up
+
+Rain and alarm records now run to **30 October**, and the rainfall login was finally proven by using
+it. Both main sites are dormant now, as you'd expect after the monsoon. Since August, Ramban had no
+red-alert days, and Vaishno Devi had two, on 19 and 20 August. **We don't yet know whether anything
+actually fell on those days.** Checking the news and GSI records for that is the next inventory job.
+
+### The question nobody had checked
+
+Since June, a note has said *"confirm this soil number against the original report"*. That report
+was in the project folder the whole time. Reading it properly, past the summary, answered the
+question: the figure was printed with the wrong unit, and our value stands.
+
+But it also turned up something more uncomfortable. The same report says its own lab soil results
+were *"both erroneous and insufficient"*. It gives two different friction ranges, and its measured
+soil weight doesn't match what our model assumes. We changed nothing, because none of that proves
+our numbers wrong. But Ramban's soil values are less solid than we'd been saying, and now the
+record says so.
+
+### A guide instead of a checklist
+
+There's now a plain-language guide to soil and landslide records. It explains why a slope stands up,
+what each of the five soil numbers means, why the depth of a slide matters most, how to read a
+report in five minutes, and the eight traps, all taken from your own documents. It also explains
+how the map gets marked, and it hands you your first real Tosh landslide to check.
+
+**Bottom line:** the machine is current and healthy. What it needs next is judgement rather than
+code, and the guide is there so that judgement can be yours.

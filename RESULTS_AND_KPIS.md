@@ -4746,7 +4746,7 @@ bandit 1.9.4 in an isolated venv, `radar_watch.main()` / `aoi_status.assess()` c
 | trial env `insar_trial_py312` (py 3.12.15, GDAL 3.13.3, numpy 2.5.4) | 16/16 | **243/243**, 0 SyntaxWarnings |
 
 Each of the 5 new guards **fails on the committed code** (run against `git show HEAD:` copies) and
-passes on the fix. Freeze (116 protected artifacts) intact — nothing under `data/` changed. The two
+passes on the fix. Freeze (116 protected artifacts ↪ **140**, corrected §89D) intact — nothing under `data/` changed. The two
 suites §87 could only close in Docker (`test_flood_gate`, `test_tier34`) passed natively here, with
 the env's library path set the way activation sets it. The container battery was NOT run (Docker
 off; the user starts it).
@@ -4799,6 +4799,90 @@ Live API checks are identical under the trial clients (asf_search 12.2.2 → 14.
 | NISAR over both AOIs | **282** products / **22** GUNW (Aug: 124 / 7); ASC track 156 frame 018 = **11** distinct dates, DESC track 135 frame 072 = **12** — volume gate (≥8) **MET**; maturity **all `PR`** — final-product gate **NOT met** |
 | HyP3 credits | **8,000** (login verified, read-only) |
 | Earth Engine | auth OK; CDS (ERA5-Land) **unverified** — `cdsapi` lives only in the MintPy image |
+
+## 89. Python 3.12 upgrade DONE, 2026 season caught up, and the Ramban soil source finally read to the end  `[MEASURED]`
+
+*2026-11-06, session 40 · `docker compose build`, the full refresh chain (`live_alarm.py` per site +
+`aoi_status.py`, log `logs/refresh_cycle_2026-11-06.log`), pip-audit, pdfplumber text extraction of the
+GSI reports in `docs/briefs/LandslideInventory/`. Plain-language companion for the user:
+`docs/guides/Soil and Inventory - A Plain Guide.md`.*
+
+### A — Upgrade
+
+| layer | before | after |
+|---|---|---|
+| `insar` image | py 3.10.20, GDAL 3.10.3, numpy 2.2 | **py 3.12.16, GDAL 3.13.3, numpy 2.5.4**, base `micromamba:2.10.0`, lock regenerated (170 packages) |
+| `mintpy` image | py 3.11, base 1.5.10 | py 3.11, numpy 1.26.4 (pin kept), MintPy 1.6.4, pyaps3 0.3.7, cdsapi 0.7.7, base 2.10.0 |
+| native `insar_qa_env` | py 3.10.20 | **py 3.12.16**, recreated fresh from `environment.yml`; `jupyterlab` and the `defaults` channel dropped; old env kept as `insar_qa_env_py310_old` |
+
+| final check | result |
+|---|---|
+| battery, in the `insar` container | **16/16, 243/243, on 2 consecutive runs** (first full container run since §87) |
+| battery, native | **16/16, 243/243** |
+| pip-audit: native, 91 packages | **0** |
+| pip-audit: `insar`, 84 packages | **0** |
+| pip-audit: `mintpy`, 120 packages | **1 package, 3 advisories** — `tornado` 6.5.10, fix 6.6. A `tornado>=6.6` pin failed to solve (no build available to this env); pin reverted, retry later. Dependency of dask, serves nothing here. |
+| Docker OS-level packages | still **unscanned** (needs an image scanner) |
+
+Image rollback tags: `insar-himalaya:py310-backup`, `insar-mintpy:pre-upgrade-backup`.
+The `insar` image reads 433 MB in `docker images` vs 1.54 GB before: a display difference
+(compressed vs unpacked); `/opt/conda` inside is 1.3 GB and every tool is present.
+
+### B — The Ramban soil source (GSI, `50046_JK_landslide_DodaRamban.pdf`)
+
+**↪ Closes the unit flag open since §20.** The report's summary, its section text and its Table all
+carry "18.5"; the body at printed p.95 converts "0.051 and 0.35 kg/cm² (approximately 5.1 to 35 kPa)".
+So the "18.5 kg/cm²" in the summary is a kPa-scale value with the wrong label. The sister Doda–Kishtawar
+report's Table 6.1 repeats the pattern (17.5–35 under a kg/cm² header). **`c_dry` = 18.5 kPa stands.**
+
+**Three NEW caveats from reading past the summary. No value was changed; these are open questions.**
+
+1. **The report doubts its own lab data.** Printed p.98: laboratory results for soil samples "were
+   both erroneous and insufficient for reliable extrapolation". So §20's "site-grounded" soil values
+   rest on data its authors did not extrapolate from. Tag: **site-reported, author-doubted**.
+2. **The report disagrees with itself.** Table: c 0–25 (mean 18.5, median 22.5), φ 36.4–39.1°. Body
+   p.95: c 5.1–35 kPa, "average" 22.5, φ **25.9–46.6°**. §20 took the narrow φ range. The model's φ=36°
+   is inside both, but the honest bracket is wider than §20 implied.
+3. **Unit weight.** Table mean wet density 1.603 g/cc ≈ **15.7 kN/m³**; the model uses **19**. That is
+   below the 17–21 bracket tested in §42. Possibly a disturbed-sample artifact (see caveat 1), and
+   regional analogues give 18–20 (§37), so 19 is not refuted — but it was never compared.
+   **Worth a γ=16 sensitivity run at the next Ramban rebuild.**
+
+### C — 2026 season caught up
+
+Rainfall and alarms now run to **2026-10-30** at all sites, with the Copernicus login verified by use.
+
+| site | level at 30 Oct | days since 8 Aug | whole 2026 season (213 d) |
+|---|---|---|---|
+| Ramban | DORMANT, E=0.072 | 61 DORMANT, 22 WATCH, **0 ALERT** | 139 / 54 / 20 |
+| Vaishno Devi | DORMANT, E=0.012 | 56 DORMANT, 25 WATCH, **2 ALERT** (19 and 20 Aug, E=2.2) | 138 / 56 / 19 |
+
+**Whether anything failed on those days is unknown** — the Aug–Oct inventory has not been checked, so
+the season is not scored.
+
+Radar at ASF, through 2026-11-04: Ramban **30** new ASC scenes, VD **14**. NISAR: **314** products,
+**26** GUNW, newest 2026-11-04. These supersede the §88D counts (the "library through" dates stand).
+
+### D — Freeze and dashboards
+
+**↪ Corrects §88A: the protected set is 140 artifacts, not 116** (it grew at §80; "116" was carried from
+older notes without counting). After the refresh the freeze went red on exactly **4 of 140**: the 2026
+alarm calendar and report JSON for Ramban and VD, the documented legitimate cause, with 0 missing and
+0 added. Re-frozen at 140 per the guard's own procedure; prior baseline kept in session scratch only.
+
+Both `dashboard_3d.html` rebuilt so the §88 Plotly pin is live: diff against backups shows **only** the
+script tag and the "generated" stamp changed.
+
+### E — Literature checked for the user's soil/inventory guide (first-hand unless noted)
+
+| source | what it gave | relevance |
+|---|---|---|
+| Sharma & Mahajan, *Disaster & Development* 8 (Tiralines, 14 Aug 2013) | φ 25, 27, 31° direct shear, remoulded; cohesion printed 0.07/0.02/0.17 "kPa" (**unit doubtful**: if kg/cm², ≈7/2/17 kPa); modelled 0.0205 MN/m³ = 20.5 kN/m³; debris cover ~20–25 m estimated; sandy (76–82%) | Triund, Dharamsala Group end |
+| Ghosh Roy et al. 2024, *IJCI* 7, DOI 10.11159/ijci.2024.006 (Parbati-II backslope) | as extracted: slumped rock 0.05 MPa, φ 20°, 18 kN/m³; slip 10–15 m; metavolcanics | Weak analogue for Tosh |
+| Tribune, updated 28 Feb 2025 | landslide dammed Jeera Nullah, upstream of Tosh village; "Thursday" ⇒ 27 Feb 2025 **inferred**; single source | **Lead only.** First candidate Tosh inventory row. |
+
+No measured soil value for Tosh or the upper Parvati was found (same outcome as §86). GSI's 2023 Kullu
+report and the Kullu case study could not be opened from here (connection refused / 403).
 
 ---
 

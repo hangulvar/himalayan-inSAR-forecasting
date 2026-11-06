@@ -11,76 +11,72 @@
 
 ---
 
-# LIVE — Session 39 · branch `aoi-vaishnodevi` · updated 2026-10-25
+# LIVE — Session 40 · branch `aoi-vaishnodevi` · updated 2026-11-06
 
 ## Current state
 
-- **Return after a 40-day gap.** The full catch-up for the user (prioritized blockers, refresh plan,
-  future scope) is **`docs/references/STATUS_AND_SECURITY_REPORT_2026-10-25.md`**; numbers are in §88.
-- **✅ Battery green natively, before and after this session's fixes, and on a trial Python 3.12
-  env** (§88A). Every new guard was proven to fail on the committed code. The data freeze is intact.
-  **The container battery was NOT run** (Docker off; the user starts it).
-- **★ 4 control-panel security holes closed** (§88B): an `Origin: null` CSRF bypass of §86; a UNC
-  path opened (outbound SMB/NTLM) *before* the traversal guard refused it; §66's whole-file read;
-  an unpinned Plotly CDN script. Plus 3 robustness/upgrade defects, one of which was a
-  **pre-existing RST race** that made the §86 CSRF tests flaky.
-- **★ The deadline is the platform, not the code:** Python 3.10 loses security support on
-  **2026-10-31**. A throwaway trial env (`insar_trial_py312`) passes everything and clears every
-  known advisory (§88C). **Switching is the user's decision**; no env or Docker spec has changed.
-- **⚠ Stale (§88D):** Ramban and VD live rainfall/alarm stop at 2026-08-08. Ramban's radar library
-  stops in May and VD's in August, with new passes waiting at ASF for both. The radar-watch file is
-  from 14 Aug; this session's live query went to scratch only.
-- **NISAR:** the volume gate is now MET (11–12 dates per track); the final-product gate is NOT (all
-  `PR`). The monsoon pilot is a user go/no-go.
-- **Logins:** HyP3 (full credits) and Earth Engine verified read-only; **Copernicus/ERA5-Land is
-  unverified** (MintPy image only).
+- **✅ Python 3.12 upgrade DONE** in the native env and the `insar` image; MintPy stays on 3.11 with
+  numpy<2 by design (§89A). Rollback: `insar_qa_env_py310_old`, `insar-himalaya:py310-backup`,
+  `insar-mintpy:pre-upgrade-backup`.
+- **✅ Battery green in the container and natively** (§89A), closing §88's "not run in Docker" gap.
+  pip-audit clean on native and `insar`. **Open:** MintPy's `tornado` advisories (no compatible build
+  yet; low risk) and Docker OS packages (unscanned).
+- **✅ 2026 season refreshed to 30 Oct at all sites**, live chain proven on the new images, Copernicus
+  login verified by use (§89C). Both live sites DORMANT.
+- **⚠ Unscored:** whether anything failed on VD's 19–20 Aug ALERT days, or anywhere Aug–Oct. Needs a
+  verified late-season inventory pass.
+- **★ §20's unit flag closed, and 3 new soil caveats opened** (§89B): the GSI report doubts its own
+  lab data, carries two φ ranges, and its density ≈15.7 kN/m³ vs the model's 19. No value changed.
+- **Radar is still stale** (Ramban library May, VD August); the rebuild decision is unchanged, with
+  new counts in §89C. NISAR volume gate met; all products checked in §88D still provisional.
+- **✅ Plotly tamper pin is live** in both 3-D dashboards; only the tag and date stamp changed (§89D).
+- **Freeze re-baselined at 140** after a 4-file, documented-cause change. **↪ It was never 116 by §88**;
+  corrected in §89D.
+- **New for the user:** `docs/guides/Soil and Inventory - A Plain Guide.md`.
 - **Carried honest limits unchanged:** VD WHERE below chance (§80); NISAR monsoon unmeasured (§82);
   inventory records REPORTS (§60/§83); ~30 mm/yr noise floor (§78); Triund has no AUC by design (§87).
-- **Triund's dated decision (26 Sep) has passed**: archive the screening or set a new date.
 
 ## Recommended next step
 
-**The user's decisions gate everything now.** In order (report §5):
+**All remaining items are the user's.** Status report §5, in order, skipping the two now done:
 
-1. **Approve the Python 3.12 upgrade** before 31 Oct (recipe: report §8). Use
-   `C:\ProgramData\anaconda3\Scripts\conda.exe` (24.11); the user-level conda is 4.12.
-2. **User starts Docker → control panel → Refresh cycle (All sites)** to close the 2026 season and
-   verify the CDS login. Then run the container battery:
-   ```
-   docker compose run --rm insar bash -c 'for t in tests/test_*.py; do python "$t" || echo "FAILED $t"; done'
-   ```
-3. **Ramban radar cadence rebuild go/no-go**: credits are not the constraint (§88D). Fold in the
-   deferred §61 rescore. Extend `search_end` past 2026-10-23 before the dry-run.
-4. Quick wins: the 2 VD history rows pending review; delete the 4 unused keys from `.env`.
-5. Then: NISAR monsoon pilot (labelled provisional), Tosh M2/M4 + radar before ~Feb, VD rebuild.
+1. **Ramban radar rebuild go/no-go** (§89C). Extend `search_end` past the newest scene before the
+   dry-run; fold in the §61 rescore; add a **γ=16 sensitivity run** (§89B).
+2. **The 2 VD history rows** pending review.
+3. **NISAR monsoon pilot**, labelled provisional.
+4. **Tosh:** soil pass + inventory using the new guide, radar decision before ~Feb. First exercise:
+   verify the Jeera Nullah slide (§89E).
+5. **Delete the 4 unused keys from `.env`**; decide Triund archive vs new date.
+6. Retry the `tornado>=6.6` pin in MintPy; once happy, delete the rollback env and image tags.
 
 **Do NOT:**
 - republish the Triund dashboard without `check_dashboard_render.py`;
 - treat the 2–3-day rainfall cadence as needed before 2027-04-01 (season start);
 - wire NISAR live while every product is `PR`;
-- loosen the new control-panel guards — each one encodes a probed exploit;
+- change Ramban's γ or φ on §89B alone — those are questions, not findings;
+- loosen the control-panel guards — each one encodes a probed exploit;
 - re-enable the scheduled task without answering the missed-slot and Docker-down questions.
 
 ## Uncommitted delta
 
-Code:
-- `workflows/control_panel.py` (Origin, UNC pre-check, streaming, drain-before-refuse, input parsing);
-- `workflows/build_3d_dashboard.py` (SRI pin);
-- `workflows/watch_triage.py` (raw docstring);
-- `tests/test_control_panel.py` (+5 guards).
+Code / specs:
+- `docker/Dockerfile`, `docker/mintpy.Dockerfile`, `docker/environment.docker.yml`,
+  `docker/conda-linux-64.lock`, `environment.yml`.
 
 Docs:
-- NEW `docs/references/STATUS_AND_SECURITY_REPORT_2026-10-25.md` + its `docs/INDEX.md` entry;
-- `RESULTS_AND_KPIS.md` §88;
-- `error_history_log.md` (2026-10-25, 9 entries);
-- `milestone.md` M69;
-- primer Part D (+1 answer);
-- this LIVE block plus 3 STABLE facts (credits, conda, NISAR gate);
+- NEW `docs/guides/Soil and Inventory - A Plain Guide.md` + `docs/INDEX.md`, playbook links;
+- `RESULTS_AND_KPIS.md` §89 (+ ↪ on §88A);
+- `error_history_log.md` (2026-11-06);
+- `milestone.md` M70;
+- primer Part E (+1 limit);
+- status report (update note + 140 correction);
+- this LIVE block + 1 STABLE fact;
 - `session_journey.md` (git-ignored).
 
 Outside git:
-- trial env `C:\Users\varun\.conda\envs\insar_trial_py312` (1.6 GB, deletable);
-- one dry-run job log in `logs/`;
+- `data/`: refreshed season files, `aoi_status.*`, `radar_watch.json`, both `dashboard_3d.html`, new
+  freeze baseline;
+- `logs/refresh_cycle_2026-11-06.log`;
 - the Windows task "InSAR Monsoon Watch Cycle" is still **Disabled**.
 
 ---
@@ -127,8 +123,8 @@ Outside git:
   its BLAS DLLs → **`0xC06D007F`** (DLL-load failure, not a numerical bug). Keep `logging` ASCII.
   Native `gdalwarp` etc. live in `C:\Users\varun\.conda\envs\insar_qa_env\Library\bin` (prepend to PATH).
 
-- Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\` — **Python 3.10, which
-  loses security support 2026-10-31**; a tested 3.12 candidate is `insar_trial_py312` (§88).
+- Env (native): `insar_qa_env` at `C:\Users\varun\.conda\envs\insar_qa_env\` — **Python 3.12 since
+  2026-11-06** (§89A); no jupyterlab. The old 3.10 env is parked as `insar_qa_env_py310_old`.
 - **Two condas on this machine:** the user-level `C:\Users\varun\miniconda3` is **4.12** (the solver
   that hangs); do env work with `C:\ProgramData\anaconda3\Scripts\conda.exe` (24.11, libmamba). Use
   `conda create -p … --override-channels -c conda-forge` — `conda env create` rejects channel flags.

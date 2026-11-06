@@ -28,6 +28,9 @@ restructure that gathered all *reading* material under `docs/`. The **functional
 - **Foundations - Physics and Maths Primer.md** — the science base (Phases 1–4 + forecasting/rainfall/validation). Updated each completed phase by `/wrap-session`.
 - **InSAR_hazard_forecasting_Context.md** — original project vision + strategic roadmap (mirrors SESSION_REVIEW STABLE §4).
 - **proj_pipeline_AOI.md** — future-AOI shortlist and pipeline notes.
+- **Soil and Inventory - A Plain Guide.md** — START HERE before any soil or landslide-record
+  hunt: what the five soil numbers mean, why the map depends on them, how to read a report and
+  spot the traps, where to search, and how inventories are scored. No background needed.
 
 ### runbooks/ — how to operate
 - **NEW_AOI_PLAYBOOK.md** — deterministic recipe for onboarding a new AOI (automated steps + the manual M1–M4). Referenced by `workflows/aoi_status.py`'s next-step hints.

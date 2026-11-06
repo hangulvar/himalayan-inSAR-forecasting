@@ -11,7 +11,7 @@
 # Installs into the BASE env so micromamba's entrypoint auto-activates it (same
 # pattern as the insar image — no manual activation, so numpy/BLAS just work).
 # ─────────────────────────────────────────────────────────────────────────────
-FROM mambaorg/micromamba:1.5.10
+FROM mambaorg/micromamba:2.10.0
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER environment.mintpy.yml /tmp/environment.mintpy.yml
 RUN micromamba install -y -n base -f /tmp/environment.mintpy.yml \
